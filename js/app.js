@@ -1042,6 +1042,29 @@ function initDialogs(){
     });
   });
 }
+// Escolhe o lado da dica pela posição do elemento: em cima, embaixo, à esquerda ou à direita,
+// o que couber inteiro na tela com o menor deslocamento (empate fica com a ordem da lista).
+// `arrow` é onde a setinha aponta para o centro do elemento, medido a partir da borda da dica.
+function placeTip(r, w, h, vw, vh, gap = 8, m = 8){
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  const sides = [
+    {side: "top", x: cx - w / 2, y: r.top - h - gap, fits: r.top - h - gap >= m},
+    {side: "bottom", x: cx - w / 2, y: r.bottom + gap, fits: r.bottom + gap + h <= vh - m},
+    {side: "left", x: r.left - w - gap, y: cy - h / 2, fits: r.left - w - gap >= m},
+    {side: "right", x: r.right + gap, y: cy - h / 2, fits: r.right + gap + w <= vw - m}
+  ];
+  let best = null;
+  sides.forEach((s, i) => {
+    if(!s.fits) return;
+    const x = Math.max(m, Math.min(s.x, vw - w - m)), y = Math.max(m, Math.min(s.y, vh - h - m));
+    const score = Math.abs(x - s.x) + Math.abs(y - s.y) + i * 6;
+    if(!best || score < best.score) best = {side: s.side, x, y, score};
+  });
+  if(!best) best = {side: "bottom", x: Math.max(m, Math.min(cx - w / 2, vw - w - m)), y: Math.min(r.bottom + gap, vh - h - m)};
+  const vertical = best.side === "top" || best.side === "bottom";
+  const arrow = vertical ? Math.max(10, Math.min(cx - best.x, w - 10)) : Math.max(8, Math.min(cy - best.y, h - 8));
+  return {side: best.side, x: Math.round(best.x), y: Math.round(best.y), arrow: Math.round(arrow)};
+}
 // Tooltips no visual do app: ao passar o mouse (com atraso) ou ao focar pelo teclado.
 // Usa data-tip-key (texto traduzido), data-tip, ou o aria-label/title de botões só com ícone.
 function initTooltips(){
@@ -1061,14 +1084,15 @@ function initTooltips(){
   const show = el => {
     const txt = textOf(el); if(!txt || !el.isConnected) return;
     tip.textContent = txt; target = el; el.setAttribute("aria-describedby", "tooltip");
-    tip.style.left = "0px"; tip.style.top = "0px";
+    tip.style.left = "0px"; tip.style.top = "0px"; tip.style.width = "";
     if(!tip.matches(":popover-open")) tip.showPopover();
-    const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
-    let top = r.top - h - 8; if(top < 8) top = r.bottom + 8;
-    // Largura útil sem a faixa da barra de rolagem; com innerWidth a dica encostava nela e quebrava a linha.
-    const vw = document.documentElement.clientWidth;
-    tip.style.left = Math.max(8, Math.min(r.left + r.width / 2 - w / 2, vw - w - 8)) + "px";
-    tip.style.top = top + "px";
+    // Mede no canto e trava a largura: reposicionada perto da borda, a dica não quebra a linha.
+    const box = tip.getBoundingClientRect(), w = Math.ceil(box.width), h = Math.ceil(box.height);
+    tip.style.width = w + "px";
+    const p = placeTip(el.getBoundingClientRect(), w, h, document.documentElement.clientWidth, document.documentElement.clientHeight);
+    tip.dataset.side = p.side;
+    tip.style.left = p.x + "px"; tip.style.top = p.y + "px";
+    tip.style.setProperty("--arrow", p.arrow + "px");
   };
   document.addEventListener("mouseover", e => {
     const el = e.target.closest && e.target.closest(SEL);

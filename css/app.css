@@ -279,10 +279,13 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 /* ---------- biblioteca ---------- */
 .lib-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:16px 0}
 .lib-toolbar .search{flex:1 1 240px}
+/* Filtro com a mesma altura da busca e do menu de ordem, para a linha ficar alinhada. */
+.lib-toolbar>.seg{min-height:40px;box-sizing:border-box}
+.lib-toolbar>.seg button{display:inline-flex;align-items:center}
 .cards{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
 .lib-card{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-sm);
   transition:transform var(--t) var(--ease-out),box-shadow var(--t) var(--ease),border-color var(--t);animation:card-in var(--t-slow) var(--ease-out) backwards}
-.lib-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--line-strong)}
+.lib-card:hover{box-shadow:var(--shadow-md);border-color:var(--line-strong)}
 @keyframes card-in{from{opacity:0;transform:translateY(8px)}}
 .lib-card h3{font-size:1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lib-card .meta{display:flex;gap:6px;flex-wrap:wrap}
@@ -327,7 +330,7 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .field-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
 .chord-card{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:14px;border-radius:var(--r-lg);border:1px solid var(--line);background:var(--surface);cursor:pointer;text-align:left;
   box-shadow:var(--shadow-sm);transition:transform var(--t) var(--ease-out),box-shadow var(--t),border-color var(--t);animation:card-in var(--t-slow) var(--ease-out) backwards}
-.chord-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--accent)}
+.chord-card:hover{box-shadow:var(--shadow-md);border-color:var(--accent)}
 .chord-card:active{transform:scale(.97)}
 .chord-card .deg{font-family:var(--font-display);font-weight:700;color:var(--accent);font-size:.95rem}
 .chord-card .name{font-family:var(--font-display);font-weight:700;font-size:1.5rem;line-height:1.1}
@@ -629,10 +632,20 @@ dialog.nudge{animation:shake .35s var(--ease)}
 @keyframes key-pulse{50%{opacity:.55}}
 .practicing .k-board{outline:3px solid color-mix(in srgb,var(--accent) 45%,transparent);outline-offset:2px}
 
-.tooltip{position:fixed;inset:auto;margin:0;border:none;padding:6px 10px;border-radius:8px;background:var(--ink);color:var(--bg);font-size:.8rem;font-weight:500;line-height:1.35;max-width:260px;box-shadow:var(--shadow-md);pointer-events:none;
+.tooltip{position:fixed;inset:auto;margin:0;border:1px solid var(--tip-line);padding:6px 11px;border-radius:9px;background:linear-gradient(135deg,var(--tip-a),var(--tip-b));color:var(--ink);font-size:.8rem;font-weight:600;line-height:1.35;max-width:260px;box-shadow:var(--shadow-lg);pointer-events:none;
   opacity:1;transform:none;transition:opacity .12s var(--ease),transform .12s var(--ease-out),display .12s allow-discrete,overlay .12s allow-discrete}
-.tooltip:not(:popover-open){opacity:0;transform:translateY(2px)}
-@starting-style{ .tooltip:popover-open{opacity:0;transform:translateY(2px)} }
+/* Dica no tom do tema: gradiente discreto do azul ao violeta do logo e borda na cor de destaque.
+   A setinha usa a cor do meio do gradiente. */
+.tooltip{overflow:visible;--from:translateY(3px);--tip-a:color-mix(in srgb,var(--accent) 16%,var(--surface));--tip-b:color-mix(in srgb,var(--lh) 16%,var(--surface));--tip-bg:color-mix(in srgb,var(--tip-a),var(--tip-b));--tip-line:color-mix(in srgb,var(--accent) 40%,transparent)}
+.tooltip[data-side="bottom"]{--from:translateY(-3px)} .tooltip[data-side="left"]{--from:translateX(3px)} .tooltip[data-side="right"]{--from:translateX(-3px)}
+.tooltip:not(:popover-open){opacity:0;transform:var(--from)}
+@starting-style{ .tooltip:popover-open{opacity:0;transform:var(--from)} }
+/* Setinha apontando para o elemento; --arrow vem de placeTip em js/app.js. */
+.tooltip::after{content:"";position:absolute;width:9px;height:9px;background:var(--tip-bg);border:0 solid var(--tip-line);border-radius:1px;transform:rotate(45deg)}
+.tooltip[data-side="top"]::after{bottom:-5.5px;left:calc(var(--arrow,50%) - 4.5px);border-right-width:1px;border-bottom-width:1px}
+.tooltip[data-side="bottom"]::after{top:-5.5px;left:calc(var(--arrow,50%) - 4.5px);border-top-width:1px;border-left-width:1px}
+.tooltip[data-side="left"]::after{right:-5.5px;top:calc(var(--arrow,50%) - 4.5px);border-top-width:1px;border-right-width:1px}
+.tooltip[data-side="right"]::after{left:-5.5px;top:calc(var(--arrow,50%) - 4.5px);border-bottom-width:1px;border-left-width:1px}
 
 /* listas suspensas próprias */
 .native-hidden{display:none!important}
@@ -678,8 +691,8 @@ dialog:not([open])::backdrop{opacity:0}
 
 /* ---------- toasts ---------- */
 /* Ajuda: botão "?" fixo no canto inferior direito, abre o guia da tela atual. */
-/* right desconta a faixa reservada da barra de rolagem (scrollbar-gutter), para ficar a 24px da borda como o bottom. */
-.help-fab{position:fixed;right:calc(24px - (100vw - 100%));bottom:24px;z-index:15;isolation:isolate;display:grid;place-items:center;width:46px;height:46px;border-radius:50%;border:2px solid transparent;
+/* right desconta a faixa reservada da barra de rolagem (scrollbar-gutter), para ficar a 32px da borda como o bottom. */
+.help-fab{position:fixed;right:calc(32px - (100vw - 100%));bottom:32px;z-index:15;isolation:isolate;display:grid;place-items:center;width:46px;height:46px;border-radius:50%;border:2px solid transparent;
   background:linear-gradient(var(--surface),var(--surface)) padding-box,var(--range-grad) border-box;color:var(--accent);box-shadow:var(--shadow-md);cursor:pointer;transition:color var(--t) var(--ease),box-shadow var(--t) var(--ease)}
 /* O preenchimento com o gradiente fica numa camada própria, para poder aparecer com transição. */
 .help-fab::before{content:"";position:absolute;inset:-2px;z-index:-1;border-radius:50%;background:var(--accent-grad);opacity:0;transition:opacity var(--t) var(--ease)}
