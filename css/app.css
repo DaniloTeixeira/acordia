@@ -8,7 +8,7 @@
 
 /* ---------- tokens ---------- */
 :root{
-  --bg:#F4F6FA; --surface:#FFFFFF; --surface-2:#EEF2F7; --surface-3:#E4EAF2;
+  --bg:#F4F6FA; --seg-bg:#E2E8F0; --seg-ink:#55657A; --surface:#FFFFFF; --surface-2:#EEF2F7; --surface-3:#E4EAF2;
   --ink:#0F172A; --ink-2:#334155; --muted:#64748B; --line:#E2E8F0; --line-strong:#CBD5E1;
   --accent:#2160B0; --accent-hover:#1A4F93; --accent-ink:#FFFFFF; --accent-soft:#E3EDFA; --accent-soft-ink:#1A4F93;
   --lh:#7C3AED; --chord:#B0201A; --ok:#15803D; --ok-soft:#DCFCE7; --bad:#B91C1C; --bad-soft:#FEE2E2; --warn:#9A3412; --warn-soft:#FFF1E8;
@@ -25,7 +25,7 @@
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --bg:#0B1018; --surface:#121A26; --surface-2:#182231; --surface-3:#1F2B3D;
+    --bg:#0B1018; --seg-bg:#182231; --seg-ink:#8FA0B5; --surface:#121A26; --surface-2:#182231; --surface-3:#1F2B3D;
     --ink:#E7EDF5; --ink-2:#C3CEDC; --muted:#8FA0B5; --line:#223044; --line-strong:#304159;
     --accent:#6FA8EC; --accent-hover:#8DBBF0; --accent-ink:#0B1626; --accent-soft:#18304D; --accent-soft-ink:#A9CBF4;
     --lh:#A78BFA; --chord:#FF8A80; --ok:#4ADE80; --ok-soft:#12321F; --bad:#F87171; --bad-soft:#3A1717; --warn:#FDBA74; --warn-soft:#2A1C12;
@@ -35,7 +35,7 @@
   }
 }
 :root[data-theme="dark"]{
-  --bg:#0B1018; --surface:#121A26; --surface-2:#182231; --surface-3:#1F2B3D;
+  --bg:#0B1018; --seg-bg:#182231; --seg-ink:#8FA0B5; --surface:#121A26; --surface-2:#182231; --surface-3:#1F2B3D;
   --ink:#E7EDF5; --ink-2:#C3CEDC; --muted:#8FA0B5; --line:#223044; --line-strong:#304159;
   --accent:#6FA8EC; --accent-hover:#8DBBF0; --accent-ink:#0B1626; --accent-soft:#18304D; --accent-soft-ink:#A9CBF4;
   --lh:#A78BFA; --chord:#FF8A80; --ok:#4ADE80; --ok-soft:#12321F; --bad:#F87171; --bad-soft:#3A1717; --warn:#FDBA74; --warn-soft:#2A1C12;
@@ -116,10 +116,10 @@ select.input{appearance:none;padding-right:32px;cursor:pointer;
 .switch input:checked::after{transform:translateX(16px)}
 
 /* ---------- controle segmentado (com indicador deslizante) ---------- */
-.seg{position:relative;display:inline-flex;padding:4px;border-radius:var(--r-full);background:var(--surface-2);gap:2px;isolation:isolate;max-width:100%}
+.seg{position:relative;display:inline-flex;padding:4px;border-radius:var(--r-full);background:var(--seg-bg);gap:2px;isolation:isolate;max-width:100%}
 .seg::before{content:"";position:absolute;z-index:-1;top:4px;bottom:4px;left:0;width:var(--w,0);transform:translateX(var(--x,0));border-radius:var(--r-full);
   background:var(--surface);box-shadow:var(--shadow-sm);transition:transform var(--t) var(--ease-out),width var(--t) var(--ease-out)}
-.seg button{border:none;background:none;padding:7px 14px;border-radius:var(--r-full);font-weight:600;font-size:.88rem;color:var(--muted);cursor:pointer;white-space:nowrap;transition:color var(--t-fast)}
+.seg button{border:none;background:none;padding:7px 14px;border-radius:var(--r-full);font-weight:600;font-size:.88rem;color:var(--seg-ink);cursor:pointer;white-space:nowrap;transition:color var(--t-fast)}
 .seg button[aria-pressed="true"]{color:var(--ink)}
 .seg.sm button{padding:5px 11px;font-size:.8rem}
 .seg.block{display:flex;width:100%} .seg.block button{flex:1}
