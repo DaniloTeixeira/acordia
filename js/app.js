@@ -634,6 +634,14 @@ function excerpt(s){
   return s.text.split("\n").slice(1).map(l=>l.trim()).filter(l=>l && !isChordLine(l) && !/^\[.*\]$/.test(l)).slice(0, 2).join(" / ");
 }
 function card(idx){ const li = document.createElement("li"); li.className = "lib-card"; li.style.animationDelay = Math.min(idx, 12) * 25 + "ms"; return li; }
+// Clicar em qualquer parte do cartão faz a ação principal; botões e seleção de texto ficam de fora.
+function cardClick(li, run){
+  li.addEventListener("click", e => {
+    if(e.target.closest("button,a,input,select,label,textarea")) return;
+    if(String(getSelection && getSelection()).trim()) return;
+    run();
+  });
+}
 function emptyCard(ic, title, text){ return `<li class="empty-state" style="grid-column:1/-1">${icon(ic)}<strong>${esc(title)}</strong>${text ? `<span>${esc(text)}</span>` : ""}</li>`; }
 function renderLibrary(){
   const list = $("#lib-list"), q = norm($("#lib-q").value);
@@ -666,6 +674,7 @@ function renderLibrary(){
       const refBtn = $('[data-a="ref"]', li); if(refBtn) refBtn.onclick = () => openRef(s.ref, s.title);
       const add = $('[data-a="add"]', li); if(add) add.onclick = () => addSongToMedley(s.id);
       $('[data-a="edit"]', li).onclick = () => editSong(s);
+      cardClick(li, () => editSong(s));
       $('[data-a="del"]', li).onclick = async () => { if(await confirmDialog({title: t("confirm.songTitle"), message: t(n ? "confirm.songUsed" : "confirm.song", {title: s.title, medleys: medleys(n)})})) deleteSong(s); };
       list.appendChild(li);
     });
@@ -688,6 +697,7 @@ function renderLibrary(){
         <button class="icon-btn sm danger" data-a="del" aria-label="${esc(t("common.delete"))}" title="${esc(t("common.delete"))}">${icon("trash","sm")}</button></div>`;
     $("h3", li).textContent = m.name; $(".excerpt", li).textContent = titles.join(" · ") || t("lib.emptyMedley");
     $('[data-a="open"]', li).onclick = () => { openMedley(m.id); go("medley"); };
+    cardClick(li, () => { openMedley(m.id); go("medley"); });
     $('[data-a="dup"]', li).onclick = () => {
       const copyItem = i => i.type === "medley" ? store.newMedleyItem(i.medleyId) : store.newItem(i.songId, sanitizeItem(i));
       const c = store.createMedley(t("lib.copyName", {name:m.name}), m.items.map(copyItem), m.options, m.kind);
@@ -1044,7 +1054,6 @@ function initDialogs(){
 }
 // Escolhe o lado da dica pela posição do elemento: em cima, embaixo, à esquerda ou à direita,
 // o que couber inteiro na tela com o menor deslocamento (empate fica com a ordem da lista).
-// `arrow` é onde a setinha aponta para o centro do elemento, medido a partir da borda da dica.
 function placeTip(r, w, h, vw, vh, gap = 8, m = 8){
   const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
   const sides = [
@@ -1061,9 +1070,7 @@ function placeTip(r, w, h, vw, vh, gap = 8, m = 8){
     if(!best || score < best.score) best = {side: s.side, x, y, score};
   });
   if(!best) best = {side: "bottom", x: Math.max(m, Math.min(cx - w / 2, vw - w - m)), y: Math.min(r.bottom + gap, vh - h - m)};
-  const vertical = best.side === "top" || best.side === "bottom";
-  const arrow = vertical ? Math.max(10, Math.min(cx - best.x, w - 10)) : Math.max(8, Math.min(cy - best.y, h - 8));
-  return {side: best.side, x: Math.round(best.x), y: Math.round(best.y), arrow: Math.round(arrow)};
+  return {side: best.side, x: Math.round(best.x), y: Math.round(best.y)};
 }
 // Tooltips no visual do app: ao passar o mouse (com atraso) ou ao focar pelo teclado.
 // Usa data-tip-key (texto traduzido), data-tip, ou o aria-label/title de botões só com ícone.
@@ -1089,10 +1096,17 @@ function initTooltips(){
     // Mede no canto e trava a largura: reposicionada perto da borda, a dica não quebra a linha.
     const box = tip.getBoundingClientRect(), w = Math.ceil(box.width), h = Math.ceil(box.height);
     tip.style.width = w + "px";
-    const p = placeTip(el.getBoundingClientRect(), w, h, document.documentElement.clientWidth, document.documentElement.clientHeight);
+    const r = el.getBoundingClientRect();
+    const p = placeTip(r, w, h, document.documentElement.clientWidth, document.documentElement.clientHeight);
     tip.dataset.side = p.side;
     tip.style.left = p.x + "px"; tip.style.top = p.y + "px";
-    tip.style.setProperty("--arrow", p.arrow + "px");
+    // A setinha mira o centro do elemento a partir de onde a dica de fato ficou (descontando a borda),
+    // para zoom, barra de rolagem ou arredondamento não a desalinharem.
+    const at = tip.getBoundingClientRect(), bw = tip.clientLeft;
+    const vertical = p.side === "top" || p.side === "bottom";
+    const arrow = vertical ? r.left + r.width / 2 - at.left - bw : r.top + r.height / 2 - at.top - bw;
+    const max = (vertical ? at.width : at.height) - 2 * bw - 10;
+    tip.style.setProperty("--arrow", Math.max(10, Math.min(arrow, max)) + "px");
   };
   document.addEventListener("mouseover", e => {
     const el = e.target.closest && e.target.closest(SEL);

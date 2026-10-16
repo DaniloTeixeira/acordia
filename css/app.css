@@ -283,7 +283,7 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .lib-toolbar>.seg{min-height:40px;box-sizing:border-box}
 .lib-toolbar>.seg button{display:inline-flex;align-items:center}
 .cards{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-.lib-card{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-sm);
+.lib-card{cursor:pointer;display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-sm);
   transition:transform var(--t) var(--ease-out),box-shadow var(--t) var(--ease),border-color var(--t);animation:card-in var(--t-slow) var(--ease-out) backwards}
 .lib-card:hover{box-shadow:var(--shadow-md);border-color:var(--line-strong)}
 @keyframes card-in{from{opacity:0;transform:translateY(8px)}}
