@@ -1,14 +1,23 @@
 // Modo Estudo: explorador de escalas e campo harmônico, e o treino em forma de jogo.
-import { SCALES, spellScale, scaleDegrees, harmonicField, relativeKey, rootFor, makeQuestion, QUIZ_KINDS } from "./core.js";
-import { playChord, playSequence } from "./audio.js";
+import { SCALES, spellScale, scaleDegrees, harmonicField, relativeKey, rootFor, makeQuestion, QUIZ_KINDS, NOTE_GRID, CHORD_QUALITIES } from "./core.js";
+import * as audio from "./audio.js";
+import { initHands } from "./hands.js";
+import { mountMetronome } from "./metronome.js";
+const { playChord, playSequence } = audio;
 import { t } from "./i18n.js";
 
 const ROUND = 10;
 const WHITE = [0,2,4,5,7,9,11], BLACK = [1,3,6,8,10];
 
-export function initStudy({explore, train, tabs, seg, paintSeg, data, store, toast, icon, esc}){
-  const st = Object.assign({tab:"explore", rootPc:0, scaleId:"maior", sevenths:false, kind:"misto", level:"facil"}, data.settings.study || {});
-  const persist = () => store.setSetting("study", {tab:st.tab, rootPc:st.rootPc, scaleId:st.scaleId, sevenths:st.sevenths, kind:st.kind, level:st.level});
+export function initStudy({explore, train, hands, metroRoot, metro, tabs, seg, paintSeg, data, store, toast, icon, esc}){
+  const st = Object.assign({tab:"explore", rootPc:0, scaleId:"maior", sevenths:false, kind:"misto", level:"facil", mode:"choice"}, data.settings.study || {});
+  const persist = () => store.setSetting("study", {tab:st.tab, rootPc:st.rootPc, scaleId:st.scaleId, sevenths:st.sevenths, kind:st.kind, level:st.level, mode:st.mode});
+  const handsUI = initHands({root:hands, data, store, toast, icon, esc, audio});
+  let metroUI = null;
+  document.addEventListener("keydown", e => {
+    if(!metroUI || metroRoot.hidden || metroRoot.closest("[hidden]") || (e.target instanceof Element && e.target.closest("input:not([type=range]):not([type=checkbox]),textarea,select,button"))) return;
+    metroUI.key(e);
+  });
   let quiz = null;
 
   seg(tabs, st.tab, v => { st.tab = v; persist(); show(); });
@@ -102,7 +111,8 @@ export function initStudy({explore, train, tabs, seg, paintSeg, data, store, toa
   // ---------- treino ----------
   const KINDS = ["misto", ...QUIZ_KINDS];
   const kindLabel = k => k === "misto" ? [t("train.mixed"), t("train.mixedD")] : [t("train." + k), t("train." + k + "D")];
-  const bestKey = () => st.kind + ":" + st.level;
+  const bestKey = () => st.kind + ":" + st.level + (st.mode === "full" ? ":full" : "");
+  const QUAL_LABEL = {"":"train.qM", "m":"train.qm", "°":"train.qd", "+":"train.qa"};
   function renderSetup(){
     quiz = null;
     const best = (data.settings.best || {})[bestKey()];
@@ -110,49 +120,77 @@ export function initStudy({explore, train, tabs, seg, paintSeg, data, store, toa
       <div class="train-setup" style="margin-top:16px">
         <h2>${esc(t("train.kind"))}</h2>
         <div class="kinds">${KINDS.map(k => { const [a, b] = kindLabel(k); return `<button class="kind" data-k="${k}" aria-pressed="${k === st.kind}"><b>${esc(a)}</b><span>${esc(b)}</span></button>`; }).join("")}</div>
-        <h2>${esc(t("train.level"))}</h2>
-        <div><div class="seg" id="tr-level" role="group" aria-label="${esc(t("train.level"))}"><button data-v="facil">${esc(t("train.easy"))}</button><button data-v="medio">${esc(t("train.medium"))}</button><button data-v="dificil">${esc(t("train.hard"))}</button></div>
-          <p class="sub" id="tr-level-d" style="margin-top:6px">${esc(t("train.levelD." + st.level))}</p></div>
+        <div class="setup-row">
+          <div><h2>${esc(t("train.level"))}</h2>
+            <div class="seg" id="tr-level" role="group" aria-label="${esc(t("train.level"))}"><button data-v="facil">${esc(t("train.easy"))}</button><button data-v="medio">${esc(t("train.medium"))}</button><button data-v="dificil">${esc(t("train.hard"))}</button></div>
+            <p class="sub" style="margin-top:6px">${esc(t("train.levelD." + st.level))}</p></div>
+          <div><h2>${esc(t("train.answers"))}</h2>
+            <div class="seg" id="tr-mode" role="group" aria-label="${esc(t("train.answers"))}"><button data-v="choice">${esc(t("train.choice"))}</button><button data-v="full">${esc(t("train.full"))}</button></div>
+            <p class="sub" style="margin-top:6px">${esc(t(st.mode === "full" ? "train.fullD" : "train.choiceD"))}</p></div>
+        </div>
         <div class="study-row"><button class="btn primary" id="tr-start">${icon("play","sm")} ${esc(t("train.start"))}</button>${best !== undefined ? `<span class="best">${esc(t("train.best", {n:best, total:ROUND}))}</span>` : ""}</div>
       </div>`;
     train.querySelectorAll(".kind").forEach(b => b.onclick = () => { st.kind = b.dataset.k; persist(); renderSetup(); });
     seg(train.querySelector("#tr-level"), st.level, v => { st.level = v; persist(); renderSetup(); });
+    seg(train.querySelector("#tr-mode"), st.mode, v => { st.mode = v; persist(); renderSetup(); });
     train.querySelector("#tr-start").onclick = startQuiz;
   }
-  function startQuiz(){ quiz = {i:0, right:0, streak:0, answered:false, q:null, last:""}; nextQuestion(); }
+  function startQuiz(){ quiz = {i:0, right:0, streak:0, answered:false, q:null, last:"", root:null, qual:""}; nextQuestion(); }
   function nextQuestion(){
     let q, tries = 0;
     do { q = makeQuestion(st.kind, st.level); } while(q.prompt + q.answer === quiz.last && ++tries < 5);
-    quiz.q = q; quiz.last = q.prompt + q.answer; quiz.answered = false;
+    Object.assign(quiz, {q, last:q.prompt + q.answer, answered:false, root:null, qual:""});
     renderQuiz();
     if(q.autoplay) setTimeout(() => playChord(q.play), 250);
+  }
+  const optBtn = (o, i, cls = "answer") => `<button class="${cls}" data-o="${esc(o)}" style="animation-delay:${Math.min(i, 12)*25}ms">${i < 4 && cls === "answer" ? `<span class="sr-only">${i+1}. </span>` : ""}${esc(o)}</button>`;
+  const noteGrid = (extra = "") => `<div class="note-grid ${extra}" role="group" aria-label="${esc(t("train.notesAria"))}">${NOTE_GRID.map(row => row.map((n, i) => optBtn(n, i, "answer cell")).join("")).join("")}</div>`;
+  function answersHTML(q){
+    if(st.mode !== "full") return `<div class="answers">${q.options.map((o, i) => optBtn(o, i)).join("")}</div>`;
+    if(q.full.type === "notes") return noteGrid();
+    if(q.full.type === "list") return `<div class="answer-list">${q.full.options.map((o, i) => optBtn(o, i, "answer cell")).join("")}</div>`;
+    return `<p class="sub">${esc(t("train.pickChord"))}</p>${noteGrid("pick")}
+      <div class="study-row"><div class="seg" id="tr-qual" role="group" aria-label="${esc(t("train.quality"))}">${CHORD_QUALITIES.map(x => `<button data-v="${esc(x)}">${esc(t(QUAL_LABEL[x]))}</button>`).join("")}</div>
+      <button class="btn primary" id="tr-confirm" disabled>${esc(t("train.confirm"))}</button></div>`;
   }
   function renderQuiz(){
     const q = quiz.q;
     train.innerHTML = `
-      <div class="quiz card" style="margin-top:16px">
+      <button class="btn ghost sm back" id="tr-quit">${icon("back","sm")} ${esc(t("train.change"))}</button>
+      <div class="quiz card">
         <div class="quiz-top"><span>${esc(t("train.question", {n:quiz.i + 1, total:ROUND}))}</span><div class="progress"><span style="width:${quiz.i / ROUND * 100}%"></span></div>
           <span class="streak" title="${esc(t("train.streak"))}">${icon("flame","sm")} ${quiz.streak}</span></div>
         <p class="prompt">${esc(q.prompt)}</p>
         ${q.kind === "ouvido" ? `<div><button class="btn soft sm" id="tr-listen">${icon("sound","sm")} ${esc(t("train.listen"))}</button></div>` : ""}
-        <div class="answers">${q.options.map((o, i) => `<button class="answer" data-o="${esc(o)}" style="animation-delay:${i*40}ms"><span class="sr-only">${i+1}. </span>${esc(o)}</button>`).join("")}</div>
+        ${answersHTML(q)}
         <p class="feedback" aria-live="polite"></p>
-        <div class="study-row" style="justify-content:space-between"><button class="btn ghost sm" id="tr-quit">${esc(t("train.change"))}</button><button class="btn primary" id="tr-next" hidden>${esc(quiz.i + 1 >= ROUND ? t("train.finish") : t("train.next"))}</button></div>
+        <div class="study-row" style="justify-content:flex-end"><button class="btn primary" id="tr-next" hidden>${esc(quiz.i + 1 >= ROUND ? t("train.finish") : t("train.next"))}</button></div>
       </div>`;
-    requestAnimationFrame(() => { const p = train.querySelector(".progress span"); if(p) p.style.width = (quiz.i / ROUND * 100) + "%"; });
     const listen = train.querySelector("#tr-listen"); if(listen) listen.onclick = () => playChord(q.play);
-    train.querySelectorAll(".answer").forEach(b => b.onclick = () => answer(b));
     train.querySelector("#tr-next").onclick = advance;
     train.querySelector("#tr-quit").onclick = renderSetup;
+    if(st.mode === "full" && q.full.type === "chord"){
+      const confirm = train.querySelector("#tr-confirm");
+      const sync = () => { confirm.disabled = !quiz.root; confirm.textContent = quiz.root ? t("train.confirmChord", {chord: quiz.root + quiz.qual}) : t("train.confirm"); };
+      train.querySelectorAll(".note-grid .answer").forEach(b => b.onclick = () => {
+        if(quiz.answered) return; quiz.root = b.dataset.o;
+        train.querySelectorAll(".note-grid .answer").forEach(x => x.setAttribute("aria-pressed", String(x === b))); sync();
+      });
+      seg(train.querySelector("#tr-qual"), "", v => { quiz.qual = v; sync(); });
+      confirm.onclick = () => answer(quiz.root + quiz.qual, confirm);
+    } else train.querySelectorAll(".answer").forEach(b => b.onclick = () => answer(b.dataset.o, b));
   }
-  function answer(btn){
+  function answer(value, btn){
     if(quiz.answered) return;
     quiz.answered = true;
-    const q = quiz.q, ok = btn.dataset.o === q.answer, fb = train.querySelector(".feedback");
-    train.querySelectorAll(".answer").forEach(b => { b.disabled = true; if(b.dataset.o === q.answer) b.classList.add("right"); else if(b !== btn) b.classList.add("dim"); });
+    const q = quiz.q, ok = value === q.answer, fb = train.querySelector(".feedback");
+    const building = btn && btn.id === "tr-confirm";
+    train.querySelectorAll(".answer").forEach(b => { b.disabled = true; if(!building){ if(b.dataset.o === q.answer) b.classList.add("right"); else if(b !== btn) b.classList.add("dim"); } });
+    const qual = train.querySelector("#tr-qual"); if(qual) qual.querySelectorAll("button").forEach(b => b.disabled = true);
     if(ok){ quiz.right++; quiz.streak++; fb.className = "feedback ok"; fb.textContent = t("train.right"); if(q.play && q.kind !== "ouvido") playChord(q.play);
+      if(building) btn.classList.add("right-btn");
       const s = train.querySelector(".streak"); s.innerHTML = icon("flame","sm") + " " + quiz.streak; s.classList.add("bump"); }
-    else { quiz.streak = 0; btn.classList.add("wrong"); fb.className = "feedback bad"; fb.textContent = t("train.wrong", {answer:q.answer}); }
+    else { quiz.streak = 0; if(btn) btn.classList.add(building ? "wrong-btn" : "wrong"); fb.className = "feedback bad"; fb.textContent = t("train.wrong", {answer:q.answer}); }
     train.querySelector(".progress span").style.width = ((quiz.i + 1) / ROUND * 100) + "%";
     const next = train.querySelector("#tr-next"); next.hidden = false; next.focus({preventScroll:true});
   }
@@ -162,32 +200,37 @@ export function initStudy({explore, train, tabs, seg, paintSeg, data, store, toa
     if(isBest){ best[bestKey()] = quiz.right; store.setSetting("best", best); }
     const pct = quiz.right / ROUND, msg = pct >= 0.9 ? "great" : pct >= 0.6 ? "good" : "try";
     train.innerHTML = `
-      <div class="card summary" style="margin-top:16px;max-width:720px">
+      <button class="btn ghost sm back" id="tr-setup">${icon("back","sm")} ${esc(t("train.change"))}</button>
+      <div class="card summary" style="max-width:720px">
         <div class="big">${Math.round(pct * 100)}%</div>
         <h2>${esc(t("train.result", {right:quiz.right, total:ROUND}))}</h2>
         <p>${esc(t("train.msg." + msg))}</p>
         <p class="best">${isBest && quiz.right ? esc(t("train.newBest")) : esc(t("train.best", {n: Math.max(prev ?? 0, quiz.right), total:ROUND}))}</p>
-        <div class="study-row" style="justify-content:center"><button class="btn primary" id="tr-again">${esc(t("train.again"))}</button><button class="btn ghost" id="tr-setup">${esc(t("train.change"))}</button></div>
+        <div class="study-row" style="justify-content:center"><button class="btn primary" id="tr-again">${esc(t("train.again"))}</button></div>
       </div>`;
     train.querySelector("#tr-again").onclick = startQuiz;
     train.querySelector("#tr-setup").onclick = renderSetup;
     train.querySelector("#tr-again").focus({preventScroll:true});
   }
   document.addEventListener("keydown", e => {
-    if(!quiz || train.hidden || train.closest("[hidden]") || e.target.closest("input,textarea,select")) return;
+    if(!quiz || train.hidden || train.closest("[hidden]") || (e.target instanceof Element && e.target.closest("input,textarea,select"))) return;
     const n = +e.key;
-    if(n >= 1 && n <= 4 && !quiz.answered){ const b = train.querySelectorAll(".answer")[n-1]; if(b){ e.preventDefault(); answer(b); } }
+    if(st.mode !== "full" && n >= 1 && n <= 4 && !quiz.answered){ const b = train.querySelectorAll(".answer")[n-1]; if(b){ e.preventDefault(); answer(b.dataset.o, b); } }
     else if(e.key === "Enter" && quiz.answered && document.activeElement === document.body){ e.preventDefault(); advance(); }
   });
 
   function show(){
     tabs.setSeg(st.tab);
-    explore.hidden = st.tab !== "explore"; train.hidden = st.tab !== "train";
+    explore.hidden = st.tab !== "explore"; train.hidden = st.tab !== "train"; hands.hidden = st.tab !== "hands"; metroRoot.hidden = st.tab !== "metro";
+    if(st.tab !== "hands") handsUI.hide();
+    if(st.tab !== "metro") metro.stop();
+    if(st.tab === "metro"){ if(metroUI) metroUI.destroy(); metroUI = mountMetronome(metroRoot, metro, {icon, esc, toast, seg}); }
     if(st.tab === "explore") renderExplore();
+    else if(st.tab === "hands") handsUI.show();
     else if(!quiz) renderSetup();
     requestAnimationFrame(() => document.querySelectorAll("#view-study .seg").forEach(paintSeg));
   }
   // Ao trocar de idioma: redesenha (uma pergunta em andamento é refeita no novo idioma).
   function relabel(){ if(quiz && !quiz.answered) nextQuestion(); else if(quiz) renderQuiz(); show(); }
-  return {show, relabel};
+  return {show, relabel, hide: () => { handsUI.hide(); metro.stop(); }};
 }

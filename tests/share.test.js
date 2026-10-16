@@ -7,7 +7,7 @@ const medley = {
   name: "Culto domingo",
   options: {dedupe: false, columns: 1, maxPages: 2, minFont: 8, showKey: true, transitions: true, degreeStyle: "arabic"},
   songs: [
-    {text: "Primeira\nG  D\nAmo você", type: "", key: "G", bpm: "72", target: "A", capo: "2", singer: "Ana", notes: "suave"},
+    {text: "Primeira\nG  D\nAmo você", type: "", key: "G", bpm: "72", ref: "https://youtu.be/dQw4w9WgXcQ", target: "A", capo: "2", singer: "Ana", notes: "suave"},
     {text: "Segunda\nSó a letra aqui", type: "letra"}
   ]
 };
@@ -23,6 +23,7 @@ test("link de medley vai e volta igual", async () => {
   assert.equal(back.songs[0].target, "A");
   assert.equal(back.songs[0].capo, "2");
   assert.equal(back.songs[0].bpm, "72");
+  assert.equal(back.songs[0].ref, "https://youtu.be/dQw4w9WgXcQ");
   assert.equal(back.songs[1].type, "letra");
 });
 

@@ -1,5 +1,7 @@
 import { KEYS, MINOR_KEYS, parseSong, dedupeBlocks, detectKey, keyShift, songTitle, sanitizeEntry, sanitizeItem,
-  sanitizeOptions, transition, isChordLine } from "./core.js";
+  sanitizeOptions, transition, isChordLine, sanitizeUrl, youtubeId, youtubeStart } from "./core.js";
+import { createMetronome, mountMetronome } from "./metronome.js";
+import * as audio from "./audio.js";
 import { fit, toSVG, lyricsOnly, chordText } from "./layout.js";
 import { toPDF, saveBlob, pdfAvailable } from "./pdf.js";
 import { encodeMedley, decodeMedley } from "./share.js";
@@ -66,7 +68,13 @@ function ago(ts){
   return new Date(ts).toLocaleDateString(locale());
 }
 function slug(s){ return norm(s).replace(/[^\p{L}\p{N}]+/gu,"-").replace(/^-|-$/g,"") || "medley"; }
-function vt(run){ if(document.startViewTransition && !reduced()) return document.startViewTransition(run); run(); return null; }
+// Transição animada entre estados; sem suporte, com movimento reduzido ou com a aba oculta, aplica direto.
+function vt(run){
+  if(!document.startViewTransition || reduced() || document.hidden){ run(); return null; }
+  const tr = document.startViewTransition(run);
+  tr.ready.catch(()=>{}); tr.finished.catch(()=>{});
+  return tr;
+}
 
 // Medida de texto no canvas, com cache: o ajuste da folha mede os mesmos textos dezenas de vezes.
 const mctx = document.createElement("canvas").getContext("2d"), mcache = new Map();
@@ -122,7 +130,7 @@ function go(v, {instant} = {}){
     $$("[data-view]").forEach(s => s.hidden = s.dataset.view !== v);
     $$("[data-nav]").forEach(b => b.dataset.nav === v ? b.setAttribute("aria-current","page") : b.removeAttribute("aria-current"));
     if(v === "library") renderLibrary();
-    if(v === "study") study.show();
+    if(v === "study") study.show(); else study.hide();
     if(v === "medley") renderSheet.flush();
     $$(".seg").forEach(paintSeg);
     window.scrollTo({top:0});
@@ -194,6 +202,7 @@ function itemCard(m, it, i){
       <span class="num">${i+1}</span>
       <button class="item-toggle" aria-expanded="${open}"><span class="item-title"></span><span class="item-chips"></span></button>
       <div class="item-actions">
+        <button class="icon-btn sm ref-btn" data-a="ref" aria-label="${esc(t("ref.listen"))}" title="${esc(t("ref.listen"))}" ${s.ref?"":"hidden"}>${icon("play","sm")}</button>
         <button class="icon-btn sm" data-a="up" aria-label="${esc(t("item.up"))}" ${i===0?"disabled":""}>${icon("up","sm")}</button>
         <button class="icon-btn sm" data-a="down" aria-label="${esc(t("item.down"))}" ${i===m.items.length-1?"disabled":""}>${icon("down","sm")}</button>
         <button class="icon-btn sm danger" data-a="rm" aria-label="${esc(t("item.remove"))}">${icon("x","sm")}</button>
@@ -210,12 +219,14 @@ function itemCard(m, it, i){
         <label class="field" data-chords>${esc(t("item.bpm"))}<input class="input" data-f="bpm" type="number" inputmode="numeric" min="20" max="300" placeholder="—"></label>
         <label class="field" style="grid-column:span 2">${esc(t("item.singer"))}<input class="input" data-f="singer" maxlength="80" placeholder="—"></label>
         <label class="field wide">${esc(t("item.notes"))}<input class="input" data-f="notes" maxlength="300" placeholder="${esc(t("item.notesPh"))}"></label>
+        <label class="field wide">${esc(t("item.ref"))}<input class="input" data-f="ref" type="url" inputmode="url" autocomplete="off" placeholder="${esc(t("item.refPh"))}"></label>
       </div>
     </div></div></div>`;
   const ta = $("textarea", li); ta.value = s.text; ta.placeholder = t(letra ? "item.phLyrics" : "item.phChords");
   $('[data-f="bpm"]', li).value = s.bpm || "";
   $('[data-f="singer"]', li).value = it.singer || "";
   $('[data-f="notes"]', li).value = it.notes || "";
+  $('[data-f="ref"]', li).value = s.ref || "";
   const showChordFields = () => { $$("[data-chords]", li).forEach(e => e.hidden = s.type === "letra"); ta.placeholder = t(s.type === "letra" ? "item.phLyrics" : "item.phChords"); };
   showChordFields();
   const head = () => updateItemHead(li, s, it);
@@ -231,6 +242,12 @@ function itemCard(m, it, i){
   $('[data-a="up"]', li).onclick = () => moveItem(it.id, -1);
   $('[data-a="down"]', li).onclick = () => moveItem(it.id, 1);
   $('[data-a="rm"]', li).onclick = () => removeItem(it.id, li);
+  $('[data-a="ref"]', li).onclick = () => openRef(s.ref, s.title);
+  $('[data-f="ref"]', li).onchange = e => {
+    const v = sanitizeUrl(e.target.value);
+    if(e.target.value.trim() && !v) toast(t("ref.bad"));
+    s.ref = v; e.target.value = v; saveSong(s); $('[data-a="ref"]', li).hidden = !v;
+  };
   seg($('[data-f="type"]', li), s.type || "", v => { s.type = v; saveSong(s); showChordFields(); head(); renderSheet(); });
   ta.addEventListener("input", () => { s.text = ta.value; s.title = songTitle(ta.value); saveSong(s); head(); renderSheet(); updateCounts(); });
   $('[data-f="key"]', li).onchange = e => { s.key = e.target.value; saveSong(s); head(); renderSheet(); };
@@ -295,7 +312,7 @@ function sheetSongs(m){
     const letra = s.type === "letra", p = parseSong(s.text, letra);
     if(!p.title) return null;
     const auto = letra ? "" : detectKey(p), key = letra ? "" : (s.key || auto), target = letra ? "" : (it.target || "");
-    return Object.assign(p, {key, target, shift: target ? keyShift(key, target) : 0, auto, itemId: it.id,
+    return Object.assign(p, {key, target, shift: target ? keyShift(key, target) : 0, auto, itemId: it.id, ref: s.ref || "",
       meta: {bpm: letra ? "" : s.bpm, capo: letra ? "" : it.capo, singer: it.singer, notes: it.notes}});
   }).filter(Boolean);
   if(m.options.dedupe) list = dedupeBlocks(list);
@@ -390,7 +407,7 @@ function addSongToMedley(id){
 
 // ---------- compartilhar ----------
 function medleyPayload(m){
-  return {name: m.name, options: m.options, songs: m.items.map(it=>{ const s = data.songs.get(it.songId); return s && s.text.trim() ? {text:s.text, type:s.type, key:s.key, bpm:s.bpm, target:it.target, capo:it.capo, singer:it.singer, notes:it.notes} : null; }).filter(Boolean)};
+  return {name: m.name, options: m.options, songs: m.items.map(it=>{ const s = data.songs.get(it.songId); return s && s.text.trim() ? {text:s.text, type:s.type, key:s.key, bpm:s.bpm, ref:s.ref, target:it.target, capo:it.capo, singer:it.singer, notes:it.notes} : null; }).filter(Boolean)};
 }
 async function shareMedley(m = current()){
   const payload = medleyPayload(m);
@@ -408,7 +425,8 @@ async function shareMedley(m = current()){
 }
 function findOrCreateSong(e){
   const same = [...data.songs.values()].find(s => norm(s.title) === norm(songTitle(e.text)) && s.text.trim() === e.text.trim());
-  return same || store.createSong({text:e.text, type:e.type, key:e.key, bpm:e.bpm});
+  if(same && e.ref && !same.ref){ same.ref = e.ref; store.saveSong(same); }
+  return same || store.createSong({text:e.text, type:e.type, key:e.key, bpm:e.bpm, ref:e.ref});
 }
 async function checkIncoming(){
   const m = /^#m=(.+)$/.exec(location.hash); if(!m) return;
@@ -464,9 +482,11 @@ function renderLibrary(){
         <p class="excerpt"></p>
         <div class="foot">${cur.has(s.id) ? `<span class="chip accent">${icon("check","sm")} ${esc(t("lib.inCurrent"))}</span><span style="margin-right:auto"></span>` : `<button class="btn soft sm" data-a="add">${icon("plus","sm")} ${esc(t("common.add"))}</button>`}
           <span class="when">${esc(ago(s.updatedAt))}</span>
+          ${s.ref ? `<button class="icon-btn sm ref-btn" data-a="ref" aria-label="${esc(t("ref.listen"))}" title="${esc(t("ref.listen"))}">${icon("play","sm")}</button>` : ""}
           <button class="icon-btn sm" data-a="edit" aria-label="${esc(t("common.edit"))}" title="${esc(t("common.edit"))}">${icon("edit","sm")}</button>
           <button class="icon-btn sm danger" data-a="del" aria-label="${esc(t("common.delete"))}" title="${esc(t("common.delete"))}">${icon("trash","sm")}</button></div>`;
       $("h3", li).textContent = s.title; $(".excerpt", li).textContent = excerpt(s);
+      const refBtn = $('[data-a="ref"]', li); if(refBtn) refBtn.onclick = () => openRef(s.ref, s.title);
       const add = $('[data-a="add"]', li); if(add) add.onclick = () => addSongToMedley(s.id);
       $('[data-a="edit"]', li).onclick = () => editSong(s);
       armed($('[data-a="del"]', li), () => deleteSong(s), n ? t("lib.deleteUsed", {medleys: medleys(n)}) : t("common.confirmDelete"));
@@ -519,6 +539,7 @@ function editSong(s){
   $("#song-text").value = s ? s.text : "";
   $("#song-key").innerHTML = keyOptions(s ? s.key : "", t("item.auto"));
   $("#song-bpm").value = s ? s.bpm : "";
+  $("#song-ref").value = s ? (s.ref || "") : "";
   const typeSeg = $("#song-type"), keyField = $("#song-key").closest(".field");
   if(!typeSeg.setSeg) seg(typeSeg, "", v => { type = v; keyField.hidden = v === "letra"; });
   typeSeg.setSeg(type); keyField.hidden = type === "letra";
@@ -526,7 +547,7 @@ function editSong(s){
     if(dlg.returnValue !== "ok") return;
     const text = $("#song-text").value;
     if(!songTitle(text)) return toast(t("song.needTitle"));
-    const bpm = +$("#song-bpm").value, fields = {text, title: songTitle(text), type, key: $("#song-key").value, bpm: bpm > 0 && bpm < 400 ? String(Math.round(bpm)) : ""};
+    const bpm = +$("#song-bpm").value, fields = {text, title: songTitle(text), type, key: $("#song-key").value, bpm: bpm > 0 && bpm < 400 ? String(Math.round(bpm)) : "", ref: sanitizeUrl($("#song-ref").value)};
     if(isNew) store.createSong(fields); else { Object.assign(s, fields); store.saveSong(s); }
     toast(t(isNew ? "song.saved" : "song.updated"));
     renderLibrary(); renderItems(); renderSheet(); updateCounts();
@@ -537,7 +558,7 @@ function exportLibrary(){
   const all = [...data.songs.values()].filter(s=>s.title);
   if(!all.length) return toast(t("lib.emptyExport"));
   const json = JSON.stringify({app:"medley-generator", version:2, exportedAt:new Date().toISOString(),
-    songs: all.map(({id,title,text,type,key,bpm,updatedAt})=>({id,title,text,type,key,bpm,updatedAt})),
+    songs: all.map(({id,title,text,type,key,bpm,ref,updatedAt})=>({id,title,text,type,key,bpm,ref,updatedAt})),
     medleys: [...data.medleys.values()].map(({id,name,items,options,updatedAt})=>({id,name,options,updatedAt,items:items.map(({songId,target,capo,singer,notes})=>({songId,target,capo,singer,notes}))}))}, null, 2);
   saveBlob(new Blob([json], {type:"application/json"}), "medley-generator-" + new Date().toISOString().slice(0,10) + ".json");
   toast(t("lib.exported"));
@@ -550,7 +571,7 @@ async function importLibrary(file){
     const idMap = new Map(); let ns = 0, nm = 0;
     rows.forEach(raw => {
       const e = sanitizeEntry(raw); if(!e) return;
-      const fields = {text:e.text, title:e.title, type:e.type, key:e.key, bpm:e.bpm};
+      const fields = {text:e.text, title:e.title, type:e.type, key:e.key, bpm:e.bpm, ref:e.ref};
       let s = (e.id && data.songs.get(e.id)) || [...data.songs.values()].find(x => norm(x.title) === norm(e.title));
       if(s){ Object.assign(s, fields); store.saveSong(s); }
       else s = store.createSong(Object.assign(fields, e.id ? {id:e.id} : {}));
@@ -588,9 +609,11 @@ function renderStage(){
       if(it.lyric !== undefined) h += `<p class="stage-line">${esc(it.lyric)}</p>`;
       return h; }).join("")}</div>`).join("");
     const next = src[si+1], tr = m.options.transitions && !L && next ? transition(key, next.target || next.key) : null;
-    return `<section class="stage-song"><h2>${esc(s.title)}${key && !L ? ` <small>(${esc(key)})</small>` : ""}</h2>${meta ? `<p class="meta">${esc(meta)}</p>` : ""}${blocks}</section>`
+    const ref = s.ref ? `<button class="btn soft sm stage-ref" data-url="${esc(s.ref)}" data-title="${esc(s.title)}">${icon("play","sm")} ${esc(t("ref.listen"))}</button>` : "";
+    return `<section class="stage-song"><h2>${esc(s.title)}${key && !L ? ` <small>(${esc(key)})</small>` : ""}</h2>${meta || ref ? `<p class="meta">${esc(meta)} ${ref}</p>` : ""}${blocks}</section>`
       + (tr && !tr.same ? `<p class="stage-trans">→ ${esc(next.target || next.key)}: ${esc(tr.text)}${tr.passing ? " · " + esc(t("sheet.passing", {chord: stageMode === "graus" ? "V7" : tr.passing})) : ""}</p>` : "");
   }).join("") || `<div class="empty-state"><strong>${esc(t("stage.empty"))}</strong><span>${esc(t("stage.emptyText"))}</span></div>`;
+  $$(".stage-ref", box).forEach(b => b.addEventListener("click", e => { e.stopPropagation(); openRef(b.dataset.url, b.dataset.title); }));
 }
 async function lockScreen(){ try{ if("wakeLock" in navigator && !document.hidden) wakeLock = await navigator.wakeLock.request("screen"); }catch(e){} }
 function openStage(){
@@ -605,6 +628,7 @@ function openStage(){
 }
 function closeStage(){
   $("#stage").hidden = true; document.body.style.overflow = "";
+  metro.stop(); $("#stage-metro-panel").hidden = true; $("#stage-metro").setAttribute("aria-pressed", "false");
   const hint = $(".stage-hint"); if(hint) hint.remove();
   if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
   if(wakeLock){ wakeLock.release().catch(()=>{}); wakeLock = null; }
@@ -615,6 +639,16 @@ function stageFont(d){ const v = Math.max(12, Math.min(48, (data.settings.stageF
 function initStage(){
   seg($("#stage-mode"), "cifras", v => { stageMode = v; renderStage(); });
   $("#stage-close").onclick = closeStage;
+  let mini = null;
+  $("#stage-metro").onclick = () => {
+    const panel = $("#stage-metro-panel"), open = panel.hidden;
+    panel.hidden = !open; $("#stage-metro").setAttribute("aria-pressed", String(open));
+    if(!open){ metro.stop(); return; }
+    if(!mini) mini = mountMetronome(panel, metro, {compact:true, icon, esc, toast, seg});
+    // Começa no BPM da primeira música que tiver um.
+    const withBpm = sheetSongs(current()).find(s => +s.meta.bpm);
+    if(withBpm && !metro.running) metro.set({bpm: +withBpm.meta.bpm});
+  };
   $("#stage-smaller").onclick = () => stageFont(-2);
   $("#stage-bigger").onclick = () => stageFont(2);
   $("#stage-scroll").addEventListener("click", e => {
@@ -624,6 +658,7 @@ function initStage(){
   });
   document.addEventListener("keydown", e => {
     if($("#stage").hidden) return;
+    if(e.target instanceof Element && e.target.closest("button,input,select")) return;
     if(["ArrowDown","PageDown","ArrowRight"," "].includes(e.key)){ e.preventDefault(); stagePage(1); }
     else if(["ArrowUp","PageUp","ArrowLeft"].includes(e.key)){ e.preventDefault(); stagePage(-1); }
     else if(e.key === "Escape"){ e.preventDefault(); closeStage(); }
@@ -657,15 +692,33 @@ function initServiceWorker(){
 }
 
 // ---------- início ----------
-let study;
+// ---------- link de referência (YouTube toca dentro do app) ----------
+function openRef(url, title){
+  if(!url) return;
+  const id = youtubeId(url);
+  if(!id){ window.open(url, "_blank", "noopener"); return; }
+  const dlg = $("#dlg-player"), box = $("#player-box");
+  $("#player-h").textContent = title || t("ref.title");
+  $("#player-open").href = url;
+  $("#player-offline").hidden = navigator.onLine !== false;
+  const start = youtubeStart(url);
+  box.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1${start ? "&start=" + start : ""}" title="${esc(title || "YouTube")}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+  dlg.onclose = () => { box.innerHTML = ""; };
+  dlg.showModal();
+}
+
+let study, metro;
 async function main(){
   await store.init(() => toast(t("lib.saveFail")));
   setLang(data.settings.lang || detectLang());
   applyLang();
   sheetMode = ["cifras","graus","letra"].includes(data.settings.sheetMode) ? data.settings.sheetMode : "cifras";
-  study = initStudy({explore: $("#study-explore"), train: $("#study-train"), tabs: $("#study-tabs"), seg, paintSeg, data, store, toast, icon, esc});
+  metro = createMetronome(audio, data.settings.metro || {});
+  metro.onChange(debounce(s => store.setSetting("metro", s), 500));
+  study = initStudy({explore: $("#study-explore"), train: $("#study-train"), hands: $("#study-hands"), metroRoot: $("#study-metro"), metro, tabs: $("#study-tabs"), seg, paintSeg, data, store, toast, icon, esc});
 
   $$("[data-nav]").forEach(b => b.onclick = () => go(b.dataset.nav));
+  $$(".brand").forEach(a => a.addEventListener("click", e => { e.preventDefault(); go("medley"); }));
   $$("[data-theme-toggle]").forEach(b => b.onclick = cycleTheme);
   $$("[data-lang-toggle]").forEach(b => b.onclick = toggleLang);
   seg($("#mode-seg"), sheetMode, setMode);

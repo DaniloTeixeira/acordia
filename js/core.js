@@ -241,7 +241,14 @@ function options(answer, pool, rng, n = 4){
   const rest = shuffle([...new Set(pool)].filter(x=>x!==answer), rng).slice(0, n-1);
   return shuffle([answer, ...rest], rng);
 }
-// Gera uma pergunta { kind, prompt, options, answer, play? }. `rng` deixa os testes determinísticos.
+// Respostas sem alternativas ("lista completa"): todas as notas escritas (com b e #), as qualidades
+// de tríade para montar o acorde, todos os graus usuais e todos os tons.
+export const NOTE_GRID = ["b", "", "#"].map(acc => LETTERS.map(l => l + acc));
+export const CHORD_QUALITIES = ["", "m", "°", "+"];
+export const DEGREE_LIST = ["I","i","II","ii","ii°","bIII","III","iii","IV","iv","V","v","bVI","VI","vi","bVII","VII","vii","vii°"];
+// Gera uma pergunta { kind, prompt, options, answer, full, play? }. `full` descreve a resposta sem
+// alternativas: {type:"notes"} (grade de notas), {type:"chord"} (fundamental + qualidade) ou
+// {type:"list", options}. `rng` deixa os testes determinísticos.
 export function makeQuestion(kind, level = "facil", rng = Math.random){
   if(kind === "misto") kind = pick(QUIZ_KINDS, rng);
   const minorOk = level === "dificil";
@@ -252,30 +259,54 @@ export function makeQuestion(kind, level = "facil", rng = Math.random){
   if(kind === "grau"){
     const i = Math.floor(rng()*7), c = field[i];
     const pool = field.map(x=>x.name).concat(harmonicField(rootFor(NOTES[root]+7, scaleId), scaleId).map(x=>x.name));
-    return {kind, prompt:t("q.grau", {key:keyLabel, degree:c.degree}), answer:c.name, options:options(c.name, pool, rng), play:c.pcs.map(p=>p+NOTES[root])};
+    return {kind, prompt:t("q.grau", {key:keyLabel, degree:c.degree}), answer:c.name, options:options(c.name, pool, rng), full:{type:"chord"}, play:c.pcs.map(p=>p+NOTES[root])};
   }
   if(kind === "qualGrau"){
     const i = Math.floor(rng()*7), c = field[i];
-    return {kind, prompt:t("q.qualGrau", {key:keyLabel, chord:c.name}), answer:c.degree, options:options(c.degree, field.map(x=>x.degree), rng), play:c.pcs.map(p=>p+NOTES[root])};
+    return {kind, prompt:t("q.qualGrau", {key:keyLabel, chord:c.name}), answer:c.degree, options:options(c.degree, field.map(x=>x.degree), rng), full:{type:"list", options:DEGREE_LIST}, play:c.pcs.map(p=>p+NOTES[root])};
   }
   if(kind === "nota"){
     const notes = spellScale(root, scaleId), i = 1 + Math.floor(rng()*6);
     const pool = notes.concat(spellScale(rootFor(NOTES[root]+5, scaleId), scaleId));
-    return {kind, prompt:t("q.nota", {ord:ordinal(i+1), root, scale:t("scale." + scaleId).toLowerCase()}), answer:notes[i], options:options(notes[i], pool, rng)};
+    return {kind, prompt:t("q.nota", {ord:ordinal(i+1), root, scale:t("scale." + scaleId).toLowerCase()}), answer:notes[i], options:options(notes[i], pool, rng), full:{type:"notes"}};
   }
   if(kind === "relativa"){
     const askMinor = rng() < 0.5;
     const k = askMinor ? pick(LEVEL_ROOTS[level], rng) : rootFor(NOTES[pick(LEVEL_ROOTS[level], rng)], "menor") + "m";
     const ans = relativeKey(k);
-    const pool = (askMinor ? MINOR_KEYS : KEYS).slice();
-    return {kind, prompt:t(askMinor ? "q.relMinor" : "q.relMajor", {key:k}), answer:ans, options:options(ans, pool, rng)};
+    // Todas as respostas possíveis, com a mesma grafia que relativeKey usa.
+    const all = askMinor ? KEYS.map(relativeKey) : ROOTS_MINOR.map(r => relativeKey(r + "m"));
+    return {kind, prompt:t(askMinor ? "q.relMinor" : "q.relMajor", {key:k}), answer:ans, options:options(ans, all, rng), full:{type:"list", options:all}};
   }
   // ouvido
   const qualities = level === "facil" ? ["major","minor"] : ["major","minor","dim"];
   const q = pick(qualities, rng), base = NOTES[pick(KEYS, rng)];
   const shape = {major:[0,4,7], minor:[0,3,7], dim:[0,3,6]}[q];
   const label = x => t("q." + x);
-  return {kind:"ouvido", prompt:t(level === "facil" ? "q.ouvidoEasy" : "q.ouvido"), answer:label(q), options:qualities.map(label), play:shape.map(p=>p+base), autoplay:true};
+  return {kind:"ouvido", prompt:t(level === "facil" ? "q.ouvidoEasy" : "q.ouvido"), answer:label(q), options:qualities.map(label), full:{type:"list", options:qualities.map(label)}, play:shape.map(p=>p+base), autoplay:true};
+}
+
+// ---------- links de referência ----------
+// Só http(s), para um link importado ou compartilhado nunca virar "javascript:".
+export function sanitizeUrl(v){
+  if(typeof v !== "string" || !v.trim() || v.length > 600) return "";
+  let s = v.trim(); if(!/^[a-z][a-z0-9+.-]*:/i.test(s)) s = "https://" + s;
+  try{ const u = new URL(s); return u.protocol === "https:" || u.protocol === "http:" ? u.href : ""; }catch(e){ return ""; }
+}
+// ID de vídeo do YouTube (youtube.com/watch?v=, youtu.be/, /shorts/, /embed/, /live/), ou "".
+export function youtubeId(url){
+  try{
+    const u = new URL(url), host = u.hostname.replace(/^(www|m|music)\./, "");
+    let id = "";
+    if(host === "youtu.be") id = u.pathname.slice(1);
+    else if(host === "youtube.com" || host === "youtube-nocookie.com"){
+      id = u.searchParams.get("v") || (u.pathname.match(/^\/(?:shorts|embed|live)\/([^/?#]+)/) || [])[1] || "";
+    }
+    return /^[\w-]{11}$/.test(id) ? id : "";
+  }catch(e){ return ""; }
+}
+export function youtubeStart(url){
+  try{ const v = new URL(url).searchParams.get("t") || ""; const m = v.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/); return m ? (+(m[1]||0))*3600 + (+(m[2]||0))*60 + (+(m[3]||0)) : 0; }catch(e){ return 0; }
 }
 
 // ---------- validação de dados importados ----------
@@ -291,6 +322,7 @@ export function sanitizeEntry(r){
     // `target` só existia nas bibliotecas antigas, que guardavam o tom de execução na música.
     target: ALL_KEYS.includes(r.target) ? r.target : "",
     bpm: Number.isFinite(+r.bpm) && +r.bpm > 0 && +r.bpm < 400 ? String(Math.round(+r.bpm)) : "",
+    ref: sanitizeUrl(r.ref),
     updatedAt: Number.isFinite(r.updatedAt) ? r.updatedAt : Date.now()
   };
 }

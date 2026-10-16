@@ -147,6 +147,17 @@ test("perguntas do treino são coerentes", () => {
       assert.ok(q.options.length >= 2 && q.options.length <= 4);
     }
   }
+  // No modo lista completa, toda resposta precisa existir entre as opções oferecidas.
+  const notes = C.NOTE_GRID.flat();
+  for (const kind of ["grau","qualGrau","nota","relativa","ouvido"]) for (const level of ["facil","medio","dificil"]) {
+    const rng = seeded(11 + kind.length * 3 + level.length);
+    for (let i = 0; i < 60; i++) {
+      const q = C.makeQuestion(kind, level, rng);
+      if (q.full.type === "notes") assert.ok(notes.includes(q.answer), q.answer);
+      else if (q.full.type === "chord") assert.ok(notes.some(n => C.CHORD_QUALITIES.some(s => n + s === q.answer)), q.answer);
+      else assert.ok(q.full.options.includes(q.answer), `${kind}: ${q.answer} fora de ${q.full.options}`);
+    }
+  }
   const q = C.makeQuestion("grau", "facil", seeded(3));
   assert.match(q.prompt, /^No tom de /);
 });
@@ -165,6 +176,23 @@ test("sanitizeEntry valida campos importados", () => {
   assert.ok(Number.isFinite(r.updatedAt));
   assert.equal(C.sanitizeEntry({ id: "a1", text: "X\ny", type: "letra", key: "F#m", bpm: 72.4, updatedAt: 5 }).key, "F#m");
   assert.equal(C.sanitizeEntry({ text: "X\ny", bpm: 72.4 }).bpm, "72");
+});
+
+test("links de referência e YouTube", () => {
+  assert.equal(C.sanitizeUrl("javascript:alert(1)"), "");
+  assert.equal(C.sanitizeUrl("data:text/html,x"), "");
+  assert.equal(C.sanitizeUrl(42), "");
+  assert.equal(C.sanitizeUrl("youtu.be/dQw4w9WgXcQ"), "https://youtu.be/dQw4w9WgXcQ");
+  assert.equal(C.sanitizeUrl(" https://example.com/a b "), "https://example.com/a%20b");
+  for (const u of ["https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42", "https://youtu.be/dQw4w9WgXcQ?si=x", "https://m.youtube.com/watch?v=dQw4w9WgXcQ",
+    "https://youtube.com/shorts/dQw4w9WgXcQ", "https://www.youtube.com/embed/dQw4w9WgXcQ", "https://music.youtube.com/watch?v=dQw4w9WgXcQ"])
+    assert.equal(C.youtubeId(u), "dQw4w9WgXcQ", u);
+  assert.equal(C.youtubeId("https://vimeo.com/123"), "");
+  assert.equal(C.youtubeId("https://youtube.com/watch?v=curto"), "");
+  assert.equal(C.youtubeStart("https://youtu.be/dQw4w9WgXcQ?t=1m30s"), 90);
+  assert.equal(C.youtubeStart("https://youtu.be/dQw4w9WgXcQ?t=42"), 42);
+  assert.equal(C.sanitizeEntry({text:"A\nb", ref:"javascript:x"}).ref, "");
+  assert.equal(C.sanitizeEntry({text:"A\nb", ref:"youtu.be/dQw4w9WgXcQ"}).ref, "https://youtu.be/dQw4w9WgXcQ");
 });
 
 test("sanitizeOptions e sanitizeItem", () => {

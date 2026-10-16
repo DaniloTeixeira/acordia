@@ -52,6 +52,8 @@
   <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 22c4 0 7-2.7 7-7 0-3-2-5.5-3.5-7-.3 2-1.5 3.3-3 3.5C13 8 12 5 9 2c0 4-4 6.5-4 12 0 4.3 3 8 7 8z"/></symbol>
   <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
   <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
+  <symbol id="i-metro" viewBox="0 0 24 24"><path d="M9 3h6l4 18H5z"/><path d="M12 16l5-9M8 17h8"/></symbol>
   <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 21V9M7 14l5-5 5 5M5 3h14"/></symbol>
 </svg>
 
@@ -155,10 +157,12 @@
     <section class="view" id="view-study" data-view="study" hidden aria-labelledby="study-h">
       <div class="view-head"><div><h1 id="study-h" data-i18n="study.title"></h1><p class="sub" data-i18n="study.sub"></p></div></div>
       <div class="seg" id="study-tabs" role="group" data-i18n-attr="aria-label:study.tabsAria">
-        <button data-v="explore" data-i18n="study.explore"></button><button data-v="train" data-i18n="study.train"></button>
+        <button data-v="explore" data-i18n="study.explore"></button><button data-v="train" data-i18n="study.train"></button><button data-v="hands" data-i18n="study.hands"></button><button data-v="metro" data-i18n="study.metro"></button>
       </div>
       <div id="study-explore"></div>
       <div id="study-train" hidden></div>
+      <div id="study-hands" hidden></div>
+      <div id="study-metro" hidden></div>
     </section>
   </main>
 
@@ -175,9 +179,11 @@
     <button class="icon-btn" id="stage-close" data-i18n-attr="aria-label:stage.close"><svg class="i"><use href="#i-x"/></svg></button>
     <div class="seg sm" id="stage-mode" role="group" data-i18n-attr="aria-label:stage.modeAria"><button data-v="cifras" data-i18n="sheet.chords"></button><button data-v="graus" data-i18n="sheet.degrees"></button><button data-v="letra" data-i18n="sheet.lyricsShort"></button></div>
     <span class="grow"></span>
+    <button class="icon-btn" id="stage-metro" aria-pressed="false" data-i18n-attr="aria-label:metro.title;title:metro.title"><svg class="i"><use href="#i-metro"/></svg></button>
     <button class="icon-btn" id="stage-smaller" data-i18n-attr="aria-label:stage.smaller"><b>A−</b></button>
     <button class="icon-btn" id="stage-bigger" data-i18n-attr="aria-label:stage.bigger"><b>A+</b></button>
   </div>
+  <div class="stage-metro" id="stage-metro-panel" hidden></div>
   <div class="stage-scroll" id="stage-scroll" tabindex="0"><div class="stage-content" id="stage-content"></div></div>
 </div>
 
@@ -202,6 +208,7 @@
       <div class="fields">
         <label class="field"><span data-i18n="song.key"></span><select class="input" id="song-key"></select></label>
         <label class="field"><span data-i18n="item.bpm"></span><input class="input" id="song-bpm" type="number" inputmode="numeric" min="20" max="300" placeholder="—"></label>
+        <label class="field wide"><span data-i18n="item.ref"></span><input class="input" id="song-ref" type="url" inputmode="url" autocomplete="off" data-i18n-attr="placeholder:item.refPh"></label>
       </div>
     </div>
     <div class="dlg-foot"><button class="btn ghost" value="cancel" data-i18n="common.cancel"></button><button class="btn primary" value="ok" data-i18n="common.save"></button></div>
@@ -240,6 +247,17 @@
       <p class="sub" data-i18n="install.sub"></p>
     </div>
     <div class="dlg-foot"><button class="btn primary" value="ok" data-i18n="common.gotIt"></button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-player" class="player" aria-labelledby="player-h">
+  <form method="dialog" class="dlg">
+    <div class="dlg-head"><h2 id="player-h"></h2><button class="icon-btn" value="cancel" data-i18n-attr="aria-label:common.close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="dlg-body">
+      <p class="note" id="player-offline" hidden data-i18n="ref.offline"></p>
+      <div class="player-box" id="player-box"></div>
+    </div>
+    <div class="dlg-foot"><a class="btn ghost" id="player-open" target="_blank" rel="noopener" data-i18n="ref.open"></a><button class="btn primary" value="cancel" data-i18n="common.close"></button></div>
   </form>
 </dialog>
 

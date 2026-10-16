@@ -18,7 +18,7 @@ async function pipe(bytes, stream){
 // medley: {name, options, songs:[{text, type, key, bpm, target, capo, singer, notes}]}
 export async function encodeMedley(medley){
   const compact = {v:1, n:medley.name, o:medley.options, s:medley.songs.map(s=>{
-    const o = {t:s.text}; ["type","key","bpm","target","capo","singer","notes"].forEach(k=>{ if(s[k]) o[k] = s[k]; }); return o;
+    const o = {t:s.text}; ["type","key","bpm","ref","target","capo","singer","notes"].forEach(k=>{ if(s[k]) o[k] = s[k]; }); return o;
   })};
   const json = new TextEncoder().encode(JSON.stringify(compact));
   if(typeof CompressionStream === "function") return "z" + toB64url(await pipe(json, new CompressionStream("deflate-raw")));
@@ -34,7 +34,7 @@ export async function decodeMedley(code){
     const d = JSON.parse(new TextDecoder().decode(bytes));
     if(!d || !Array.isArray(d.s)) return null;
     const songs = d.s.map(s=>{
-      const e = s && sanitizeEntry({text:s.t, type:s.type, key:s.key, bpm:s.bpm});
+      const e = s && sanitizeEntry({text:s.t, type:s.type, key:s.key, bpm:s.bpm, ref:s.ref});
       return e ? Object.assign(e, sanitizeItem(s)) : null;
     }).filter(Boolean);
     if(!songs.length) return null;
