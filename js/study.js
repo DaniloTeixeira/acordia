@@ -2,22 +2,18 @@
 import { SCALES, spellScale, scaleDegrees, harmonicField, relativeKey, rootFor, makeQuestion, QUIZ_KINDS, NOTE_GRID, CHORD_QUALITIES } from "./core.js";
 import * as audio from "./audio.js";
 import { initHands } from "./hands.js";
-import { mountMetronome } from "./metronome.js";
+import { INSTRUMENTS, voicings } from "./instruments.js";
+import { instrumentSelect, fretboardSVG, diagramSVG, voicingMidis } from "./chordview.js";
 const { playChord, playSequence } = audio;
 import { t } from "./i18n.js";
 
 const ROUND = 10;
 const WHITE = [0,2,4,5,7,9,11], BLACK = [1,3,6,8,10];
 
-export function initStudy({explore, train, hands, metroRoot, metro, tabs, seg, paintSeg, data, store, toast, icon, esc}){
+export function initStudy({explore, train, hands, tabs, seg, paintSeg, data, store, toast, icon, esc, getInstrument, chordDialog}){
   const st = Object.assign({tab:"explore", rootPc:0, scaleId:"maior", sevenths:false, kind:"misto", level:"facil", mode:"choice"}, data.settings.study || {});
   const persist = () => store.setSetting("study", {tab:st.tab, rootPc:st.rootPc, scaleId:st.scaleId, sevenths:st.sevenths, kind:st.kind, level:st.level, mode:st.mode});
   const handsUI = initHands({root:hands, data, store, toast, icon, esc, audio});
-  let metroUI = null;
-  document.addEventListener("keydown", e => {
-    if(!metroUI || metroRoot.hidden || metroRoot.closest("[hidden]") || (e.target instanceof Element && e.target.closest("input:not([type=range]):not([type=checkbox]),textarea,select,button"))) return;
-    metroUI.key(e);
-  });
   let quiz = null;
 
   seg(tabs, st.tab, v => { st.tab = v; persist(); show(); });
@@ -40,7 +36,7 @@ export function initStudy({explore, train, hands, metroRoot, metro, tabs, seg, p
     return `<svg class="keyboard" viewBox="-1 -1 ${x + 2} ${H + 2}" role="img" aria-label="${esc(t("study.keyboardAria"))}">${whites}${blacks}</svg>`;
   }
   function flash(midis){
-    midis.forEach(m => { const k = explore.querySelector(`[data-midi="${m}"]`); if(k){ k.classList.add("on"); setTimeout(()=>k.classList.remove("on"), 450); } });
+    midis.forEach(m => explore.querySelectorAll(`[data-midi="${m}"]`).forEach(k => { k.classList.add("on"); setTimeout(()=>k.classList.remove("on"), 450); }));
   }
   function fnLegend(field, fnName){
     const by = f => field.filter(c => c.fn === f);
@@ -60,12 +56,17 @@ export function initStudy({explore, train, hands, metroRoot, metro, tabs, seg, p
     const field = harmonicField(root, st.scaleId, st.sevenths);
     const relKey = sc.minor ? relativeKey(root + "m") : relativeKey(root);
     const fnName = {T:t("study.fnT"), SD:t("study.fnSD"), D:t("study.fnD")};
+    const inst = getInstrument(), I = INSTRUMENTS[inst], strings = I.kind === "strings";
+    const marks = {}; sc.iv.forEach((iv, i) => { marks[(st.rootPc + iv) % 12] = {label: names[i], root: i === 0}; });
+    const keyLabel = root + (sc.minor ? "m" : "");
+    const mini = c => { if(!strings || I.arpeggio) return ""; const v = voicings(c.name, inst, 1)[0]; return v ? diagramSVG(v, inst, {small:true}) : ""; };
     explore.innerHTML = `
       <div class="study-controls">
         <div class="roots" role="group" aria-label="${esc(t("study.root"))}">${Array.from({length:12}, (_, pc) => `<button class="root-btn" data-pc="${pc}" aria-pressed="${pc === st.rootPc}">${esc(rootFor(pc, st.scaleId))}</button>`).join("")}</div>
         <div class="study-row">
           <select class="input" id="st-scale" aria-label="${esc(t("study.scale"))}">${Object.keys(SCALES).map(id => `<option value="${id}" ${id === st.scaleId ? "selected" : ""}>${esc(t("scale." + id))}</option>`).join("")}</select>
           <label class="switch" style="gap:10px">${esc(t("study.sevenths"))}<input type="checkbox" id="st-7" ${st.sevenths ? "checked" : ""} ${field.length ? "" : "disabled"}></label>
+          ${instrumentSelect(inst)}
         </div>
       </div>
       <div class="card scale-card">
@@ -74,11 +75,11 @@ export function initStudy({explore, train, hands, metroRoot, metro, tabs, seg, p
           <button class="btn primary sm" id="st-play">${icon("play","sm")} ${esc(t("study.play"))}</button>
         </div>
         <div class="scale-notes">${names.map((n, i) => `<button class="note-chip" data-i="${i}"><b>${esc(n)}</b><small>${esc(degs[i])}</small></button>`).join("")}</div>
-        ${keyboardSVG(byPc)}
+        <div class="board-wrap">${strings ? fretboardSVG(inst, marks, I.frets > 12 ? 12 : I.frets) : keyboardSVG(byPc)}</div>
       </div>
       <div class="card">
         <div class="scale-head" style="margin-bottom:12px"><div><h2>${esc(t("study.field"))}</h2><p class="sub">${esc(field.length ? t("study.fieldHint") : t("study.noField"))}</p></div></div>
-        ${field.length ? `<div class="field-grid">${field.map((c, i) => `<button class="chord-card" data-i="${i}" style="animation-delay:${i*30}ms"><span class="deg">${esc(c.degree)}</span><span class="name">${esc(c.name)}</span><span class="tones">${esc(c.notes.join(" · "))}</span>${c.fn ? `<span class="fn ${c.fn}" title="${esc(fnName[c.fn])}">${c.fn}</span>` : ""}</button>`).join("")}</div>
+        ${field.length ? `<div class="field-grid">${field.map((c, i) => `<button class="chord-card" data-i="${i}" style="animation-delay:${i*30}ms"><span class="deg">${esc(c.degree)}</span><span class="name">${esc(c.name)}</span><span class="tones">${esc(c.notes.join(" · "))}</span>${mini(c)}${c.fn ? `<span class="fn ${c.fn}" title="${esc(fnName[c.fn])}">${c.fn}</span>` : ""}</button>`).join("")}</div>
           ${sc.fn ? fnLegend(field, fnName) : ""}` : ""}
       </div>`;
     explore.querySelectorAll(".root-btn").forEach(b => b.onclick = () => { st.rootPc = +b.dataset.pc; persist(); renderExplore(); });
@@ -93,9 +94,9 @@ export function initStudy({explore, train, hands, metroRoot, metro, tabs, seg, p
     };
     explore.querySelectorAll(".note-chip").forEach(b => b.onclick = () => { const iv = sc.iv[+b.dataset.i]; playChord([iv], {base}); flash([base + iv]); });
     // Teclas clicáveis; segurando e arrastando, toca as notas por onde passa.
-    const kb = explore.querySelector(".keyboard"); let down = false, lastKey = null;
+    const kb = explore.querySelector(".board-wrap"); let down = false, lastKey = null;
     const press = el => {
-      const key = el && el.closest && el.closest("rect[data-midi]");
+      const key = el && el.closest && el.closest("[data-midi]");
       if(!key || key === lastKey) return;
       lastKey = key;
       if(!playChord([0], {base: +key.dataset.midi, dur: 1.2})) return toast(t("study.noAudio"));
@@ -105,7 +106,11 @@ export function initStudy({explore, train, hands, metroRoot, metro, tabs, seg, p
     kb.addEventListener("pointermove", e => { if(down) press(document.elementFromPoint(e.clientX, e.clientY)); });
     const up = () => { down = false; lastKey = null; };
     kb.addEventListener("pointerup", up); kb.addEventListener("pointercancel", up);
-    explore.querySelectorAll(".chord-card").forEach(b => b.onclick = () => { const c = field[+b.dataset.i]; if(!playChord(c.pcs, {base})) return toast(t("study.noAudio")); flash(c.pcs.map(p => base + p)); });
+    explore.querySelectorAll(".chord-card").forEach(b => b.onclick = () => {
+      const c = field[+b.dataset.i];
+      flash(c.pcs.map(p => base + p));
+      chordDialog.open(c.name, keyLabel);
+    });
   }
 
   // ---------- treino ----------
@@ -221,10 +226,9 @@ export function initStudy({explore, train, hands, metroRoot, metro, tabs, seg, p
 
   function show(){
     tabs.setSeg(st.tab);
-    explore.hidden = st.tab !== "explore"; train.hidden = st.tab !== "train"; hands.hidden = st.tab !== "hands"; metroRoot.hidden = st.tab !== "metro";
+    if(st.tab === "metro") st.tab = "explore";
+    explore.hidden = st.tab !== "explore"; train.hidden = st.tab !== "train"; hands.hidden = st.tab !== "hands";
     if(st.tab !== "hands") handsUI.hide();
-    if(st.tab !== "metro") metro.stop();
-    if(st.tab === "metro"){ if(metroUI) metroUI.destroy(); metroUI = mountMetronome(metroRoot, metro, {icon, esc, toast, seg}); }
     if(st.tab === "explore") renderExplore();
     else if(st.tab === "hands") handsUI.show();
     else if(!quiz) renderSetup();
@@ -232,5 +236,5 @@ export function initStudy({explore, train, hands, metroRoot, metro, tabs, seg, p
   }
   // Ao trocar de idioma: redesenha (uma pergunta em andamento é refeita no novo idioma).
   function relabel(){ if(quiz && !quiz.answered) nextQuestion(); else if(quiz) renderQuiz(); show(); }
-  return {show, relabel, hide: () => { handsUI.hide(); metro.stop(); }};
+  return {show, relabel, hide: () => handsUI.hide(), rerender(){ if(!explore.hidden && st.tab === "explore") renderExplore(); }};
 }

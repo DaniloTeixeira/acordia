@@ -1,8 +1,10 @@
 import { KEYS, MINOR_KEYS, parseSong, dedupeBlocks, detectKey, keyShift, songTitle, sanitizeEntry, sanitizeItem,
   sanitizeOptions, transition, isChordLine, sanitizeUrl, youtubeId, youtubeStart } from "./core.js";
 import { createMetronome, mountMetronome } from "./metronome.js";
+import { mountTuner } from "./tuner.js";
+import { createChordDialog, instrumentSelect } from "./chordview.js";
 import * as audio from "./audio.js";
-import { fit, toSVG, lyricsOnly, chordText } from "./layout.js";
+import { fit, toSVG, lyricsOnly, chordText, chordLine } from "./layout.js";
 import { toPDF, saveBlob, pdfAvailable } from "./pdf.js";
 import { encodeMedley, decodeMedley } from "./share.js";
 import { t, tn, setLang, getLang, detectLang, locale, translateDOM } from "./i18n.js";
@@ -115,7 +117,9 @@ function toggleLang(){
   const l = getLang() === "pt" ? "en" : "pt";
   store.setSetting("lang", l);
   vt(() => {
+    const oldDefault = t("medley.defaultName");
     setLang(l); applyLang(); mcache.clear();
+    data.medleys.forEach(m => { if(m.name === oldDefault){ m.name = t("medley.defaultName"); store.saveMedley(m); } });
     renderMedley(); if(view === "library") renderLibrary(); study.relabel();
     $$(".seg").forEach(paintSeg);
   });
@@ -124,13 +128,15 @@ function toggleLang(){
 // ---------- navegação ----------
 let view = "medley";
 function go(v, {instant} = {}){
-  if(!["medley","library","study"].includes(v)) v = "medley";
+  if(!["medley","library","study","tools"].includes(v)) v = "medley";
+  if(view === "tools" && v !== "tools") tools && tools.leave();
   const run = () => {
     view = v;
     $$("[data-view]").forEach(s => s.hidden = s.dataset.view !== v);
     $$("[data-nav]").forEach(b => b.dataset.nav === v ? b.setAttribute("aria-current","page") : b.removeAttribute("aria-current"));
     if(v === "library") renderLibrary();
     if(v === "study") study.show(); else study.hide();
+    if(v === "tools") tools.show();
     if(v === "medley") renderSheet.flush();
     $$(".seg").forEach(paintSeg);
     window.scrollTo({top:0});
@@ -605,7 +611,7 @@ function renderStage(){
     const meta = [!L && s.meta.bpm && t("sheet.bpm", {n:s.meta.bpm}), !L && s.meta.capo && t("sheet.capo", {n:s.meta.capo}), s.meta.singer && t("sheet.voice", {name:s.meta.singer}), s.meta.notes].filter(Boolean).join(" · ");
     const blocks = s.blocks.map(b => `<div class="stage-block">${b.map(it => {
       let h = "";
-      if(it.chord !== undefined && it.chord !== null && !L) h += `<p class="stage-line ch">${esc(chordText(it.chord, s, stageMode, m.options.degreeStyle))}</p>`;
+      if(it.chord !== undefined && it.chord !== null && !L) h += `<p class="stage-line ch">${chordSpans(chordLine(it.chord, s, stageMode, m.options.degreeStyle), key)}</p>`;
       if(it.lyric !== undefined) h += `<p class="stage-line">${esc(it.lyric)}</p>`;
       return h; }).join("")}</div>`).join("");
     const next = src[si+1], tr = m.options.transitions && !L && next ? transition(key, next.target || next.key) : null;
@@ -614,6 +620,13 @@ function renderStage(){
       + (tr && !tr.same ? `<p class="stage-trans">→ ${esc(next.target || next.key)}: ${esc(tr.text)}${tr.passing ? " · " + esc(t("sheet.passing", {chord: stageMode === "graus" ? "V7" : tr.passing})) : ""}</p>` : "");
   }).join("") || `<div class="empty-state"><strong>${esc(t("stage.empty"))}</strong><span>${esc(t("stage.emptyText"))}</span></div>`;
   $$(".stage-ref", box).forEach(b => b.addEventListener("click", e => { e.stopPropagation(); openRef(b.dataset.url, b.dataset.title); }));
+  $$(".chd", box).forEach(b => b.addEventListener("click", e => { e.stopPropagation(); chordDialog.open(b.dataset.chord, b.dataset.key); }));
+}
+// Linha de cifra com cada acorde clicável (abre os detalhes no instrumento escolhido).
+function chordSpans(cl, key){
+  let out = "", at = 0;
+  cl.chords.forEach(c => { out += esc(cl.text.slice(at, c.pos)) + `<span class="chd" data-chord="${esc(c.chord)}" data-key="${esc(key || "")}">${esc(cl.text.slice(c.pos, c.pos + c.len))}</span>`; at = c.pos + c.len; });
+  return out + esc(cl.text.slice(at));
 }
 async function lockScreen(){ try{ if("wakeLock" in navigator && !document.hidden) wakeLock = await navigator.wakeLock.request("screen"); }catch(e){} }
 function openStage(){
@@ -707,15 +720,51 @@ function openRef(url, title){
   dlg.showModal();
 }
 
-let study, metro;
+// ---------- instrumento escolhido ----------
+const getInstrument = () => data.settings.instrument || "keys";
+function setInstrument(v){
+  if(v === getInstrument()) return;
+  store.setSetting("instrument", v);
+  $$("select[data-instrument]").forEach(s => { s.value = v; });
+  study.rerender(); tools.instrumentChanged(); chordDialog.refresh();
+}
+
+// ---------- ferramentas: metrônomo e afinador ----------
+function initTools(){
+  let tab = data.settings.toolsTab === "tuner" ? "tuner" : "metro", metroUI = null, tuner = null;
+  const show = () => {
+    $("#tools-metro").hidden = tab !== "metro"; $("#tools-tuner").hidden = tab !== "tuner";
+    if(tab === "metro"){ if(metroUI) metroUI.destroy(); metroUI = mountMetronome($("#tools-metro"), metro, {icon, esc, toast, seg}); if(tuner) tuner.stop(); }
+    else { metro.stop(); if(!tuner) tuner = mountTuner($("#tools-tuner"), {icon, esc, toast, data, store, instrumentSelect: () => instrumentSelect(getInstrument())}); }
+    $$("#view-tools .seg").forEach(paintSeg);
+  };
+  seg($("#tools-tabs"), tab, v => { tab = v; store.setSetting("toolsTab", v); show(); });
+  document.addEventListener("keydown", e => {
+    if(view !== "tools" || tab !== "metro" || !metroUI || (e.target instanceof Element && e.target.closest("input:not([type=range]):not([type=checkbox]),textarea,select,button"))) return;
+    metroUI.key(e);
+  });
+  return {
+    show,
+    leave(){ metro.stop(); if(tuner) tuner.stop(); },
+    instrumentChanged(){ if(tuner) tuner.render(); }
+  };
+}
+
+let study, metro, tools, chordDialog;
 async function main(){
   await store.init(() => toast(t("lib.saveFail")));
   setLang(data.settings.lang || detectLang());
+  // Nomes padrão antigos (de quando o app se chamava Medley Generator) passam para o nome atual.
+  data.medleys.forEach(m => { if(["Meu medley", "My medley", "Meu repertório", "My setlist"].includes(m.name) && m.name !== t("medley.defaultName")){ m.name = t("medley.defaultName"); store.saveMedley(m); } });
   applyLang();
   sheetMode = ["cifras","graus","letra"].includes(data.settings.sheetMode) ? data.settings.sheetMode : "cifras";
   metro = createMetronome(audio, data.settings.metro || {});
   metro.onChange(debounce(s => store.setSetting("metro", s), 500));
-  study = initStudy({explore: $("#study-explore"), train: $("#study-train"), hands: $("#study-hands"), metroRoot: $("#study-metro"), metro, tabs: $("#study-tabs"), seg, paintSeg, data, store, toast, icon, esc});
+  chordDialog = createChordDialog({dlg: $("#dlg-chord"), audio, getInstrument, setInstrument, icon});
+  tools = initTools();
+  document.addEventListener("change", e => { if(e.target.matches && e.target.matches("select[data-instrument]")) setInstrument(e.target.value); });
+  $("#pages").addEventListener("click", e => { const r = e.target.closest && e.target.closest("rect.hit"); if(r) chordDialog.open(r.dataset.chord, r.dataset.key); });
+  study = initStudy({explore: $("#study-explore"), train: $("#study-train"), hands: $("#study-hands"), getInstrument, chordDialog, tabs: $("#study-tabs"), seg, paintSeg, data, store, toast, icon, esc});
 
   $$("[data-nav]").forEach(b => b.onclick = () => go(b.dataset.nav));
   $$(".brand").forEach(a => a.addEventListener("click", e => { e.preventDefault(); go("medley"); }));

@@ -67,6 +67,18 @@ test("colunas automáticas: 1 coluna para pouco texto, 2 para muito", () => {
   assert.equal(fit([song("A", 10), song("B", 10)], opts({columns: "auto"})).columns, 2);
 });
 
+test("acordes clicáveis: posição e acorde que soa", () => {
+  const s = Object.assign(parseSong("T\nC     G/B\nletra aqui"), {key: "C", target: "D", shift: 2, meta: {}});
+  const ops = layout([s], 12, 1, opts()).pages.flat().filter(o => o.chords);
+  assert.equal(ops[0].txt, "D     A/C#");
+  assert.deepEqual(ops[0].chords.map(c => [c.pos, c.chord]), [[0, "D"], [6, "A/C#"]]);
+  const graus = layout([s], 12, 1, opts({mode: "graus"})).pages.flat().filter(o => o.chords);
+  assert.equal(graus[0].txt, "I     V/VII");
+  assert.deepEqual(graus[0].chords.map(c => c.chord), ["D", "A/C#"]);
+  const svg = toSVG(ops, "x");
+  assert.ok(svg.includes('class="hit" data-chord="A/C#" data-key="D"'));
+});
+
 test("toSVG escapa texto", () => {
   const svg = toSVG([{t:"text", x:0, y:0, s:10, f:"sans", b:false, c:[0,0,0], txt:"<b>&"}], "x");
   assert.ok(svg.includes("&lt;b&gt;&amp;"));

@@ -64,6 +64,7 @@
     <button class="nav-item" data-nav="medley"><svg class="i"><use href="#i-music"/></svg><span data-i18n="nav.medley"></span></button>
     <button class="nav-item" data-nav="library"><svg class="i"><use href="#i-library"/></svg><span data-i18n="nav.library"></span><span class="count" data-count="songs"></span></button>
     <button class="nav-item" data-nav="study"><svg class="i"><use href="#i-study"/></svg><span data-i18n="nav.study"></span></button>
+    <button class="nav-item" data-nav="tools"><svg class="i"><use href="#i-metro"/></svg><span data-i18n="nav.tools"></span></button>
     <div class="rail-foot">
       <button class="nav-item" data-install hidden><svg class="i"><use href="#i-phone"/></svg><span data-i18n="nav.install"></span></button>
       <button class="nav-item" data-lang-toggle><svg class="i"><use href="#i-globe"/></svg><span></span></button>
@@ -158,12 +159,21 @@
     <section class="view" id="view-study" data-view="study" hidden aria-labelledby="study-h">
       <div class="view-head"><div><h1 id="study-h" data-i18n="study.title"></h1><p class="sub" data-i18n="study.sub"></p></div></div>
       <div class="seg" id="study-tabs" role="group" data-i18n-attr="aria-label:study.tabsAria">
-        <button data-v="explore" data-i18n="study.explore"></button><button data-v="train" data-i18n="study.train"></button><button data-v="hands" data-i18n="study.hands"></button><button data-v="metro" data-i18n="study.metro"></button>
+        <button data-v="explore" data-i18n="study.explore"></button><button data-v="train" data-i18n="study.train"></button><button data-v="hands" data-i18n="study.hands"></button>
       </div>
       <div id="study-explore"></div>
       <div id="study-train" hidden></div>
       <div id="study-hands" hidden></div>
-      <div id="study-metro" hidden></div>
+    </section>
+
+    <!-- ===== Ferramentas ===== -->
+    <section class="view" id="view-tools" data-view="tools" hidden aria-labelledby="tools-h">
+      <div class="view-head"><div><h1 id="tools-h" data-i18n="tools.title"></h1><p class="sub" data-i18n="tools.sub"></p></div></div>
+      <div class="seg" id="tools-tabs" role="group" data-i18n-attr="aria-label:tools.title">
+        <button data-v="metro" data-i18n="tools.metro"></button><button data-v="tuner" data-i18n="tools.tuner"></button>
+      </div>
+      <div id="tools-metro"></div>
+      <div id="tools-tuner" hidden></div>
     </section>
   </main>
 
@@ -171,6 +181,7 @@
     <button class="tab" data-nav="medley"><span class="pill"><svg class="i"><use href="#i-music"/></svg></span><span data-i18n="nav.medley"></span></button>
     <button class="tab" data-nav="library"><span class="pill"><svg class="i"><use href="#i-library"/></svg></span><span data-i18n="nav.library"></span></button>
     <button class="tab" data-nav="study"><span class="pill"><svg class="i"><use href="#i-study"/></svg></span><span data-i18n="nav.study"></span></button>
+    <button class="tab" data-nav="tools"><span class="pill"><svg class="i"><use href="#i-metro"/></svg></span><span data-i18n="nav.tools"></span></button>
   </nav>
 </div>
 
@@ -248,6 +259,13 @@
       <p class="sub" data-i18n="install.sub"></p>
     </div>
     <div class="dlg-foot"><button class="btn primary" value="ok" data-i18n="common.gotIt"></button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-chord" class="chord-dlg" aria-labelledby="chord-h">
+  <form method="dialog" class="dlg">
+    <div class="dlg-head"><h2 id="chord-h"></h2><button class="icon-btn" value="cancel" data-i18n-attr="aria-label:common.close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="dlg-body"></div>
   </form>
 </dialog>
 

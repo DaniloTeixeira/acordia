@@ -1,6 +1,6 @@
 // Monta as folhas A4 como listas de operações de desenho (texto e linhas), usadas pelo SVG e pelo PDF.
 // Não depende do DOM: a medição de texto vem de fora (`measure`), para poder testar no Node.
-import { lineToDegrees, lineTranspose, transition } from "./core.js";
+import { lineToDegrees, lineTranspose, transition, mapLineTokens, chordToDegree, transposeChord } from "./core.js";
 import { t } from "./i18n.js";
 
 export const PW = 595.28, PH = 841.89, M = 32, GAP = 22, CW = 0.632;
@@ -40,6 +40,12 @@ export function lyricsOnly(songs){
 }
 export function chordText(line, s, mode, style){
   return mode==="graus" ? lineToDegrees(line, s.key, style) : lineTranspose(line, s.shift, s.target);
+}
+// Linha de cifra pronta para exibir e, para cada acorde, a posição e o acorde que de fato soa.
+export function chordLine(line, s, mode, style){
+  const sound = src => s.shift ? transposeChord(src, s.shift, s.target) : src;
+  const r = mapLineTokens(line, mode === "graus" ? tok => chordToDegree(tok, s.key, style) : sound);
+  return {text: mode === "graus" || s.shift ? r.text : line, chords: r.tokens.map(k => ({pos:k.pos, len:k.len, chord: sound(k.src)}))};
 }
 function playKey(s){ return s.target || s.key; }
 function metaLine(s, mode){
@@ -89,7 +95,8 @@ export function layout(songs, fs, k, opts){
       b.forEach(it=>{
         if(y + itemH(it) > bottom) nextCol();
         if(it.chord!==undefined && it.chord!==null){
-          push({t:"text",x:x(),y:y+fs*0.82,s:fs,f:"mono",b:true,c:CHORD,txt:chordText(it.chord, s, mode, opts.degreeStyle)});
+          const cl = chordLine(it.chord, s, mode, opts.degreeStyle);
+          push({t:"text",x:x(),y:y+fs*0.82,s:fs,f:"mono",b:true,c:CHORD,txt:cl.text, chords:cl.chords, key:playKey(s)});
           y += it.kind==="pair" ? CH : CO;
         }
         if(it.lyric!==undefined){
@@ -166,6 +173,8 @@ export function toSVG(ops, label){
     if(o.t==="text"){
       const fam = o.f==="mono" ? `AHMono,'Courier New',monospace` : o.f==="lex" ? `Lexend,AHSans,sans-serif` : `AHSans,Helvetica,Arial,sans-serif`;
       s += `<text x="${o.x}" y="${o.y}" font-family="${fam}" font-size="${o.s}" font-weight="${o.b?700:400}" fill="${col}" style="white-space:pre">${esc(o.txt)}</text>`;
+      // Áreas clicáveis sobre cada acorde (a fonte é monoespaçada).
+      if(o.chords) o.chords.forEach(c => { s += `<rect class="hit" data-chord="${esc(c.chord)}" data-key="${esc(o.key || "")}" x="${(o.x + c.pos*CW*o.s).toFixed(2)}" y="${(o.y - o.s*0.9).toFixed(2)}" width="${(Math.max(c.len, 1)*CW*o.s).toFixed(2)}" height="${(o.s*1.15).toFixed(2)}" fill="transparent"/>`; });
     } else if(o.v){
       s += `<line x1="${o.x1}" y1="${o.y1}" x2="${o.x2}" y2="${o.y2}" stroke="${col}" stroke-width="${o.w}"/>`;
     } else {

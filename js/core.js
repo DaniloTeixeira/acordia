@@ -113,15 +113,19 @@ export function transposeChord(ch, shift, target){
 }
 export function lineToDegrees(line, key, style){ return mapLine(line, t => chordToDegree(t, key, style)); }
 export function lineTranspose(line, shift, target){ return shift ? mapLine(line, t => transposeChord(t, shift, target)) : line; }
-function mapLine(line, fn){
-  let out = "", end = 0;
+function mapLine(line, fn){ return mapLineTokens(line, fn).text; }
+// Como mapLine, mas também diz onde cada acorde ficou na linha final (para tornar os acordes clicáveis).
+export function mapLineTokens(line, fn){
+  let out = "", end = 0; const tokens = [];
   const re = /[^\s()|]+|[()|]/g; let t;
   while((t = re.exec(line))){
-    const tok = CHORD_RE.test(t[0]) ? fn(t[0]) : t[0];
+    const chord = CHORD_RE.test(t[0]), tok = chord ? fn(t[0]) : t[0];
     const pos = Math.max(t.index, end ? end + 1 : 0);
-    out += " ".repeat(Math.max(0,pos-out.length)) + tok; end = out.length;
+    out += " ".repeat(Math.max(0,pos-out.length));
+    if(chord) tokens.push({pos: out.length, len: tok.length, src: t[0]});
+    out += tok; end = out.length;
   }
-  return out;
+  return {text: out, tokens};
 }
 
 // ---------- detecção de tom ----------
