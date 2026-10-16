@@ -79,10 +79,10 @@ export function mountMetronome(root, engine, {compact = false, icon, esc, toast,
       <div class="metro-opts">
         <div><span class="lbl">${esc(t("metro.signature"))}</span><div class="seg sm" data-m="sig">${Object.keys(SIGNATURES).map(k => `<button data-v="${k}">${k}</button>`).join("")}</div></div>
         <div><span class="lbl">${esc(t("metro.subdivision"))}</span><div class="seg sm" data-m="subdiv">${[1,2,3,4].map(n => `<button data-v="${n}" aria-label="${esc(t("metro.sub" + n))}" title="${esc(t("metro.sub" + n))}">${["♩","♫","3","4"][n-1]}</button>`).join("")}</div></div>
-        <label class="switch">${esc(t("metro.accent"))}<input type="checkbox" data-m="accent"></label>
+        <label class="switch lead">${esc(t("metro.accent"))}<input type="checkbox" data-m="accent"></label>
       </div>
       <div class="metro-actions">
-        <button class="btn ghost" data-m="tap">${esc(t("metro.tap"))}</button>
+        <button class="btn ghost" data-m="tap" data-tip-key="tip.tap">${esc(t("metro.tap"))}</button>
         <button class="btn primary metro-go" data-m="toggle"></button>
       </div>
       <p class="sub">${esc(t("metro.hint"))}</p>

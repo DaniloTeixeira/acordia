@@ -2,12 +2,18 @@
 // braço com as notas, mini teclado e a janela de detalhes de um acorde.
 import { INSTRUMENTS, INSTRUMENT_IDS, voicings, parseChord } from "./instruments.js";
 import { NOTES, noteName, parseKey, chordToDegree, harmonicField, rootFor } from "./core.js";
-import { t } from "./i18n.js";
+import { t, degLabel } from "./i18n.js";
+import { TIMBRES, getTimbre } from "./audio.js";
 
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 
 export function instrumentSelect(current){
   return `<label class="field inst-field"><span>${esc(t("inst.label"))}</span><select class="input" data-instrument>${INSTRUMENT_IDS.map(id => `<option value="${id}" ${id === current ? "selected" : ""}>${esc(t("inst." + id))}</option>`).join("")}</select></label>`;
+}
+// Timbre do som, ao lado do instrumento; o app mantém todas as listas iguais.
+export function timbreSelect(){
+  const cur = getTimbre();
+  return `<label class="field inst-field"><span>${esc(t("timbre.title"))}</span><select class="input" data-timbre>${TIMBRES.map(id => `<option value="${id}" ${id === cur ? "selected" : ""}>${esc(t("timbre." + id))}</option>`).join("")}</select></label>`;
 }
 export const voicingMidis = (v, instId) => v.frets.map((f, i) => f < 0 ? null : INSTRUMENTS[instId].strings[i] + f).filter(n => n !== null);
 
@@ -63,8 +69,10 @@ export function pianoSVG(midis, rootPc){
   const on = new Set(midis);
   for(let k = 0; k < 24; k++){
     const midi = start + k, pc = midi % 12, cls = on.has(midi) ? (pc === rootPc ? " root" : " in") : "";
-    if([0,2,4,5,7,9,11].includes(pc)){ whites += `<rect class="w${cls}" data-midi="${midi}" x="${x}" y="0" width="${W}" height="${H}" rx="3"/>`; x += W; }
-    else blacks += `<rect class="b${cls}" data-midi="${midi}" x="${x - BW/2}" y="0" width="${BW}" height="${BH}" rx="2"/>`;
+    // Todas as notas do acorde no mesmo azul; a fundamental leva um pontinho branco embaixo.
+    const dot = (cx, cy, r) => cls === " root" ? `<circle class="root-dot" cx="${cx}" cy="${cy}" r="${r}"/>` : "";
+    if([0,2,4,5,7,9,11].includes(pc)){ whites += `<rect class="w${cls}" data-midi="${midi}" x="${x + 0.5}" y="0.5" width="${W - 1}" height="${H - 1}" rx="3"/>` + dot(x + W/2, H - 10, 3); x += W; }
+    else blacks += `<rect class="b${cls}" data-midi="${midi}" x="${x - BW/2}" y="0" width="${BW}" height="${BH}" rx="2"/>` + dot(x, BH - 8, 2.5);
   }
   return `<svg class="keyboard mini" viewBox="-1 -1 ${x + 2} ${H + 2}" role="img">${whites}${blacks}</svg>`;
 }
@@ -116,10 +124,10 @@ export function createChordDialog({dlg, audio, getInstrument, setInstrument, ico
     body.innerHTML = `
       <div class="chord-info">
         ${info ? `<span class="chip accent">${esc(t("chord.degreeIn", {degree: info.degree, key}))}</span>${info.fn ? `<span class="fn ${info.fn}">${esc(fnName[info.fn])}</span>` : `<span class="chip">${esc(t("chord.borrowed"))}</span>`}` : ""}
-        <span class="chord-notes">${notes.map((nm, i) => `<span><b>${esc(nm)}</b><small>${esc(roles[i])}</small></span>`).join("")}</span>
+        <span class="chord-notes">${notes.map((nm, i) => `<span><b>${esc(nm)}</b><small>${esc(degLabel(roles[i]))}</small></span>`).join("")}</span>
       </div>
       <div class="chord-visual">${visual}${nav}</div>
-      <div class="study-row chord-actions">${instrumentSelect(inst)}<button type="button" class="btn primary" data-play>${icon("play","sm")} ${esc(t("chord.play"))}</button></div>`;
+      <div class="study-row chord-actions">${instrumentSelect(inst)}${timbreSelect()}<button type="button" class="btn primary" data-play>${icon("play","sm")} ${esc(t("chord.play"))}</button></div>`;
     body.querySelector("[data-play]").onclick = play;
     body.querySelectorAll(".voicing-nav [data-v]").forEach(b => b.onclick = () => { state.idx += +b.dataset.v; render(); play(); });
     body.querySelectorAll("[data-midi]").forEach(el => el.addEventListener("pointerdown", () => audio.playChord([+el.dataset.midi], {base:0, dur:1})));

@@ -29,7 +29,7 @@ function toast(msg, action, {sticky = false} = {}){
   const box = $("#toasts"), el = document.createElement("div");
   el.className = "toast"; el.innerHTML = `<span></span>`; el.firstChild.textContent = msg;
   const close = () => { el.classList.add("out"); setTimeout(()=>el.remove(), 260); };
-  if(action){ const b = document.createElement("button"); b.textContent = action.label; b.onclick = () => { action.run(); close(); }; el.appendChild(b); }
+  if(action){ const b = document.createElement("button"); b.className = "btn primary sm"; b.textContent = action.label; b.onclick = () => { action.run(); close(); }; el.appendChild(b); }
   box.appendChild(el);
   if(sticky){ const x = document.createElement("button"); x.className = "toast-x"; x.setAttribute("aria-label", t("common.close")); x.textContent = "×"; x.onclick = close; el.appendChild(x); }
   else setTimeout(close, action ? 6000 : 3200);
@@ -121,8 +121,11 @@ function applyTheme(th){
 }
 function cycleTheme(){
   const order = ["system","light","dark"], th = order[(order.indexOf(data.settings.theme || "system") + 1) % 3];
+  const isDark = x => x === "dark" || (x === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+  const same = isDark(th) === isDark(data.settings.theme || "system");
   store.setSetting("theme", th);
-  vt(() => applyTheme(th));
+  // Se a aparência efetiva não muda (ex.: escuro → sistema com o SO escuro), não há o que animar.
+  if(same) applyTheme(th); else vt(() => applyTheme(th), "theme");
 }
 function applyLang(){
   translateDOM();
@@ -162,7 +165,7 @@ function go(v, {instant} = {}){
     offerHelp(v);
   };
   store.setSetting("view", v);
-  if(instant) run(); else vt(run, "slide");
+  if(instant) run(); else return vt(run, "slide");
 }
 
 // ---------- repertório atual (setlist) ou medley em edição ----------
@@ -695,21 +698,35 @@ function renderLibrary(){
       <p class="excerpt"></p>
       <div class="foot"><button class="btn soft sm" data-a="open">${esc(t("common.open"))}</button>
         <span class="when">${esc(ago(m.updatedAt))}</span>
-        <button class="icon-btn sm" data-a="dup" aria-label="${esc(t("common.duplicate"))}" title="${esc(t("common.duplicate"))}">${icon("copy","sm")}</button>
+        ${m.items.length ? `<button class="icon-btn sm" data-a="dup" aria-label="${esc(t("common.duplicate"))}" title="${esc(t("common.duplicate"))}">${icon("copy","sm")}</button>` : ""}
         <button class="icon-btn sm" data-a="share" aria-label="${esc(t("common.share"))}" title="${esc(t("common.share"))}">${icon("share","sm")}</button>
         <button class="icon-btn sm danger" data-a="del" aria-label="${esc(t("common.delete"))}" title="${esc(t("common.delete"))}">${icon("trash","sm")}</button></div>`;
     $("h3", li).textContent = m.name; $(".excerpt", li).textContent = titles.join(" · ") || t("lib.emptyMedley");
     $('[data-a="open"]', li).onclick = () => { openMedley(m.id); go("medley"); };
     cardClick(li, () => { openMedley(m.id); go("medley"); });
-    $('[data-a="dup"]', li).onclick = () => {
+    const dup = $('[data-a="dup"]', li);
+    // Duplica e já abre a cópia com o nome selecionado, pronto para renomear.
+    if(dup) dup.onclick = () => {
       const copyItem = i => i.type === "medley" ? store.newMedleyItem(i.medleyId) : store.newItem(i.songId, sanitizeItem(i));
-      const c = store.createMedley(t("lib.copyName", {name:m.name}), m.items.map(copyItem), m.options, m.kind);
-      toast(t("lib.created", {name:c.name}), {label:t("common.open"), run:()=>{ openMedley(c.id); go("medley"); }}); renderLibrary();
+      const c = store.createMedley(copyName(m.name), m.items.map(copyItem), m.options, m.kind);
+      openMedley(c.id);
+      const tr = go("medley");
+      (tr ? tr.updateCallbackDone : Promise.resolve()).catch(()=>{}).then(() => { const n = $("#medley-name"); n.focus(); n.select(); });
+      toast(t("lib.created", {name:c.name}));
     };
     $('[data-a="share"]', li).onclick = () => shareMedley(m);
     $('[data-a="del"]', li).onclick = async () => { if(await confirmDialog({title: t(wantBlocks ? "confirm.medleyTitle" : "confirm.setlistTitle"), message: t(usedIn ? "confirm.medleyUsed" : wantBlocks ? "confirm.medley" : "confirm.setlist", {name: m.name, medleys: medleys(usedIn)})})) deleteMedley(m); };
     list.appendChild(li);
   });
+}
+// "Nome (cópia)", depois "Nome (cópia 2)", "(cópia 3)"...: a cópia de uma cópia não empilha o sufixo.
+function copyName(name){
+  const base = name.replace(/\s*\((cópia|copy|copia)(\s+\d+)?\)$/i, "") || name;
+  const names = new Set([...data.medleys.values()].map(x => x.name));
+  for(let n = 1; ; n++){
+    const c = n === 1 ? t("lib.copyName", {name: base}) : t("lib.copyNameN", {name: base, n});
+    if(!names.has(c)) return c;
+  }
 }
 function deleteSong(s){
   let n = 0;
@@ -1015,6 +1032,31 @@ function repertoireEntries(){
     chords: s.blocks.flatMap(b => b.flatMap(it => it.chord ? chordLine(it.chord, s, "cifras").chords.map(c => c.chord) : []))}));
 }
 
+// Músicas com cifra do repertório aberto, para a sugestão de tom por cantor (aba Voz).
+function voiceSongs(){
+  return songItems(current()).map(({it}) => {
+    const s = data.songs.get(it.songId); if(!s || s.type === "letra" || !s.text.trim()) return null;
+    const key = s.key || detectKey(parseSong(s.text));
+    return {itemId: it.id, songId: s.id, title: s.title || "—", key, target: eff(s, it).target, singer: it.singer || "", high: s.high};
+  }).filter(Boolean);
+}
+// Aplica o tom sugerido e o cantor no item; com arranjo escolhido, o tom vai para o arranjo (como no editor).
+function applyVoiceKey(itemId, target, singer){
+  const found = songItems(current()).find(x => x.it.id === itemId); if(!found) return;
+  const it = found.it, s = data.songs.get(it.songId), owner = [...data.medleys.values()].find(m => m.items.includes(it));
+  const a = s && arrangementOf(s, it);
+  if(a){ a.target = target; saveSong(s); } else it.target = target;
+  it.singer = singer;
+  if(owner) saveMedley(owner);
+  renderItems(); renderSheet();
+}
+// Nota mais aguda da melodia no tom original (MIDI), guardada na música.
+function setSongHigh(songId, v){
+  const s = data.songs.get(songId); if(!s) return;
+  if(v) s.high = v; else delete s.high;
+  saveSong(s);
+}
+
 // Abre um popover perto do botão que o chamou (abaixo, ou acima quando não cabe).
 function openNear(pop, btn, w){
   const r = btn.getBoundingClientRect();
@@ -1148,6 +1190,17 @@ function initVolume(){
   };
   $$("[data-volume], #vol-range").forEach(el => el.addEventListener("wheel", wheel, {passive: false}));
   $$("[data-volume]").forEach(b => bindToggle(b, pop, () => openNear(pop, b, 280)));
+  // Timbre das notas (acordes, escalas, teclado); o metrônomo não muda. Aparece aqui e nas telas que tocam.
+  const timbres = $("#timbres");
+  const setTimbre = v => {
+    audio.setTimbre(v); v = audio.getTimbre();
+    $$("button[data-v]", timbres).forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === v)));
+    $$("select[data-timbre]").forEach(s => { s.value = v; });
+  };
+  const choose = v => { store.setSetting("timbre", v); setTimbre(v); audio.playChord([0, 4, 7, 12], {base: 60, dur: 1.2}); };
+  setTimbre(data.settings.timbre); // um timbre salvo que não existe mais (ex.: o antigo "Teclado") volta ao Piano
+  timbres.onclick = e => { const b = e.target.closest("button[data-v]"); if(b) choose(b.dataset.v); };
+  document.addEventListener("change", e => { if(e.target.matches && e.target.matches("select[data-timbre]")) choose(e.target.value); });
   paint();
   return {paint};
 }
@@ -1168,7 +1221,7 @@ async function main(){
   initTooltips();
   document.addEventListener("change", e => { if(e.target.matches && e.target.matches("select[data-instrument]")) setInstrument(e.target.value); });
   $("#pages").addEventListener("click", e => { const r = e.target.closest && e.target.closest("rect.hit"); if(r) chordDialog.open(r.dataset.chord, r.dataset.key); });
-  study = initStudy({explore: $("#study-explore"), train: $("#study-train"), hands: $("#study-hands"), getInstrument, chordDialog, getRepertoire: repertoireEntries, tabs: $("#study-tabs"), seg, paintSeg, data, store, toast, icon, esc});
+  study = initStudy({explore: $("#study-explore"), train: $("#study-train"), hands: $("#study-hands"), voice: $("#study-voice"), voiceSongs, applyVoiceKey, setSongHigh, getInstrument, chordDialog, getRepertoire: repertoireEntries, tabs: $("#study-tabs"), seg, paintSeg, data, store, toast, icon, esc});
 
   $$("[data-nav]").forEach(b => b.onclick = () => go(b.dataset.nav));
   $$(".brand").forEach(a => a.addEventListener("click", e => { e.preventDefault(); go("medley"); }));

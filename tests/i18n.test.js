@@ -11,6 +11,17 @@ test("idioma inicial: primeiro idioma do navegador que o app tem", () => {
   assert.equal(detectLang(["ES"], ""), "es");
 });
 
+test("os três idiomas têm as mesmas chaves", async () => {
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("../js/i18n.js", import.meta.url), "utf8");
+  const dict = name => new Set([...src.split(new RegExp(`^const ${name} = \\{`, "m"))[1].split(/^\};/m)[0].matchAll(/^\s*"([^"]+)":/gm)].map(m => m[1]));
+  const pt = dict("pt"), en = dict("en"), es = dict("es");
+  for (const [name, d] of [["en", en], ["es", es]]) {
+    assert.deepEqual([...pt].filter(k => !d.has(k)), [], `faltando em ${name}`);
+    assert.deepEqual([...d].filter(k => !pt.has(k)), [], `sobrando em ${name}`);
+  }
+});
+
 test("idioma inicial: fuso horário decide quando nenhum idioma serve", () => {
   assert.equal(detectLang(["fr-FR"], "America/Sao_Paulo"), "pt");
   assert.equal(detectLang(["de"], "Europe/Lisbon"), "pt");

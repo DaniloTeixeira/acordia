@@ -1,17 +1,18 @@
 // Modo Estudo: explorador de escalas e campo harmônico, e o treino em forma de jogo.
-import { SCALES, spellScale, scaleDegrees, harmonicField, relativeKey, rootFor, makeQuestion, makeRepertoireQuestion, QUIZ_KINDS, NOTE_GRID, CHORD_QUALITIES } from "./core.js";
+import { SCALES, noteName, spellScale, scaleDegrees, harmonicField, relativeKey, rootFor, makeQuestion, makeRepertoireQuestion, QUIZ_KINDS, NOTE_GRID, CHORD_QUALITIES, cadence } from "./core.js";
 import * as audio from "./audio.js";
 import { initHands } from "./hands.js";
 import { initKeys } from "./keys.js";
+import { initVoice } from "./voice.js";
 import { INSTRUMENTS, voicings } from "./instruments.js";
-import { instrumentSelect, fretboardSVG, diagramSVG, voicingMidis } from "./chordview.js";
+import { instrumentSelect, timbreSelect, fretboardSVG, diagramSVG, voicingMidis } from "./chordview.js";
 const { playChord, playSequence } = audio;
-import { t } from "./i18n.js";
+import { t, degLabel } from "./i18n.js";
 
 const ROUND = 10;
 const WHITE = [0,2,4,5,7,9,11], BLACK = [1,3,6,8,10];
 
-export function initStudy({explore, train, hands, tabs, seg, paintSeg, data, store, toast, icon, esc, getInstrument, chordDialog, getRepertoire}){
+export function initStudy({explore, train, hands, voice, tabs, seg, paintSeg, data, store, toast, icon, esc, getInstrument, chordDialog, getRepertoire, voiceSongs, applyVoiceKey, setSongHigh}){
   const st = Object.assign({tab:"explore", rootPc:0, scaleId:"maior", sevenths:false, kind:"misto", level:"facil", mode:"choice", handsMode:"rhythm"}, data.settings.study || {});
   const persist = () => store.setSetting("study", {tab:st.tab, rootPc:st.rootPc, scaleId:st.scaleId, sevenths:st.sevenths, kind:st.kind, level:st.level, mode:st.mode, handsMode:st.handsMode});
   // Mãos: ritmo (duas mãos em batidas) ou teclado (exercícios técnicos com notas e dedilhado).
@@ -29,6 +30,9 @@ export function initStudy({explore, train, hands, tabs, seg, paintSeg, data, sto
     requestAnimationFrame(() => paintSeg(handsModeSeg));
   }
   let quiz = null;
+  // Voz: exercícios para cantores; o atalho "treinar o ouvido" leva ao Treino com o grau de ouvido escolhido.
+  const voiceUI = initVoice({root:voice, data, store, toast, icon, esc, audio, seg, paintSeg, getSongs:voiceSongs, applyKey:applyVoiceKey, setSongHigh,
+    openEarTraining(){ st.kind = "grauOuvido"; st.tab = "train"; persist(); quiz = null; show(); }});
 
   seg(tabs, st.tab, v => { st.tab = v; persist(); show(); });
 
@@ -41,16 +45,32 @@ export function initStudy({explore, train, hands, tabs, seg, paintSeg, data, sto
       const midi = kbStart + o*12 + pc, name = notesByPc[pc], root = pc === st.rootPc;
       const cls = (name ? " in" : "") + (root ? " root" : "");
       if(WHITE.includes(pc)){
-        whites += `<rect class="w${cls}" data-midi="${midi}" x="${x}" y="0" width="${W}" height="${H}" rx="3"/>` + (name ? `<text class="${root?"root":"in"}" x="${x + W/2}" y="${H-8}" text-anchor="middle">${esc(name)}</text>` : "");
+        // Meio ponto para dentro de cada lado: o contorno não fica embaixo da tecla vizinha.
+        // Os nomes ficam escondidos: aparecem só no toque (e na caixa ao lado), para associar posição e som.
+        // Só a tônica tem uma marca fixa: um "T" com o gradiente do logo no pé da tecla.
+        whites += `<rect class="w${cls}" data-midi="${midi}" x="${x + 0.5}" y="0.5" width="${W - 1}" height="${H - 1}" rx="3"/>` + (root ? `<text class="tonic" x="${x + W/2}" y="${H-7}" text-anchor="middle" fill="url(#tonic-grad)">T</text>` : "");
         x += W;
       } else {
-        blacks += `<rect class="b${cls}" data-midi="${midi}" x="${x - BW/2}" y="0" width="${BW}" height="${BH}" rx="2"/>` + (name ? `<text class="${root?"root":"in"}" x="${x}" y="${BH-6}" text-anchor="middle" style="fill:#fff;font-size:8px">${esc(name)}</text>` : "");
+        blacks += `<rect class="b${cls}" data-midi="${midi}" x="${x - BW/2}" y="0" width="${BW}" height="${BH}" rx="2"/>` + (root ? `<text class="tonic sm" x="${x}" y="${BH-5}" text-anchor="middle" fill="url(#tonic-grad)">T</text>` : "");
       }
     }
-    return `<svg class="keyboard" viewBox="-1 -1 ${x + 2} ${H + 2}" role="img" aria-label="${esc(t("study.keyboardAria"))}">${whites}${blacks}</svg>`;
+    return `<svg class="keyboard scale" viewBox="-1 -1 ${x + 2} ${H + 2}" role="img" aria-label="${esc(t("study.keyboardAria"))}"><defs><linearGradient id="tonic-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3BD5FA"/><stop offset=".5" stop-color="#4C82F5"/><stop offset="1" stop-color="#9A5CF8"/></linearGradient></defs>${whites}${blacks}</svg>`;
   }
-  function flash(midis){
-    midis.forEach(m => explore.querySelectorAll(`[data-midi="${m}"]`).forEach(k => { k.classList.add("on"); setTimeout(()=>k.classList.remove("on"), 450); }));
+  function flash(midis, cls = "on"){
+    midis.forEach(m => explore.querySelectorAll(`[data-midi="${m}"]`).forEach(k => { k.classList.add(cls); setTimeout(()=>k.classList.remove(cls), 450); }));
+  }
+  // Contorno por cima da tecla tocada, verde (da escala) ou vermelho (fora); o nome e o grau vão para a caixa ao lado.
+  // O contorno das brancas entra antes das pretas (não as cobre), o das pretas no fim.
+  function markKey(key, ok){
+    const svg = key.ownerSVGElement;
+    if(key._mark) key._mark.remove();
+    const white = key.classList.contains("w"), a = n => +key.getAttribute(n);
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.setAttribute("class", "key-mark " + (ok ? "ok" : "no"));
+    g.innerHTML = `<rect class="ring" x="${a("x") + 1}" y="${a("y") + 1}" width="${a("width") - 2}" height="${a("height") - 2}" rx="${white ? 2.5 : 1.5}"/>`;
+    if(white) svg.insertBefore(g, svg.querySelector("rect.b")); else svg.appendChild(g);
+    key._mark = g;
+    setTimeout(() => { g.remove(); if(key._mark === g) key._mark = null; }, 700);
   }
   function fnLegend(field, fnName){
     const by = f => field.filter(c => c.fn === f);
@@ -78,9 +98,10 @@ export function initStudy({explore, train, hands, tabs, seg, paintSeg, data, sto
       <div class="study-controls">
         <div class="roots" role="group" aria-label="${esc(t("study.root"))}">${Array.from({length:12}, (_, pc) => `<button class="root-btn" data-pc="${pc}" aria-pressed="${pc === st.rootPc}">${esc(rootFor(pc, st.scaleId))}</button>`).join("")}</div>
         <div class="study-row">
-          <select class="input" id="st-scale" aria-label="${esc(t("study.scale"))}">${Object.keys(SCALES).map(id => `<option value="${id}" ${id === st.scaleId ? "selected" : ""}>${esc(t("scale." + id))}</option>`).join("")}</select>
-          <label class="switch" style="gap:10px">${esc(t("study.sevenths"))}<input type="checkbox" id="st-7" ${st.sevenths ? "checked" : ""} ${field.length ? "" : "disabled"}></label>
+          <label class="field inst-field"><span>${esc(t("study.scale"))}</span><select class="input" id="st-scale">${Object.keys(SCALES).map(id => `<option value="${id}" ${id === st.scaleId ? "selected" : ""}>${esc(t("scale." + id))}</option>`).join("")}</select></label>
           ${instrumentSelect(inst)}
+          ${timbreSelect()}
+          <label class="switch lead" style="margin-left:auto">${esc(t("study.sevenths"))}<input type="checkbox" id="st-7" ${st.sevenths ? "checked" : ""} ${field.length ? "" : "disabled"}></label>
         </div>
       </div>
       <div class="card scale-card">
@@ -88,25 +109,39 @@ export function initStudy({explore, train, hands, tabs, seg, paintSeg, data, sto
           <div><h2>${esc(t("study.scaleOf", {root, scale: t("scale." + st.scaleId).toLowerCase()}))}</h2><p class="sub">${esc(t(sc.minor ? "study.relMajor" : "study.relMinor", {key: relKey}))}</p></div>
           <button class="btn primary sm" id="st-play">${icon("play","sm")} ${esc(t("study.play"))}</button>
         </div>
-        <div class="scale-notes">${names.map((n, i) => `<button class="note-chip" data-i="${i}"><b>${esc(n)}</b><small>${esc(degs[i])}</small></button>`).join("")}</div>
-        <div class="board-wrap">${strings ? fretboardSVG(inst, marks, I.frets > 12 ? 12 : I.frets) : keyboardSVG(byPc)}</div>
+        <div class="scale-notes">${names.concat(names[0]).map((n, i) => `<button class="note-chip" data-i="${i}"><b>${esc(n)}</b><small>${esc(degLabel(degs[i % names.length]))}</small></button>`).join("")}</div>
+        <div class="board-wrap">${strings ? fretboardSVG(inst, marks, I.frets > 12 ? 12 : I.frets) : `<div class="kb-row">${keyboardSVG(byPc)}<div class="key-box" aria-live="polite"><span class="key-box-h">${esc(t("study.keyBox"))}</span><b class="key-box-note">–</b><span class="key-box-sub">${esc(t("study.keyHint"))}</span><span class="key-box-fn" style="visibility:hidden"></span></div></div>`}</div>
       </div>
       <div class="card">
         <div class="scale-head" style="margin-bottom:12px"><div><h2>${esc(t("study.field"))}</h2><p class="sub">${esc(field.length ? t("study.fieldHint") : t("study.noField"))}</p></div></div>
-        ${field.length ? `<div class="field-grid">${field.map((c, i) => `<button class="chord-card" data-i="${i}" style="animation-delay:${i*30}ms"><span class="deg">${esc(c.degree)}</span><span class="name">${esc(c.name)}</span><span class="tones">${esc(c.notes.join(" · "))}</span>${mini(c)}${c.fn ? `<span class="fn ${c.fn}" title="${esc(fnName[c.fn])}">${c.fn}</span>` : ""}</button>`).join("")}</div>
+        ${field.length ? `<div class="field-grid">${field.map((c, i) => `<button class="chord-card" data-i="${i}" style="animation-delay:${i*30}ms"><span class="deg">${esc(c.degree)}</span><span class="name" style="--len:${c.name.length}">${esc(c.name)}</span><span class="tones">${esc(c.notes.join(" · "))}</span>${mini(c)}${c.fn ? `<span class="fn ${c.fn}" title="${esc(fnName[c.fn])}">${c.fn}</span>` : ""}</button>`).join("")}</div>
           ${sc.fn ? fnLegend(field, fnName) : ""}` : ""}
       </div>`;
     explore.querySelectorAll(".root-btn").forEach(b => b.onclick = () => { st.rootPc = +b.dataset.pc; persist(); renderExplore(); });
     explore.querySelector("#st-scale").onchange = e => { st.scaleId = e.target.value; persist(); renderExplore(); };
     explore.querySelector("#st-7").onchange = e => { st.sevenths = e.target.checked; persist(); renderExplore(); };
-    const base = startMidi();
+    // A escala fecha com a tônica uma oitava acima, nos chips e na reprodução.
+    const base = startMidi(), seq = sc.iv.concat(12);
     explore.querySelector("#st-play").onclick = () => {
-      const seq = sc.iv.concat(12);
       if(!playSequence(seq, {base})) return toast(t("study.noAudio"));
       const chips = explore.querySelectorAll(".note-chip");
-      seq.forEach((iv, i) => setTimeout(() => { flash([base + iv]); const c = chips[i % chips.length]; if(c && i < chips.length){ c.classList.remove("lit"); void c.offsetWidth; c.classList.add("lit"); } }, i * 320));
+      seq.forEach((iv, i) => setTimeout(() => { flash([base + iv]); showKey(base + iv); const c = chips[i % chips.length]; if(c && i < chips.length){ c.classList.remove("lit"); void c.offsetWidth; c.classList.add("lit"); } }, i * 320));
     };
-    explore.querySelectorAll(".note-chip").forEach(b => b.onclick = () => { const iv = sc.iv[+b.dataset.i]; playChord([iv], {base}); flash([base + iv]); });
+    // Caixa ao lado do teclado: sempre a última nota tocada, com o grau na escala (ou "fora da escala").
+    const box = explore.querySelector(".key-box");
+    const showKey = midi => {
+      if(!box) return;
+      const pc = ((midi % 12) + 12) % 12, i = sc.iv.indexOf((pc - st.rootPc + 12) % 12);
+      box.classList.toggle("out", i < 0);
+      box.querySelector(".key-box-note").textContent = byPc[pc] || noteName(pc, keyLabel);
+      box.querySelector(".key-box-sub").textContent = i < 0 ? t("study.keyOut") : t("study.keyDeg", {degree: degLabel(degs[i])});
+      // Função harmônica do grau (só nas escalas que têm T/SD/D), no mesmo selo do campo harmônico.
+      const f = i >= 0 && sc.fn ? sc.fn[i] : "", fnEl = box.querySelector(".key-box-fn");
+      fnEl.style.visibility = f ? "" : "hidden"; // escondido, mas ocupando o lugar: o rodapé não pula
+      if(f){ fnEl.className = "key-box-fn fn " + f; fnEl.textContent = fnName[f]; }
+      box.classList.remove("pop"); void box.offsetWidth; box.classList.add("pop");
+    };
+    explore.querySelectorAll(".note-chip").forEach(b => b.onclick = () => { const iv = seq[+b.dataset.i]; playChord([iv], {base}); flash([base + iv]); showKey(base + iv); });
     // Teclas clicáveis; segurando e arrastando, toca as notas por onde passa.
     const kb = explore.querySelector(".board-wrap"); let down = false, lastKey = null;
     const press = el => {
@@ -114,7 +149,9 @@ export function initStudy({explore, train, hands, tabs, seg, paintSeg, data, sto
       if(!key || key === lastKey) return;
       lastKey = key;
       if(!playChord([0], {base: +key.dataset.midi, dur: 1.2})) return toast(t("study.noAudio"));
-      flash([+key.dataset.midi]);
+      const pc = +key.dataset.midi % 12;
+      if(key.ownerSVGElement && key.ownerSVGElement.classList.contains("keyboard")){ markKey(key, pc in byPc); showKey(+key.dataset.midi); }
+      else flash([+key.dataset.midi], "in-scale");
     };
     kb.addEventListener("pointerdown", e => { down = true; lastKey = null; kb.setPointerCapture(e.pointerId); press(e.target); e.preventDefault(); });
     kb.addEventListener("pointermove", e => { if(down) press(document.elementFromPoint(e.clientX, e.clientY)); });
@@ -165,7 +202,15 @@ export function initStudy({explore, train, hands, tabs, seg, paintSeg, data, sto
     if(!q) return renderSetup();
     Object.assign(quiz, {q, last:q.prompt + q.answer, answered:false, root:null, qual:""});
     renderQuiz();
-    if(q.autoplay) setTimeout(() => playChord(q.play), 250);
+    if(q.autoplay) setTimeout(() => playQ(q), 250);
+  }
+  // Som da pergunta: o acorde, ou (grau de ouvido) a cadência no tom e depois a nota.
+  function playQ(q, noteOnly = false){
+    if(!q.ear) return playChord(q.play);
+    const at = audio.audioNow(); if(at === null) return toast(t("study.noAudio"));
+    const tonic = 60 + q.ear.tonic - (q.ear.tonic > 6 ? 12 : 0);
+    const end = noteOnly ? at + 0.05 : audio.playProgression(cadence(q.ear.minor).map(c => c.map(x => tonic + x)), at + 0.05) + 0.35;
+    audio.playNotesAt([tonic + q.ear.note], end, 1.3);
   }
   const optBtn = (o, i, cls = "answer") => `<button class="${cls}" data-o="${esc(o)}" style="animation-delay:${Math.min(i, 12)*25}ms">${i < 4 && cls === "answer" ? `<span class="sr-only">${i+1}. </span>` : ""}${esc(o)}</button>`;
   const noteGrid = (extra = "") => `<div class="note-grid ${extra}" role="group" aria-label="${esc(t("train.notesAria"))}">${NOTE_GRID.map(row => row.map((n, i) => optBtn(n, i, "answer cell")).join("")).join("")}</div>`;
@@ -185,12 +230,13 @@ export function initStudy({explore, train, hands, tabs, seg, paintSeg, data, sto
         <div class="quiz-top"><span>${esc(t("train.question", {n:quiz.i + 1, total:ROUND}))}</span><div class="progress"><span style="width:${quiz.i / ROUND * 100}%"></span></div>
           <span class="streak" title="${esc(t("train.streak"))}">${icon("flame","sm")} ${quiz.streak}</span></div>
         <p class="prompt">${esc(q.prompt)}</p>
-        ${q.kind === "ouvido" ? `<div><button class="btn soft sm" id="tr-listen">${icon("sound","sm")} ${esc(t("train.listen"))}</button></div>` : ""}
+        ${q.kind === "ouvido" || q.ear ? `<div class="study-row"><button class="btn soft sm" id="tr-listen">${icon("sound","sm")} ${esc(t("train.listen"))}</button>${q.ear ? `<button class="btn ghost sm" id="tr-note">${esc(t("train.noteOnly"))}</button>` : ""}</div>` : ""}
         ${answersHTML(q)}
         <p class="feedback" aria-live="polite"></p>
         <div class="study-row" style="justify-content:flex-end"><button class="btn primary" id="tr-next" hidden>${esc(quiz.i + 1 >= ROUND ? t("train.finish") : t("train.next"))}</button></div>
       </div>`;
-    const listen = train.querySelector("#tr-listen"); if(listen) listen.onclick = () => playChord(q.play);
+    const listen = train.querySelector("#tr-listen"); if(listen) listen.onclick = () => playQ(q);
+    const noteBtn = train.querySelector("#tr-note"); if(noteBtn) noteBtn.onclick = () => playQ(q, true);
     train.querySelector("#tr-next").onclick = advance;
     train.querySelector("#tr-quit").onclick = renderSetup;
     if(st.mode === "full" && q.full.type === "chord"){
@@ -239,21 +285,25 @@ export function initStudy({explore, train, hands, tabs, seg, paintSeg, data, sto
   document.addEventListener("keydown", e => {
     if(!quiz || train.hidden || train.closest("[hidden]") || (e.target instanceof Element && e.target.closest("input,textarea,select"))) return;
     const n = +e.key;
-    if(st.mode !== "full" && n >= 1 && n <= 4 && !quiz.answered){ const b = train.querySelectorAll(".answer")[n-1]; if(b){ e.preventDefault(); answer(b.dataset.o, b); } }
+    // No grau de ouvido as respostas já são números: a tecla 3 responde "3", não a 3ª opção.
+    if(quiz.q.ear && n >= 1 && n <= 7 && !quiz.answered){ const b = train.querySelector(`.answer[data-o="${n}"]`); if(b){ e.preventDefault(); answer(b.dataset.o, b); } }
+    else if(st.mode !== "full" && n >= 1 && n <= 4 && !quiz.answered){ const b = train.querySelectorAll(".answer")[n-1]; if(b){ e.preventDefault(); answer(b.dataset.o, b); } }
     else if(e.key === "Enter" && quiz.answered && document.activeElement === document.body){ e.preventDefault(); advance(); }
   });
 
   function show(){
     tabs.setSeg(st.tab);
     if(st.tab === "metro") st.tab = "explore";
-    explore.hidden = st.tab !== "explore"; train.hidden = st.tab !== "train"; hands.hidden = st.tab !== "hands";
+    explore.hidden = st.tab !== "explore"; train.hidden = st.tab !== "train"; hands.hidden = st.tab !== "hands"; voice.hidden = st.tab !== "voice";
     if(st.tab !== "hands"){ handsUI.hide(); keysUI.hide(); }
+    if(st.tab !== "voice") voiceUI.hide();
     if(st.tab === "explore") renderExplore();
     else if(st.tab === "hands") showHands();
+    else if(st.tab === "voice") voiceUI.show();
     else if(!quiz) renderSetup();
     requestAnimationFrame(() => document.querySelectorAll("#view-study .seg").forEach(paintSeg));
   }
   // Ao trocar de idioma: redesenha (uma pergunta em andamento é refeita no novo idioma).
   function relabel(){ if(quiz && !quiz.answered) nextQuestion(); else if(quiz) renderQuiz(); show(); }
-  return {show, relabel, hide: () => { handsUI.hide(); keysUI.hide(); }, rerender(){ if(!explore.hidden && st.tab === "explore") renderExplore(); }};
+  return {show, relabel, hide: () => { handsUI.hide(); keysUI.hide(); voiceUI.hide(); }, rerender(){ if(!explore.hidden && st.tab === "explore") renderExplore(); }};
 }

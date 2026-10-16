@@ -15,7 +15,7 @@ export const INSTRUMENT_IDS = Object.keys(INSTRUMENTS);
 // ---------- leitura de acordes ----------
 // Devolve {root, rootPc, bassPc, tones:[{iv, role, required}], name} ou null.
 export function parseChord(symbol){
-  const m = /^([A-G][#b]?)(.*?)(?:\/([A-G][#b]?))?$/.exec((symbol || "").trim());
+  const m = /^([A-G](?:##|bb|#|b)?)(.*?)(?:\/([A-G](?:##|bb|#|b)?))?$/.exec((symbol || "").trim());
   if(!m || NOTES[m[1]] === undefined) return null;
   const root = m[1], rootPc = NOTES[root];
   let s = m[2].replace(/[()]/g, "");

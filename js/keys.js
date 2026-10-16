@@ -2,6 +2,7 @@
 // A parte pura (exercícios, transposição, passos e avaliação) não usa DOM e é testada no Node.
 import { spellScale, rootFor, NOTES } from "./core.js";
 import { t } from "./i18n.js";
+import { timbreSelect } from "./chordview.js";
 
 const MAJOR = [0,2,4,5,7,9,11];
 // Grau da escala maior (0 = tônica, pode passar de 7 ou ficar negativo) -> semitons.
@@ -119,7 +120,7 @@ export function initKeys({root, data, store, toast, icon, esc, audio, seg}){
     const W = 26, H = 110, BW = 16, BH = 66; let whites = "", blacks = "", x = 0;
     for(let m = start; m <= end; m++){
       const pc = m % 12;
-      if([0,2,4,5,7,9,11].includes(pc)){ whites += `<rect class="w" data-midi="${m}" x="${x}" y="0" width="${W}" height="${H}" rx="3"/>${pc === 0 ? `<text class="oct" x="${x + W/2}" y="${H - 6}">C${Math.floor(m / 12) - 1}</text>` : ""}<text class="fing" data-f="${m}" x="${x + W/2}" y="${H - 22}"></text>`; x += W; }
+      if([0,2,4,5,7,9,11].includes(pc)){ whites += `<rect class="w" data-midi="${m}" x="${x + 0.5}" y="0.5" width="${W - 1}" height="${H - 1}" rx="3"/>${pc === 0 ? `<text class="oct" x="${x + W/2}" y="${H - 6}">C${Math.floor(m / 12) - 1}</text>` : ""}<text class="fing" data-f="${m}" x="${x + W/2}" y="${H - 22}"></text>`; x += W; }
       else blacks += `<rect class="b" data-midi="${m}" x="${x - BW/2}" y="0" width="${BW}" height="${BH}" rx="2"/><text class="fing light" data-f="${m}" x="${x}" y="${BH - 10}"></text>`;
     }
     return `<svg class="keyboard practice" viewBox="-1 -1 ${x + 2} ${H + 2}" role="img" aria-label="${esc(t("study.keyboardAria"))}">${whites}${blacks}</svg>`;
@@ -153,6 +154,7 @@ export function initKeys({root, data, store, toast, icon, esc, audio, seg}){
         <div class="scale-head"><div><h2>${esc(t("keys.p." + ex.id))} ${levelDots(ex.level)}</h2><p class="sub">${esc(t("keys.p." + ex.id + "D"))}</p></div><span id="k-midi" class="chip"></span></div>
         <div class="study-row k-controls">
           <label class="field inst-field"><span>${esc(t("study.root"))}</span><select class="input" id="k-key">${Array.from({length:12}, (_, pc) => `<option value="${pc}" ${pc === st.key ? "selected" : ""}>${esc(rootFor(pc, "maior"))}</option>`).join("")}</select></label>
+          ${timbreSelect()}
           <div class="field inst-field" data-tip-key="tip.youPlay"><span>${esc(t("keys.youPlay"))}</span><div class="seg sm" id="k-hands" role="group" aria-label="${esc(t("keys.youPlay"))}"><button data-v="rh">${esc(t("keys.rh"))}</button><button data-v="lh">${esc(t("keys.lh"))}</button><button data-v="both">${esc(t("keys.both"))}</button></div></div>
           <div class="bpm"><button class="icon-btn sm" id="k-slower" aria-label="${esc(t("hands.slower"))}">${icon("minus","sm")}</button>
             <label><input type="range" id="k-bpm" min="30" max="160" step="2" value="${bpm}" aria-label="BPM"><span><b id="k-bpm-v">${bpm}</b> bpm</span></label>
@@ -168,7 +170,7 @@ export function initKeys({root, data, store, toast, icon, esc, audio, seg}){
           <button class="btn soft" id="k-demo">${icon("sound","sm")} ${esc(t("hands.listen"))}</button>
           <button class="btn primary" id="k-wait">${icon("play","sm")} ${esc(t("keys.wait"))}</button>
           <button class="btn ghost" id="k-timed" ${midiName ? "" : "disabled"} title="${esc(midiName ? "" : t("keys.timedNeedsMidi"))}">${icon("metro","sm")} ${esc(t("keys.timed"))}</button>
-          <label class="switch k-sound">${esc(t("keys.sound"))}<input type="checkbox" id="k-sound" ${st.sound ? "checked" : ""}></label>
+          <label class="switch lead k-sound">${esc(t("keys.sound"))}<input type="checkbox" id="k-sound" ${st.sound ? "checked" : ""}></label>
         </div>
         <p class="sub" id="k-status">${esc(t(navigator.requestMIDIAccess ? "keys.tip" : "keys.tipNoMidi"))}</p>
         <div id="k-result">${result ? resultHTML(result) : ""}</div>

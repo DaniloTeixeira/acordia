@@ -3,6 +3,10 @@
 import { t, getLang, ordinal } from "./i18n.js";
 
 export const NOTES = {C:0,"C#":1,Db:1,D:2,"D#":3,Eb:3,E:4,F:5,"F#":6,Gb:6,G:7,"G#":8,Ab:8,A:9,"A#":10,Bb:10,B:11};
+// Grafias teóricas que o campo harmônico gera (E#, B#, Fb, Cb, F##, Bbb…): mesma altura, nome certo.
+[["C",0],["D",2],["E",4],["F",5],["G",7],["A",9],["B",11]].forEach(([l, pc]) => {
+  for(const [acc, d] of [["#",1],["##",2],["b",-1],["bb",-2]]) if(NOTES[l + acc] === undefined) NOTES[l + acc] = (pc + d + 12) % 12;
+});
 export const KEYS = ["C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"];
 export const MINOR_KEYS = ["Cm","C#m","Dm","Ebm","Em","Fm","F#m","Gm","G#m","Am","Bbm","Bm"];
 export const ALL_KEYS = [...KEYS, ...MINOR_KEYS];
@@ -237,7 +241,15 @@ export function relativeKey(key){
 }
 
 // ---------- treino ----------
-export const QUIZ_KINDS = ["grau","qualGrau","nota","relativa","ouvido"];
+export const QUIZ_KINDS = ["grau","qualGrau","nota","relativa","ouvido","grauOuvido"];
+// Graus da escala em semitons a partir da tônica.
+export const DEGREE_STEPS = {maior:[0,2,4,5,7,9,11], menor:[0,2,3,5,7,8,10]};
+// Cadência I–IV–V–I (i–iv–V–i no menor) em posição fechada, em semitons a partir da tônica;
+// o primeiro número de cada acorde é o baixo. Firma o tom antes de um exercício de ouvido ou de voz.
+export function cadence(minor){
+  const third = minor ? 3 : 4, sixth = minor ? 8 : 9;
+  return [[-12, 0, third, 7], [-7, 0, 5, sixth], [-5, -1, 2, 7], [-12, 0, third, 7]];
+}
 const LEVEL_ROOTS = {facil:["C","G","D","F","A"], medio:KEYS, dificil:KEYS};
 function pick(arr, rng){ return arr[Math.floor(rng() * arr.length)]; }
 function shuffle(arr, rng){ const a = arr.slice(); for(let i=a.length-1;i>0;i--){ const j = Math.floor(rng()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; }
@@ -282,12 +294,41 @@ export function makeQuestion(kind, level = "facil", rng = Math.random){
     const all = askMinor ? KEYS.map(relativeKey) : ROOTS_MINOR.map(r => relativeKey(r + "m"));
     return {kind, prompt:t(askMinor ? "q.relMinor" : "q.relMajor", {key:k}), answer:ans, options:options(ans, all, rng), full:{type:"list", options:all}};
   }
+  if(kind === "grauOuvido"){
+    // A cadência firma o tom e depois soa uma nota; no fácil só 1, 3 e 5, no difícil também em tom menor.
+    const minor = level === "dificil" && rng() < 0.4;
+    const pool = level === "facil" ? [1, 3, 5] : [1, 2, 3, 4, 5, 6, 7];
+    const n = pick(pool, rng), tonic = NOTES[pick(KEYS, rng)];
+    const up = level !== "facil" && n < 5 && rng() < 0.3 ? 12 : 0;
+    const labels = pool.map(String);
+    return {kind, prompt:t(minor ? "q.grauOuvidoMinor" : "q.grauOuvido"), answer:String(n),
+      options: level === "facil" ? labels : options(String(n), labels, rng), full:{type:"list", options:labels},
+      ear:{tonic, minor, note: DEGREE_STEPS[minor ? "menor" : "maior"][n - 1] + up}, autoplay:true};
+  }
   // ouvido
   const qualities = level === "facil" ? ["major","minor"] : ["major","minor","dim"];
   const q = pick(qualities, rng), base = NOTES[pick(KEYS, rng)];
   const shape = {major:[0,4,7], minor:[0,3,7], dim:[0,3,6]}[q];
   const label = x => t("q." + x);
   return {kind:"ouvido", prompt:t(level === "facil" ? "q.ouvidoEasy" : "q.ouvido"), answer:label(q), options:qualities.map(label), full:{type:"list", options:qualities.map(label)}, play:shape.map(p=>p+base), autoplay:true};
+}
+
+// ---------- voz ----------
+// Classificação aproximada pela extensão (MIDI): a faixa típica mais próxima da medida.
+const VOICE_TYPES = [["baixo",40,64],["baritono",43,67],["tenor",48,72],["contralto",53,77],["mezzo",57,81],["soprano",60,84]];
+export function voiceType(low, high){
+  let best = null, dist = Infinity;
+  for(const [id, lo, hi] of VOICE_TYPES){ const d = Math.abs(low - lo) + Math.abs(high - hi); if(d < dist){ dist = d; best = id; } }
+  return best;
+}
+// Semitons para a nota mais aguda da melodia (no tom original) cair no agudo confortável do cantor.
+// Fica entre -6 e +5: o cantor canta na oitava que lhe serve (ex.: homem cantando música gravada por mulher).
+export function voiceShift(songHigh, voiceHigh){ return ((voiceHigh - songHigh) % 12 + 18) % 12 - 6; }
+// Tom transposto, com a grafia usual (ex.: "G" +3 → "Bb", "Em" -2 → "Dm").
+export function transposeKey(key, shift){
+  const k = parseKey(key); if(!k) return "";
+  const pc = ((k.pc + shift) % 12 + 12) % 12;
+  return k.minor ? rootFor(pc, "menor") + "m" : rootFor(pc, "maior");
 }
 
 // ---------- links de referência ----------
@@ -347,6 +388,7 @@ export function sanitizeEntry(r){
     bpm: Number.isFinite(+r.bpm) && +r.bpm > 0 && +r.bpm < 400 ? String(Math.round(+r.bpm)) : "",
     ref: sanitizeUrl(r.ref),
     arrangements: sanitizeArrangements(r.arrangements),
+    ...(Number.isInteger(r.high) && r.high >= 36 && r.high <= 96 ? {high: r.high} : {}),
     updatedAt: Number.isFinite(r.updatedAt) ? r.updatedAt : Date.now()
   };
 }
