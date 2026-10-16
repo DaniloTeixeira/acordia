@@ -84,10 +84,13 @@ function ago(ts){
 }
 function slug(s){ return norm(s).replace(/[^\p{L}\p{N}]+/gu,"-").replace(/^-|-$/g,"") || "medley"; }
 // Transição animada entre estados; sem suporte, com movimento reduzido ou com a aba oculta, aplica direto.
-function vt(run){
+// Transição de tela: "slide" (troca de view) entra subindo um pouco; o resto (tema, idioma, ordem)
+// só faz fade, porque o conteúdo continua no mesmo lugar e o deslize parecia um pulo.
+function vt(run, kind = "fade"){
   if(!document.startViewTransition || reduced() || document.hidden){ run(); return null; }
+  const root = document.documentElement; root.dataset.vt = kind;
   const tr = document.startViewTransition(run);
-  tr.ready.catch(()=>{}); tr.finished.catch(()=>{});
+  tr.ready.catch(()=>{}); tr.finished.catch(()=>{}).finally(() => { if(root.dataset.vt === kind) delete root.dataset.vt; });
   return tr;
 }
 
@@ -159,7 +162,7 @@ function go(v, {instant} = {}){
     offerHelp(v);
   };
   store.setSetting("view", v);
-  if(instant) run(); else vt(run);
+  if(instant) run(); else vt(run, "slide");
 }
 
 // ---------- repertório atual (setlist) ou medley em edição ----------

@@ -731,8 +731,10 @@ dialog:not([open])::backdrop{opacity:0}
 
 /* ---------- transições entre views ---------- */
 ::view-transition-old(root){animation:vt-out .18s var(--ease) both}
-::view-transition-new(root){animation:vt-in .3s var(--ease-out) both}
+::view-transition-new(root){animation:vt-fade .25s var(--ease-out) both}
+html[data-vt="slide"]::view-transition-new(root){animation:vt-in .3s var(--ease-out) both}
 @keyframes vt-out{to{opacity:0}}
+@keyframes vt-fade{from{opacity:0}}
 @keyframes vt-in{from{opacity:0;transform:translateY(6px)}}
 
 @media (prefers-reduced-motion:reduce){
