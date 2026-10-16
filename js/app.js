@@ -24,13 +24,14 @@ const songs = n => tn("song", n), medleys = n => tn("medley", n);
 function debounce(fn, ms){ let h; const d = (...a) => { clearTimeout(h); h = setTimeout(()=>fn(...a), ms); }; d.flush = (...a) => { clearTimeout(h); fn(...a); }; return d; }
 
 // ---------- utilidades de interface ----------
-function toast(msg, action){
+function toast(msg, action, {sticky = false} = {}){
   const box = $("#toasts"), el = document.createElement("div");
   el.className = "toast"; el.innerHTML = `<span></span>`; el.firstChild.textContent = msg;
   const close = () => { el.classList.add("out"); setTimeout(()=>el.remove(), 260); };
   if(action){ const b = document.createElement("button"); b.textContent = action.label; b.onclick = () => { action.run(); close(); }; el.appendChild(b); }
   box.appendChild(el);
-  setTimeout(close, action ? 6000 : 3200);
+  if(sticky){ const x = document.createElement("button"); x.className = "toast-x"; x.setAttribute("aria-label", t("common.close")); x.textContent = "×"; x.onclick = close; el.appendChild(x); }
+  else setTimeout(close, action ? 6000 : 3200);
 }
 // Controle segmentado com indicador deslizante.
 const segObserver = new ResizeObserver(es => es.forEach(e => paintSeg(e.target)));
@@ -889,9 +890,18 @@ function initInstall(){
 function initServiceWorker(){
   if(!("serviceWorker" in navigator)) return;
   const had = !!navigator.serviceWorker.controller;
-  navigator.serviceWorker.addEventListener("controllerchange", () => { if(had) toast(t("update.ready"), {label:t("update.reload"), run:()=>location.reload()}); });
+  let shown = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if(!had || shown) return; shown = true;
+    toast(t("update.ready"), {label:t("update.reload"), run:()=>location.reload()}, {sticky: true});
+  });
   // O módulo termina de iniciar depois do IndexedDB, quase sempre após o evento load.
-  const register = () => navigator.serviceWorker.register("sw.js").catch(()=>{});
+  // Procura versão nova ao voltar para o app e a cada 30 minutos.
+  const register = () => navigator.serviceWorker.register("sw.js").then(reg => {
+    const check = () => reg.update().catch(()=>{});
+    document.addEventListener("visibilitychange", () => { if(!document.hidden) check(); });
+    setInterval(check, 30 * 60 * 1000);
+  }).catch(()=>{});
   if(document.readyState === "complete") register(); else addEventListener("load", register);
 }
 

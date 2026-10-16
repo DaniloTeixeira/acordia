@@ -26,5 +26,13 @@ self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
   if (e.request.mode === "navigate") return networkFirst(e, "index.html");
   if (new URL(e.request.url).pathname.endsWith("/manifest.webmanifest")) return networkFirst(e, "manifest.webmanifest");
+  // Código do app (JS e CSS) da rede primeiro, para uma atualização valer já no próximo carregamento;
+  // fontes, ícones e jsPDF do cache, que quase nunca mudam.
+  const url = new URL(e.request.url);
+  if (url.origin === location.origin && /\.(js|css)$/.test(url.pathname) && !url.pathname.includes("/vendor/")) {
+    e.respondWith(fetch(e.request).then(r => { if (r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); } return r; })
+      .catch(() => caches.match(e.request, {ignoreSearch: true})));
+    return;
+  }
   e.respondWith(caches.match(e.request, {ignoreSearch: true}).then(r => r || fetch(e.request)));
 });

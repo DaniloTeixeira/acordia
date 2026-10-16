@@ -610,6 +610,8 @@ dialog.nudge{animation:shake .35s var(--ease)}
 .menu-group{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:10px 12px 4px}
 .menu-item:focus-visible{outline:2px solid color-mix(in srgb,var(--accent) 55%,transparent);outline-offset:-2px}
 
+.toast .toast-x{background:none;padding:4px 8px;font-size:1.1rem;line-height:1;opacity:.7}
+
 /* ---------- diálogos ---------- */
 dialog{border:none;padding:0;border-radius:var(--r-lg);background:var(--surface);color:var(--ink);box-shadow:var(--shadow-lg);width:min(560px,calc(100vw - 24px));max-height:min(86dvh,760px);
   opacity:1;transform:none;transition:opacity var(--t) var(--ease),transform var(--t) var(--ease-out),display var(--t) allow-discrete,overlay var(--t) allow-discrete}
