@@ -8,7 +8,7 @@
 
 /* ---------- tokens ---------- */
 :root{
-  --bg:#F4F6FA; --seg-bg:#E2E8F0; --seg-ink:#55657A; --surface:#FFFFFF; --surface-2:#EEF2F7; --surface-3:#E4EAF2;
+  --bg:#F4F6FA; --seg-bg:#D5DCE6; --seg-ink:#4B5A6E; --surface:#FFFFFF; --surface-2:#EEF2F7; --surface-3:#E4EAF2;
   --ink:#0F172A; --ink-2:#334155; --muted:#64748B; --line:#E2E8F0; --line-strong:#CBD5E1;
   --accent:#2160B0; --accent-hover:#1A4F93; --accent-ink:#FFFFFF; --accent-soft:#E3EDFA; --accent-soft-ink:#1A4F93;
   --lh:#7C3AED; --chord:#B0201A; --ok:#15803D; --ok-soft:#DCFCE7; --bad:#B91C1C; --bad-soft:#FEE2E2; --warn:#9A3412; --warn-soft:#FFF1E8;
