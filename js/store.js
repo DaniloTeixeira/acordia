@@ -3,6 +3,7 @@
 import { sanitizeEntry, sanitizeOptions, songTitle, DEFAULT_OPTIONS } from "./core.js";
 import { t } from "./i18n.js";
 
+// Nome interno mantido da primeira versão para não perder dados já salvos.
 const DB_NAME = "medley-generator", DB_VERSION = 1, STORES = ["songs","medleys","settings"];
 export const data = {songs: new Map(), medleys: new Map(), settings: {}};
 let db = null, onError = () => {};

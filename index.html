@@ -3,15 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Medley Generator</title>
-<meta name="description" content="Monte medleys em folhas A4 com cifras, graus ou só letra. Funciona offline.">
+<title>Sonora</title>
+<meta name="description" content="Sonora: sua música em um só lugar. Repertórios com cifra, graus e letra, folhas A4, modo palco, estudo e metrônomo. Funciona offline.">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#F4F6FA" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0B1018" media="(prefers-color-scheme: dark)">
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Medley">
+<meta name="apple-mobile-web-app-title" content="Sonora">
 <link rel="preload" href="fonts/lexend-bold.ttf" as="font" type="font/ttf" crossorigin>
 <link rel="stylesheet" href="css/app.css">
 <script>
@@ -59,7 +60,7 @@
 
 <div class="shell">
   <aside class="rail" data-i18n-attr="aria-label:nav.nav">
-    <a class="brand" href="./"><img src="icons/icon-192.png" alt=""><span>Medley Generator<small data-i18n="app.tagline"></small></span></a>
+    <a class="brand" href="./"><img src="icons/icon.svg" alt=""><span>Sonora<small data-i18n="app.tagline"></small></span></a>
     <button class="nav-item" data-nav="medley"><svg class="i"><use href="#i-music"/></svg><span data-i18n="nav.medley"></span></button>
     <button class="nav-item" data-nav="library"><svg class="i"><use href="#i-library"/></svg><span data-i18n="nav.library"></span><span class="count" data-count="songs"></span></button>
     <button class="nav-item" data-nav="study"><svg class="i"><use href="#i-study"/></svg><span data-i18n="nav.study"></span></button>
@@ -71,7 +72,7 @@
   </aside>
 
   <header class="topbar">
-    <a class="brand" href="./"><img src="icons/icon-192.png" alt=""><span>Medley Generator</span></a>
+    <a class="brand" href="./"><img src="icons/icon.svg" alt=""><span>Sonora</span></a>
     <button class="icon-btn" data-install hidden data-i18n-attr="aria-label:nav.install"><svg class="i"><use href="#i-phone"/></svg></button>
     <button class="icon-btn" data-lang-toggle><svg class="i"><use href="#i-globe"/></svg></button>
     <button class="icon-btn" data-theme-toggle><svg class="i"><use href="#i-monitor"/></svg></button>

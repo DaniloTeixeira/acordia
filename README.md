@@ -1,26 +1,33 @@
-# Medley Generator PWA
+# Sonora
 
-App instalável para montar medleys em folhas A4 com cifras, graus ou só letra. Funciona offline,
-em português e inglês, e guarda tudo no próprio aparelho.
+**Sua música. Um só lugar.** App instalável (PWA) para músicos montarem repertórios com cifras, graus ou só a
+letra, tocarem no palco e estudarem teoria, ritmo e ouvido. Funciona offline, em português e inglês, e guarda
+tudo no próprio aparelho.
 
-**Abrir o app:** https://daniloteixeira.github.io/medley-generator-pwa/
+**Abrir o app:** https://daniloteixeira.github.io/sonora/
 
 ## O que dá para fazer
 
-- **Medley:** cole as músicas (título na primeira linha), troque o tom de cada uma, reordene e veja a folha
+- **Repertório:** cole as músicas (título na primeira linha), troque o tom de cada uma, reordene e veja a folha
   na hora. A folha alterna entre **Cifras**, **Graus** e **Só letra**, ajusta o tamanho da letra para
   ocupar a página e usa 1 ou 2 colunas e até 2 páginas.
 - **Transições:** entre uma música e outra, a folha avisa a mudança de tom e sugere o acorde de passagem
   (o V7 do tom seguinte).
-- **Detalhes por música:** tom original, tom de execução, capotraste, BPM, quem canta e observações.
-- **Biblioteca:** todas as músicas e medleys salvos, com busca, filtros, edição, duplicação e backup
+- **Detalhes por música:** tom original, tom para tocar, capotraste, BPM, quem canta, observações e um link de
+  referência (vídeos do YouTube tocam dentro do app).
+- **Biblioteca:** todas as músicas e repertórios salvos, com busca, filtros, edição, duplicação e backup
   (exportar e importar em JSON).
-- **Compartilhar por link:** o medley inteiro vai compactado no próprio link (`#m=...`), sem servidor.
+- **Compartilhar por link:** o repertório inteiro vai compactado no próprio link (`#m=...`), sem servidor.
   Quem abre pode salvar na própria biblioteca.
-- **Modo palco:** tela cheia, letra grande, tela sempre acesa, avança por toque, teclado ou pedal Bluetooth.
-- **Estudo:** escalas (maior, menores, pentatônicas) com teclado, campo harmônico com tríades ou tétrades
-  e funções, tudo com som. O **Treino** tem 5 jogos (acorde do grau, qual é o grau, notas da escala,
-  relativas e ouvido), 3 níveis, sequência de acertos e recorde.
+- **Modo palco:** tela cheia, letra grande, tela sempre acesa, metrônomo no BPM da música, avança por toque,
+  teclado ou pedal Bluetooth.
+- **Estudo:**
+  - **Escalas:** maior, menores e pentatônicas num teclado que toca ao clicar; campo harmônico com tríades ou
+    tétrades e as funções (tônica, subdominante, dominante) explicadas.
+  - **Treino:** 5 jogos (acorde do grau, qual é o grau, notas da escala, relativas e ouvido), 3 níveis,
+    respostas com 4 alternativas ou lista completa, sequência de acertos e recorde.
+  - **Mãos:** 10 exercícios de independência das mãos com metrônomo e precisão por mão.
+  - **Metrônomo:** compasso, subdivisão, acento e tap tempo.
 - PDF, impressão, tema claro/escuro/sistema e PT/EN.
 
 ## Rodar localmente
@@ -65,6 +72,7 @@ Ao criar um arquivo novo que o app carrega, inclua-o na lista `FILES` do [sw.js]
 | [js/store.js](js/store.js) | IndexedDB (músicas, medleys, preferências) e migração da versão antiga |
 | [js/share.js](js/share.js) | Links de medley compactados |
 | [js/study.js](js/study.js), [js/audio.js](js/audio.js) | Modo Estudo e síntese de som (Web Audio) |
+| [js/hands.js](js/hands.js), [js/metronome.js](js/metronome.js) | Independência das mãos e metrônomo |
 | [js/i18n.js](js/i18n.js) | Textos em português e inglês |
 | [sw.js](sw.js) | Cache offline |
 | [scripts/build.mjs](scripts/build.mjs) | Build do deploy |

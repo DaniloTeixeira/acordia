@@ -1,11 +1,11 @@
 // No deploy, `npm run build` troca a versão abaixo por um hash do conteúdo dos arquivos da lista.
-const CACHE = "medley-generator-pwa-dev";
+const CACHE = "sonora-dev";
 const FILES = ["./", "index.html", "manifest.webmanifest", "css/app.css",
   "js/app.js", "js/core.js", "js/layout.js", "js/pdf.js", "js/share.js", "js/store.js", "js/study.js", "js/audio.js", "js/i18n.js", "js/hands.js", "js/metronome.js",
   "vendor/jspdf.umd.min.js",
   "fonts/atkinson-mono-regular.ttf", "fonts/atkinson-mono-bold.ttf", "fonts/atkinson-regular.ttf",
   "fonts/atkinson-bold.ttf", "fonts/lexend-regular.ttf", "fonts/lexend-bold.ttf",
-  "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png"];
+  "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

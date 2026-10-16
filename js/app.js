@@ -557,10 +557,10 @@ function editSong(s){
 function exportLibrary(){
   const all = [...data.songs.values()].filter(s=>s.title);
   if(!all.length) return toast(t("lib.emptyExport"));
-  const json = JSON.stringify({app:"medley-generator", version:2, exportedAt:new Date().toISOString(),
+  const json = JSON.stringify({app:"sonora", version:2, exportedAt:new Date().toISOString(),
     songs: all.map(({id,title,text,type,key,bpm,ref,updatedAt})=>({id,title,text,type,key,bpm,ref,updatedAt})),
     medleys: [...data.medleys.values()].map(({id,name,items,options,updatedAt})=>({id,name,options,updatedAt,items:items.map(({songId,target,capo,singer,notes})=>({songId,target,capo,singer,notes}))}))}, null, 2);
-  saveBlob(new Blob([json], {type:"application/json"}), "medley-generator-" + new Date().toISOString().slice(0,10) + ".json");
+  saveBlob(new Blob([json], {type:"application/json"}), "sonora-backup-" + new Date().toISOString().slice(0,10) + ".json");
   toast(t("lib.exported"));
 }
 async function importLibrary(file){

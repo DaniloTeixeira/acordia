@@ -23,7 +23,7 @@ for (const f of files) {
   mkdirSync(dirname(join(out, f)), { recursive: true });
   copyFileSync(join(root, f), join(out, f));
 }
-const version = "medley-generator-pwa-" + hash.digest("hex").slice(0, 10);
+const version = "sonora-" + hash.digest("hex").slice(0, 10);
 writeFileSync(join(out, "sw.js"), sw.replace(/const CACHE = "[^"]*";/, `const CACHE = "${version}";`));
 // Licenças acompanham as fontes e o código publicados (não entram no cache offline).
 for (const f of ["LICENSE", "fonts/OFL.txt"]) copyFileSync(join(root, f), join(out, f));
