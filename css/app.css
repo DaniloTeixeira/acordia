@@ -566,7 +566,7 @@ a.btn{text-decoration:none}
 .menu-pop{width:220px;padding:6px}
 .menu-item{display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 12px;border:none;background:none;border-radius:var(--r-sm);font-weight:600;color:var(--ink);cursor:pointer;text-align:left;transition:background-color var(--t-fast)}
 .menu-item:hover,.menu-item:focus-visible{background:var(--surface-2)}
-.menu-item[aria-checked="true"]{color:var(--accent-soft-ink);background:var(--accent-soft)}
+.menu-item[aria-checked="true"],.menu-item[aria-selected="true"]{color:var(--accent-soft-ink);background:var(--accent-soft)}
 .lang-item [data-lang-name]{flex:1}
 /* guia de uso */
 .help-btn{color:var(--muted)}
