@@ -1,6 +1,6 @@
 # Medley Generator PWA
 
-**Folha de cifras A4**: app instalável que monta folhas A4 com cifras, graus e só letra, com biblioteca de músicas.
+App instalável que monta folhas A4 com cifras, graus e só letra, com biblioteca de músicas.
 Funciona offline depois do primeiro acesso. Tudo fica salvo no próprio aparelho (localStorage).
 
 ## Rodar localmente

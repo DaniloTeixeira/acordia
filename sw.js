@@ -1,5 +1,5 @@
 // A versão é gerada por `node scripts/bump-cache.mjs` a partir do conteúdo dos arquivos abaixo.
-const CACHE = "medley-generator-pwa-f99699b814";
+const CACHE = "medley-generator-pwa-e3426b54a1";
 const FILES = ["./", "index.html", "manifest.webmanifest", "js/core.js", "vendor/jspdf.umd.min.js",
   "fonts/atkinson-mono-regular.ttf", "fonts/atkinson-mono-bold.ttf", "fonts/atkinson-regular.ttf",
   "fonts/atkinson-bold.ttf", "fonts/lexend-regular.ttf", "fonts/lexend-bold.ttf",

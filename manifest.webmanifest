@@ -1,6 +1,6 @@
 {
-  "name": "Folha de cifras A4",
-  "short_name": "Cifras A4",
+  "name": "Medley Generator",
+  "short_name": "Medley",
   "description": "Monta folhas A4 com cifras, graus e só letra, com biblioteca de músicas.",
   "start_url": "./",
   "scope": "./",
