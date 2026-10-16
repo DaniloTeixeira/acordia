@@ -214,15 +214,22 @@ export function initKeys({root, data, store, toast, icon, esc, audio, seg}){
     const on = root.querySelector(`.kstep[data-i="${i}"]`);
     if(on && scroll) on.scrollIntoView({block:"nearest", inline:"center", behavior:"smooth"});
   }
-  function flashKey(m, cls){
+  function flashKey(m, cls, ms = 300){
     const r = root.querySelector(`.keyboard.practice rect[data-midi="${m}"]`); if(!r) return;
-    r.classList.remove("hit","bad"); void r.getBoundingClientRect(); r.classList.add(cls); setTimeout(() => r.classList.remove(cls), 300);
+    r.classList.remove("hit","bad"); void r.getBoundingClientRect(); r.classList.add(cls); setTimeout(() => r.classList.remove(cls), ms);
   }
+  // Ao completar um passo: apaga o destaque atual e deixa só o verde da confirmação.
+  function clearMarks(){
+    const svg = root.querySelector(".keyboard.practice"); if(!svg) return;
+    svg.querySelectorAll("rect.rh,rect.lh,rect.next,rect.target").forEach(r => r.classList.remove("rh","lh","next","target"));
+    svg.querySelectorAll("text.fing").forEach(tx => tx.textContent = "");
+  }
+  const CONFIRM_MS = 380;
 
   // ---------- modo espera ----------
   function startWait(ex){
     stop();
-    cur = {mode:"wait", i:0, pressed:[], errors:0, start: performance.now(), hands: st.hands};
+    cur = {mode:"wait", i:0, pressed:[], queue:[], busy:false, errors:0, start: performance.now(), hands: st.hands};
     root.querySelector("#k-result").innerHTML = "";
     root.querySelector("#k-status").textContent = t("keys.waitHint");
     root.querySelector(".hands-card").classList.add("practicing");
@@ -239,20 +246,31 @@ export function initKeys({root, data, store, toast, icon, esc, audio, seg}){
     if(ev) audio.playChord(ev.midis, {base:0, dur: Math.min(2.5, ev.dur * 0.8), strum:0});
   }
   function noteOn(m, src){
-    if(st.sound || src === "screen") audio.playChord([m], {base:0, dur:0.9, strum:0});
+    if((st.sound || src === "screen") && src !== "queued") audio.playChord([m], {base:0, dur:0.9, strum:0});
     if(!cur){ flashKey(m, "hit"); return; }
     if(cur.mode === "timed"){ cur.played.push({midi:m, t: audio.audioNow()}); flashKey(m, "hit"); return; }
+    // Durante a confirmação verde, guarda a nota para contar no próximo passo.
+    if(cur.busy){ cur.queue.push(m); return; }
     let s = built.steps[cur.i], req = required(s, cur.hands);
     while(!req.length && cur.i < built.steps.length - 1){ cur.i++; s = built.steps[cur.i]; req = required(s, cur.hands); }
     cur.pressed.push(m);
     const r = checkStep(req, cur.pressed, m);
     if(r.wrong){ cur.errors++; flashKey(m, "bad"); cur.pressed = cur.pressed.filter(n => n !== m); return; }
-    flashKey(m, "hit");
-    if(!r.done) return;
-    cur.pressed = []; cur.i++;
-    while(cur.i < built.steps.length && !required(built.steps[cur.i], cur.hands).length){ autoPlay(cur.i); cur.i++; }
-    if(cur.i >= built.steps.length) return finishWait();
-    autoPlay(cur.i); showStep(cur.i);
+    if(!r.done){ flashKey(m, "hit"); return; }
+    // Passo completo: primeiro a confirmação em verde (só nas teclas tocadas), depois o próximo destaque.
+    const done = [...new Set(cur.pressed)];
+    clearMarks();
+    done.forEach(n => flashKey(n, "hit", CONFIRM_MS));
+    cur.busy = true; cur.queue = cur.queue || [];
+    const c = cur;
+    setTimeout(() => {
+      if(cur !== c) return;
+      c.busy = false; c.pressed = []; c.i++;
+      while(c.i < built.steps.length && !required(built.steps[c.i], c.hands).length){ autoPlay(c.i); c.i++; }
+      if(c.i >= built.steps.length) return finishWait();
+      autoPlay(c.i); showStep(c.i);
+      c.queue.splice(0).forEach(n => noteOn(n, "queued"));
+    }, CONFIRM_MS);
   }
   function finishWait(){
     const c = cur; cur = null;
@@ -279,16 +297,16 @@ export function initKeys({root, data, store, toast, icon, esc, audio, seg}){
     cur.timer = setTimeout(() => finishTimed(), (cur.end - audio.audioNow() + 0.4) * 1000);
     root.querySelector("#k-result").innerHTML = "";
     root.querySelector("#k-status").textContent = t(demo ? "keys.demoHint" : "keys.timedHint");
-    frame();
+    frame(); raf = setInterval(frame, 40);
   }
+  // Acompanha o relógio do áudio com um timer próprio (a animação de quadro pode pausar em segundo plano).
   function frame(){
     if(!cur || cur.mode === "wait") return;
     const beat = (audio.audioNow() - cur.t0) / cur.spb - cur.count;
     let i = -1; built.steps.forEach((s, k) => { if(s.t <= beat + 0.02) i = k; });
     if(i !== cur.shown){ cur.shown = i; if(i >= 0) showStep(i); }
     const cnt = root.querySelector("#k-status");
-    if(beat < 0 && cnt) cnt.textContent = t("keys.countIn", {n: Math.floor(beat + cur.count) + 1});
-    raf = requestAnimationFrame(frame);
+    if(beat < 0 && cur.count && cnt) cnt.textContent = t("keys.countIn", {n: Math.max(1, Math.floor(beat + cur.count) + 1)});
   }
   function finishTimed(){
     const c = cur; if(!c || c.mode === "wait") return;
@@ -311,7 +329,7 @@ export function initKeys({root, data, store, toast, icon, esc, audio, seg}){
       <p>${esc(feel)} ${esc(t("hands.msg." + msg))}</p></div>`;
   }
   function stop(){
-    cancelAnimationFrame(raf);
+    clearInterval(raf);
     if(cur && cur.timer) clearTimeout(cur.timer);
     cur = null;
   }

@@ -1045,6 +1045,14 @@ function initVolume(){
   range.oninput = () => { store.setSetting("volume", +range.value); if(+range.value) store.setSetting("muted", false); paint(); };
   range.onchange = () => audio.playChord([0, 4, 7], {base: 60, dur: 0.6});
   $("#vol-mute").onclick = () => { store.setSetting("muted", !cur().m); paint(); };
+  // Rolar o mouse sobre o volume ajusta de 5 em 5%.
+  const wheel = e => {
+    e.preventDefault();
+    const v = Math.max(0, Math.min(100, cur().v + (e.deltaY < 0 ? 5 : -5)));
+    store.setSetting("volume", v); if(v) store.setSetting("muted", false);
+    paint();
+  };
+  $$("[data-volume], #vol-range").forEach(el => el.addEventListener("wheel", wheel, {passive: false}));
   $$("[data-volume]").forEach(b => b.onclick = () => openNear(pop, b, 280));
   paint();
   return {paint};
