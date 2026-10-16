@@ -159,6 +159,7 @@ export function initKeys({root, data, store, toast, icon, esc, audio, seg}){
             <button class="icon-btn sm" id="k-faster" aria-label="${esc(t("hands.faster"))}">${icon("plus","sm")}</button></div>
         </div>
         ${built.fingering ? "" : `<p class="note">${esc(t("keys.noFingering"))}</p>`}
+        <div class="k-prompt" id="k-prompt" aria-live="polite" hidden></div>
         <div class="board-wrap k-board">${keyboardSVG(built.lo, built.hi)}</div>
         <div class="kgrid-head"><h3>${esc(t("keys.gridTitle"))}</h3><p class="sub">${esc(t(built.fingering ? "keys.gridHint" : "keys.gridHintNoFing"))}</p></div>
         <div class="kgrid-wrap">${gridHTML(built, st.hands)}</div>
@@ -182,7 +183,7 @@ export function initKeys({root, data, store, toast, icon, esc, audio, seg}){
     q("#k-back").onclick = renderList;
     q("#k-sound").onchange = e => { st.sound = e.target.checked; persist(); };
     q("#k-demo").onclick = () => startTimed(ex, true);
-    q("#k-wait").onclick = () => startWait(ex);
+    q("#k-wait").onclick = () => cur && cur.mode === "wait" ? renderPractice() : startWait(ex);
     q("#k-timed").onclick = () => startTimed(ex, false);
     q(".k-board").addEventListener("pointerdown", e => { const k = e.target.closest("[data-midi]"); if(k){ e.preventDefault(); noteOn(+k.dataset.midi, "screen"); } });
     paintMidi(); connectMIDI().then(() => { const b = q("#k-timed"); if(b && midiName){ b.disabled = false; b.title = ""; } });
@@ -197,6 +198,18 @@ export function initKeys({root, data, store, toast, icon, esc, audio, seg}){
     const mark = (ev, h) => ev && ev.midis.forEach((m, j) => { const r = svg.querySelector(`rect[data-midi="${m}"]`); if(r) r.classList.add(h); const f = svg.querySelector(`[data-f="${m}"]`); if(f && built.fingering) f.textContent = ev.fingers[j]; });
     if(nx){ [nx.rh, nx.lh].forEach(ev => ev && ev.midis.forEach(m => { const r = svg.querySelector(`rect[data-midi="${m}"]`); if(r) r.classList.add("next"); })); }
     if(s){ mark(s.lh, "lh"); mark(s.rh, "rh"); }
+    svg.querySelectorAll("rect.target").forEach(r => r.classList.remove("target"));
+    const waiting = cur && cur.mode === "wait" && s;
+    if(waiting) required(s, cur.hands).forEach(m => { const r = svg.querySelector(`rect[data-midi="${m}"]`); if(r) r.classList.add("target"); });
+    const prompt = root.querySelector("#k-prompt");
+    if(prompt){
+      prompt.hidden = !waiting;
+      if(waiting){
+        const order = built.steps.map((x, k) => k).filter(k => required(built.steps[k], cur.hands).length);
+        const part = (ev, h) => ev && cur.hands !== (h === "rh" ? "lh" : "rh") ? `<span class="kp ${h}">${esc(t(h === "rh" ? "keys.rhFull" : "keys.lhFull"))}: <b>${ev.names.map((nm, j) => esc(nm) + (built.fingering ? ` <small>${esc(t("keys.finger", {n: ev.fingers[j]}))}</small>` : "")).join(" + ")}</b></span>` : "";
+        prompt.innerHTML = `<span class="kp-step">${esc(t("keys.prompt", {n: order.indexOf(i) + 1, total: order.length}))}</span>${part(s.rh, "rh")}${part(s.lh, "lh")}`;
+      }
+    }
     root.querySelectorAll(".kstep").forEach(el => el.classList.toggle("on", +el.dataset.i === i));
     const on = root.querySelector(`.kstep[data-i="${i}"]`);
     if(on && scroll) on.scrollIntoView({block:"nearest", inline:"center", behavior:"smooth"});
@@ -212,7 +225,12 @@ export function initKeys({root, data, store, toast, icon, esc, audio, seg}){
     cur = {mode:"wait", i:0, pressed:[], errors:0, start: performance.now(), hands: st.hands};
     root.querySelector("#k-result").innerHTML = "";
     root.querySelector("#k-status").textContent = t("keys.waitHint");
-    autoPlay(0); showStep(0);
+    root.querySelector(".hands-card").classList.add("practicing");
+    root.querySelector("#k-wait").innerHTML = `${icon("x","sm")} ${esc(t("keys.stop"))}`;
+    // Pula passos em que só a outra mão toca.
+    while(cur.i < built.steps.length - 1 && !required(built.steps[cur.i], cur.hands).length){ autoPlay(cur.i); cur.i++; }
+    root.querySelector(".board-wrap").scrollIntoView({block:"nearest", behavior:"smooth"});
+    autoPlay(cur.i); showStep(cur.i);
   }
   // Toca a mão que a pessoa não está estudando, no passo atual.
   function autoPlay(i){

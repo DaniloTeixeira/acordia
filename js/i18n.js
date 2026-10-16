@@ -482,7 +482,7 @@ const pt = {
   "keys.tip":"Praticar espera você acertar as notas para avançar. Com um teclado MIDI conectado, “No tempo” mede a precisão com o metrônomo.",
   "keys.tipNoMidi":"Toque nas teclas da tela. Para usar um teclado MIDI, abra no Chrome ou no Edge.",
   "keys.timedNeedsMidi":"Conecte um teclado MIDI para praticar no tempo.",
-  "keys.waitHint":"Toque as notas destacadas. O app espera você acertar.",
+  "keys.waitHint":"Toque as teclas que estão piscando. Acertou, o exercício avança; errou, a tecla fica vermelha e ele espera.",
   "keys.demoHint":"Ouça e acompanhe os destaques.",
   "keys.timedHint":"Toque junto com o metrônomo.",
   "keys.countIn":"Contagem: {n}",
@@ -543,7 +543,12 @@ const pt = {
   "keys.gridHintNoFing":"Cada coluna é um passo, na ordem, com a nota de cada mão.",
   "keys.autoLh":"O app toca a mão esquerda por você (em cinza na sequência).",
   "keys.autoRh":"O app toca a mão direita por você (em cinza na sequência).",
-  "help.study.s6":"Teclado MIDI: conecte o teclado ao celular ou computador (cabo USB, adaptador OTG ou Bluetooth MIDI) e abra o Sonora no Chrome ou no Edge. Em Mãos › Teclado o navegador pede permissão; quando aparecer o selo “MIDI: nome do teclado”, é só tocar. iPhone e iPad ainda não têm MIDI no navegador: use as teclas da tela."
+  "help.study.s6":"Teclado MIDI: conecte o teclado ao celular ou computador (cabo USB, adaptador OTG ou Bluetooth MIDI) e abra o Sonora no Chrome ou no Edge. Em Mãos › Teclado o navegador pede permissão; quando aparecer o selo “MIDI: nome do teclado”, é só tocar. iPhone e iPad ainda não têm MIDI no navegador: use as teclas da tela.",
+  "keys.prompt":"Sua vez · passo {n} de {total}",
+  "keys.rhFull":"Mão direita",
+  "keys.lhFull":"Mão esquerda",
+  "keys.finger":"dedo {n}",
+  "keys.stop":"Parar"
 };
 
 const en = {
@@ -1027,7 +1032,7 @@ const en = {
   "keys.tip":"Practice waits for the right notes before moving on. With a MIDI keyboard connected, “In time” measures accuracy against the metronome.",
   "keys.tipNoMidi":"Tap the on-screen keys. To use a MIDI keyboard, open the app in Chrome or Edge.",
   "keys.timedNeedsMidi":"Connect a MIDI keyboard to practice in time.",
-  "keys.waitHint":"Play the highlighted notes. The app waits for you.",
+  "keys.waitHint":"Play the blinking keys. Get it right and the exercise moves on; miss and the key turns red while it waits.",
   "keys.demoHint":"Listen and follow the highlights.",
   "keys.timedHint":"Play along with the metronome.",
   "keys.countIn":"Count-in: {n}",
@@ -1088,7 +1093,12 @@ const en = {
   "keys.gridHintNoFing":"Each column is a step, in order, with each hand's note.",
   "keys.autoLh":"The app plays the left hand for you (grey in the sequence).",
   "keys.autoRh":"The app plays the right hand for you (grey in the sequence).",
-  "help.study.s6":"MIDI keyboard: connect it to your phone or computer (USB cable, OTG adapter or Bluetooth MIDI) and open Sonora in Chrome or Edge. In Hands › Keyboard the browser asks for permission; once the “MIDI: keyboard name” badge shows up, just play. iPhone and iPad browsers don't support MIDI yet: use the on-screen keys."
+  "help.study.s6":"MIDI keyboard: connect it to your phone or computer (USB cable, OTG adapter or Bluetooth MIDI) and open Sonora in Chrome or Edge. In Hands › Keyboard the browser asks for permission; once the “MIDI: keyboard name” badge shows up, just play. iPhone and iPad browsers don't support MIDI yet: use the on-screen keys.",
+  "keys.prompt":"Your turn · step {n} of {total}",
+  "keys.rhFull":"Right hand",
+  "keys.lhFull":"Left hand",
+  "keys.finger":"finger {n}",
+  "keys.stop":"Stop"
 };
 
 const es = {
@@ -1572,7 +1582,7 @@ const es = {
   "keys.tip":"Practicar espera a que aciertes las notas para avanzar. Con un teclado MIDI conectado, “A tiempo” mide la precisión con el metrónomo.",
   "keys.tipNoMidi":"Toca las teclas de la pantalla. Para usar un teclado MIDI, abre la app en Chrome o Edge.",
   "keys.timedNeedsMidi":"Conecta un teclado MIDI para practicar a tiempo.",
-  "keys.waitHint":"Toca las notas resaltadas. La app espera a que aciertes.",
+  "keys.waitHint":"Toca las teclas que parpadean. Si aciertas, el ejercicio avanza; si fallas, la tecla se pone roja y espera.",
   "keys.demoHint":"Escucha y sigue los resaltados.",
   "keys.timedHint":"Toca junto al metrónomo.",
   "keys.countIn":"Cuenta: {n}",
@@ -1633,7 +1643,12 @@ const es = {
   "keys.gridHintNoFing":"Cada columna es un paso, en orden, con la nota de cada mano.",
   "keys.autoLh":"La app toca la mano izquierda por ti (en gris en la secuencia).",
   "keys.autoRh":"La app toca la mano derecha por ti (en gris en la secuencia).",
-  "help.study.s6":"Teclado MIDI: conecta el teclado al celular o la computadora (cable USB, adaptador OTG o Bluetooth MIDI) y abre Sonora en Chrome o Edge. En Manos › Teclado el navegador pide permiso; cuando aparezca la etiqueta “MIDI: nombre del teclado”, solo toca. iPhone y iPad todavía no tienen MIDI en el navegador: usa las teclas de la pantalla."
+  "help.study.s6":"Teclado MIDI: conecta el teclado al celular o la computadora (cable USB, adaptador OTG o Bluetooth MIDI) y abre Sonora en Chrome o Edge. En Manos › Teclado el navegador pide permiso; cuando aparezca la etiqueta “MIDI: nombre del teclado”, solo toca. iPhone y iPad todavía no tienen MIDI en el navegador: usa las teclas de la pantalla.",
+  "keys.prompt":"Tu turno · paso {n} de {total}",
+  "keys.rhFull":"Mano derecha",
+  "keys.lhFull":"Mano izquierda",
+  "keys.finger":"dedo {n}",
+  "keys.stop":"Parar"
 };
 
 
