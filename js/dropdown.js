@@ -19,7 +19,7 @@ export function placeNear(pop, btn, minW = 0){
   pop.style.left = "0px"; pop.style.top = "0px"; pop.style.maxHeight = "none";
   if(!pop.matches(":popover-open")) pop.showPopover();
   const pw = pop.offsetWidth, natural = pop.offsetHeight;
-  pop.style.left = Math.max(8, Math.min(r.left, innerWidth - pw - 8)) + "px";
+  pop.style.left = Math.max(8, Math.min(r.left, document.documentElement.clientWidth - pw - 8)) + "px";
   // Abre para baixo se couber (ou se houver mais espaço embaixo); senão para cima. Sempre dentro da tela.
   const below = innerHeight - r.bottom - 14, above = r.top - 14;
   const down = natural <= below || below >= above;

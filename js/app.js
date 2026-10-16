@@ -493,9 +493,9 @@ function initOptions(){
   pop.addEventListener("beforetoggle", e => {
     if(e.newState !== "open") return;
     sync();
-    const r = btn.getBoundingClientRect(), w = Math.min(320, innerWidth - 32);
+    const r = btn.getBoundingClientRect(), w = Math.min(320, document.documentElement.clientWidth - 32);
     pop.style.top = Math.min(r.bottom + 8, innerHeight - 20) + "px";
-    pop.style.left = Math.max(16, Math.min(r.right - w, innerWidth - w - 16)) + "px";
+    pop.style.left = Math.max(16, Math.min(r.right - w, document.documentElement.clientWidth - w - 16)) + "px";
   });
   pop.addEventListener("toggle", () => $$(".seg", pop).forEach(paintSeg));
   const trVal = () => { const v = current().options.transpose || 0; $("#opt-tr-val").textContent = (v > 0 ? "+" : "") + v; };
@@ -1005,7 +1005,7 @@ function repertoireEntries(){
 // Abre um popover perto do botão que o chamou (abaixo, ou acima quando não cabe).
 function openNear(pop, btn, w){
   const r = btn.getBoundingClientRect();
-  pop.style.left = Math.max(12, Math.min(r.left, innerWidth - w - 12)) + "px";
+  pop.style.left = Math.max(12, Math.min(r.left, document.documentElement.clientWidth - w - 12)) + "px";
   pop.style.top = "0px"; pop.showPopover();
   const h = pop.offsetHeight;
   pop.style.top = (r.bottom + 8 + h > innerHeight ? Math.max(12, r.top - h - 8) : r.bottom + 8) + "px";
@@ -1065,7 +1065,9 @@ function initTooltips(){
     if(!tip.matches(":popover-open")) tip.showPopover();
     const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
     let top = r.top - h - 8; if(top < 8) top = r.bottom + 8;
-    tip.style.left = Math.max(8, Math.min(r.left + r.width / 2 - w / 2, innerWidth - w - 8)) + "px";
+    // Largura útil sem a faixa da barra de rolagem; com innerWidth a dica encostava nela e quebrava a linha.
+    const vw = document.documentElement.clientWidth;
+    tip.style.left = Math.max(8, Math.min(r.left + r.width / 2 - w / 2, vw - w - 8)) + "px";
     tip.style.top = top + "px";
   };
   document.addEventListener("mouseover", e => {
