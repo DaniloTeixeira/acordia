@@ -5,6 +5,7 @@ import { mountTuner } from "./tuner.js";
 import { createChordDialog, instrumentSelect } from "./chordview.js";
 import { suggestCapo } from "./instruments.js";
 import { initDropdowns, bindToggle } from "./dropdown.js";
+import { initRanges } from "./range.js";
 import * as audio from "./audio.js";
 import { fit, toSVG, lyricsOnly, chordText, chordLine } from "./layout.js";
 import { toPDF, saveBlob, pdfAvailable } from "./pdf.js";
@@ -1110,7 +1111,7 @@ function initVolume(){
 
 let study, metro, tools, chordDialog, volume;
 async function main(){
-  initDropdowns();
+  initDropdowns(); initRanges();
   await store.init(() => toast(t("lib.saveFail")));
   setLang(data.settings.lang || detectLang());
   applyLang();
