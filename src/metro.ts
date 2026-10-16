@@ -4,7 +4,8 @@ import { createMetronome, type MetroState } from "./lib/metronome";
 import * as store from "./lib/store";
 import { debounce } from "./lib/util";
 
-export const metro = createMetronome(audio);
+// Relógio do áudio (0 enquanto não há áudio).
+export const metro = createMetronome({...audio, audioNow: () => audio.audioNow() ?? 0});
 
 export function initMetro(){
   const saved = store.data.settings.metro as Partial<MetroState> | undefined;

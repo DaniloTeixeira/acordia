@@ -17,8 +17,9 @@ sw.addEventListener("activate", (e: any) => {
     .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
     .then(() => sw.clients.claim()));
 });
+// `no-cache` revalida com o servidor: sem ele o cache HTTP do navegador pode devolver uma página antiga.
 function networkFirst(e: any, key: string){
-  e.respondWith(fetch(e.request)
+  e.respondWith(fetch(e.request.url, {cache: "no-cache", credentials: "same-origin"})
     .then(r => { if(r.ok){ const copy = r.clone(); caches.open(CACHE).then(c => c.put(key, copy)); } return r; })
     .catch(() => caches.match(key).then(r => r || Response.error())));
 }

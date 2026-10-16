@@ -7,7 +7,7 @@ export function Toasts(){
   return <div className="toasts" id="toasts" role="status" aria-live="polite">
     {toasts.map(x => <div key={x.id} className={"toast" + (x.out ? " out" : "")}>
       <span>{x.msg}</span>
-      {x.action && <button onClick={() => { x.action!.run(); closeToast(x.id); }}>{x.action.label}</button>}
+      {x.action && <button className="btn primary sm" onClick={() => { x.action!.run(); closeToast(x.id); }}>{x.action.label}</button>}
       {x.sticky && <button className="toast-x" aria-label={t("common.close")} onClick={() => closeToast(x.id)}>×</button>}
     </div>)}
   </div>;

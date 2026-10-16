@@ -62,14 +62,17 @@ export function pianoSVG(midis: number[], rootPc: number){
   const on = new Set(midis);
   for(let k = 0; k < 24; k++){
     const midi = start + k, pc = midi % 12, cls = on.has(midi) ? (pc === rootPc ? " root" : " in") : "";
-    if([0,2,4,5,7,9,11].includes(pc)){ whites += `<rect class="w${cls}" data-midi="${midi}" x="${x}" y="0" width="${W}" height="${H}" rx="3"/>`; x += W; }
-    else blacks += `<rect class="b${cls}" data-midi="${midi}" x="${x - BW/2}" y="0" width="${BW}" height="${BH}" rx="2"/>`;
+    // Todas as notas do acorde no mesmo azul; a fundamental leva um pontinho branco embaixo.
+    const dot = (cx: number, cy: number, r: number) => cls === " root" ? `<circle class="root-dot" cx="${cx}" cy="${cy}" r="${r}"/>` : "";
+    if([0,2,4,5,7,9,11].includes(pc)){ whites += `<rect class="w${cls}" data-midi="${midi}" x="${x + 0.5}" y="0.5" width="${W - 1}" height="${H - 1}" rx="3"/>` + dot(x + W/2, H - 10, 3); x += W; }
+    else blacks += `<rect class="b${cls}" data-midi="${midi}" x="${x - BW/2}" y="0" width="${BW}" height="${BH}" rx="2"/>` + dot(x, BH - 8, 2.5);
   }
   return `<svg class="keyboard mini" viewBox="-1 -1 ${x + 2} ${H + 2}" role="img">${whites}${blacks}</svg>`;
 }
 
 const WHITE = [0,2,4,5,7,9,11];
-// Teclado de 2 oitavas do explorador, com os nomes das notas da escala (notesByPc).
+// Teclado de 2 oitavas do explorador. Os nomes ficam escondidos (aparecem no toque, na caixa ao lado),
+// para associar posição e som; só a tônica tem uma marca fixa: um "T" com o gradiente do logo.
 export function scaleKeyboardSVG(startMidi: number, rootPc: number, notesByPc: Record<number, string>){
   const kbStart = startMidi - rootPc, W = 24, H = 96, BW = 15, BH = 58;
   let whites = "", blacks = "", x = 0;
@@ -77,13 +80,14 @@ export function scaleKeyboardSVG(startMidi: number, rootPc: number, notesByPc: R
     const midi = kbStart + o*12 + pc, name = notesByPc[pc], root = pc === rootPc;
     const cls = (name ? " in" : "") + (root ? " root" : "");
     if(WHITE.includes(pc)){
-      whites += `<rect class="w${cls}" data-midi="${midi}" x="${x}" y="0" width="${W}" height="${H}" rx="3"/>` + (name ? `<text class="${root?"root":"in"}" x="${x + W/2}" y="${H-8}" text-anchor="middle">${esc(name)}</text>` : "");
+      // Meio ponto para dentro de cada lado: o contorno não fica embaixo da tecla vizinha.
+      whites += `<rect class="w${cls}" data-midi="${midi}" x="${x + 0.5}" y="0.5" width="${W - 1}" height="${H - 1}" rx="3"/>` + (root ? `<text class="tonic" x="${x + W/2}" y="${H-7}" text-anchor="middle" fill="url(#tonic-grad)">T</text>` : "");
       x += W;
     } else {
-      blacks += `<rect class="b${cls}" data-midi="${midi}" x="${x - BW/2}" y="0" width="${BW}" height="${BH}" rx="2"/>` + (name ? `<text class="${root?"root":"in"}" x="${x}" y="${BH-6}" text-anchor="middle" style="fill:#fff;font-size:8px">${esc(name)}</text>` : "");
+      blacks += `<rect class="b${cls}" data-midi="${midi}" x="${x - BW/2}" y="0" width="${BW}" height="${BH}" rx="2"/>` + (root ? `<text class="tonic sm" x="${x}" y="${BH-5}" text-anchor="middle" fill="url(#tonic-grad)">T</text>` : "");
     }
   }
-  return `<svg class="keyboard" viewBox="-1 -1 ${x + 2} ${H + 2}" role="img" aria-label="${esc(t("study.keyboardAria"))}">${whites}${blacks}</svg>`;
+  return `<svg class="keyboard scale" viewBox="-1 -1 ${x + 2} ${H + 2}" role="img" aria-label="${esc(t("study.keyboardAria"))}"><defs><linearGradient id="tonic-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3BD5FA"/><stop offset=".5" stop-color="#4C82F5"/><stop offset="1" stop-color="#9A5CF8"/></linearGradient></defs>${whites}${blacks}</svg>`;
 }
 
 // Teclado dos exercícios: cobre de lo a hi (em oitavas inteiras), com espaço para o número do dedo.
@@ -92,7 +96,7 @@ export function practiceKeyboardSVG(lo: number, hi: number){
   const W = 26, H = 110, BW = 16, BH = 66; let whites = "", blacks = "", x = 0;
   for(let m = start; m <= end; m++){
     const pc = m % 12;
-    if(WHITE.includes(pc)){ whites += `<rect class="w" data-midi="${m}" x="${x}" y="0" width="${W}" height="${H}" rx="3"/>${pc === 0 ? `<text class="oct" x="${x + W/2}" y="${H - 6}">C${Math.floor(m / 12) - 1}</text>` : ""}<text class="fing" data-f="${m}" x="${x + W/2}" y="${H - 22}"></text>`; x += W; }
+    if(WHITE.includes(pc)){ whites += `<rect class="w" data-midi="${m}" x="${x + 0.5}" y="0.5" width="${W - 1}" height="${H - 1}" rx="3"/>${pc === 0 ? `<text class="oct" x="${x + W/2}" y="${H - 6}">C${Math.floor(m / 12) - 1}</text>` : ""}<text class="fing" data-f="${m}" x="${x + W/2}" y="${H - 22}"></text>`; x += W; }
     else blacks += `<rect class="b" data-midi="${m}" x="${x - BW/2}" y="0" width="${BW}" height="${BH}" rx="2"/><text class="fing light" data-f="${m}" x="${x}" y="${BH - 10}"></text>`;
   }
   return `<svg class="keyboard practice" viewBox="-1 -1 ${x + 2} ${H + 2}" role="img" aria-label="${esc(t("study.keyboardAria"))}">${whites}${blacks}</svg>`;

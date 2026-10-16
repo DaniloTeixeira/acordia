@@ -30,9 +30,12 @@ tudo no próprio aparelho.
 - **Estudo:**
   - **Escalas:** maior, menores e pentatônicas no teclado ou no braço do instrumento, que tocam ao clicar; campo
     harmônico com tríades ou tétrades, diagramas de acordes e as funções explicadas.
-  - **Treino:** 6 jogos (acorde do grau, qual é o grau, notas da escala, relativas, ouvido e "do meu
-    repertório"), 3 níveis, respostas com 4 alternativas ou lista completa, sequência de acertos e recorde.
-  - **Mãos:** 10 exercícios de independência das mãos com metrônomo e precisão por mão.
+  - **Treino:** 7 jogos (acorde do grau, qual é o grau, notas da escala, relativas, ouvido, grau pelo ouvido
+    e "do meu repertório"), 3 níveis, respostas com 4 alternativas ou lista completa, sequência de acertos e recorde.
+  - **Mãos:** 10 exercícios de independência das mãos com metrônomo e precisão por mão, e exercícios de teclado.
+  - **Voz:** "Cante o grau" (o microfone confere a afinação) e "Minha extensão" (mede a voz e sugere o tom de
+    cada música do repertório para quem canta).
+- **Timbres:** piano, Rhodes, órgão, sintetizador, vibrafone e pad para as notas e acordes do app.
 - **Ferramentas:** metrônomo (compasso, subdivisão, acento, tap tempo) e afinador pelo microfone, com as cordas
   do instrumento e A4 ajustável.
 - PDF, impressão, tema claro/escuro/sistema e português, inglês e espanhol.

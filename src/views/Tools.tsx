@@ -11,7 +11,6 @@ import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
 import { MetronomeUI } from "./Metronome";
 import { InstrumentSelect } from "./InstrumentSelect";
-import { HelpButton } from "./Repertoire";
 
 const { data } = store;
 
@@ -22,7 +21,7 @@ export function Tools(){
   useEffect(() => () => metro.stop(), []);
   useEffect(() => { if(tab === "tuner") metro.stop(); }, [tab]);
   return <section className="view" id="view-tools" data-view="tools" aria-labelledby="tools-h">
-    <div className="view-head"><div><h1 id="tools-h">{t("tools.title")}</h1><p className="sub">{t("tools.sub")}</p></div><div className="actions"><HelpButton page="tools"/></div></div>
+    <div className="view-head"><div><h1 id="tools-h">{t("tools.title")}</h1><p className="sub">{t("tools.sub")}</p></div></div>
     <Seg id="tools-tabs" aria={t("tools.title")} value={tab} onChange={v => store.setSetting("toolsTab", v)}
       options={[{v: "metro", label: t("tools.metro")}, {v: "tuner", label: t("tools.tuner")}]}/>
     <div id="tools-metro" hidden={tab !== "metro"}>{tab === "metro" && <MetronomeUI/>}</div>

@@ -3,6 +3,28 @@
 // Funciona por delegação no documento, então vale para tudo o que o React desenhar.
 import { t } from "../lib/i18n";
 
+// Escolhe o lado da dica pela posição do elemento: em cima, embaixo, à esquerda ou à direita,
+// o que couber inteiro na tela com o menor deslocamento (empate fica com a ordem da lista).
+export function placeTip(r: DOMRect, w: number, h: number, vw: number, vh: number, gap = 8, m = 8){
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  const sides = [
+    {side: "top", x: cx - w / 2, y: r.top - h - gap, fits: r.top - h - gap >= m},
+    {side: "bottom", x: cx - w / 2, y: r.bottom + gap, fits: r.bottom + gap + h <= vh - m},
+    {side: "left", x: r.left - w - gap, y: cy - h / 2, fits: r.left - w - gap >= m},
+    {side: "right", x: r.right + gap, y: cy - h / 2, fits: r.right + gap + w <= vw - m}
+  ];
+  let best: {side: string; x: number; y: number; score: number} | null = null;
+  sides.forEach((s, i) => {
+    if(!s.fits) return;
+    const x = Math.max(m, Math.min(s.x, vw - w - m)), y = Math.max(m, Math.min(s.y, vh - h - m));
+    const score = Math.abs(x - s.x) + Math.abs(y - s.y) + i * 6;
+    if(!best || score < best.score) best = {side: s.side, x, y, score};
+  });
+  const b = best as {side: string; x: number; y: number} | null
+    || {side: "bottom", x: Math.max(m, Math.min(cx - w / 2, vw - w - m)), y: Math.min(r.bottom + gap, vh - h - m)};
+  return {side: b.side, x: Math.round(b.x), y: Math.round(b.y)};
+}
+
 export function initTooltips(){
   if(!matchMedia("(hover: hover) and (pointer: fine)").matches) return;
   const tip = document.createElement("div");
@@ -20,12 +42,22 @@ export function initTooltips(){
   const show = (el: HTMLElement) => {
     const txt = textOf(el); if(!txt || !el.isConnected) return;
     tip.textContent = txt; target = el; el.setAttribute("aria-describedby", "tooltip");
-    tip.style.left = "0px"; tip.style.top = "0px";
+    tip.style.left = "0px"; tip.style.top = "0px"; tip.style.width = "";
     if(!tip.matches(":popover-open")) tip.showPopover();
-    const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
-    let top = r.top - h - 8; if(top < 8) top = r.bottom + 8;
-    tip.style.left = Math.max(8, Math.min(r.left + r.width / 2 - w / 2, innerWidth - w - 8)) + "px";
-    tip.style.top = top + "px";
+    // Mede no canto e trava a largura: reposicionada perto da borda, a dica não quebra a linha.
+    const box = tip.getBoundingClientRect(), w = Math.ceil(box.width), h = Math.ceil(box.height);
+    tip.style.width = w + "px";
+    const r = el.getBoundingClientRect();
+    const p = placeTip(r, w, h, document.documentElement.clientWidth, document.documentElement.clientHeight);
+    tip.dataset.side = p.side;
+    tip.style.left = p.x + "px"; tip.style.top = p.y + "px";
+    // A setinha mira o centro do elemento a partir de onde a dica de fato ficou (descontando a borda),
+    // para zoom, barra de rolagem ou arredondamento não a desalinharem.
+    const at = tip.getBoundingClientRect(), bw = tip.clientLeft;
+    const vertical = p.side === "top" || p.side === "bottom";
+    const arrow = vertical ? r.left + r.width / 2 - at.left - bw : r.top + r.height / 2 - at.top - bw;
+    const max = (vertical ? at.width : at.height) - 2 * bw - 10;
+    tip.style.setProperty("--arrow", Math.max(10, Math.min(arrow, max)) + "px");
   };
   const find = (e: Event) => { const el = e.target as Element | null; return el && el.closest ? el.closest<HTMLElement>(SEL) : null; };
   document.addEventListener("mouseover", e => {

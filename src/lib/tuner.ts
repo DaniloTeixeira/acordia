@@ -28,6 +28,26 @@ export function detectPitch(buf: Float32Array, sampleRate: number, {minHz = 35, 
   const shift = (a - 2 * b + c) ? (a - c) / (2 * (a - 2 * b + c)) : 0;
   return sampleRate / (lag + shift);
 }
+// Microfone com detecção contínua, para os exercícios de voz: chama onPitch(Hz ou null) a cada ~60 ms.
+// O cancelamento de eco evita que o som do próprio app (cadência, nota de ajuda) conte como canto.
+// Devolve uma função que para tudo; rejeita se o microfone for negado.
+export async function listenPitch(onPitch: (f: number | null) => void): Promise<() => void> {
+  const stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:false, autoGainControl:false}});
+  const C = window.AudioContext || (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext, ctx = new C();
+  const an = ctx.createAnalyser(); an.fftSize = 4096; ctx.createMediaStreamSource(stream).connect(an);
+  const buf = new Float32Array(an.fftSize);
+  let raf = 0, last = 0, on = true;
+  const loop = () => {
+    if(!on) return;
+    raf = requestAnimationFrame(loop);
+    const now = performance.now(); if(now - last < 60) return; last = now;
+    an.getFloatTimeDomainData(buf);
+    onPitch(detectPitch(buf, ctx.sampleRate, {minHz:60, maxHz:1200}));
+  };
+  loop();
+  return () => { on = false; cancelAnimationFrame(raf); stream.getTracks().forEach(tr => tr.stop()); ctx.close().catch(()=>{}); };
+}
+
 // Nota mais próxima: {name, octave, midi, cents, target}.
 export function noteFromFreq(f: number, a4 = 440){
   const midiF = 69 + 12 * Math.log2(f / a4), midi = Math.round(midiF);

@@ -49,9 +49,9 @@ function SheetOptions({m}: {m: Medley}){
   const pop = useRef<HTMLDivElement>(null);
   const o = m.options;
   const [tg] = useState(() => toggler(() => pop.current, btn => {
-    const p = pop.current!, r = btn.getBoundingClientRect(), w = Math.min(320, innerWidth - 32);
+    const p = pop.current!, r = btn.getBoundingClientRect(), vw = document.documentElement.clientWidth, w = Math.min(320, vw - 32);
     p.style.top = Math.min(r.bottom + 8, innerHeight - 20) + "px";
-    p.style.left = Math.max(16, Math.min(r.right - w, innerWidth - w - 16)) + "px";
+    p.style.left = Math.max(16, Math.min(r.right - w, vw - w - 16)) + "px";
     p.showPopover();
   }));
   const change = <K extends keyof Options>(k: K, v: Options[K]) => { m.options[k] = v; m.options = sanitizeOptions(m.options); store.saveMedley(m); };

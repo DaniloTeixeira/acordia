@@ -8,8 +8,11 @@ import * as store from "../../lib/store";
 import { esc } from "../../lib/svg";
 import { useData, toast } from "../../state";
 import { Icon } from "../../ui/Icon";
+import { Range } from "../../ui/Range";
 
 const { data } = store;
+// Relógio do áudio (0 enquanto não há áudio).
+const clock = () => audio.audioNow() ?? 0;
 interface HandsState { id: string | null; bpm: Record<string, number> }
 const handsState = (): HandsState => Object.assign({id: null, bpm: {}}, data.settings.hands || {});
 const setHands = (p: Partial<HandsState>) => store.setSetting("hands", Object.assign(handsState(), p));
@@ -82,7 +85,7 @@ function Practice({p}: {p: Pattern}){
   };
   const frame = () => {
     const r = run.current, svg = wrap.current?.querySelector(".lanes"); if(!r || !svg) return;
-    const now = audio.audioNow(), el = (now - r.t0) / r.spb, head = svg.querySelector<SVGLineElement>(".playhead")!;
+    const now = clock(), el = (now - r.t0) / r.spb, head = svg.querySelector<SVGLineElement>(".playhead")!;
     if(el < COUNT_IN){ count.current!.textContent = el >= 0 ? String(Math.floor(el) + 1) : ""; head.style.opacity = "0"; }
     else {
       count.current!.textContent = "";
@@ -97,7 +100,7 @@ function Practice({p}: {p: Pattern}){
   const start = async (demo: boolean) => {
     stop();
     if(!(await audio.audioReady())) return toast(t("study.noAudio"));
-    const spb = 60 / bpm, now = audio.audioNow(), t0 = now + 0.15, bars = demo ? 2 : BARS;
+    const spb = 60 / bpm, now = clock(), t0 = now + 0.15, bars = demo ? 2 : BARS;
     const expected = timeline(p, bpm, bars, t0);
     for(let i = 0; i < COUNT_IN + bars * 4; i++) audio.click(i % 4 ? "beat" : "accent", t0 + i * spb);
     if(demo) expected.forEach(e => audio.click(e.hand, e.t));
@@ -112,7 +115,7 @@ function Practice({p}: {p: Pattern}){
   const tap = (hand: Hand) => {
     audio.click(hand);
     const pad = pads.current[hand]; if(pad){ pad.classList.remove("hit"); void pad.offsetWidth; pad.classList.add("hit"); }
-    const r = run.current; if(r && !r.demo) r.taps.push({hand, t: audio.audioNow()});
+    const r = run.current; if(r && !r.demo) r.taps.push({hand, t: clock()});
   };
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -133,7 +136,7 @@ function Practice({p}: {p: Pattern}){
       <div className="lane-wrap" ref={wrap}><div style={{display: "contents"}} dangerouslySetInnerHTML={{__html: laneSVG(p, r ? markMap(r) : null)}}/><div className="hands-count" id="h-count" aria-live="assertive" ref={count}/></div>
       <div className="study-row hands-controls">
         <div className="bpm"><button className="icon-btn sm" id="h-slower" aria-label={t("hands.slower")} onClick={() => setBpm(bpm - 4)}><Icon name="minus" sm/></button>
-          <label><input type="range" id="h-bpm" min={40} max={160} step={2} value={bpm} aria-label="BPM" onChange={e => setBpm(+e.target.value)}/><span><b id="h-bpm-v">{bpm}</b> bpm</span></label>
+          <label><Range id="h-bpm" min={40} max={160} step={2} value={bpm} aria-label="BPM" onChange={e => setBpm(+e.target.value)}/><span><b id="h-bpm-v">{bpm}</b> bpm</span></label>
           <button className="icon-btn sm" id="h-faster" aria-label={t("hands.faster")} onClick={() => setBpm(bpm + 4)}><Icon name="plus" sm/></button></div>
         <button className="btn soft" id="h-demo" disabled={running} onClick={() => start(true)}><Icon name="sound" sm/> {t("hands.listen")}</button>
         <button className="btn primary" id="h-start" disabled={running} onClick={() => start(false)}><Icon name="play" sm/> {t(result ? "hands.again" : "hands.start")}</button>

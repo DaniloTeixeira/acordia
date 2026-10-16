@@ -7,6 +7,9 @@ import { setVolume, playChord } from "./lib/audio";
 import { useUI, useData, go, changeLang, toast, animate, openDialog, type View } from "./state";
 import { Icon } from "./ui/Icon";
 import { Toasts } from "./ui/Toasts";
+import { Range } from "./ui/Range";
+import { TIMBRES, getTimbre } from "./lib/audio";
+import { chooseTimbre } from "./views/InstrumentSelect";
 import { openNear, toggler } from "./ui/popover";
 import { Repertoire } from "./views/Repertoire";
 import { Library } from "./views/Library";
@@ -25,12 +28,14 @@ export const theme = (): Theme => (["light", "dark"] as const).find(v => v === d
 export function applyTheme(th: Theme){
   if(th === "light" || th === "dark") document.documentElement.dataset.theme = th; else delete document.documentElement.dataset.theme;
   try{ localStorage.setItem("acordia-theme", th); }catch(e){ /* sem armazenamento */ }
-  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach(m => { const dark = th === "dark" || (th === "system" && m.media.includes("dark")); m.content = dark ? "#0B1018" : "#F4F6FA"; });
+  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach(m => { const dark = th === "dark" || (th === "system" && m.media.includes("dark")); m.content = dark ? "#0B0F1C" : "#F5F7FC"; });
 }
 function cycleTheme(){
-  const order: Theme[] = ["system","light","dark"], th = order[(order.indexOf(theme()) + 1) % 3];
+  const order: Theme[] = ["system","light","dark"], prev = theme(), th = order[(order.indexOf(prev) + 1) % 3];
+  const isDark = (x: Theme) => x === "dark" || (x === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
   store.setSetting("theme", th);
-  animate(() => applyTheme(th));
+  // Se a aparência efetiva não muda (ex.: escuro → sistema com o SO escuro), não há o que animar.
+  if(isDark(th) === isDark(prev)) applyTheme(th); else animate(() => applyTheme(th), "theme");
 }
 function ThemeButton({rail}: {rail?: boolean}){
   const th = theme(), name = t("theme." + th);
@@ -65,10 +70,15 @@ function VolumePop(){
   return <div id="vol-pop" className="popover vol-pop" popover="auto">
     <h3>{t("vol.title")}</h3>
     <div className="vol-row"><button className="icon-btn" id="vol-mute" aria-label={t(m ? "vol.unmute" : "vol.mute")} onClick={() => { store.setSetting("muted", !m); applyVolume(); }}><Icon name={m || !v ? "mute" : "sound"}/></button>
-      <input type="range" id="vol-range" ref={range} min={0} max={100} step={5} aria-label={t("vol.title")} value={v} onChange={e => setVol(+e.target.value)}
+      <Range id="vol-range" ref={range} min={0} max={100} step={5} aria-label={t("vol.title")} value={v} onChange={e => setVol(+e.target.value)}
         onPointerUp={() => playChord([0, 4, 7], {base: 60, dur: 0.6})} onKeyUp={() => playChord([0, 4, 7], {base: 60, dur: 0.6})}/>
       <b id="vol-val">{m ? t("vol.muted") : v + "%"}</b></div>
     <p className="sub">{t("vol.hint")}</p>
+    {/* Timbre das notas (acordes, escalas, teclado); o metrônomo não muda. */}
+    <h3>{t("timbre.title")}</h3>
+    <div className="timbres" id="timbres" role="group" aria-label={t("timbre.title")}>
+      {TIMBRES.map(v => <button key={v} data-v={v} aria-pressed={v === getTimbre()} onClick={() => chooseTimbre(v)}>{t("timbre." + v)}</button>)}
+    </div>
   </div>;
 }
 
@@ -124,7 +134,7 @@ export function App(){
     return () => clearTimeout(h);
   }, [view]);
   const brand = (tagline: boolean) => <a className="brand" href="./" onClick={e => { e.preventDefault(); go("medley"); }}>
-    <img src={BASE + "icons/icon.svg"} alt=""/><span><b className="brand-name">Acordia</b>{tagline && <small>{t("app.tagline")}</small>}</span></a>;
+    <img className="logo-on-light" src={BASE + "icons/icon.svg"} alt=""/><img className="logo-on-dark" src={BASE + "icons/icon-light.svg"} alt=""/><span><b className="brand-name">Acordia</b>{tagline && <small>{t("app.tagline")}</small>}</span></a>;
   const current = (v: View) => view === v ? "page" as const : undefined;
   return <>
     <div className="shell">
@@ -145,6 +155,7 @@ export function App(){
         <LangButton/>
         <VolumeButton/>
         <ThemeButton/>
+        <button className="icon-btn" data-help-btn data-tip-key="help.button" aria-label={t("help.button")} onClick={() => openDialog("help", {page: view})}><Icon name="question"/></button>
       </header>
       <main id="main">
         {view === "medley" && <Repertoire/>}
@@ -152,6 +163,7 @@ export function App(){
         {view === "study" && <Study/>}
         {view === "tools" && <Tools/>}
       </main>
+      <button className="help-fab" id="help-fab" data-tip-key="help.button" aria-label={t("help.button")} onClick={() => openDialog("help", {page: view})}><Icon name="question"/></button>
       <nav className="tabbar" aria-label={t("nav.nav")}>
         {NAV.map(([v, ic, label]) => <button key={v} className="tab" data-nav={v} aria-current={current(v)} onClick={() => go(v)}>
           <span className="pill"><Icon name={ic}/></span><span>{t(label)}</span></button>)}

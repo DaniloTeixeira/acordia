@@ -42,10 +42,15 @@ export function measure(s: string, fs: number, font: Font){
 }
 
 // Transição animada entre estados; sem suporte, com movimento reduzido ou com a aba oculta, aplica direto.
-export function vt(run: () => void){
-  const d = document as Document & {startViewTransition?: (cb: () => void) => {ready: Promise<void>; finished: Promise<void>}};
+// "slide" (troca de página) entra subindo um pouco; o resto (tema, idioma, ordem) só faz fade, porque o
+// conteúdo continua no mesmo lugar e o deslize parecia um pulo.
+export type VtKind = "fade" | "slide" | "theme";
+export interface ViewTransitionLike { ready: Promise<void>; finished: Promise<void>; updateCallbackDone: Promise<void> }
+export function vt(run: () => void, kind: VtKind = "fade"): ViewTransitionLike | null {
+  const d = document as Document & {startViewTransition?: (cb: () => void) => ViewTransitionLike};
   if(!d.startViewTransition || reduced() || document.hidden){ run(); return null; }
+  const root = document.documentElement; root.dataset.vt = kind;
   const tr = d.startViewTransition(run);
-  tr.ready.catch(()=>{}); tr.finished.catch(()=>{});
+  tr.ready.catch(()=>{}); tr.finished.catch(()=>{}).finally(() => { if(root.dataset.vt === kind) delete root.dataset.vt; });
   return tr;
 }

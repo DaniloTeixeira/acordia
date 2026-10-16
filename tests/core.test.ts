@@ -137,7 +137,7 @@ test("relativas", () => {
 function seeded(s){ return () => (s = (s * 16807) % 2147483647) / 2147483647; }
 
 test("perguntas do treino são coerentes", () => {
-  for (const kind of ["grau","qualGrau","nota","relativa","ouvido","misto"]) for (const level of ["facil","medio","dificil"]) {
+  for (const kind of ["grau","qualGrau","nota","relativa","ouvido","grauOuvido","misto"]) for (const level of ["facil","medio","dificil"]) {
     const rng = seeded(7 + kind.length + level.length);
     for (let i = 0; i < 40; i++) {
       const q = C.makeQuestion(kind, level, rng);
@@ -149,7 +149,7 @@ test("perguntas do treino são coerentes", () => {
   }
   // No modo lista completa, toda resposta precisa existir entre as opções oferecidas.
   const notes = C.NOTE_GRID.flat();
-  for (const kind of ["grau","qualGrau","nota","relativa","ouvido"]) for (const level of ["facil","medio","dificil"]) {
+  for (const kind of ["grau","qualGrau","nota","relativa","ouvido","grauOuvido"]) for (const level of ["facil","medio","dificil"]) {
     const rng = seeded(11 + kind.length * 3 + level.length);
     for (let i = 0; i < 60; i++) {
       const q = C.makeQuestion(kind, level, rng);
@@ -160,6 +160,40 @@ test("perguntas do treino são coerentes", () => {
   }
   const q = C.makeQuestion("grau", "facil", seeded(3));
   assert.match(q.prompt, /^No tom de /);
+});
+
+test("grau de ouvido: a nota tocada corresponde ao grau da resposta", () => {
+  const rng = seeded(5);
+  for (const level of ["facil","medio","dificil"]) for (let i = 0; i < 80; i++) {
+    const q = C.makeQuestion("grauOuvido", level, rng), n = +q.answer;
+    assert.ok(q.ear && q.autoplay);
+    if (level === "facil") assert.ok([1,3,5].includes(n));
+    if (!q.ear.minor || level !== "dificil") assert.equal(q.ear.minor, level === "dificil" ? q.ear.minor : false);
+    const steps = C.DEGREE_STEPS[q.ear.minor ? "menor" : "maior"];
+    assert.equal(q.ear.note % 12, steps[n - 1]);
+  }
+  // Cadência: quatro acordes, o último igual ao primeiro (volta à tônica), terça certa no maior e no menor.
+  assert.deepEqual(C.cadence(false)[0], [-12, 0, 4, 7]);
+  assert.deepEqual(C.cadence(true)[0], [-12, 0, 3, 7]);
+  assert.deepEqual(C.cadence(false)[3], C.cadence(false)[0]);
+});
+
+test("voz: classificação pela extensão, transposição e tom sugerido", () => {
+  assert.equal(C.voiceType(43, 67), "baritono");   // G2–G4
+  assert.equal(C.voiceType(48, 72), "tenor");      // C3–C5
+  assert.equal(C.voiceType(60, 84), "soprano");    // C4–C6
+  assert.equal(C.voiceType(53, 76), "contralto");
+  // A diferença é dobrada para -6..+5 (o cantor escolhe a oitava).
+  assert.equal(C.voiceShift(74, 69), -5);          // agudo D5, cantor até A4: descer 5
+  assert.equal(C.voiceShift(62, 69), -5);          // mesma nota uma oitava abaixo: idem
+  assert.equal(C.voiceShift(64, 69), 5);
+  assert.equal(C.voiceShift(63, 69), -6);
+  assert.equal(C.voiceShift(69, 69), 0);
+  assert.equal(C.transposeKey("G", 3), "Bb");
+  assert.equal(C.transposeKey("Em", -2), "Dm");
+  assert.equal(C.transposeKey("A", -5), "E");
+  assert.equal(C.transposeKey("D", 4), "F#");
+  assert.equal(C.transposeKey("xyz", 2), "");
 });
 
 test("sanitizeEntry valida campos importados", () => {

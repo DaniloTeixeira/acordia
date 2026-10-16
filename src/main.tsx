@@ -5,6 +5,7 @@ import "./styles/app.scss";
 import * as store from "./lib/store";
 import { setLang, detectLang, t, getLang } from "./lib/i18n";
 import { decodeMedley } from "./lib/share";
+import { setTimbre } from "./lib/audio";
 import { clearMeasureCache } from "./lib/util";
 import { useUI, toast, openDialog, VIEWS, type View } from "./state";
 import { current } from "./repertoire";
@@ -22,6 +23,8 @@ const view = store.data.settings.view as View;
 useUI.setState({lang: getLang(), view: VIEWS.includes(view) ? view : "medley"});
 applyTheme(theme());
 applyVolume();
+// Um timbre salvo que não existe mais (ex.: o antigo "Teclado") volta ao Piano.
+setTimbre((store.data.settings.timbre as string) || "piano");
 initMetro();
 
 // Para testes: ?debug expõe os dados.

@@ -10,7 +10,7 @@ import { current, isMedley, openMedley, songItems, usage, songKey } from "../rep
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
-import { HelpButton, openRef, shareMedley } from "./Repertoire";
+import { openRef, shareMedley } from "./Repertoire";
 import type { Medley, Song, Item } from "../lib/types";
 
 const { data } = store;
@@ -89,6 +89,23 @@ async function importLibrary(file: File){
   }catch(err){ toast(t("lib.badFile")); }
 }
 
+// Clicar em qualquer parte do cartão faz a ação principal; botões e seleção de texto ficam de fora.
+function cardClick(run: () => void){
+  return (e: React.MouseEvent) => {
+    if((e.target as Element).closest("button,a,input,select,label,textarea")) return;
+    if(String(getSelection() || "").trim()) return;
+    run();
+  };
+}
+// "Nome (cópia)", depois "Nome (cópia 2)", "(cópia 3)"...: a cópia de uma cópia não empilha o sufixo.
+function copyName(name: string){
+  const base = name.replace(/\s*\((cópia|copy|copia)(\s+\d+)?\)$/i, "") || name;
+  const names = new Set([...data.medleys.values()].map(x => x.name));
+  for(let n = 1; ; n++){
+    const c = n === 1 ? t("lib.copyName", {name: base}) : t("lib.copyNameN", {name: base, n});
+    if(!names.has(c)) return c;
+  }
+}
 function EmptyCard({icon, title, text}: {icon: string; title: string; text?: string}){
   return <li className="empty-state" style={{gridColumn: "1/-1"}}><Icon name={icon}/><strong>{title}</strong>{text && <span>{text}</span>}</li>;
 }
@@ -106,12 +123,11 @@ export function Library(){
     <div className="view-head">
       <div><h1 id="lib-h">{t("lib.title")}</h1><p className="sub" id="lib-sub">{t("lib.sub", {songs: songsN(all.length), medleys: medleysN(setlists.length)})}</p></div>
       <div className="actions">
-        <HelpButton page="library"/>
         <button className="btn primary" id="lib-new" onClick={() => openDialog("song", {song: null})}><Icon name="plus"/><span>{t("lib.new")}</span></button>
-        <button className="btn ghost" id="lib-export" data-tip-key="tip.export" onClick={exportLibrary}><Icon name="download"/><span className="label-lg">{t("lib.export")}</span></button>
+        <button className="btn ghost" id="lib-export" data-tip-key="tip.export" onClick={exportLibrary}><Icon name="export"/><span className="label-lg">{t("lib.export")}</span></button>
         <label className="btn ghost" tabIndex={0} id="lib-import-btn" data-tip-key="tip.import"
           onKeyDown={e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); e.currentTarget.querySelector("input")?.click(); } }}>
-          <Icon name="upload"/><span className="label-lg">{t("lib.import")}</span>
+          <Icon name="import"/><span className="label-lg">{t("lib.import")}</span>
           <input type="file" id="lib-import" accept="application/json,.json" hidden onChange={e => { const f = e.target.files?.[0]; e.target.value = ""; if(f) importLibrary(f); }}/></label>
       </div>
     </div>
@@ -139,7 +155,7 @@ function SongCards({all, q, filter, sort}: {all: Song[]; q: string; filter: stri
     const n = u.get(s.id) || 0, na = (s.arrangements || []).length;
     const key = s.type === "letra" ? "" : songKey(s);
     const del = async () => { if(await confirmDialog({title: t("confirm.songTitle"), message: t(n ? "confirm.songUsed" : "confirm.song", {title: s.title, medleys: medleysN(n)})})) deleteSong(s); };
-    return <li key={s.id} className="lib-card" style={{animationDelay: Math.min(idx, 12) * 25 + "ms"}}>
+    return <li key={s.id} className="lib-card" style={{animationDelay: Math.min(idx, 12) * 25 + "ms"}} onClick={cardClick(() => openDialog("song", {song: s}))}>
       <h3>{s.title}</h3>
       <div className="meta">{s.type === "letra" ? <span className="chip">{t("item.lyricsOnly")}</span> : key ? <span className="chip accent">{t("lib.key", {key})}</span> : null}
         {s.bpm && <span className="chip">{t("sheet.bpm", {n:s.bpm})}</span>}{na > 0 && <span className="chip">{tn("arr.count", na)}</span>}{n > 0 && <span className="chip">{medleysN(n)}</span>}</div>
@@ -162,20 +178,25 @@ function MedleyCards({rows: source, blocks, setlists, q}: {rows: Medley[]; block
   return <>{rows.map((m, idx) => {
     const titles = titlesOf(m);
     const usedIn = blocks ? setlists.filter(x => x.items.some(i => i.type === "medley" && i.medleyId === m.id)).length : 0;
+    // Duplica e já abre a cópia com o nome selecionado, pronto para renomear.
     const dup = () => {
       const copyItem = (i: Item) => i.type === "medley" ? store.newMedleyItem(i.medleyId) : store.newItem(i.songId, sanitizeItem(i));
-      const c = store.createMedley(t("lib.copyName", {name:m.name}), m.items.map(copyItem), m.options, m.kind);
-      toast(t("lib.created", {name:c.name}), {label:t("common.open"), run:()=>{ openMedley(c.id); go("medley"); }});
+      const c = store.createMedley(copyName(m.name), m.items.map(copyItem), m.options, m.kind);
+      openMedley(c.id);
+      const tr = go("medley");
+      (tr ? tr.updateCallbackDone : Promise.resolve()).catch(()=>{}).then(() => requestAnimationFrame(() => { const n = document.querySelector<HTMLInputElement>("#medley-name"); n?.focus(); n?.select(); }));
+      toast(t("lib.created", {name: c.name}));
     };
+    const open = () => { openMedley(m.id); go("medley"); };
     const del = async () => { if(await confirmDialog({title: t(blocks ? "confirm.medleyTitle" : "confirm.setlistTitle"), message: t(usedIn ? "confirm.medleyUsed" : blocks ? "confirm.medley" : "confirm.setlist", {name: m.name, medleys: medleysN(usedIn)})})) deleteMedley(m); };
-    return <li key={m.id} className="lib-card" style={{animationDelay: Math.min(idx, 12) * 25 + "ms"}}>
+    return <li key={m.id} className="lib-card" style={{animationDelay: Math.min(idx, 12) * 25 + "ms"}} onClick={cardClick(open)}>
       <h3>{m.name}</h3>
       <div className="meta">{blocks && <span className="chip accent"><Icon name="link" sm/> {t("ctx.medley")}</span>}<span className="chip">{songsN(titles.length)}</span>
         {usedIn > 0 && <span className="chip">{medleysN(usedIn)}</span>}{m.id === curId && <span className="chip accent">{t("lib.open")}</span>}</div>
       <p className="excerpt">{titles.join(" · ") || t("lib.emptyMedley")}</p>
-      <div className="foot"><button className="btn soft sm" data-a="open" onClick={() => { openMedley(m.id); go("medley"); }}>{t("common.open")}</button>
+      <div className="foot"><button className="btn soft sm" data-a="open" onClick={open}>{t("common.open")}</button>
         <span className="when">{ago(m.updatedAt)}</span>
-        <button className="icon-btn sm" data-a="dup" aria-label={t("common.duplicate")} title={t("common.duplicate")} onClick={dup}><Icon name="copy" sm/></button>
+        {m.items.length > 0 && <button className="icon-btn sm" data-a="dup" aria-label={t("common.duplicate")} title={t("common.duplicate")} onClick={dup}><Icon name="copy" sm/></button>}
         <button className="icon-btn sm" data-a="share" aria-label={t("common.share")} title={t("common.share")} onClick={() => shareMedley(m)}><Icon name="share" sm/></button>
         <button className="icon-btn sm danger" data-a="del" aria-label={t("common.delete")} title={t("common.delete")} onClick={del}><Icon name="trash" sm/></button></div>
     </li>;

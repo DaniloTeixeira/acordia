@@ -16,10 +16,10 @@ export function toggler(pop: () => HTMLElement | null, open: (btn: HTMLElement) 
   };
 }
 
-// Abaixo do botão, ou acima quando não cabe.
+// Abaixo do botão, ou acima quando não cabe. A largura útil desconta a barra de rolagem.
 export function openNear(pop: HTMLElement, btn: HTMLElement, w: number){
   const r = btn.getBoundingClientRect();
-  pop.style.left = Math.max(12, Math.min(r.left, innerWidth - w - 12)) + "px";
+  pop.style.left = Math.max(12, Math.min(r.left, document.documentElement.clientWidth - w - 12)) + "px";
   pop.style.top = "0px"; if(!pop.matches(":popover-open")) pop.showPopover();
   const h = pop.offsetHeight;
   pop.style.top = (r.bottom + 8 + h > innerHeight ? Math.max(12, r.top - h - 8) : r.bottom + 8) + "px";
@@ -33,7 +33,7 @@ export function placeNear(pop: HTMLElement, btn: HTMLElement, minW = 0){
   pop.style.left = "0px"; pop.style.top = "0px"; pop.style.maxHeight = "none";
   if(!pop.matches(":popover-open")) pop.showPopover();
   const pw = pop.offsetWidth, natural = pop.offsetHeight;
-  pop.style.left = Math.max(8, Math.min(r.left, innerWidth - pw - 8)) + "px";
+  pop.style.left = Math.max(8, Math.min(r.left, document.documentElement.clientWidth - pw - 8)) + "px";
   const below = innerHeight - r.bottom - 14, above = r.top - 14;
   const down = natural <= below || below >= above;
   pop.style.maxHeight = Math.max(120, Math.min(360, down ? below : above)) + "px";

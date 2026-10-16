@@ -13,18 +13,128 @@ function audio(){
 }
 const freq = (midi: number) => 440 * Math.pow(2, (midi - 69) / 12);
 
-function voice(ac: AudioContext, midi: number, at: number, dur: number, gain: number){
-  const o1 = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
-  o1.type = "triangle"; o2.type = "sine";
-  o1.frequency.value = freq(midi); o2.frequency.value = freq(midi + 12);
-  f.type = "lowpass"; f.frequency.value = 2400;
+// ---------- timbres: só nós nativos do Web Audio, sem samples para baixar ----------
+const osc = (ac: AudioContext, type: OscillatorType | PeriodicWave, f: number, at: number, end: number) => {
+  const o = ac.createOscillator();
+  if(typeof type === "string") o.type = type as OscillatorType; else o.setPeriodicWave(type);
+  o.frequency.value = f; o.start(at); o.stop(end); return o;
+};
+const amp = (ac: AudioContext, v: number) => { const g = ac.createGain(); g.gain.value = v; return g; };
+const lowpass = (ac: AudioContext, f: number, q = 0.7) => { const l = ac.createBiquadFilter(); l.type = "lowpass"; l.frequency.value = f; l.Q.value = q; return l; };
+// Formas de onda por harmônicos, criadas uma vez só.
+const waves: Record<string, PeriodicWave> = {};
+function wave(ac: AudioContext, name: string, amps: number[]){
+  return waves[name] || (waves[name] = ac.createPeriodicWave(new Float32Array(amps.length + 1), new Float32Array([0, ...amps])));
+}
+// Envelope percussivo: ataque curto, decaimento natural e soltura no fim da nota.
+function strike(g: GainNode, at: number, dur: number, peak: number, tau: number, attack = 0.004){
   g.gain.setValueAtTime(0, at);
-  g.gain.linearRampToValueAtTime(gain, at + 0.015);
-  g.gain.exponentialRampToValueAtTime(gain * 0.35, at + 0.25);
-  g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
-  const g2 = ac.createGain(); g2.gain.value = 0.25;
-  o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(f); f.connect(out(ac));
-  o1.start(at); o2.start(at); o1.stop(at + dur + 0.05); o2.stop(at + dur + 0.05);
+  g.gain.linearRampToValueAtTime(peak, at + attack);
+  g.gain.setTargetAtTime(0, at + attack, tau);
+  g.gain.setTargetAtTime(0, Math.max(at + attack, at + dur - 0.08), 0.025);
+}
+// Envelope sustentado (órgão, sintetizador).
+function hold(g: GainNode, at: number, dur: number, peak: number, attack: number){
+  g.gain.setValueAtTime(0, at);
+  g.gain.linearRampToValueAtTime(peak, at + attack);
+  g.gain.setTargetAtTime(0, Math.max(at + attack, at + dur - 0.06), 0.03);
+}
+// Notas graves soam por mais tempo.
+const ring = (f: number, base: number, min: number, max: number) => Math.max(min, Math.min(max, base * Math.sqrt(261.6 / f)));
+
+type Voice = (ac: AudioContext, f: number, at: number, dur: number, gain: number, dest: AudioNode, end: number) => void;
+const VOICES: Record<string, Voice> = {
+  // Duas cordas levemente desafinadas; harmônicos agudos fracos e brilho do ataque contido, para soar macio.
+  piano(ac, f, at, dur, gain, dest, end){
+    // 2º harmônico baixo: com ele forte, a nota parece uma oitava acima.
+    const w = wave(ac, "piano3", [1, .25, .16, .08, .05, .03, .02, .01]);
+    const g = amp(ac, 0), lp = lowpass(ac, 0, 0.5), half = amp(ac, 0.5);
+    lp.frequency.setValueAtTime(Math.min(4500, f * 6), at);
+    lp.frequency.setTargetAtTime(Math.max(400, f * 1.8), at, 0.25);
+    osc(ac, w, f, at, end).connect(half);
+    const b = osc(ac, w, f, at, end); b.detune.value = 3; b.connect(half);
+    half.connect(lp); lp.connect(g); g.connect(dest);
+    strike(g, at, dur, gain * 0.75, ring(f, 1.1, 0.35, 2.4), 0.006);
+  },
+  // Rhodes no esquema do E.Piano do DX7: um par FM 1:1 faz o corpo (com o "rosnado" do ataque, mais forte
+  // nos graves) e um par com modulador 14× faz o "ding" da lâmina; decai em dois estágios, com tremolo de mala.
+  rhodes(ac, f, at, dur, gain, dest, end){
+    const k = Math.max(0.5, Math.min(1.6, Math.sqrt(261.6 / f)));
+    const g = amp(ac, 0), trem = amp(ac, 1), lfo = amp(ac, 0.1);
+    // corpo
+    const body = osc(ac, "sine", f, at, end), bodyLvl = amp(ac, 0.75), bark = amp(ac, 0);
+    bark.gain.setValueAtTime(f * 1.6 * k, at); bark.gain.setTargetAtTime(f * 0.22 * k, at, 0.3);
+    osc(ac, "sine", f, at, end).connect(bark); bark.connect(body.frequency);
+    body.connect(bodyLvl); bodyLvl.connect(g);
+    // lâmina, levemente desafinada do corpo para dar vida
+    const tine = osc(ac, "sine", f, at, end), tineLvl = amp(ac, 0.45), ding = amp(ac, 0);
+    tine.detune.value = 4;
+    ding.gain.setValueAtTime(f * 14 * 0.22, at); ding.gain.setTargetAtTime(0, at, 0.03);
+    osc(ac, "sine", f * 14, at, end).connect(ding); ding.connect(tine.frequency);
+    tine.connect(tineLvl); tineLvl.connect(g);
+    // tremolo
+    osc(ac, "sine", 4.8, at, end).connect(lfo); lfo.connect(trem.gain);
+    g.connect(trem); trem.connect(dest);
+    const peak = gain * 0.62, long = ring(f, 1.6, 0.6, 3);
+    g.gain.setValueAtTime(0, at);
+    g.gain.linearRampToValueAtTime(peak, at + 0.003);
+    g.gain.setTargetAtTime(peak * 0.55, at + 0.003, 0.09);
+    g.gain.setTargetAtTime(0, at + 0.3, long);
+    g.gain.setTargetAtTime(0, Math.max(at + 0.31, at + dur - 0.08), 0.025);
+  },
+  // Drawbars 16' 8' 4' 2⅔' 2' e o clique de percussão no 3º harmônico.
+  organ(ac, f, at, dur, gain, dest, end){
+    const w = wave(ac, "organ", [1, .8, .55, .45, 0, .25, 0, .2]);
+    const g = amp(ac, 0), sub = amp(ac, 0.45), perc = amp(ac, 0);
+    osc(ac, w, f, at, end).connect(g);
+    osc(ac, "sine", f / 2, at, end).connect(sub); sub.connect(g);
+    perc.gain.setValueAtTime(0.5, at); perc.gain.setTargetAtTime(0, at, 0.12);
+    osc(ac, "sine", f * 3, at, end).connect(perc); perc.connect(g);
+    g.connect(dest);
+    hold(g, at, dur, gain * 0.35, 0.008);
+  },
+  // Duas serras desafinadas num filtro que abre no ataque.
+  synth(ac, f, at, dur, gain, dest, end){
+    const g = amp(ac, 0), lp = lowpass(ac, 0, 3);
+    lp.frequency.setValueAtTime(Math.min(10000, f * 9), at);
+    lp.frequency.setTargetAtTime(Math.min(6000, f * 2.5), at, 0.25);
+    [-8, 8].forEach(c => { const o = osc(ac, "sawtooth", f, at, end); o.detune.value = c; o.connect(lp); });
+    lp.connect(g); g.connect(dest);
+    hold(g, at, dur, gain * 0.32, 0.02);
+  },
+  // Lâmina de metal (parciais 1, 4 e 10) com o tremolo do motor.
+  vibes(ac, f, at, dur, gain, dest, end){
+    const g = amp(ac, 0), trem = amp(ac, 1), depth = amp(ac, 0.22), p4 = amp(ac, 0), p10 = amp(ac, 0);
+    osc(ac, "sine", f, at, end).connect(g);
+    p4.gain.setValueAtTime(0.3, at); p4.gain.setTargetAtTime(0, at, 0.12);
+    osc(ac, "sine", f * 4, at, end).connect(p4); p4.connect(g);
+    p10.gain.setValueAtTime(0.12, at); p10.gain.setTargetAtTime(0, at, 0.025);
+    osc(ac, "sine", f * 10, at, end).connect(p10); p10.connect(g);
+    osc(ac, "sine", 5.5, at, end).connect(depth); depth.connect(trem.gain);
+    g.connect(trem); trem.connect(dest);
+    strike(g, at, dur, gain * 0.65, ring(f, 1.4, 0.5, 2.5), 0.002);
+  },
+  // Colchão de cordas: três serras desafinadas num filtro fechado, ataque lento e cauda que se desfaz depois da nota.
+  pad(ac, f, at, dur, gain, dest){
+    const end = at + dur + 0.9, g = amp(ac, 0), lp = lowpass(ac, 0, 0.6);
+    lp.frequency.setValueAtTime(Math.min(1200, f * 2), at);
+    lp.frequency.linearRampToValueAtTime(Math.min(2600, f * 3.5), at + Math.max(0.3, dur));
+    [-12, 0, 12].forEach(c => { const o = osc(ac, "sawtooth", f, at, end); o.detune.value = c; o.connect(lp); });
+    lp.connect(g); g.connect(dest);
+    g.gain.setValueAtTime(0, at);
+    g.gain.linearRampToValueAtTime(gain * 0.3, at + Math.min(0.3, dur * 0.5));
+    g.gain.setTargetAtTime(0, at + dur, 0.18);
+  }
+};
+export const TIMBRES = Object.keys(VOICES);
+let timbre = "piano";
+// Ids antigos salvos nas preferências: "keys" (Teclado, removido) e "epiano" (virou Rhodes).
+const RENAMED: Record<string, string> = {keys: "piano", epiano: "rhodes"};
+export function setTimbre(name: string){ name = RENAMED[name] || name; timbre = VOICES[name] ? name : "piano"; }
+export const getTimbre = () => timbre;
+
+function voice(ac: AudioContext, midi: number, at: number, dur: number, gain: number){
+  VOICES[timbre](ac, freq(midi), at, dur, gain, out(ac), at + dur + 0.12);
 }
 // pcs: alturas relativas a C (podem passar de 12); base: oitava do C central.
 export function playChord(pcs: number[], {base = 60, strum = 0.025, dur = 1.6} = {}){
@@ -40,7 +150,7 @@ export async function audioReady(){
   if(ac.state !== "running"){ try{ await Promise.race([ac.resume(), new Promise(r => setTimeout(r, 800))]); }catch(e){ /* sem áudio */ } }
   return ac.state === "running";
 }
-export function audioNow(): number { const ac = audio(); return ac ? ac.currentTime : 0; }
+export function audioNow(): number | null { const ac = audio(); return ac ? ac.currentTime : null; }
 export type ClickKind = "accent" | "beat" | "mid" | "sub" | "lh" | "rh";
 const CLICKS: Record<ClickKind, {f: number; type: OscillatorType; dur: number; gain: number}> = {
   accent: {f:1760, type:"square", dur:0.045, gain:0.16},
@@ -70,6 +180,13 @@ export function playNotesAt(midis: number[], at: number, dur = 0.8){
   const g = 0.22 / Math.sqrt(midis.length || 1);
   midis.forEach(m => voice(ac, m, Math.max(at, ac.currentTime), dur, g));
   return true;
+}
+// Acordes em sequência (ex.: a cadência que firma o tom) a partir de `at`; devolve o instante em que acabam.
+export function playProgression(chords: number[][], at?: number | null, step = 0.6): number | null {
+  const ac = audio(); if(!ac) return null;
+  let t0 = Math.max(at ?? ac.currentTime + 0.05, ac.currentTime);
+  chords.forEach(c => { playNotesAt(c, t0, step - 0.05); t0 += step; });
+  return t0;
 }
 export function playSequence(pcs: number[], {base = 60, step = 0.32} = {}){
   const ac = audio(); if(!ac) return false;

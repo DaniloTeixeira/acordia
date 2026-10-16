@@ -98,3 +98,28 @@ export function medleyPayload(m: Medley){
   }).filter((x): x is NonNullable<typeof x> => !!x);
   return {name: m.name, options: m.options, kind: m.kind, groups, songs: list, sourceId: m.sourceId || m.id};
 }
+
+// ---------- aba Voz ----------
+export interface VoiceSong { itemId: string; songId: string; title: string; key: string; target: string; singer: string; high?: number }
+// Músicas com cifra do repertório aberto, para a sugestão de tom por cantor.
+export function voiceSongs(): VoiceSong[] {
+  return songItems(current()).map(({it}): VoiceSong | null => {
+    const s = data.songs.get(it.songId); if(!s || s.type === "letra" || !s.text.trim()) return null;
+    return {itemId: it.id, songId: s.id, title: s.title || "—", key: songKey(s), target: eff(s, it).target, singer: it.singer || "", high: s.high};
+  }).filter((x): x is VoiceSong => !!x);
+}
+// Aplica o tom sugerido e o cantor no item; com arranjo escolhido, o tom vai para o arranjo (como no editor).
+export function applyVoiceKey(itemId: string, target: string, singer: string){
+  const found = songItems(current()).find(x => x.it.id === itemId); if(!found) return;
+  const it = found.it, s = data.songs.get(it.songId), owner = [...data.medleys.values()].find(m => m.items.includes(it));
+  const a = s && arrangementOf(s, it);
+  if(a && s){ a.target = target; store.saveSong(s); } else it.target = target;
+  it.singer = singer;
+  if(owner) store.saveMedley(owner);
+}
+// Nota mais aguda da melodia no tom original (MIDI), guardada na música.
+export function setSongHigh(songId: string, v: number | undefined){
+  const s = data.songs.get(songId); if(!s) return;
+  if(v) s.high = v; else delete s.high;
+  store.saveSong(s);
+}

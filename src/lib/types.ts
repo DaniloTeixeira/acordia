@@ -6,11 +6,13 @@ export interface Arrangement { id: string; name: string; target: string; capo: s
 export interface Song {
   id: string; title: string; text: string; type: SongType; key: string; bpm: string;
   ref?: string; arrangements?: Arrangement[]; createdAt?: number; updatedAt?: number;
+  // Nota mais aguda da melodia (MIDI), para sugerir o tom pela extensão de quem canta.
+  high?: number;
 }
 // Música validada vinda de fora (link compartilhado, arquivo importado).
 export interface SongEntry {
   id: string; title: string; text: string; type: SongType; key: string; bpm: string;
-  ref: string; arrangements: Arrangement[]; updatedAt: number;
+  ref: string; arrangements: Arrangement[]; updatedAt: number; high?: number;
 }
 
 // O que muda só neste repertório: tom, capo, quem canta, observações e arranjo escolhido.

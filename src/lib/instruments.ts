@@ -23,7 +23,7 @@ export interface Tone { iv: number; role: string; required: boolean }
 export interface Chord { root: string; rootPc: number; bassPc: number; tones: Tone[]; name: string; power: boolean }
 // Devolve {root, rootPc, bassPc, tones:[{iv, role, required}], name} ou null.
 export function parseChord(symbol: string): Chord | null {
-  const m = /^([A-G][#b]?)(.*?)(?:\/([A-G][#b]?))?$/.exec((symbol || "").trim());
+  const m = /^([A-G](?:##|bb|#|b)?)(.*?)(?:\/([A-G](?:##|bb|#|b)?))?$/.exec((symbol || "").trim());
   if(!m || NOTES[m[1]] === undefined) return null;
   const root = m[1], rootPc = NOTES[root];
   const s = m[2].replace(/[()]/g, "");

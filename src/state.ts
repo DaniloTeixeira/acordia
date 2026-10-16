@@ -5,7 +5,7 @@ import { useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
 import * as store from "./lib/store";
 import { setLang, getLang, t, type Lang } from "./lib/i18n";
-import { vt } from "./lib/util";
+import { vt, type VtKind } from "./lib/util";
 import type { Song, Medley, SongItem } from "./lib/types";
 import type { IncomingMedley } from "./lib/share";
 
@@ -73,13 +73,14 @@ export function confirmDialog(p: {title: string; message: string; confirm?: stri
 
 // ---------- navegação e idioma ----------
 // Aplica a mudança dentro de uma transição animada (o React desenha na hora, com flushSync).
-export function animate(run: () => void){ vt(() => flushSync(run)); }
+export function animate(run: () => void, kind: VtKind = "fade"){ return vt(() => flushSync(run), kind); }
 
 export function go(v: string, {instant = false} = {}){
   const view = (VIEWS as string[]).includes(v) ? v as View : "medley";
   store.setSetting("view", view);
   const run = () => { useUI.setState({view}); window.scrollTo({top: 0}); };
-  if(instant) run(); else animate(run);
+  if(instant){ run(); return null; }
+  return animate(run, "slide");
 }
 export function changeLang(l: Lang){
   if(l === getLang()) return;

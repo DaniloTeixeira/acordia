@@ -1,10 +1,10 @@
 // Treino: rodadas de 10 perguntas (graus, notas, relativas, ouvido e do próprio repertório).
 import { useEffect, useRef, useState } from "react";
-import { makeQuestion, makeRepertoireQuestion, QUIZ_KINDS, NOTE_GRID, CHORD_QUALITIES, type Question } from "../../lib/core";
-import { playChord } from "../../lib/audio";
+import { makeQuestion, makeRepertoireQuestion, QUIZ_KINDS, NOTE_GRID, CHORD_QUALITIES, cadence, type Question } from "../../lib/core";
+import { playChord, playNotesAt, playProgression, audioNow } from "../../lib/audio";
 import { t } from "../../lib/i18n";
 import * as store from "../../lib/store";
-import { useUI } from "../../state";
+import { useUI, toast } from "../../state";
 import { repertoireEntries } from "../../repertoire";
 import { Icon } from "../../ui/Icon";
 import { Seg } from "../../ui/Seg";
@@ -14,6 +14,15 @@ const ROUND = 10;
 const KINDS = ["misto", ...QUIZ_KINDS, "repertorio"];
 const QUAL_LABEL: Record<string, string> = {"":"train.qM", "m":"train.qm", "°":"train.qd", "+":"train.qa"};
 const kindLabel = (k: string) => k === "misto" ? [t("train.mixed"), t("train.mixedD")] : [t("train." + k), t("train." + k + "D")];
+
+// Som da pergunta: o acorde, ou (grau de ouvido) a cadência no tom e depois a nota.
+function playQ(q: Question, noteOnly = false){
+  if(!q.ear){ if(q.play) playChord(q.play); return; }
+  const at = audioNow(); if(at === null) return toast(t("study.noAudio"));
+  const tonic = 60 + q.ear.tonic - (q.ear.tonic > 6 ? 12 : 0);
+  const end = noteOnly ? at + 0.05 : (playProgression(cadence(q.ear.minor).map(c => c.map(x => tonic + x)), at + 0.05) ?? at) + 0.35;
+  playNotesAt([tonic + q.ear.note], end, 1.3);
+}
 
 interface Quiz { i: number; right: number; streak: number; q: Question; last: string; answered: boolean; picked: string | null; ok: boolean; root: string | null; qual: string; bump: number }
 type Phase = {kind: "setup"} | {kind: "quiz"; quiz: Quiz} | {kind: "summary"; right: number; prev: number | undefined; isBest: boolean};
@@ -29,7 +38,7 @@ export function Train({active}: {active: boolean}){
     do { q = question(); } while(q && q.prompt + q.answer === base.last && ++tries < 5);
     if(!q) return setPhase({kind: "setup"});
     setPhase({kind: "quiz", quiz: {...base, q, last: q.prompt + q.answer, answered: false, picked: null, ok: false, root: null, qual: "", bump: 0}});
-    if(q.autoplay){ const play = q.play!; setTimeout(() => playChord(play), 250); }
+    if(q.autoplay){ const qq = q; setTimeout(() => playQ(qq), 250); }
   };
   const start = () => next({i: 0, right: 0, streak: 0, last: ""});
   // Ao trocar de idioma, uma pergunta ainda sem resposta é refeita no novo idioma.
@@ -91,7 +100,9 @@ function QuizView({quiz, full, active, answer, advance, quit, setPick}: {quiz: Q
     const key = (e: KeyboardEvent) => {
       if(e.target instanceof Element && e.target.closest("input,textarea,select")) return;
       const n = +e.key;
-      if(!full && n >= 1 && n <= 4 && !quiz.answered){ const o = q.options[n-1]; if(o !== undefined){ e.preventDefault(); answer(o); } }
+      // No grau de ouvido as respostas já são números: a tecla 3 responde "3", não a 3ª opção.
+      if(q.ear && n >= 1 && n <= 7 && !quiz.answered){ const o = String(n); if((full && q.full.type === "list" ? q.full.options : q.options).includes(o)){ e.preventDefault(); answer(o); } }
+      else if(!full && n >= 1 && n <= 4 && !quiz.answered){ const o = q.options[n-1]; if(o !== undefined){ e.preventDefault(); answer(o); } }
       else if(e.key === "Enter" && quiz.answered && document.activeElement === document.body){ e.preventDefault(); advance(); }
     };
     document.addEventListener("keydown", key); return () => document.removeEventListener("keydown", key);
@@ -124,7 +135,8 @@ function QuizView({quiz, full, active, answer, advance, quit, setPick}: {quiz: Q
       <div className="quiz-top"><span>{t("train.question", {n: quiz.i + 1, total: ROUND})}</span><div className="progress"><span style={{width: done / ROUND * 100 + "%"}}/></div>
         <span key={quiz.bump} className={"streak" + (quiz.bump ? " bump" : "")} title={t("train.streak")}><Icon name="flame" sm/> {quiz.streak}</span></div>
       <p className="prompt">{q.prompt}</p>
-      {q.kind === "ouvido" && <div><button className="btn soft sm" id="tr-listen" onClick={() => playChord(q.play!)}><Icon name="sound" sm/> {t("train.listen")}</button></div>}
+      {(q.kind === "ouvido" || q.ear) && <div className="study-row"><button className="btn soft sm" id="tr-listen" onClick={() => playQ(q)}><Icon name="sound" sm/> {t("train.listen")}</button>
+        {q.ear && <button className="btn ghost sm" id="tr-note" onClick={() => playQ(q, true)}>{t("train.noteOnly")}</button>}</div>}
       {answers}
       <p className={"feedback" + (quiz.answered ? (quiz.ok ? " ok" : " bad") : "")} aria-live="polite">{quiz.answered ? (quiz.ok ? t("train.right") : t("train.wrong", {answer: q.answer})) : ""}</p>
       <div className="study-row" style={{justifyContent: "flex-end"}}><button className="btn primary" id="tr-next" ref={nextBtn} hidden={!quiz.answered} onClick={advance}>{quiz.i + 1 >= ROUND ? t("train.finish") : t("train.next")}</button></div>

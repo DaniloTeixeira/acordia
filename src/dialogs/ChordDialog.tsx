@@ -4,11 +4,11 @@ import { noteName } from "../lib/core";
 import { INSTRUMENTS, isInstrument, parseChord, voicings } from "../lib/instruments";
 import { chordInKey, diagramSVG, fretboardSVG, pianoSVG, voicingMidis, type Marks } from "../lib/svg";
 import { playChord } from "../lib/audio";
-import { t } from "../lib/i18n";
+import { t, degLabel } from "../lib/i18n";
 import { useData, type DialogProps } from "../state";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
-import { InstrumentSelect } from "../views/InstrumentSelect";
+import { InstrumentSelect, TimbreSelect } from "../views/InstrumentSelect";
 import { instrument } from "../views/Repertoire";
 
 export function ChordDialog({symbol, songKey: key}: DialogProps["chord"]){
@@ -50,7 +50,7 @@ export function ChordDialog({symbol, songKey: key}: DialogProps["chord"]){
           <div className="chord-info">
             {info && <><span className="chip accent">{t("chord.degreeIn", {degree: info.degree, key})}</span>
               {info.fn ? <span className={"fn " + info.fn}>{fnName[info.fn]}</span> : <span className="chip">{t("chord.borrowed")}</span>}</>}
-            <span className="chord-notes">{c.tones.map((x, i) => <span key={i}><b>{noteName(c.rootPc + x.iv, key || c.root)}</b><small>{x.role}</small></span>)}</span>
+            <span className="chord-notes">{c.tones.map((x, i) => <span key={i}><b>{noteName(c.rootPc + x.iv, key || c.root)}</b><small>{degLabel(x.role)}</small></span>)}</span>
           </div>
           <div className="chord-visual">
             <div onPointerDown={onBoard} style={{display: "contents"}} dangerouslySetInnerHTML={{__html: view!.visual}}/>
@@ -59,7 +59,7 @@ export function ChordDialog({symbol, songKey: key}: DialogProps["chord"]){
               <span>{t("chord.shape", {n: idx + 1, total: view!.count})}</span>
               <button type="button" className="icon-btn sm" data-v="1" aria-label={t("chord.next")} disabled={idx >= view!.count - 1} onClick={() => setIdx(idx + 1)}>›</button></div>}
           </div>
-          <div className="study-row chord-actions"><InstrumentSelect/>
+          <div className="study-row chord-actions"><InstrumentSelect/><TimbreSelect/>
             <button type="button" className="btn primary" data-play onClick={play}><Icon name="play" sm/> {t("chord.play")}</button></div>
         </>}
       </div>

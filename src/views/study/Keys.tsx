@@ -11,9 +11,13 @@ import { useData, toast } from "../../state";
 import { Icon } from "../../ui/Icon";
 import { Seg } from "../../ui/Seg";
 import { Select } from "../../ui/Select";
+import { Range } from "../../ui/Range";
+import { TimbreSelect } from "../InstrumentSelect";
 import { LevelDots } from "./Rhythm";
 
 const { data } = store;
+// Relógio do áudio (0 enquanto não há áudio).
+const clock = () => audio.audioNow() ?? 0;
 interface KeysState { id: string | null; key: number; hands: Hands; bpm: Record<string, number>; sound: boolean }
 const keysState = (): KeysState => Object.assign({id: null, key: 0, hands: "both" as Hands, bpm: {}, sound: true}, data.settings.keys || {});
 const setKeys = (p: Partial<KeysState>) => store.setSetting("keys", Object.assign(keysState(), p));
@@ -159,7 +163,7 @@ function Practice({ex}: {ex: KeyExercise}){
     if((live.current.sound || src === "screen") && src !== "queued") audio.playChord([m], {base:0, dur:0.9, strum:0});
     const c = cur.current;
     if(!c){ flashKey(m, "hit"); return; }
-    if(c.mode !== "wait"){ if(c.mode === "timed") c.played.push({midi:m, t: audio.audioNow()}); flashKey(m, "hit"); return; }
+    if(c.mode !== "wait"){ if(c.mode === "timed") c.played.push({midi:m, t: clock()}); flashKey(m, "hit"); return; }
     // Durante a confirmação verde, guarda a nota para contar no próximo passo.
     if(c.busy){ c.queue.push(m); return; }
     let s = built.steps[c.i], req = required(s, c.hands);
@@ -188,7 +192,7 @@ function Practice({ex}: {ex: KeyExercise}){
   async function startTimed(demo: boolean){
     stop();
     if(!(await audio.audioReady())) return toast(t("study.noAudio"));
-    const spb = 60 / bpm, t0 = audio.audioNow() + 0.15, count = demo ? 0 : 4;
+    const spb = 60 / bpm, t0 = clock() + 0.15, count = demo ? 0 : 4;
     for(let i = 0; i < count + built.beats; i++) audio.click(i % 4 ? "beat" : "accent", t0 + i * spb);
     const mine = (h: string) => !demo && (st.hands === "both" || st.hands === h);
     const expected: TimedNote[] = [];
@@ -198,7 +202,7 @@ function Practice({ex}: {ex: KeyExercise}){
       else audio.playNotesAt(ev.midis, at, Math.min(2.5, ev.dur * spb * 0.95));
     });
     const end = t0 + (count + built.beats) * spb;
-    const c: Cur = {mode: demo ? "demo" : "timed", t0, spb, count, played: [], expected, end, timer: setTimeout(() => finishTimed(), (end - audio.audioNow() + 0.4) * 1000)};
+    const c: Cur = {mode: demo ? "demo" : "timed", t0, spb, count, played: [], expected, end, timer: setTimeout(() => finishTimed(), (end - clock() + 0.4) * 1000)};
     cur.current = c; setMode(c.mode); setResult(null);
     setStatus(t(demo ? "keys.demoHint" : "keys.timedHint"));
     frame(); tick.current = setInterval(frame, 40);
@@ -206,7 +210,7 @@ function Practice({ex}: {ex: KeyExercise}){
   // Acompanha o relógio do áudio com um timer próprio (a animação de quadro pode pausar em segundo plano).
   function frame(){
     const c = cur.current; if(!c || c.mode === "wait") return;
-    const beat = (audio.audioNow() - c.t0) / c.spb - c.count;
+    const beat = (clock() - c.t0) / c.spb - c.count;
     let i = -1; built.steps.forEach((s, k) => { if(s.t <= beat + 0.02) i = k; });
     if(i !== c.shown){ c.shown = i; if(i >= 0) showStep(i); }
     if(beat < 0 && c.count) setStatus(t("keys.countIn", {n: Math.max(1, Math.floor(beat + c.count) + 1)}));
@@ -240,11 +244,12 @@ function Practice({ex}: {ex: KeyExercise}){
       <div className="study-row k-controls">
         <label className="field inst-field"><span>{t("study.root")}</span><Select id="k-key" value={String(st.key)} onChange={v => setKeys({key: +v})}
           options={Array.from({length:12}, (_, pc) => ({value: String(pc), label: rootFor(pc, "maior")}))}/></label>
+        <TimbreSelect/>
         <div className="field inst-field" data-tip-key="tip.youPlay"><span>{t("keys.youPlay")}</span>
           <Seg className="sm" id="k-hands" aria={t("keys.youPlay")} value={st.hands} onChange={hands => setKeys({hands})}
             options={[{v: "rh", label: t("keys.rh")}, {v: "lh", label: t("keys.lh")}, {v: "both", label: t("keys.both")}]}/></div>
         <div className="bpm"><button className="icon-btn sm" id="k-slower" aria-label={t("hands.slower")} onClick={() => setBpm(bpm - 4)}><Icon name="minus" sm/></button>
-          <label><input type="range" id="k-bpm" min={30} max={160} step={2} value={bpm} aria-label="BPM" onChange={e => setBpm(+e.target.value)}/><span><b id="k-bpm-v">{bpm}</b> bpm</span></label>
+          <label><Range id="k-bpm" min={30} max={160} step={2} value={bpm} aria-label="BPM" onChange={e => setBpm(+e.target.value)}/><span><b id="k-bpm-v">{bpm}</b> bpm</span></label>
           <button className="icon-btn sm" id="k-faster" aria-label={t("hands.faster")} onClick={() => setBpm(bpm + 4)}><Icon name="plus" sm/></button></div>
       </div>
       {!built.fingering && <p className="note">{t("keys.noFingering")}</p>}
@@ -262,7 +267,7 @@ function Practice({ex}: {ex: KeyExercise}){
         <button className="btn primary" id="k-wait" onClick={() => mode === "wait" ? reset(null) : startWait()}>
           {mode === "wait" ? <><Icon name="x" sm/> {t("keys.stop")}</> : <><Icon name="play" sm/> {t("keys.wait")}</>}</button>
         <button className="btn ghost" id="k-timed" disabled={!midi} title={midi ? "" : t("keys.timedNeedsMidi")} onClick={() => startTimed(false)}><Icon name="metro" sm/> {t("keys.timed")}</button>
-        <label className="switch k-sound">{t("keys.sound")}<input type="checkbox" id="k-sound" checked={st.sound} onChange={e => setKeys({sound: e.target.checked})}/></label>
+        <label className="switch lead k-sound">{t("keys.sound")}<input type="checkbox" id="k-sound" checked={st.sound} onChange={e => setKeys({sound: e.target.checked})}/></label>
       </div>
       <p className="sub" id="k-status">{status}</p>
       <div id="k-result">{r && <div className="hands-result"><div className="big">{r.accuracy}%</div>

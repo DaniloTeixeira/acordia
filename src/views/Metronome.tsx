@@ -6,6 +6,7 @@ import { toast } from "../state";
 import { metro } from "../metro";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
+import { Range } from "../ui/Range";
 
 function useMetro(){
   const [st, setSt] = useState<{s: MetroState; running: boolean}>({s: metro.state, running: metro.running});
@@ -53,16 +54,16 @@ export function MetronomeUI({compact = false}: {compact?: boolean}){
       <div className="metro-read"><b data-m="bpm">{s.bpm}</b><small><span>BPM</span> · <span data-m="tempo">{tempoName(s.bpm)}</span></small></div>
       <button className="icon-btn metro-step" data-m="plus" aria-label={t("hands.faster")} onClick={() => metro.set({bpm: s.bpm + 1})}><Icon name="plus"/></button>
     </div>
-    <input type="range" data-m="range" min={MIN_BPM} max={MAX_BPM} step={1} aria-label="BPM" value={s.bpm} onChange={e => metro.set({bpm: +e.target.value})}/>
+    <Range data-m="range" min={MIN_BPM} max={MAX_BPM} step={1} aria-label="BPM" value={s.bpm} onChange={e => metro.set({bpm: +e.target.value})}/>
     <div className="beat-dots big" data-m="dots">{dots}</div>
     <div className="metro-opts">
       <div><span className="lbl">{t("metro.signature")}</span><Seg className="sm" value={s.sig} onChange={v => metro.set({sig: v})} options={Object.keys(SIGNATURES).map(k => ({v: k, label: k}))}/></div>
       <div><span className="lbl">{t("metro.subdivision")}</span><Seg className="sm" value={String(s.subdiv)} onChange={v => metro.set({subdiv: +v})}
         options={[1,2,3,4].map(n => ({v: String(n), label: ["♩","♫","3","4"][n-1], aria: t("metro.sub" + n), title: t("metro.sub" + n)}))}/></div>
-      <label className="switch">{t("metro.accent")}<input type="checkbox" data-m="accent" checked={s.accent} onChange={e => metro.set({accent: e.target.checked})}/></label>
+      <label className="switch lead">{t("metro.accent")}<input type="checkbox" data-m="accent" checked={s.accent} onChange={e => metro.set({accent: e.target.checked})}/></label>
     </div>
     <div className="metro-actions">
-      <button className="btn ghost" data-m="tap" onClick={tap}>{t("metro.tap")}</button>
+      <button className="btn ghost" data-m="tap" data-tip-key="tip.tap" onClick={tap}>{t("metro.tap")}</button>
       {toggleBtn("btn primary metro-go")}
     </div>
     <p className="sub">{t("metro.hint")}</p>
