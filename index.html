@@ -55,6 +55,7 @@
   <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></symbol>
   <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
   <symbol id="i-metro" viewBox="0 0 24 24"><path d="M9 3h6l4 18H5z"/><path d="M12 16l5-9M8 17h8"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
   <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 21V9M7 14l5-5 5 5M5 3h14"/></symbol>
 </svg>
 
@@ -84,6 +85,7 @@
     <section class="view" id="view-medley" data-view="medley" aria-labelledby="medley-name">
       <div class="view-head">
         <div class="title-wrap">
+          <div class="ctx" id="medley-ctx" hidden><button class="btn ghost sm back" id="ctx-back" hidden><svg class="i sm"><use href="#i-back"/></svg><span id="ctx-back-label"></span></button><span class="chip accent"><svg class="i sm"><use href="#i-link"/></svg><span data-i18n="ctx.medley"></span></span></div>
           <input id="medley-name" class="title-input" data-i18n-attr="aria-label:medley.nameAria" maxlength="80" autocomplete="off">
           <p class="sub" id="medley-sub"></p>
         </div>
@@ -103,6 +105,7 @@
             <button class="btn soft" id="add-chords"><svg class="i"><use href="#i-plus"/></svg><span data-i18n="add.chords"></span></button>
             <button class="btn soft" id="add-lyrics"><svg class="i"><use href="#i-text"/></svg><span data-i18n="add.lyrics"></span></button>
             <button class="btn soft" id="add-library"><svg class="i"><use href="#i-library"/></svg><span data-i18n="add.library"></span></button>
+            <button class="btn soft" id="add-medley"><svg class="i"><use href="#i-link"/></svg><span data-i18n="add.medley"></span></button>
           </div>
         </div>
         <div class="pane pane-sheet">
@@ -145,7 +148,7 @@
         </div>
       </div>
       <div class="seg" id="lib-tabs" role="group" data-i18n-attr="aria-label:lib.tabsAria">
-        <button data-v="songs"></button><button data-v="medleys"></button>
+        <button data-v="songs"></button><button data-v="setlists"></button><button data-v="medleys"></button>
       </div>
       <div class="lib-toolbar">
         <div class="search"><svg class="i sm"><use href="#i-search"/></svg><input type="search" class="input" id="lib-q" data-i18n-attr="placeholder:lib.search;aria-label:lib.searchAria"></div>
@@ -259,6 +262,14 @@
       <p class="sub" data-i18n="install.sub"></p>
     </div>
     <div class="dlg-foot"><button class="btn primary" value="ok" data-i18n="common.gotIt"></button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-arr" aria-labelledby="arr-h">
+  <form method="dialog" class="dlg">
+    <div class="dlg-head"><h2 id="arr-h" data-i18n="arr.dlgTitle"></h2><button class="icon-btn" value="cancel" data-i18n-attr="aria-label:common.close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="dlg-body"><p class="sub" data-i18n="arr.dlgText"></p><label class="field"><span data-i18n="arr.name"></span><input class="input" id="arr-name" maxlength="60" data-i18n-attr="placeholder:arr.namePh"></label></div>
+    <div class="dlg-foot"><button class="btn ghost" value="cancel" data-i18n="common.cancel"></button><button class="btn primary" value="ok" data-i18n="common.save"></button></div>
   </form>
 </dialog>
 

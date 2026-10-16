@@ -199,6 +199,13 @@ test("sanitizeOptions e sanitizeItem", () => {
   assert.deepEqual(C.sanitizeOptions(null), C.DEFAULT_OPTIONS);
   assert.deepEqual(C.sanitizeOptions({columns: 3, maxPages: 9, minFont: 2, degreeStyle: "x", dedupe: "s"}),
     Object.assign({}, C.DEFAULT_OPTIONS, {columns: "auto", maxPages: 2, minFont: 7}));
-  assert.deepEqual(C.sanitizeItem({target: "Q", capo: "14", singer: 5, notes: "ok"}), {target: "", capo: "", singer: "", notes: "ok"});
-  assert.deepEqual(C.sanitizeItem({target: "Am", capo: 3}), {target: "Am", capo: "3", singer: "", notes: ""});
+  assert.deepEqual(C.sanitizeItem({target: "Q", capo: "14", singer: 5, notes: "ok"}), {target: "", capo: "", singer: "", notes: "ok", arrangementId: ""});
+  assert.deepEqual(C.sanitizeItem({target: "Am", capo: 3, arrangementId: "a1"}), {target: "Am", capo: "3", singer: "", notes: "", arrangementId: "a1"});
+});
+
+test("arranjos importados são validados", () => {
+  assert.deepEqual(C.sanitizeArrangements("x"), []);
+  const list = C.sanitizeArrangements([{id: "a1", name: " Acústico ", target: "G", capo: 2, notes: "leve"}, {name: "sem id"}, null, {id: "a2", target: "Z", capo: 40}]);
+  assert.deepEqual(list, [{id: "a1", name: "Acústico", target: "G", capo: "2", notes: "leve"}, {id: "a2", name: "—", target: "", capo: "", notes: ""}]);
+  assert.equal(C.sanitizeEntry({text: "A\nb", arrangements: [{id: "x", name: "Banda", target: "A"}]}).arrangements[0].target, "A");
 });

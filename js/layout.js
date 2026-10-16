@@ -84,6 +84,11 @@ export function layout(songs, fs, k, opts){
     const firstH = blocks.length ? blocks[0].reduce((h,it)=>h+itemH(it),0) : 0;
     if(si>0) y += SG;
     if(y + headH + firstH > bottom && y > M) nextCol();
+    // Primeira música de um medley: rótulo com o nome do medley acima do título.
+    if(s.group && (si === 0 || songs[si-1].group !== s.group)){
+      push({t:"text",x:x(),y:y+META_SIZE*0.8,s:META_SIZE,f:"sans",b:true,c:ACCENT,txt:t("sheet.medleyLabel", {name: s.gname}).toUpperCase()});
+      y += META_SIZE + 5;
+    }
     const keyTag = opts.showKey && !L && playKey(s) ? "  (" + playKey(s) + ")" : "";
     push({t:"text",x:x(),y:y+TITLE_SIZE*0.85,s:TITLE_SIZE,f:L?"lex":"sans",b:true,c:ACCENT,txt:s.title.toUpperCase() + keyTag});
     push({t:"line",x1:x(),x2:x()+COLW,y:y+TITLE_SIZE+3,c:ACCENT,w:0.9});

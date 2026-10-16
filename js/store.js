@@ -60,11 +60,12 @@ export function createSong(fields = {}){
   s.title = songTitle(s.text) || s.title;
   saveSong(s); return s;
 }
-export function createMedley(name, items = [], options = DEFAULT_OPTIONS){
-  const m = {id:newId("m"), name: name || t("medley.defaultName"), items, options: sanitizeOptions(options), createdAt:Date.now()};
+export function createMedley(name, items = [], options = DEFAULT_OPTIONS, kind = "setlist"){
+  const m = {id:newId("m"), kind: kind === "medley" ? "medley" : "setlist", name: name || t("medley.defaultName"), items, options: sanitizeOptions(options), createdAt:Date.now()};
   saveMedley(m); return m;
 }
-export const newItem = (songId, extra = {}) => Object.assign({id:newId("i"), songId, target:"", capo:"", singer:"", notes:""}, extra);
+export const newItem = (songId, extra = {}) => Object.assign({id:newId("i"), type:"song", songId, arrangementId:"", target:"", capo:"", singer:"", notes:""}, extra);
+export const newMedleyItem = medleyId => ({id:newId("i"), type:"medley", medleyId});
 
 // Músicas vazias que nenhum medley usa são rascunhos abandonados.
 function cleanup(){

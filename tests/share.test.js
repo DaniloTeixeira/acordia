@@ -27,6 +27,19 @@ test("link de medley vai e volta igual", async () => {
   assert.equal(back.songs[1].type, "letra");
 });
 
+test("link de repertório com medleys guarda os grupos", async () => {
+  const setlist = {name: "Culto", options: {}, kind: "setlist", groups: ["Abertura", "Ceia"], songs: [
+    {text: "A\nC\nla", g: 0}, {text: "B\nG\nle", g: 0}, {text: "Solo\nD\nli"}, {text: "C\nE\nlo", g: 1}, {text: "Ruim\nE\nlu", g: 9}
+  ]};
+  const back = await decodeMedley(await encodeMedley(setlist));
+  assert.equal(back.kind, "setlist");
+  assert.deepEqual(back.groups, ["Abertura", "Ceia"]);
+  assert.deepEqual(back.songs.map(s => s.g), [0, 0, undefined, 1, undefined]);
+  const solo = await decodeMedley(await encodeMedley({name: "Só medley", options: {}, kind: "medley", songs: [{text: "X\nC\nla"}]}));
+  assert.equal(solo.kind, "medley");
+  assert.deepEqual(solo.groups, []);
+});
+
 test("compressão deixa o link menor que o JSON", async () => {
   const big = Object.assign({}, medley, {songs: Array.from({length: 6}, (_, i) => ({text: `Música ${i}\n` + "G   D   Em   C\nUma linha de letra que se repete bastante\n".repeat(30)}))});
   const code = await encodeMedley(big);

@@ -145,22 +145,27 @@ function go(v, {instant} = {}){
   if(instant) run(); else vt(run);
 }
 
-// ---------- medley atual ----------
+// ---------- repertório atual (setlist) ou medley em edição ----------
+// Os dois ficam em data.medleys: kind "setlist" (repertório) ou "medley" (músicas emendadas).
+// Um repertório tem itens de música e itens que apontam para um medley; um medley só tem músicas.
+const isMedley = m => !!m && m.kind === "medley";
 function current(){
   let m = data.medleys.get(data.settings.currentMedley);
   if(!m){
-    m = [...data.medleys.values()].sort((a,b)=>b.updatedAt-a.updatedAt)[0] || store.createMedley(t("medley.defaultName"));
+    m = [...data.medleys.values()].filter(x => !isMedley(x)).sort((a,b)=>b.updatedAt-a.updatedAt)[0] || store.createMedley(t("medley.defaultName"));
     store.setSetting("currentMedley", m.id);
   }
+  m.kind = isMedley(m) ? "medley" : "setlist";
   m.options = sanitizeOptions(m.options);
   return m;
 }
 const saveMedley = debounce(m => store.saveMedley(m), 300);
 const saveSong = debounce(s => store.saveSong(s), 400);
 const expanded = new Set();
-function openMedley(id){
+function openMedley(id, {from = ""} = {}){
   saveMedley.flush(current());
   store.setSetting("currentMedley", id);
+  store.setSetting("returnTo", from);
   expanded.clear();
   const m = current(); if(m.items.length) expanded.add(m.items[m.items.length-1].id);
   renderMedley();
@@ -168,21 +173,37 @@ function openMedley(id){
 function newMedley(){
   saveMedley.flush(current());
   const m = store.createMedley(t("medley.newName", {date: new Date().toLocaleDateString(locale(), {day:"2-digit", month:"2-digit"})}));
-  store.setSetting("currentMedley", m.id);
+  store.setSetting("currentMedley", m.id); store.setSetting("returnTo", "");
   expanded.clear();
   renderMedley(); go("medley");
   const name = $("#medley-name"); name.focus(); name.select();
   toast(t("medley.created"));
 }
 function renderMedley(){
-  $("#medley-name").value = current().name;
+  const m = current(), back = data.medleys.get(data.settings.returnTo);
+  $("#medley-name").value = m.name;
+  $("#medley-ctx").hidden = !isMedley(m);
+  $("#ctx-back").hidden = !(isMedley(m) && back);
+  if(back) $("#ctx-back-label").textContent = t("ctx.back", {name: back.name});
+  $("#add-medley").hidden = isMedley(m);
   renderItems();
   renderSheet.flush();
   updateCounts();
 }
+// Músicas na ordem em que tocam, abrindo os medleys de um repertório.
+function songItems(m){
+  const out = [];
+  m.items.forEach(it => {
+    if(it.type === "medley"){
+      const md = data.medleys.get(it.medleyId); if(!md) return;
+      md.items.forEach(x => out.push({it: x, group: it.id, gname: md.name}));
+    } else out.push({it, group: isMedley(m) ? m.id : "", gname: isMedley(m) ? m.name : ""});
+  });
+  return out;
+}
 function updateMedleySub(){
-  const m = current();
-  $("#medley-sub").textContent = m.items.length ? t("medley.saved", {songs: songs(m.items.length)}) : t("medley.startHint");
+  const n = songItems(current()).length;
+  $("#medley-sub").textContent = n ? t("medley.saved", {songs: songs(n)}) : t("medley.startHint");
 }
 function updateCounts(){
   const n = [...data.songs.values()].filter(s=>s.title).length;
@@ -190,28 +211,59 @@ function updateCounts(){
   updateMedleySub();
 }
 
+// Arranjo: versão nomeada de uma música (tom, capo, observações), reaproveitável entre repertórios.
+function arrangementOf(s, it){ return (it.arrangementId && (s.arrangements || []).find(a => a.id === it.arrangementId)) || null; }
+function eff(s, it){ const a = arrangementOf(s, it); return a ? {target: a.target || "", capo: a.capo || "", notes: a.notes || ""} : {target: it.target || "", capo: it.capo || "", notes: it.notes || ""}; }
+
 function renderItems(){
   const m = current(), list = $("#items");
   list.innerHTML = "";
-  if(!m.items.length) list.innerHTML = `<li class="empty-state">${icon("music")}<strong>${esc(t("medley.emptyTitle"))}</strong><span>${esc(t("medley.emptyText"))}</span></li>`;
-  m.items.forEach((it, i) => list.appendChild(itemCard(m, it, i)));
+  if(!m.items.length) list.innerHTML = `<li class="empty-state">${icon("music")}<strong>${esc(t(isMedley(m) ? "mblock.emptyTitle" : "medley.emptyTitle"))}</strong><span>${esc(t(isMedley(m) ? "mblock.emptyText" : "medley.emptyText"))}</span></li>`;
+  m.items.forEach((it, i) => list.appendChild(it.type === "medley" ? medleyCard(m, it, i) : itemCard(m, it, i)));
   updateMedleySub();
+}
+function itemActions(m, it, i, extra = ""){
+  return `<div class="item-actions">${extra}
+        <button class="icon-btn sm" data-a="up" aria-label="${esc(t("item.up"))}" ${i===0?"disabled":""}>${icon("up","sm")}</button>
+        <button class="icon-btn sm" data-a="down" aria-label="${esc(t("item.down"))}" ${i===m.items.length-1?"disabled":""}>${icon("down","sm")}</button>
+        <button class="icon-btn sm danger" data-a="rm" aria-label="${esc(t("item.remove"))}">${icon("x","sm")}</button>`;
+}
+function wireActions(li, it){
+  $('[data-a="up"]', li).onclick = () => moveItem(it.id, -1);
+  $('[data-a="down"]', li).onclick = () => moveItem(it.id, 1);
+  $('[data-a="rm"]', li).onclick = () => removeItem(it.id, li);
+}
+function medleyCard(m, it, i){
+  const md = data.medleys.get(it.medleyId);
+  const titles = md ? md.items.map(x => (data.songs.get(x.songId) || {}).title).filter(Boolean) : [];
+  const li = document.createElement("li");
+  li.className = "item medley-item"; li.dataset.id = it.id;
+  li.innerHTML = `
+    <div class="item-head">
+      <span class="num">${i+1}</span>
+      <button class="item-toggle" data-a="open-medley"><span class="item-title"></span><span class="item-chips"><span class="chip accent">${icon("link","sm")} ${esc(t("mblock.chip", {songs: songs(titles.length)}))}</span></span></button>
+      ${itemActions(m, it, i)}
+      </div>
+    </div>
+    <div class="medley-songs">${titles.length ? `<ol>${titles.map(x => `<li>${esc(x)}</li>`).join("")}</ol>` : `<p class="sub">${esc(t("mblock.empty"))}</p>`}
+      <button class="btn soft sm" data-a="open-medley">${icon("edit","sm")} ${esc(t("mblock.edit"))}</button></div>`;
+  $(".item-title", li).textContent = md ? md.name : t("mblock.missing");
+  $$('[data-a="open-medley"]', li).forEach(b => b.onclick = () => { if(md) openMedley(md.id, {from: m.id}); });
+  wireActions(li, it);
+  return li;
 }
 function itemCard(m, it, i){
   let s = data.songs.get(it.songId);
   if(!s){ s = store.createSong({}); it.songId = s.id; }
-  const open = expanded.has(it.id), letra = s.type === "letra";
+  const open = expanded.has(it.id), letra = s.type === "letra", a = arrangementOf(s, it), e = eff(s, it);
+  const arrs = s.arrangements || [];
   const li = document.createElement("li");
   li.className = "item" + (open ? "" : " collapsed"); li.dataset.id = it.id;
   li.innerHTML = `
     <div class="item-head">
       <span class="num">${i+1}</span>
       <button class="item-toggle" aria-expanded="${open}"><span class="item-title"></span><span class="item-chips"></span></button>
-      <div class="item-actions">
-        <button class="icon-btn sm ref-btn" data-a="ref" aria-label="${esc(t("ref.listen"))}" title="${esc(t("ref.listen"))}" ${s.ref?"":"hidden"}>${icon("play","sm")}</button>
-        <button class="icon-btn sm" data-a="up" aria-label="${esc(t("item.up"))}" ${i===0?"disabled":""}>${icon("up","sm")}</button>
-        <button class="icon-btn sm" data-a="down" aria-label="${esc(t("item.down"))}" ${i===m.items.length-1?"disabled":""}>${icon("down","sm")}</button>
-        <button class="icon-btn sm danger" data-a="rm" aria-label="${esc(t("item.remove"))}">${icon("x","sm")}</button>
+      ${itemActions(m, it, i, `<button class="icon-btn sm ref-btn" data-a="ref" aria-label="${esc(t("ref.listen"))}" title="${esc(t("ref.listen"))}" ${s.ref?"":"hidden"}>${icon("play","sm")}</button>`)}
         <button class="icon-btn sm" data-a="toggle" aria-label="${esc(t("item.toggle"))}">${icon("chev","sm chev")}</button>
       </div>
     </div>
@@ -219,9 +271,11 @@ function itemCard(m, it, i){
       <div class="seg sm" data-f="type" role="group" aria-label="${esc(t("item.typeAria"))}"><button data-v="">${esc(t("item.withChords"))}</button><button data-v="letra">${esc(t("item.lyricsOnly"))}</button></div>
       <textarea class="input song-text" spellcheck="false" aria-label="${esc(t("item.textAria", {n:i+1}))}"></textarea>
       <div class="fields">
+        <label class="field wide" data-chords>${esc(t("arr.label"))}<span class="arr-row"><select class="input" data-f="arr"><option value="">${esc(t("arr.none"))}</option>${arrs.map(x => `<option value="${esc(x.id)}" ${a && a.id === x.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select><button type="button" class="btn ghost sm" data-a="arr-save">${icon("plus","sm")} ${esc(t("arr.save"))}</button></span>
+          ${a ? `<small class="arr-hint">${esc(t("arr.shared"))}</small>` : ""}</label>
         <label class="field" data-chords>${esc(t("item.key"))}<select class="input" data-f="key">${keyOptions(s.key, t("item.auto"))}</select></label>
-        <label class="field" data-chords>${esc(t("item.target"))}<select class="input" data-f="target">${keyOptions(it.target, t("item.sameKey"))}</select></label>
-        <label class="field" data-chords>${esc(t("item.capo"))}<select class="input" data-f="capo"><option value="">—</option>${Array.from({length:11},(_,k)=>`<option ${it.capo==String(k+1)?"selected":""}>${k+1}</option>`).join("")}</select></label>
+        <label class="field" data-chords>${esc(t("item.target"))}<select class="input" data-f="target">${keyOptions(e.target, t("item.sameKey"))}</select></label>
+        <label class="field" data-chords>${esc(t("item.capo"))}<select class="input" data-f="capo"><option value="">—</option>${Array.from({length:11},(_,k)=>`<option ${e.capo==String(k+1)?"selected":""}>${k+1}</option>`).join("")}</select></label>
         <label class="field" data-chords>${esc(t("item.bpm"))}<input class="input" data-f="bpm" type="number" inputmode="numeric" min="20" max="300" placeholder="—"></label>
         <label class="field" style="grid-column:span 2">${esc(t("item.singer"))}<input class="input" data-f="singer" maxlength="80" placeholder="—"></label>
         <label class="field wide">${esc(t("item.notes"))}<input class="input" data-f="notes" maxlength="300" placeholder="${esc(t("item.notesPh"))}"></label>
@@ -231,9 +285,9 @@ function itemCard(m, it, i){
   const ta = $("textarea", li); ta.value = s.text; ta.placeholder = t(letra ? "item.phLyrics" : "item.phChords");
   $('[data-f="bpm"]', li).value = s.bpm || "";
   $('[data-f="singer"]', li).value = it.singer || "";
-  $('[data-f="notes"]', li).value = it.notes || "";
+  $('[data-f="notes"]', li).value = e.notes || "";
   $('[data-f="ref"]', li).value = s.ref || "";
-  const showChordFields = () => { $$("[data-chords]", li).forEach(e => e.hidden = s.type === "letra"); ta.placeholder = t(s.type === "letra" ? "item.phLyrics" : "item.phChords"); };
+  const showChordFields = () => { $$("[data-chords]", li).forEach(el => el.hidden = s.type === "letra"); ta.placeholder = t(s.type === "letra" ? "item.phLyrics" : "item.phChords"); };
   showChordFields();
   const head = () => updateItemHead(li, s, it);
   head();
@@ -243,33 +297,53 @@ function itemCard(m, it, i){
     $(".item-toggle", li).setAttribute("aria-expanded", String(nowOpen));
     if(nowOpen){ paintSeg($('[data-f="type"]', li)); setTimeout(()=>ta.focus({preventScroll:true}), 120); }
   };
+  const redraw = () => { const fresh = itemCard(m, it, i); li.replaceWith(fresh); paintSeg($('[data-f="type"]', fresh)); };
   $(".item-toggle", li).onclick = toggle;
   $('[data-a="toggle"]', li).onclick = toggle;
-  $('[data-a="up"]', li).onclick = () => moveItem(it.id, -1);
-  $('[data-a="down"]', li).onclick = () => moveItem(it.id, 1);
-  $('[data-a="rm"]', li).onclick = () => removeItem(it.id, li);
+  wireActions(li, it);
   $('[data-a="ref"]', li).onclick = () => openRef(s.ref, s.title);
-  $('[data-f="ref"]', li).onchange = e => {
-    const v = sanitizeUrl(e.target.value);
-    if(e.target.value.trim() && !v) toast(t("ref.bad"));
-    s.ref = v; e.target.value = v; saveSong(s); $('[data-a="ref"]', li).hidden = !v;
+  $('[data-f="ref"]', li).onchange = ev => {
+    const v = sanitizeUrl(ev.target.value);
+    if(ev.target.value.trim() && !v) toast(t("ref.bad"));
+    s.ref = v; ev.target.value = v; saveSong(s); $('[data-a="ref"]', li).hidden = !v;
   };
   seg($('[data-f="type"]', li), s.type || "", v => { s.type = v; saveSong(s); showChordFields(); head(); renderSheet(); });
   ta.addEventListener("input", () => { s.text = ta.value; s.title = songTitle(ta.value); saveSong(s); head(); renderSheet(); updateCounts(); });
-  $('[data-f="key"]', li).onchange = e => { s.key = e.target.value; saveSong(s); head(); renderSheet(); };
-  $('[data-f="bpm"]', li).oninput = e => { const v = +e.target.value; s.bpm = v > 0 && v < 400 ? String(Math.round(v)) : ""; saveSong(s); head(); renderSheet(); };
-  ["target","capo"].forEach(f => $(`[data-f="${f}"]`, li).onchange = e => { it[f] = e.target.value; saveMedley(m); head(); renderSheet(); });
-  ["singer","notes"].forEach(f => $(`[data-f="${f}"]`, li).oninput = e => { it[f] = e.target.value; saveMedley(m); head(); renderSheet(); });
+  $('[data-f="key"]', li).onchange = ev => { s.key = ev.target.value; saveSong(s); head(); renderSheet(); };
+  $('[data-f="bpm"]', li).oninput = ev => { const v = +ev.target.value; s.bpm = v > 0 && v < 400 ? String(Math.round(v)) : ""; saveSong(s); head(); renderSheet(); };
+  // Com arranjo escolhido, tom/capo/observações mudam o arranjo (vale em todos os repertórios).
+  const setField = (f, v) => { const cur = arrangementOf(s, it); if(cur){ cur[f] = v; saveSong(s); } else { it[f] = v; saveMedley(m); } head(); renderSheet(); };
+  ["target","capo"].forEach(f => $(`[data-f="${f}"]`, li).onchange = ev => setField(f, ev.target.value));
+  $('[data-f="notes"]', li).oninput = ev => setField("notes", ev.target.value);
+  $('[data-f="singer"]', li).oninput = ev => { it.singer = ev.target.value; saveMedley(m); head(); renderSheet(); };
+  $('[data-f="arr"]', li).onchange = ev => { it.arrangementId = ev.target.value; saveMedley(m); redraw(); renderSheet(); };
+  $('[data-a="arr-save"]', li).onclick = () => saveArrangement(m, s, it, redraw);
   return li;
+}
+function saveArrangement(m, s, it, done){
+  const dlg = $("#dlg-arr"), input = $("#arr-name"), e = eff(s, it);
+  const key = e.target || s.key || (s.text.trim() ? detectKey(parseSong(s.text)) : "");
+  input.value = [key, e.capo ? t("item.capoChip", {n: e.capo}) : ""].filter(Boolean).join(" · ");
+  dlg.onclose = () => {
+    if(dlg.returnValue !== "ok") return;
+    const name = input.value.trim().slice(0, 60) || t("arr.label");
+    const a = {id: store.newId("a"), name, target: e.target, capo: e.capo, notes: e.notes};
+    s.arrangements = (s.arrangements || []).concat(a); store.saveSong(s);
+    it.arrangementId = a.id; store.saveMedley(m);
+    done(); renderSheet();
+    toast(t("arr.saved", {name}));
+  };
+  dlg.showModal(); input.select();
 }
 function updateItemHead(li, s, it){
   $(".item-title", li).textContent = s.title || t("item.newSong");
-  const chips = [];
+  const chips = [], e = eff(s, it), a = arrangementOf(s, it);
   if(s.type === "letra") chips.push(`<span class="chip">${esc(t("item.lyricsOnly"))}</span>`);
   else {
     const key = s.key || (s.text.trim() ? detectKey(parseSong(s.text)) : "");
-    if(key && s.text.trim()) chips.push(`<span class="chip accent">${esc(it.target && it.target !== key ? key + " → " + it.target : key)}</span>`);
-    if(it.capo) chips.push(`<span class="chip">${esc(t("item.capoChip", {n:it.capo}))}</span>`);
+    if(key && s.text.trim()) chips.push(`<span class="chip accent">${esc(e.target && e.target !== key ? key + " → " + e.target : key)}</span>`);
+    if(a) chips.push(`<span class="chip">${esc(a.name)}</span>`);
+    if(e.capo) chips.push(`<span class="chip">${esc(t("item.capoChip", {n:e.capo}))}</span>`);
     if(s.bpm) chips.push(`<span class="chip">${esc(t("sheet.bpm", {n:s.bpm}))}</span>`);
   }
   if(it.singer) chips.push(`<span class="chip">${esc(it.singer)}</span>`);
@@ -282,6 +356,15 @@ function addItem(type){
   const li = $(`.item[data-id="${it.id}"]`);
   li.scrollIntoView({behavior: reduced() ? "auto" : "smooth", block:"center"});
   $("textarea", li).focus({preventScroll:true});
+}
+function addMedleyBlock(){
+  const m = current(); if(isMedley(m)) return;
+  const n = [...data.medleys.values()].filter(isMedley).length + 1;
+  const md = store.createMedley(t("mblock.newName", {n}), [], m.options, "medley");
+  m.items.push(store.newMedleyItem(md.id)); store.saveMedley(m);
+  openMedley(md.id, {from: m.id}); setPane("edit");
+  toast(t("mblock.created", {name: m.name}));
+  const name = $("#medley-name"); name.focus(); name.select();
 }
 function moveItem(id, dir){
   const m = current(), i = m.items.findIndex(x=>x.id===id), j = i + dir;
@@ -303,23 +386,26 @@ function removeItem(id, li){
   const m = current(), i = m.items.findIndex(x=>x.id===id); if(i < 0) return;
   const [it] = m.items.splice(i, 1); store.saveMedley(m);
   expanded.delete(id);
-  const s = data.songs.get(it.songId);
   li.classList.add("leaving");
   setTimeout(()=>{ renderItems(); renderSheet(); }, reduced() ? 0 : 220);
+  const undo = {label:t("common.undo"), run:()=>{ m.items.splice(i, 0, it); store.saveMedley(m); renderItems(); renderSheet(); }};
+  if(it.type === "medley"){ const md = data.medleys.get(it.medleyId); return toast(t("item.removed", {title: md ? md.name : t("ctx.medley")}), undo); }
+  const s = data.songs.get(it.songId);
   if(s && !s.text.trim()){ store.deleteSong(s.id); return; }
-  toast(t("item.removed", {title: (s && s.title) || t("item.song")}), {label:t("common.undo"), run:()=>{ m.items.splice(i, 0, it); store.saveMedley(m); renderItems(); renderSheet(); }});
+  toast(t("item.removed", {title: (s && s.title) || t("item.song")}), undo);
 }
 
 // ---------- folha ----------
 let sheetMode = "cifras", lastPages = [];
 function sheetSongs(m){
-  let list = m.items.map(it=>{
+  let list = songItems(m).map(({it, group, gname})=>{
     const s = data.songs.get(it.songId); if(!s || !s.text.trim()) return null;
     const letra = s.type === "letra", p = parseSong(s.text, letra);
     if(!p.title) return null;
-    const auto = letra ? "" : detectKey(p), key = letra ? "" : (s.key || auto), target = letra ? "" : (it.target || "");
-    return Object.assign(p, {key, target, shift: target ? keyShift(key, target) : 0, auto, itemId: it.id, ref: s.ref || "",
-      meta: {bpm: letra ? "" : s.bpm, capo: letra ? "" : it.capo, singer: it.singer, notes: it.notes}});
+    const e = eff(s, it);
+    const auto = letra ? "" : detectKey(p), key = letra ? "" : (s.key || auto), target = letra ? "" : (e.target || "");
+    return Object.assign(p, {key, target, shift: target ? keyShift(key, target) : 0, auto, itemId: it.id, ref: s.ref || "", group, gname,
+      meta: {bpm: letra ? "" : s.bpm, capo: letra ? "" : e.capo, singer: it.singer, notes: e.notes}});
   }).filter(Boolean);
   if(m.options.dedupe) list = dedupeBlocks(list);
   return list;
@@ -380,25 +466,32 @@ function initOptions(){
 // ---------- adicionar da biblioteca ----------
 function openPicker(){
   const dlg = $("#dlg-picker"), list = $("#picker-list"), q = $("#picker-q"), ok = $("#picker-ok");
-  const chosen = new Set(), inMedley = new Set(current().items.map(i=>i.songId));
+  const m = current(), withMedleys = !isMedley(m);
+  const chosen = new Set(), inMedley = new Set(m.items.map(i => i.type === "medley" ? "m:" + i.medleyId : i.songId));
   const label = () => { ok.disabled = !chosen.size; ok.textContent = chosen.size > 1 ? t("common.addN", {n:chosen.size}) : t("common.add"); };
+  const row = (value, title, chips) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<label><input type="checkbox" value="${esc(value)}" ${chosen.has(value)?"checked":""}><span class="t"></span></label>${chips}${inMedley.has(value)?`<span class="chip accent">${esc(t("picker.inMedley"))}</span>`:""}`;
+    $(".t", li).textContent = title;
+    $("input", li).onchange = e => { e.target.checked ? chosen.add(value) : chosen.delete(value); label(); };
+    return li;
+  };
   const draw = () => {
     const nq = norm(q.value);
     const rows = [...data.songs.values()].filter(s=>s.title && (!nq || norm(s.title).includes(nq) || norm(s.text).includes(nq))).sort((a,b)=>a.title.localeCompare(b.title, locale()));
-    list.innerHTML = rows.length ? "" : `<li class="empty-state"><span>${esc(t([...data.songs.values()].some(s=>s.title) ? "picker.none" : "picker.emptyLib"))}</span></li>`;
-    rows.forEach(s=>{
-      const li = document.createElement("li");
-      li.innerHTML = `<label><input type="checkbox" value="${s.id}" ${chosen.has(s.id)?"checked":""}><span class="t"></span></label>${s.type==="letra"?`<span class="chip">${esc(t("item.lyricsOnly"))}</span>`:""}${inMedley.has(s.id)?`<span class="chip accent">${esc(t("picker.inMedley"))}</span>`:""}`;
-      $(".t", li).textContent = s.title;
-      $("input", li).onchange = e => { e.target.checked ? chosen.add(s.id) : chosen.delete(s.id); label(); };
-      list.appendChild(li);
-    });
+    const meds = withMedleys ? [...data.medleys.values()].filter(x => isMedley(x) && (!nq || norm(x.name).includes(nq))) : [];
+    list.innerHTML = rows.length || meds.length ? "" : `<li class="empty-state"><span>${esc(t([...data.songs.values()].some(s=>s.title) ? "picker.none" : "picker.emptyLib"))}</span></li>`;
+    if(meds.length){
+      list.insertAdjacentHTML("beforeend", `<li class="pick-h">${esc(t("picker.medleys"))}</li>`);
+      meds.forEach(x => list.appendChild(row("m:" + x.id, x.name, `<span class="chip accent">${esc(t("mblock.chip", {songs: songs(x.items.length)}))}</span>`)));
+      list.insertAdjacentHTML("beforeend", `<li class="pick-h">${esc(t("picker.songs"))}</li>`);
+    }
+    rows.forEach(s => list.appendChild(row(s.id, s.title, s.type==="letra" ? `<span class="chip">${esc(t("item.lyricsOnly"))}</span>` : "")));
   };
   q.value = ""; label(); q.oninput = draw; draw();
   dlg.onclose = () => {
     if(dlg.returnValue !== "ok" || !chosen.size) return;
-    const m = current();
-    chosen.forEach(id => m.items.push(store.newItem(id)));
+    chosen.forEach(v => m.items.push(v.startsWith("m:") ? store.newMedleyItem(v.slice(2)) : store.newItem(v)));
     store.saveMedley(m); renderItems(); renderSheet();
     toast(tn("picker.added", chosen.size));
   };
@@ -412,8 +505,16 @@ function addSongToMedley(id){
 }
 
 // ---------- compartilhar ----------
+// O link leva as músicas na ordem; as que estão num medley levam o índice do grupo (g) e o nome (groups).
 function medleyPayload(m){
-  return {name: m.name, options: m.options, songs: m.items.map(it=>{ const s = data.songs.get(it.songId); return s && s.text.trim() ? {text:s.text, type:s.type, key:s.key, bpm:s.bpm, ref:s.ref, target:it.target, capo:it.capo, singer:it.singer, notes:it.notes} : null; }).filter(Boolean)};
+  const groups = [], gi = new Map();
+  const list = songItems(m).map(({it, group, gname}) => {
+    const s = data.songs.get(it.songId); if(!s || !s.text.trim()) return null;
+    const e = eff(s, it), o = {text:s.text, type:s.type, key:s.key, bpm:s.bpm, ref:s.ref, target:e.target, capo:e.capo, singer:it.singer, notes:e.notes};
+    if(group && !isMedley(m)){ if(!gi.has(group)){ gi.set(group, groups.length); groups.push(gname); } o.g = gi.get(group); }
+    return o;
+  }).filter(Boolean);
+  return {name: m.name, options: m.options, kind: m.kind, groups, songs: list};
 }
 async function shareMedley(m = current()){
   const payload = medleyPayload(m);
@@ -435,18 +536,27 @@ function findOrCreateSong(e){
   return same || store.createSong({text:e.text, type:e.type, key:e.key, bpm:e.bpm, ref:e.ref});
 }
 async function checkIncoming(){
-  const m = /^#m=(.+)$/.exec(location.hash); if(!m) return;
-  const med = await decodeMedley(m[1]);
+  const mt = /^#m=(.+)$/.exec(location.hash); if(!mt) return;
+  const med = await decodeMedley(mt[1]);
   history.replaceState(null, "", location.pathname + location.search);
   if(!med) return toast(t("incoming.bad"));
   const dlg = $("#dlg-incoming");
   $("#incoming-desc").textContent = t("incoming.desc", {name: med.name, songs: songs(med.songs.length)});
-  $("#incoming-list").innerHTML = med.songs.map(s => `<li>${esc(s.title)}${s.target ? ` <span class="chip accent">${esc(s.target)}</span>` : ""}</li>`).join("");
+  $("#incoming-list").innerHTML = med.songs.map(s => `<li>${esc(s.title)}${s.target ? ` <span class="chip accent">${esc(s.target)}</span>` : ""}${s.g !== undefined ? ` <span class="chip">${icon("link","sm")} ${esc(med.groups[s.g])}</span>` : ""}</li>`).join("");
   dlg.onclose = () => {
     if(dlg.returnValue !== "ok") return;
-    const items = med.songs.map(e => store.newItem(findOrCreateSong(e).id, sanitizeItem(e)));
-    const nm = store.createMedley(med.name, items, med.options);
-    // Um medley vazio aberto (ex.: primeiro acesso pelo link) não precisa ficar sobrando.
+    const blocks = med.groups.map(name => store.createMedley(name, [], med.options, "medley"));
+    const items = [], placed = new Set();
+    med.songs.forEach(e => {
+      const songItem = store.newItem(findOrCreateSong(e).id, sanitizeItem(e));
+      if(e.g !== undefined && blocks[e.g]){
+        blocks[e.g].items.push(songItem);
+        if(!placed.has(e.g)){ placed.add(e.g); items.push(store.newMedleyItem(blocks[e.g].id)); }
+      } else items.push(songItem);
+    });
+    blocks.forEach(b => store.saveMedley(b));
+    const nm = store.createMedley(med.name, items, med.options, med.kind === "medley" ? "medley" : "setlist");
+    // Um repertório vazio aberto (ex.: primeiro acesso pelo link) não precisa ficar sobrando.
     const prev = current(); if(prev.id !== nm.id && !prev.items.length) store.deleteMedley(prev.id);
     openMedley(nm.id); go("medley");
     toast(t("incoming.saved"));
@@ -458,7 +568,7 @@ async function checkIncoming(){
 let libTab = "songs", libFilter = "all", libSort = "az";
 function usage(){
   const u = new Map();
-  data.medleys.forEach(m => new Set(m.items.map(i=>i.songId)).forEach(id => u.set(id, (u.get(id)||0) + 1)));
+  data.medleys.forEach(m => new Set(m.items.filter(i => i.type !== "medley").map(i=>i.songId)).forEach(id => u.set(id, (u.get(id)||0) + 1)));
   return u;
 }
 function excerpt(s){
@@ -469,9 +579,11 @@ function emptyCard(ic, title, text){ return `<li class="empty-state" style="grid
 function renderLibrary(){
   const list = $("#lib-list"), q = norm($("#lib-q").value);
   const all = [...data.songs.values()].filter(s=>s.title), meds = [...data.medleys.values()];
-  $("#lib-sub").textContent = t("lib.sub", {songs: songs(all.length), medleys: medleys(meds.length)});
+  const setlists = meds.filter(m => !isMedley(m)), blocks = meds.filter(isMedley);
+  $("#lib-sub").textContent = t("lib.sub", {songs: songs(all.length), medleys: medleys(setlists.length)});
   $('#lib-tabs [data-v="songs"]').textContent = t("lib.songs", {n: all.length});
-  $('#lib-tabs [data-v="medleys"]').textContent = t("lib.medleys", {n: meds.length});
+  $('#lib-tabs [data-v="setlists"]').textContent = t("lib.setlists", {n: setlists.length});
+  $('#lib-tabs [data-v="medleys"]').textContent = t("lib.mblocks", {n: blocks.length});
   paintSeg($("#lib-tabs"));
   $("#lib-filter").hidden = libTab !== "songs"; $("#lib-sort").hidden = libTab !== "songs";
   list.innerHTML = "";
@@ -481,10 +593,10 @@ function renderLibrary(){
       .sort(libSort === "recent" ? (a,b)=>(b.updatedAt||0)-(a.updatedAt||0) : (a,b)=>a.title.localeCompare(b.title, locale()));
     if(!rows.length){ list.innerHTML = all.length ? emptyCard("search", t("lib.noResults"), t("lib.noResultsText")) : emptyCard("library", t("lib.empty"), t("lib.emptyText")); return; }
     rows.forEach((s, idx) => {
-      const li = card(idx), n = u.get(s.id) || 0;
+      const li = card(idx), n = u.get(s.id) || 0, na = (s.arrangements || []).length;
       const key = s.type === "letra" ? "" : (s.key || detectKey(parseSong(s.text)));
       li.innerHTML = `<h3></h3>
-        <div class="meta">${s.type==="letra" ? `<span class="chip">${esc(t("item.lyricsOnly"))}</span>` : key ? `<span class="chip accent">${esc(t("lib.key", {key}))}</span>` : ""}${s.bpm ? `<span class="chip">${esc(t("sheet.bpm", {n:s.bpm}))}</span>` : ""}${n ? `<span class="chip">${esc(medleys(n))}</span>` : ""}</div>
+        <div class="meta">${s.type==="letra" ? `<span class="chip">${esc(t("item.lyricsOnly"))}</span>` : key ? `<span class="chip accent">${esc(t("lib.key", {key}))}</span>` : ""}${s.bpm ? `<span class="chip">${esc(t("sheet.bpm", {n:s.bpm}))}</span>` : ""}${na ? `<span class="chip">${esc(tn("arr.count", na))}</span>` : ""}${n ? `<span class="chip">${esc(medleys(n))}</span>` : ""}</div>
         <p class="excerpt"></p>
         <div class="foot">${cur.has(s.id) ? `<span class="chip accent">${icon("check","sm")} ${esc(t("lib.inCurrent"))}</span><span style="margin-right:auto"></span>` : `<button class="btn soft sm" data-a="add">${icon("plus","sm")} ${esc(t("common.add"))}</button>`}
           <span class="when">${esc(ago(s.updatedAt))}</span>
@@ -498,31 +610,34 @@ function renderLibrary(){
       armed($('[data-a="del"]', li), () => deleteSong(s), n ? t("lib.deleteUsed", {medleys: medleys(n)}) : t("common.confirmDelete"));
       list.appendChild(li);
     });
-  } else {
-    const curId = current().id;
-    const rows = meds.filter(m => !q || norm(m.name).includes(q) || m.items.some(i => norm((data.songs.get(i.songId)||{}).title).includes(q))).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
-    if(!rows.length){ list.innerHTML = emptyCard("list", t("lib.noMedleys")); return; }
-    rows.forEach((m, idx) => {
-      const li = card(idx), titles = m.items.map(i => (data.songs.get(i.songId)||{}).title).filter(Boolean);
-      li.innerHTML = `<h3></h3>
-        <div class="meta"><span class="chip">${esc(songs(titles.length))}</span>${m.id === curId ? `<span class="chip accent">${esc(t("lib.open"))}</span>` : ""}</div>
-        <p class="excerpt"></p>
-        <div class="foot"><button class="btn soft sm" data-a="open">${esc(t("common.open"))}</button>
-          <span class="when">${esc(ago(m.updatedAt))}</span>
-          <button class="icon-btn sm" data-a="dup" aria-label="${esc(t("common.duplicate"))}" title="${esc(t("common.duplicate"))}">${icon("copy","sm")}</button>
-          <button class="icon-btn sm" data-a="share" aria-label="${esc(t("common.share"))}" title="${esc(t("common.share"))}">${icon("share","sm")}</button>
-          <button class="icon-btn sm danger" data-a="del" aria-label="${esc(t("common.delete"))}" title="${esc(t("common.delete"))}">${icon("trash","sm")}</button></div>`;
-      $("h3", li).textContent = m.name; $(".excerpt", li).textContent = titles.join(" · ") || t("lib.emptyMedley");
-      $('[data-a="open"]', li).onclick = () => { openMedley(m.id); go("medley"); };
-      $('[data-a="dup"]', li).onclick = () => {
-        const c = store.createMedley(t("lib.copyName", {name:m.name}), m.items.map(i => store.newItem(i.songId, sanitizeItem(i))), m.options);
-        toast(t("lib.created", {name:c.name}), {label:t("common.open"), run:()=>{ openMedley(c.id); go("medley"); }}); renderLibrary();
-      };
-      $('[data-a="share"]', li).onclick = () => shareMedley(m);
-      armed($('[data-a="del"]', li), () => deleteMedley(m), t("common.confirmDelete"));
-      list.appendChild(li);
-    });
+    return;
   }
+  const wantBlocks = libTab === "medleys", curId = current().id;
+  const titlesOf = m => songItems(m).map(x => (data.songs.get(x.it.songId)||{}).title).filter(Boolean);
+  const rows = (wantBlocks ? blocks : setlists).filter(m => !q || norm(m.name).includes(q) || titlesOf(m).some(x => norm(x).includes(q))).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  if(!rows.length){ list.innerHTML = wantBlocks ? emptyCard("link", t("lib.noMedleyBlocks"), t("lib.noMedleyBlocksText")) : emptyCard("list", t("lib.noMedleys")); return; }
+  rows.forEach((m, idx) => {
+    const li = card(idx), titles = titlesOf(m);
+    const usedIn = wantBlocks ? setlists.filter(x => x.items.some(i => i.type === "medley" && i.medleyId === m.id)).length : 0;
+    li.innerHTML = `<h3></h3>
+      <div class="meta">${wantBlocks ? `<span class="chip accent">${icon("link","sm")} ${esc(t("ctx.medley"))}</span>` : ""}<span class="chip">${esc(songs(titles.length))}</span>${usedIn ? `<span class="chip">${esc(medleys(usedIn))}</span>` : ""}${m.id === curId ? `<span class="chip accent">${esc(t("lib.open"))}</span>` : ""}</div>
+      <p class="excerpt"></p>
+      <div class="foot"><button class="btn soft sm" data-a="open">${esc(t("common.open"))}</button>
+        <span class="when">${esc(ago(m.updatedAt))}</span>
+        <button class="icon-btn sm" data-a="dup" aria-label="${esc(t("common.duplicate"))}" title="${esc(t("common.duplicate"))}">${icon("copy","sm")}</button>
+        <button class="icon-btn sm" data-a="share" aria-label="${esc(t("common.share"))}" title="${esc(t("common.share"))}">${icon("share","sm")}</button>
+        <button class="icon-btn sm danger" data-a="del" aria-label="${esc(t("common.delete"))}" title="${esc(t("common.delete"))}">${icon("trash","sm")}</button></div>`;
+    $("h3", li).textContent = m.name; $(".excerpt", li).textContent = titles.join(" · ") || t("lib.emptyMedley");
+    $('[data-a="open"]', li).onclick = () => { openMedley(m.id); go("medley"); };
+    $('[data-a="dup"]', li).onclick = () => {
+      const copyItem = i => i.type === "medley" ? store.newMedleyItem(i.medleyId) : store.newItem(i.songId, sanitizeItem(i));
+      const c = store.createMedley(t("lib.copyName", {name:m.name}), m.items.map(copyItem), m.options, m.kind);
+      toast(t("lib.created", {name:c.name}), {label:t("common.open"), run:()=>{ openMedley(c.id); go("medley"); }}); renderLibrary();
+    };
+    $('[data-a="share"]', li).onclick = () => shareMedley(m);
+    armed($('[data-a="del"]', li), () => deleteMedley(m), usedIn ? t("lib.deleteUsed", {medleys: medleys(usedIn)}) : t("common.confirmDelete"));
+    list.appendChild(li);
+  });
 }
 function deleteSong(s){
   let n = 0;
@@ -533,8 +648,11 @@ function deleteSong(s){
 }
 function deleteMedley(m){
   const wasCurrent = m.id === current().id;
+  // Um medley excluído sai dos repertórios que o usavam.
+  data.medleys.forEach(x => { const before = x.items.length; x.items = x.items.filter(i => !(i.type === "medley" && i.medleyId === m.id)); if(x.items.length !== before) store.saveMedley(x); });
   store.deleteMedley(m.id);
-  if(wasCurrent){ store.setSetting("currentMedley", ""); renderMedley(); }
+  if(wasCurrent){ const back = data.settings.returnTo; store.setSetting("currentMedley", back && data.medleys.has(back) ? back : ""); store.setSetting("returnTo", ""); }
+  renderMedley();
   toast(t("lib.medleyDeleted", {name:m.name}));
   renderLibrary();
 }
@@ -563,9 +681,10 @@ function editSong(s){
 function exportLibrary(){
   const all = [...data.songs.values()].filter(s=>s.title);
   if(!all.length) return toast(t("lib.emptyExport"));
-  const json = JSON.stringify({app:"sonora", version:2, exportedAt:new Date().toISOString(),
-    songs: all.map(({id,title,text,type,key,bpm,ref,updatedAt})=>({id,title,text,type,key,bpm,ref,updatedAt})),
-    medleys: [...data.medleys.values()].map(({id,name,items,options,updatedAt})=>({id,name,options,updatedAt,items:items.map(({songId,target,capo,singer,notes})=>({songId,target,capo,singer,notes}))}))}, null, 2);
+  const json = JSON.stringify({app:"sonora", version:3, exportedAt:new Date().toISOString(),
+    songs: all.map(({id,title,text,type,key,bpm,ref,arrangements,updatedAt})=>({id,title,text,type,key,bpm,ref,arrangements:arrangements||[],updatedAt})),
+    medleys: [...data.medleys.values()].map(({id,kind,name,items,options,updatedAt})=>({id,kind:kind||"setlist",name,options,updatedAt,
+      items:items.map(i => i.type === "medley" ? {type:"medley", medleyId:i.medleyId} : {songId:i.songId,arrangementId:i.arrangementId||"",target:i.target,capo:i.capo,singer:i.singer,notes:i.notes})}))}, null, 2);
   saveBlob(new Blob([json], {type:"application/json"}), "sonora-backup-" + new Date().toISOString().slice(0,10) + ".json");
   toast(t("lib.exported"));
 }
@@ -574,23 +693,34 @@ async function importLibrary(file){
     const d = JSON.parse(await file.text());
     const rows = Array.isArray(d) ? d : d && d.songs;
     if(!Array.isArray(rows)) throw 0;
-    const idMap = new Map(); let ns = 0, nm = 0;
+    const idMap = new Map(), medMap = new Map(); let ns = 0, nm = 0;
     rows.forEach(raw => {
       const e = sanitizeEntry(raw); if(!e) return;
       const fields = {text:e.text, title:e.title, type:e.type, key:e.key, bpm:e.bpm, ref:e.ref};
       let s = (e.id && data.songs.get(e.id)) || [...data.songs.values()].find(x => norm(x.title) === norm(e.title));
-      if(s){ Object.assign(s, fields); store.saveSong(s); }
+      if(s){ Object.assign(s, fields); }
       else s = store.createSong(Object.assign(fields, e.id ? {id:e.id} : {}));
+      // Arranjos importados entram junto com os que já existem (o mesmo id substitui).
+      const byId = new Map((s.arrangements || []).map(a => [a.id, a])); e.arrangements.forEach(a => byId.set(a.id, a));
+      s.arrangements = [...byId.values()]; store.saveSong(s);
       if(e.id) idMap.set(e.id, s.id);
       ns++;
     });
-    (Array.isArray(d.medleys) ? d.medleys : []).forEach(r => {
-      if(!r || !Array.isArray(r.items)) return;
-      const items = r.items.map(i => i && idMap.get(i.songId) ? store.newItem(idMap.get(i.songId), sanitizeItem(i)) : null).filter(Boolean);
+    const medRows = (Array.isArray(d.medleys) ? d.medleys : []).filter(r => r && Array.isArray(r.items));
+    // Primeiro os medleys (blocos), para os repertórios poderem apontar para eles.
+    medRows.sort((a, b) => (a.kind === "medley" ? 0 : 1) - (b.kind === "medley" ? 0 : 1)).forEach(r => {
+      const kind = r.kind === "medley" ? "medley" : "setlist";
+      const items = r.items.map(i => {
+        if(!i) return null;
+        if(i.type === "medley") return kind === "setlist" && medMap.get(i.medleyId) ? store.newMedleyItem(medMap.get(i.medleyId)) : null;
+        return idMap.get(i.songId) ? store.newItem(idMap.get(i.songId), sanitizeItem(i)) : null;
+      }).filter(Boolean);
       const name = typeof r.name === "string" && r.name.trim() ? r.name.trim().slice(0,80) : t("lib.importedMedley");
       const ex = typeof r.id === "string" && data.medleys.get(r.id);
-      if(ex){ Object.assign(ex, {name, items, options: sanitizeOptions(r.options)}); store.saveMedley(ex); }
-      else { const m = store.createMedley(name, items, r.options); if(typeof r.id === "string" && r.id){ store.deleteMedley(m.id); m.id = r.id; store.saveMedley(m); } }
+      let target;
+      if(ex){ Object.assign(ex, {name, items, kind, options: sanitizeOptions(r.options)}); store.saveMedley(ex); target = ex; }
+      else { target = store.createMedley(name, items, r.options, kind); if(typeof r.id === "string" && r.id){ store.deleteMedley(target.id); target.id = r.id; store.saveMedley(target); } }
+      if(typeof r.id === "string") medMap.set(r.id, target.id);
       nm++;
     });
     toast(nm ? t("lib.importedBoth", {songs: songs(ns), medleys: medleys(nm)}) : t("lib.imported", {songs: songs(ns)}));
@@ -615,8 +745,9 @@ function renderStage(){
       if(it.lyric !== undefined) h += `<p class="stage-line">${esc(it.lyric)}</p>`;
       return h; }).join("")}</div>`).join("");
     const next = src[si+1], tr = m.options.transitions && !L && next ? transition(key, next.target || next.key) : null;
+    const gl = s.group && (si === 0 || src[si-1].group !== s.group) ? `<p class="stage-group">${icon("link","sm")} ${esc(t("sheet.medleyLabel", {name: s.gname}))}</p>` : "";
     const ref = s.ref ? `<button class="btn soft sm stage-ref" data-url="${esc(s.ref)}" data-title="${esc(s.title)}">${icon("play","sm")} ${esc(t("ref.listen"))}</button>` : "";
-    return `<section class="stage-song"><h2>${esc(s.title)}${key && !L ? ` <small>(${esc(key)})</small>` : ""}</h2>${meta || ref ? `<p class="meta">${esc(meta)} ${ref}</p>` : ""}${blocks}</section>`
+    return gl + `<section class="stage-song"><h2>${esc(s.title)}${key && !L ? ` <small>(${esc(key)})</small>` : ""}</h2>${meta || ref ? `<p class="meta">${esc(meta)} ${ref}</p>` : ""}${blocks}</section>`
       + (tr && !tr.same ? `<p class="stage-trans">→ ${esc(next.target || next.key)}: ${esc(tr.text)}${tr.passing ? " · " + esc(t("sheet.passing", {chord: stageMode === "graus" ? "V7" : tr.passing})) : ""}</p>` : "");
   }).join("") || `<div class="empty-state"><strong>${esc(t("stage.empty"))}</strong><span>${esc(t("stage.emptyText"))}</span></div>`;
   $$(".stage-ref", box).forEach(b => b.addEventListener("click", e => { e.stopPropagation(); openRef(b.dataset.url, b.dataset.title); }));
@@ -781,6 +912,8 @@ async function main(){
   $("#add-chords").onclick = () => addItem("");
   $("#add-lyrics").onclick = () => addItem("letra");
   $("#add-library").onclick = openPicker;
+  $("#add-medley").onclick = addMedleyBlock;
+  $("#ctx-back").onclick = () => { const back = data.settings.returnTo; if(back && data.medleys.has(back)) openMedley(back); };
   $("#btn-pdf").onclick = downloadPDF;
   $("#btn-print").onclick = () => { renderSheet.flush(); if(!lastPages.length) return toast(t("sheet.needSong")); window.print(); };
   initOptions(); initStage(); initInstall();

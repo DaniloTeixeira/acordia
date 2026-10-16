@@ -327,6 +327,7 @@ export function sanitizeEntry(r){
     target: ALL_KEYS.includes(r.target) ? r.target : "",
     bpm: Number.isFinite(+r.bpm) && +r.bpm > 0 && +r.bpm < 400 ? String(Math.round(+r.bpm)) : "",
     ref: sanitizeUrl(r.ref),
+    arrangements: sanitizeArrangements(r.arrangements),
     updatedAt: Number.isFinite(r.updatedAt) ? r.updatedAt : Date.now()
   };
 }
@@ -347,5 +348,15 @@ export function sanitizeOptions(o){
 export function sanitizeItem(it){
   if(!it || typeof it !== "object") return null;
   const capo = Number.isInteger(+it.capo) && +it.capo > 0 && +it.capo < 12 ? String(+it.capo) : "";
-  return {target: ALL_KEYS.includes(it.target) ? it.target : "", capo, singer: str(it.singer).slice(0, 80), notes: str(it.notes).slice(0, 300)};
+  return {target: ALL_KEYS.includes(it.target) ? it.target : "", capo, singer: str(it.singer).slice(0, 80), notes: str(it.notes).slice(0, 300),
+    arrangementId: str(it.arrangementId).slice(0, 40)};
+}
+// Arranjos de uma música: versões nomeadas (tom, capo, observações).
+export function sanitizeArrangements(list){
+  if(!Array.isArray(list)) return [];
+  return list.slice(0, 30).map(a => {
+    if(!a || typeof a !== "object" || typeof a.id !== "string" || !a.id) return null;
+    const it = sanitizeItem(a);
+    return {id: a.id.slice(0, 40), name: str(a.name).trim().slice(0, 60) || "—", target: it.target, capo: it.capo, notes: it.notes};
+  }).filter(Boolean);
 }

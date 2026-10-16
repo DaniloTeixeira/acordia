@@ -79,6 +79,13 @@ test("acordes clicáveis: posição e acorde que soa", () => {
   assert.ok(svg.includes('class="hit" data-chord="A/C#" data-key="D"'));
 });
 
+test("medley: rótulo antes da primeira música do grupo", () => {
+  const a = Object.assign(song("Um", 1), {group: "g1", gname: "Abertura"}), b = Object.assign(song("Dois", 1), {group: "g1", gname: "Abertura"}), c = song("Três", 1);
+  const all = texts(layout([a, b, c], 12, 1, opts()).pages);
+  assert.equal(all.filter(x => x === "MEDLEY · ABERTURA").length, 1);
+  assert.ok(all.indexOf("MEDLEY · ABERTURA") < all.indexOf("UM  (G)"));
+});
+
 test("toSVG escapa texto", () => {
   const svg = toSVG([{t:"text", x:0, y:0, s:10, f:"sans", b:false, c:[0,0,0], txt:"<b>&"}], "x");
   assert.ok(svg.includes("&lt;b&gt;&amp;"));
