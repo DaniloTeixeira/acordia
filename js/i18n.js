@@ -535,7 +535,15 @@ const pt = {
   "help.tools.intro":"Utilitários para estudar e ensaiar.",
   "help.tools.s1":"Metrônomo: ajuste o BPM, o compasso e a subdivisão, ou use o Tap tempo batendo no ritmo da música.",
   "help.tools.s2":"Afinador: escolha o instrumento, toque em “Ligar afinador” e toque uma corda. Afine até o ponteiro ficar na faixa verde.",
-  "help.tools.s3":"Referência (A4) é a frequência do Lá usada para afinar. Se não souber, deixe em 440 Hz."
+  "help.tools.s3":"Referência (A4) é a frequência do Lá usada para afinar. Se não souber, deixe em 440 Hz.",
+  "keys.youPlay":"Você toca",
+  "keys.beat":"Tempo",
+  "keys.gridTitle":"Sequência do exercício",
+  "keys.gridHint":"Cada coluna é um passo, na ordem. Em cada mão: a nota e, embaixo, o dedo (1 = polegar, 2 = indicador, 3 = médio, 4 = anelar, 5 = mínimo).",
+  "keys.gridHintNoFing":"Cada coluna é um passo, na ordem, com a nota de cada mão.",
+  "keys.autoLh":"O app toca a mão esquerda por você (em cinza na sequência).",
+  "keys.autoRh":"O app toca a mão direita por você (em cinza na sequência).",
+  "help.study.s6":"Teclado MIDI: conecte o teclado ao celular ou computador (cabo USB, adaptador OTG ou Bluetooth MIDI) e abra o Sonora no Chrome ou no Edge. Em Mãos › Teclado o navegador pede permissão; quando aparecer o selo “MIDI: nome do teclado”, é só tocar. iPhone e iPad ainda não têm MIDI no navegador: use as teclas da tela."
 };
 
 const en = {
@@ -1072,7 +1080,15 @@ const en = {
   "help.tools.intro":"Utilities for practice and rehearsal.",
   "help.tools.s1":"Metronome: set the BPM, time signature and subdivision, or use Tap tempo by tapping along.",
   "help.tools.s2":"Tuner: pick your instrument, tap “Start tuner” and play a string. Tune until the needle sits in the green zone.",
-  "help.tools.s3":"Reference (A4) is the frequency of A used for tuning. If unsure, keep 440 Hz."
+  "help.tools.s3":"Reference (A4) is the frequency of A used for tuning. If unsure, keep 440 Hz.",
+  "keys.youPlay":"You play",
+  "keys.beat":"Beat",
+  "keys.gridTitle":"Exercise sequence",
+  "keys.gridHint":"Each column is a step, in order. For each hand: the note and, below it, the finger (1 = thumb, 2 = index, 3 = middle, 4 = ring, 5 = pinky).",
+  "keys.gridHintNoFing":"Each column is a step, in order, with each hand's note.",
+  "keys.autoLh":"The app plays the left hand for you (grey in the sequence).",
+  "keys.autoRh":"The app plays the right hand for you (grey in the sequence).",
+  "help.study.s6":"MIDI keyboard: connect it to your phone or computer (USB cable, OTG adapter or Bluetooth MIDI) and open Sonora in Chrome or Edge. In Hands › Keyboard the browser asks for permission; once the “MIDI: keyboard name” badge shows up, just play. iPhone and iPad browsers don't support MIDI yet: use the on-screen keys."
 };
 
 const es = {
@@ -1609,7 +1625,15 @@ const es = {
   "help.tools.intro":"Utilidades para estudiar y ensayar.",
   "help.tools.s1":"Metrónomo: ajusta el BPM, el compás y la subdivisión, o usa Tap tempo marcando el ritmo.",
   "help.tools.s2":"Afinador: elige el instrumento, toca “Encender afinador” y toca una cuerda. Afina hasta que la aguja quede en la zona verde.",
-  "help.tools.s3":"La referencia (A4) es la frecuencia del La que se usa para afinar. Si no sabes, déjala en 440 Hz."
+  "help.tools.s3":"La referencia (A4) es la frecuencia del La que se usa para afinar. Si no sabes, déjala en 440 Hz.",
+  "keys.youPlay":"Tú tocas",
+  "keys.beat":"Tiempo",
+  "keys.gridTitle":"Secuencia del ejercicio",
+  "keys.gridHint":"Cada columna es un paso, en orden. En cada mano: la nota y, debajo, el dedo (1 = pulgar, 2 = índice, 3 = medio, 4 = anular, 5 = meñique).",
+  "keys.gridHintNoFing":"Cada columna es un paso, en orden, con la nota de cada mano.",
+  "keys.autoLh":"La app toca la mano izquierda por ti (en gris en la secuencia).",
+  "keys.autoRh":"La app toca la mano derecha por ti (en gris en la secuencia).",
+  "help.study.s6":"Teclado MIDI: conecta el teclado al celular o la computadora (cable USB, adaptador OTG o Bluetooth MIDI) y abre Sonora en Chrome o Edge. En Manos › Teclado el navegador pide permiso; cuando aparezca la etiqueta “MIDI: nombre del teclado”, solo toca. iPhone y iPad todavía no tienen MIDI en el navegador: usa las teclas de la pantalla."
 };
 
 

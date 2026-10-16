@@ -126,7 +126,7 @@ export function initKeys({root, data, store, toast, icon, esc, audio, seg}){
   }
   function gridHTML(b, hands){
     const cell = (ev, h) => ev ? `<span class="kc ${h}${hands !== "both" && hands !== h ? " auto" : ""}"><b>${esc(ev.names.join(" "))}</b>${b.fingering ? `<small>${ev.fingers.join(" ")}</small>` : ""}</span>` : `<span class="kc empty"></span>`;
-    return `<div class="kgrid">${b.steps.map((s, i) => `<div class="kstep" data-i="${i}"><span class="kbeat">${Number.isInteger(s.t) ? s.t % 4 + 1 : "&"}</span>${cell(s.rh, "rh")}${cell(s.lh, "lh")}</div>`).join("")}</div>`;
+    return `<div class="kgrid"><div class="kstep klabels" aria-hidden="true"><span class="kbeat">${esc(t("keys.beat"))}</span><span class="kc lbl rh">${esc(t("keys.rh"))}</span><span class="kc lbl lh">${esc(t("keys.lh"))}</span></div>${b.steps.map((s, i) => `<div class="kstep" data-i="${i}"><span class="kbeat">${Number.isInteger(s.t) ? s.t % 4 + 1 : "&"}</span>${cell(s.rh, "rh")}${cell(s.lh, "lh")}</div>`).join("")}</div>`;
   }
 
   function renderList(){
@@ -153,14 +153,16 @@ export function initKeys({root, data, store, toast, icon, esc, audio, seg}){
         <div class="scale-head"><div><h2>${esc(t("keys.p." + ex.id))} ${levelDots(ex.level)}</h2><p class="sub">${esc(t("keys.p." + ex.id + "D"))}</p></div><span id="k-midi" class="chip"></span></div>
         <div class="study-row k-controls">
           <label class="field inst-field"><span>${esc(t("study.root"))}</span><select class="input" id="k-key">${Array.from({length:12}, (_, pc) => `<option value="${pc}" ${pc === st.key ? "selected" : ""}>${esc(rootFor(pc, "maior"))}</option>`).join("")}</select></label>
-          <div class="seg sm" id="k-hands" role="group" aria-label="${esc(t("keys.hands"))}"><button data-v="rh">${esc(t("keys.rh"))}</button><button data-v="lh">${esc(t("keys.lh"))}</button><button data-v="both">${esc(t("keys.both"))}</button></div>
+          <div class="field inst-field"><span>${esc(t("keys.youPlay"))}</span><div class="seg sm" id="k-hands" role="group" aria-label="${esc(t("keys.youPlay"))}"><button data-v="rh">${esc(t("keys.rh"))}</button><button data-v="lh">${esc(t("keys.lh"))}</button><button data-v="both">${esc(t("keys.both"))}</button></div></div>
           <div class="bpm"><button class="icon-btn sm" id="k-slower" aria-label="${esc(t("hands.slower"))}">${icon("minus","sm")}</button>
             <label><input type="range" id="k-bpm" min="30" max="160" step="2" value="${bpm}" aria-label="BPM"><span><b id="k-bpm-v">${bpm}</b> bpm</span></label>
             <button class="icon-btn sm" id="k-faster" aria-label="${esc(t("hands.faster"))}">${icon("plus","sm")}</button></div>
         </div>
         ${built.fingering ? "" : `<p class="note">${esc(t("keys.noFingering"))}</p>`}
         <div class="board-wrap k-board">${keyboardSVG(built.lo, built.hi)}</div>
+        <div class="kgrid-head"><h3>${esc(t("keys.gridTitle"))}</h3><p class="sub">${esc(t(built.fingering ? "keys.gridHint" : "keys.gridHintNoFing"))}</p></div>
         <div class="kgrid-wrap">${gridHTML(built, st.hands)}</div>
+        ${st.hands !== "both" ? `<p class="sub k-auto">${esc(t(st.hands === "rh" ? "keys.autoLh" : "keys.autoRh"))}</p>` : ""}
         <div class="study-row k-actions">
           <button class="btn soft" id="k-demo">${icon("sound","sm")} ${esc(t("hands.listen"))}</button>
           <button class="btn primary" id="k-wait">${icon("play","sm")} ${esc(t("keys.wait"))}</button>

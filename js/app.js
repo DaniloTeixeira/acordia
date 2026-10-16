@@ -732,6 +732,9 @@ function editSong(s){
     toast(t(isNew ? "song.saved" : "song.updated"));
     renderLibrary(); renderItems(); renderSheet(); updateCounts();
   };
+  // Fotografia do que foi aberto: com alterações, clicar fora não descarta o texto.
+  const snap = () => [$("#song-text").value, type, $("#song-key").value, $("#song-bpm").value, $("#song-ref").value].join("\u0000");
+  const start = snap(); dlg.isDirty = () => snap() !== start;
   dlg.showModal(); requestAnimationFrame(() => { paintSeg(typeSeg); $("#song-text").focus(); });
 }
 function exportLibrary(){
@@ -997,7 +1000,7 @@ function openNear(pop, btn, w){
   pop.style.top = (r.bottom + 8 + h > innerHeight ? Math.max(12, r.top - h - 8) : r.bottom + 8) + "px";
 }
 // Guia "Como usar" de cada página.
-const HELP_STEPS = {medley: 6, library: 4, study: 5, tools: 3};
+const HELP_STEPS = {medley: 6, library: 4, study: 6, tools: 3};
 function openHelp(page){
   const n = HELP_STEPS[page]; if(!n) return;
   $("#help-h").textContent = t("help." + page + ".title");
@@ -1012,6 +1015,21 @@ function offerHelp(page){
   if(!HELP_STEPS[page] || (data.settings.seenHelp || {})[page]) return;
   seenHelp(page);
   setTimeout(() => toast(t("help.first"), {label: t("help.button"), run: () => openHelp(page)}), 600);
+}
+// Clicar fora de uma janela fecha (como Cancelar). Só conta se o clique começou e terminou fora,
+// para não fechar quando alguém seleciona texto e solta o mouse do lado de fora.
+function initDialogs(){
+  const outside = (d, e) => { const r = d.getBoundingClientRect(); return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom; };
+  $$("dialog").forEach(d => {
+    let downOutside = false;
+    d.addEventListener("pointerdown", e => { downOutside = e.target === d && outside(d, e); });
+    d.addEventListener("click", e => {
+      if(!downOutside || e.target !== d || !outside(d, e)) return;
+      downOutside = false;
+      if(d.isDirty && d.isDirty()){ d.classList.remove("nudge"); void d.offsetWidth; d.classList.add("nudge"); return; }
+      d.close("cancel");
+    });
+  });
 }
 function initVolume(){
   const pop = $("#vol-pop"), range = $("#vol-range");
@@ -1045,6 +1063,7 @@ async function main(){
   chordDialog = createChordDialog({dlg: $("#dlg-chord"), audio, getInstrument, setInstrument, icon});
   tools = initTools();
   volume = initVolume();
+  initDialogs();
   document.addEventListener("change", e => { if(e.target.matches && e.target.matches("select[data-instrument]")) setInstrument(e.target.value); });
   $("#pages").addEventListener("click", e => { const r = e.target.closest && e.target.closest("rect.hit"); if(r) chordDialog.open(r.dataset.chord, r.dataset.key); });
   study = initStudy({explore: $("#study-explore"), train: $("#study-train"), hands: $("#study-hands"), getInstrument, chordDialog, getRepertoire: repertoireEntries, tabs: $("#study-tabs"), seg, paintSeg, data, store, toast, icon, esc});

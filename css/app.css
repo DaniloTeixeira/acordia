@@ -571,6 +571,15 @@ a.btn{text-decoration:none}
 .help-steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px;line-height:1.5}
 .help-steps li::marker{color:var(--accent);font-weight:700}
 
+/* janela com alterações: avisa em vez de fechar */
+dialog.nudge{animation:shake .35s var(--ease)}
+
+.kgrid-head{display:flex;flex-direction:column;gap:2px;margin-bottom:-6px}
+.kgrid-head h3{font-size:.95rem}
+.klabels{position:sticky;left:0;z-index:1;background:var(--surface);min-width:72px}
+.kc.lbl{font-weight:700;font-size:.72rem;align-items:flex-start;padding-left:8px}
+.k-auto{margin-top:-8px}
+
 /* ---------- diálogos ---------- */
 dialog{border:none;padding:0;border-radius:var(--r-lg);background:var(--surface);color:var(--ink);box-shadow:var(--shadow-lg);width:min(560px,calc(100vw - 24px));max-height:min(86dvh,760px);
   opacity:1;transform:none;transition:opacity var(--t) var(--ease),transform var(--t) var(--ease-out),display var(--t) allow-discrete,overlay var(--t) allow-discrete}
