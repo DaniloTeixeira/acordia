@@ -4,484 +4,245 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Medley Generator</title>
+<meta name="description" content="Monte medleys em folhas A4 com cifras, graus ou só letra. Funciona offline.">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#1F4E79">
+<meta name="theme-color" content="#F4F6FA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0B1018" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<script src="vendor/jspdf.umd.min.js"></script>
-<script src="js/core.js"></script>
-<style>
-:root{
-  --bg:#E9EDF2; --panel:#FFFFFF; --ink:#18212F; --muted:#5A6576; --line:#CBD3DE;
-  --accent:#1F4E79; --accent-ink:#FFFFFF; --field:#F7F9FB; --warn:#9A3412; --warn-bg:#FFF1E8;
-  color-scheme: light;
-  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#11161E; --panel:#1A212C; --ink:#E6EBF2; --muted:#9AA6B6; --line:#2E3846;
-    --accent:#6FA8DC; --accent-ink:#0E1621; --field:#141A23; --warn:#FDBA74; --warn-bg:#2A1C12;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#11161E; --panel:#1A212C; --ink:#E6EBF2; --muted:#9AA6B6; --line:#2E3846;
-  --accent:#6FA8DC; --accent-ink:#0E1621; --field:#141A23; --warn:#FDBA74; --warn-bg:#2A1C12;
-  color-scheme: dark;
-}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
-*,*::before,*::after{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.45}
-.app{display:grid;grid-template-columns:minmax(300px,420px) 1fr;gap:24px;padding:24px;max-width:1400px;margin:0 auto}
-@media (max-width:860px){.app{grid-template-columns:1fr;padding:14px}}
-h1{font-size:1.35rem;font-weight:600;margin:0 0 4px}
-.lead{color:var(--muted);margin:0 0 18px;font-size:.92rem}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}
-.controls{display:flex;flex-wrap:wrap;gap:14px 18px;align-items:center;margin-bottom:16px}
-label.inline{display:flex;gap:8px;align-items:center;font-size:.92rem}
-select{font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:6px;padding:5px 8px}
-.song{border-top:1px solid var(--line);padding-top:14px;margin-top:14px}
-.song-head span{display:flex;gap:8px;align-items:center}
-.song-title{font-weight:600;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block!important}
-.song-actions{flex-shrink:0;gap:4px!important}
-.lib-tools{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-.filebtn{font-weight:500;border-radius:6px;padding:8px 14px;cursor:pointer;border:1px solid var(--accent);color:var(--accent)}
-.filebtn:focus-within{outline:3px solid var(--accent);outline-offset:2px}
-.sec{font-size:1.05rem;font-weight:600;margin:26px 0 10px}
-#lib-count{color:var(--muted);font-weight:400}
-.lib input[type=search]{width:100%;font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
-.lib .status{margin:8px 0 4px}
-#lib-list{list-style:none;margin:0;padding:0;max-height:420px;overflow-y:auto}
-#lib-list li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
-#lib-list li:first-child{border-top:none}
-.lib-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lib-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.lib-empty{color:var(--muted);font-size:.9rem;display:block!important}
-.in-use{font-size:.8rem;color:var(--muted)}
-button.link.danger{color:var(--warn);font-weight:600}
-.controls .link{margin-left:auto}
-.add-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
-.song-keys[hidden]{display:none}
-.add-row .add{margin-top:0}
-.badge{font-size:.75rem;font-weight:600;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:1px 8px;margin-right:4px}
-button.move{background:transparent;color:var(--accent);padding:2px 9px;line-height:1.3}
-button.move:disabled{opacity:.35;cursor:default}
-.song-keys{display:flex;flex-wrap:wrap;gap:8px 16px;margin-bottom:8px;font-size:.88rem}
-.song-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:.9rem;color:var(--muted)}
-textarea{width:100%;min-height:190px;resize:vertical;font-family:"Courier New",Courier,monospace;font-size:13px;line-height:1.35;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:6px;padding:10px;white-space:pre;overflow-x:auto}
-button{font:inherit;font-weight:500;border-radius:6px;padding:8px 14px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink)}
-button.ghost{background:transparent;color:var(--accent)}
-button.link{border:none;background:none;color:var(--muted);padding:2px 4px;font-size:.85rem;text-decoration:underline}
-button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-.add{margin-top:14px;width:100%}
-.preview{display:flex;flex-direction:column;gap:22px;min-width:0}
-.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
-.sheet-head h2{font-size:1rem;margin:0;font-weight:600}
-.paper{background:#fff;border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,.18);width:100%;max-width:760px;aspect-ratio:595.28/841.89}
-.paper svg{display:block;width:100%;height:100%}
-.note{font-size:.88rem;padding:9px 12px;border-radius:6px;background:var(--warn-bg);color:var(--warn);margin:0 0 8px}
-.empty{color:var(--muted);font-size:.92rem;padding:30px 0}
-.status{font-size:.85rem;color:var(--muted);min-height:1.2em}
-@media print{
-  @page{size:A4;margin:0}
-  body{background:#fff}
-  .app{display:block;padding:0}
-  .editor,.sheet-head,.note,.status{display:none!important}
-  .preview{gap:0}
-  .paper{box-shadow:none;border-radius:0;max-width:none;width:210mm;height:297mm;break-after:page}
-}
-</style>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Medley">
+<link rel="preload" href="fonts/lexend-bold.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="stylesheet" href="css/app.css">
+<script>
+  // Aplica o tema antes de pintar, para não piscar.
+  try{ const t = localStorage.getItem("mg-theme"); if(t === "light" || t === "dark") document.documentElement.dataset.theme = t; }catch(e){}
+</script>
+<script src="vendor/jspdf.umd.min.js" defer></script>
+<script type="module" src="js/app.js"></script>
 </head>
 <body>
-<div class="app">
-  <section class="editor">
-    <h1>Medley Generator</h1>
-    <p class="lead">Cole cada música com o título na primeira linha. A folha remove marcações como [Refrão], tira blocos repetidos e ajusta o tamanho da letra para ocupar a página toda.</p>
-    <div class="panel">
-      <div class="controls">
-        <label class="inline"><input type="checkbox" id="dedupe" checked> Remover repetições</label>
-        <button class="link" id="new-seq">Nova sequência</button>
-      </div>
-      <div id="songs"></div>
-      <div class="add-row"><button class="ghost add" id="add">Adicionar música com cifra</button><button class="ghost add" id="add-lyrics">Adicionar só letra</button></div>
-    </div>
-    <h2 class="sec">Biblioteca <span id="lib-count"></span></h2>
-    <div class="panel lib">
-      <input type="search" id="lib-q" placeholder="Buscar por título ou trecho" aria-label="Buscar na biblioteca">
-      <p class="status" id="lib-status" aria-live="polite"></p>
-      <ul id="lib-list"></ul>
-      <div class="lib-tools"><button class="ghost" id="lib-export">Exportar biblioteca</button><label class="ghost filebtn" id="lib-import-wrap">Importar biblioteca<input type="file" id="lib-import" accept="application/json,.json" hidden></label></div>
-    </div>
-  </section>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+  <symbol id="i-library" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M20 17v4H6.5A2.5 2.5 0 0 1 4 18.5"/></symbol>
+  <symbol id="i-study" viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></symbol>
+  <symbol id="i-stage" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
+  <symbol id="i-print" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></symbol>
+  <symbol id="i-text" viewBox="0 0 24 24"><path d="M4 7V5h16v2M9 19h6M12 5v14"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 22c4 0 7-2.7 7-7 0-3-2-5.5-3.5-7-.3 2-1.5 3.3-3 3.5C13 8 12 5 9 2c0 4-4 6.5-4 12 0 4.3 3 8 7 8z"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 21V9M7 14l5-5 5 5M5 3h14"/></symbol>
+</svg>
 
-  <section class="preview" id="preview"></section>
+<div class="shell">
+  <aside class="rail" data-i18n-attr="aria-label:nav.nav">
+    <a class="brand" href="./"><img src="icons/icon-192.png" alt=""><span>Medley Generator<small data-i18n="app.tagline"></small></span></a>
+    <button class="nav-item" data-nav="medley"><svg class="i"><use href="#i-music"/></svg><span data-i18n="nav.medley"></span></button>
+    <button class="nav-item" data-nav="library"><svg class="i"><use href="#i-library"/></svg><span data-i18n="nav.library"></span><span class="count" data-count="songs"></span></button>
+    <button class="nav-item" data-nav="study"><svg class="i"><use href="#i-study"/></svg><span data-i18n="nav.study"></span></button>
+    <div class="rail-foot">
+      <button class="nav-item" data-install hidden><svg class="i"><use href="#i-phone"/></svg><span data-i18n="nav.install"></span></button>
+      <button class="nav-item" data-lang-toggle><svg class="i"><use href="#i-globe"/></svg><span></span></button>
+      <button class="nav-item" data-theme-toggle><svg class="i"><use href="#i-monitor"/></svg><span></span></button>
+    </div>
+  </aside>
+
+  <header class="topbar">
+    <a class="brand" href="./"><img src="icons/icon-192.png" alt=""><span>Medley Generator</span></a>
+    <button class="icon-btn" data-install hidden data-i18n-attr="aria-label:nav.install"><svg class="i"><use href="#i-phone"/></svg></button>
+    <button class="icon-btn" data-lang-toggle><svg class="i"><use href="#i-globe"/></svg></button>
+    <button class="icon-btn" data-theme-toggle><svg class="i"><use href="#i-monitor"/></svg></button>
+  </header>
+
+  <main id="main">
+    <!-- ===== Medley ===== -->
+    <section class="view" id="view-medley" data-view="medley" aria-labelledby="medley-name">
+      <div class="view-head">
+        <div class="title-wrap">
+          <input id="medley-name" class="title-input" data-i18n-attr="aria-label:medley.nameAria" maxlength="80" autocomplete="off">
+          <p class="sub" id="medley-sub"></p>
+        </div>
+        <div class="actions">
+          <button class="btn ghost" id="btn-new-medley"><svg class="i"><use href="#i-plus"/></svg><span class="label-lg" data-i18n="medley.new"></span></button>
+          <button class="btn ghost" id="btn-share"><svg class="i"><use href="#i-share"/></svg><span class="label-lg" data-i18n="medley.share"></span></button>
+          <button class="btn primary" id="btn-stage"><svg class="i"><use href="#i-stage"/></svg><span data-i18n="medley.stage"></span></button>
+        </div>
+      </div>
+      <div class="seg block pane-toggle" id="pane-toggle" role="group" data-i18n-attr="aria-label:pane.aria">
+        <button data-v="edit" aria-pressed="true" data-i18n="pane.edit"></button><button data-v="sheet" aria-pressed="false" data-i18n="pane.sheet"></button>
+      </div>
+      <div class="medley-grid" id="medley-grid" data-pane="edit">
+        <div class="pane pane-edit">
+          <ol class="items" id="items"></ol>
+          <div class="add-bar">
+            <button class="btn soft" id="add-chords"><svg class="i"><use href="#i-plus"/></svg><span data-i18n="add.chords"></span></button>
+            <button class="btn soft" id="add-lyrics"><svg class="i"><use href="#i-text"/></svg><span data-i18n="add.lyrics"></span></button>
+            <button class="btn soft" id="add-library"><svg class="i"><use href="#i-library"/></svg><span data-i18n="add.library"></span></button>
+          </div>
+        </div>
+        <div class="pane pane-sheet">
+          <div class="sheet-toolbar">
+            <div class="seg" id="mode-seg" role="group" data-i18n-attr="aria-label:sheet.modeAria">
+              <button data-v="cifras" data-i18n="sheet.chords"></button><button data-v="graus" data-i18n="sheet.degrees"></button><button data-v="letra" data-i18n="sheet.lyrics"></button>
+            </div>
+            <div class="tools">
+              <button class="icon-btn" popovertarget="sheet-options" id="btn-options" data-i18n-attr="aria-label:sheet.options;title:sheet.options"><svg class="i"><use href="#i-sliders"/></svg></button>
+              <button class="icon-btn" id="btn-print" data-i18n-attr="aria-label:sheet.print;title:sheet.print"><svg class="i"><use href="#i-print"/></svg></button>
+              <button class="btn primary sm" id="btn-pdf"><svg class="i sm"><use href="#i-download"/></svg>PDF</button>
+            </div>
+          </div>
+          <div id="sheet-options" class="popover" popover>
+            <h3 data-i18n="sheet.options"></h3>
+            <label class="switch"><span data-i18n="opt.dedupe"></span><input type="checkbox" data-opt="dedupe"></label>
+            <label class="switch"><span data-i18n="opt.showKey"></span><input type="checkbox" data-opt="showKey"></label>
+            <label class="switch"><span data-i18n="opt.transitions"></span><input type="checkbox" data-opt="transitions"></label>
+            <label class="switch"><span data-i18n="opt.maxPages"></span><input type="checkbox" data-opt="maxPages"></label>
+            <hr>
+            <div class="row"><span data-i18n="opt.columns"></span><div class="seg sm" data-opt-seg="columns"><button data-v="auto" data-i18n="opt.auto"></button><button data-v="1">1</button><button data-v="2">2</button></div></div>
+            <div class="row"><span data-i18n="opt.degrees"></span><div class="seg sm" data-opt-seg="degreeStyle"><button data-v="roman">I IV V</button><button data-v="arabic">1 4 5</button></div></div>
+            <div class="row"><label for="opt-minfont" data-i18n="opt.minFont"></label><select class="input" id="opt-minfont" data-opt="minFont" style="width:auto">
+              <option value="7">7 pt</option><option value="8">8 pt</option><option value="9">9 pt</option><option value="10">10 pt</option><option value="11">11 pt</option><option value="12">12 pt</option></select></div>
+          </div>
+          <p class="note" id="sheet-warn" hidden></p>
+          <div class="pages" id="pages"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Biblioteca ===== -->
+    <section class="view" id="view-library" data-view="library" hidden aria-labelledby="lib-h">
+      <div class="view-head">
+        <div><h1 id="lib-h" data-i18n="lib.title"></h1><p class="sub" id="lib-sub"></p></div>
+        <div class="actions">
+          <button class="btn primary" id="lib-new"><svg class="i"><use href="#i-plus"/></svg><span data-i18n="lib.new"></span></button>
+          <button class="btn ghost" id="lib-export"><svg class="i"><use href="#i-download"/></svg><span class="label-lg" data-i18n="lib.export"></span></button>
+          <label class="btn ghost" tabindex="0" id="lib-import-btn"><svg class="i"><use href="#i-upload"/></svg><span class="label-lg" data-i18n="lib.import"></span><input type="file" id="lib-import" accept="application/json,.json" hidden></label>
+        </div>
+      </div>
+      <div class="seg" id="lib-tabs" role="group" data-i18n-attr="aria-label:lib.tabsAria">
+        <button data-v="songs"></button><button data-v="medleys"></button>
+      </div>
+      <div class="lib-toolbar">
+        <div class="search"><svg class="i sm"><use href="#i-search"/></svg><input type="search" class="input" id="lib-q" data-i18n-attr="placeholder:lib.search;aria-label:lib.searchAria"></div>
+        <div class="seg sm" id="lib-filter" role="group" data-i18n-attr="aria-label:lib.filterAria"><button data-v="all" data-i18n="lib.all"></button><button data-v="chords" data-i18n="lib.withChords"></button><button data-v="letra" data-i18n="lib.lyricsOnly"></button></div>
+        <select class="input" id="lib-sort" style="width:auto" data-i18n-attr="aria-label:lib.sortAria"><option value="az" data-i18n="lib.az"></option><option value="recent" data-i18n="lib.recent"></option></select>
+      </div>
+      <ul class="cards" id="lib-list"></ul>
+    </section>
+
+    <!-- ===== Estudo ===== -->
+    <section class="view" id="view-study" data-view="study" hidden aria-labelledby="study-h">
+      <div class="view-head"><div><h1 id="study-h" data-i18n="study.title"></h1><p class="sub" data-i18n="study.sub"></p></div></div>
+      <div class="seg" id="study-tabs" role="group" data-i18n-attr="aria-label:study.tabsAria">
+        <button data-v="explore" data-i18n="study.explore"></button><button data-v="train" data-i18n="study.train"></button>
+      </div>
+      <div id="study-explore"></div>
+      <div id="study-train" hidden></div>
+    </section>
+  </main>
+
+  <nav class="tabbar" data-i18n-attr="aria-label:nav.nav">
+    <button class="tab" data-nav="medley"><span class="pill"><svg class="i"><use href="#i-music"/></svg></span><span data-i18n="nav.medley"></span></button>
+    <button class="tab" data-nav="library"><span class="pill"><svg class="i"><use href="#i-library"/></svg></span><span data-i18n="nav.library"></span></button>
+    <button class="tab" data-nav="study"><span class="pill"><svg class="i"><use href="#i-study"/></svg></span><span data-i18n="nav.study"></span></button>
+  </nav>
 </div>
 
-<script>
-(function(){
-"use strict";
-const {NOTES, KEYS, parseSong, dedupeBlocks, lineToDegrees, lineTranspose, detectKey, songTitle, sanitizeEntry} = window.Cifras;
+<!-- ===== Modo palco ===== -->
+<div class="stage" id="stage" hidden role="dialog" aria-modal="true" data-i18n-attr="aria-label:stage.aria">
+  <div class="stage-bar">
+    <button class="icon-btn" id="stage-close" data-i18n-attr="aria-label:stage.close"><svg class="i"><use href="#i-x"/></svg></button>
+    <div class="seg sm" id="stage-mode" role="group" data-i18n-attr="aria-label:stage.modeAria"><button data-v="cifras" data-i18n="sheet.chords"></button><button data-v="graus" data-i18n="sheet.degrees"></button><button data-v="letra" data-i18n="sheet.lyricsShort"></button></div>
+    <span class="grow"></span>
+    <button class="icon-btn" id="stage-smaller" data-i18n-attr="aria-label:stage.smaller"><b>A−</b></button>
+    <button class="icon-btn" id="stage-bigger" data-i18n-attr="aria-label:stage.bigger"><b>A+</b></button>
+  </div>
+  <div class="stage-scroll" id="stage-scroll" tabindex="0"><div class="stage-content" id="stage-content"></div></div>
+</div>
 
-// ---------- state ----------
-let state = {key:"E", dedupe:true, songs:[""], keys:[], targets:[], types:[]};
-try{ const s = JSON.parse(localStorage.getItem("folha-cifras-v1")||"null"); if(s && Array.isArray(s.songs)) state = Object.assign(state, s); }catch(e){}
-if(!Array.isArray(state.keys)) state.keys = [];
-if(!Array.isArray(state.targets)) state.targets = [];
-if(!Array.isArray(state.types)) state.types = [];
-if(!Array.isArray(state.libIds)) state.libIds = [];
-function save(){ try{ localStorage.setItem("folha-cifras-v1", JSON.stringify(state)); }catch(e){} }
+<!-- ===== Diálogos ===== -->
+<dialog id="dlg-picker" aria-labelledby="picker-h">
+  <form method="dialog" class="dlg">
+    <div class="dlg-head"><h2 id="picker-h" data-i18n="picker.title"></h2><button class="icon-btn" value="cancel" data-i18n-attr="aria-label:common.close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="dlg-body">
+      <div class="search"><svg class="i sm"><use href="#i-search"/></svg><input type="search" class="input" id="picker-q" data-i18n-attr="placeholder:picker.search;aria-label:picker.searchAria"></div>
+      <ul class="pick-list" id="picker-list"></ul>
+    </div>
+    <div class="dlg-foot"><button class="btn ghost" value="cancel" data-i18n="common.cancel"></button><button class="btn primary" value="ok" id="picker-ok" disabled data-i18n="common.add"></button></div>
+  </form>
+</dialog>
 
-// ---------- layout ----------
-const PW = 595.28, PH = 841.89, M = 32, GAP = 22, COLW = (PW - 2*M - GAP)/2, CW = 0.632;
-const TITLE_SIZE = 14;
+<dialog id="dlg-song" aria-labelledby="song-h">
+  <form method="dialog" class="dlg">
+    <div class="dlg-head"><h2 id="song-h">Música</h2><button class="icon-btn" value="cancel" data-i18n-attr="aria-label:common.close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="dlg-body">
+      <div class="seg sm" id="song-type" role="group" data-i18n-attr="aria-label:song.typeAria"><button type="button" data-v="" data-i18n="item.withChords"></button><button type="button" data-v="letra" data-i18n="item.lyricsOnly"></button></div>
+      <textarea class="input song-text" id="song-text" spellcheck="false" data-i18n-attr="aria-label:song.textAria;placeholder:item.phChords"></textarea>
+      <div class="fields">
+        <label class="field"><span data-i18n="song.key"></span><select class="input" id="song-key"></select></label>
+        <label class="field"><span data-i18n="item.bpm"></span><input class="input" id="song-bpm" type="number" inputmode="numeric" min="20" max="300" placeholder="—"></label>
+      </div>
+    </div>
+    <div class="dlg-foot"><button class="btn ghost" value="cancel" data-i18n="common.cancel"></button><button class="btn primary" value="ok" data-i18n="common.save"></button></div>
+  </form>
+</dialog>
 
-function wrapItem(it, maxCols){
-  const len = Math.max((it.chord||"").length,(it.lyric||"").length);
-  if(len <= maxCols) return [it];
-  const lyr = it.lyric || "", ch = it.chord || "";
-  let p = -1;
-  for(let c = Math.min(maxCols, lyr.length-1); c > 4; c--){
-    if(lyr[c-1]===" " && lyr[c]!==" " && (c>=ch.length || ch[c-1]===" ")) { p = c; break; }
-  }
-  if(p<0) return [it];
-  const restL = lyr.slice(p), restC = ch.slice(p);
-  const a = {kind:it.kind, chord: ch.slice(0,p).replace(/\s+$/,""), lyric: lyr.slice(0,p).replace(/\s+$/,"")};
-  const b = {kind:it.kind, chord: restC, lyric: restL};
-  if(!a.chord) a.kind = a.lyric ? "lyric" : a.kind;
-  if(!b.chord.trim()) { b.kind = "lyric"; delete b.chord; }
-  return [a, ...wrapItem(b, maxCols)];
-}
+<dialog id="dlg-share" aria-labelledby="share-h">
+  <form method="dialog" class="dlg">
+    <div class="dlg-head"><h2 id="share-h" data-i18n="share.title"></h2><button class="icon-btn" value="cancel" data-i18n-attr="aria-label:common.close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="dlg-body">
+      <p data-i18n="share.desc"></p>
+      <div class="link-box"><input class="input" id="share-url" readonly data-i18n-attr="aria-label:share.urlAria"><button type="button" class="btn primary" id="share-copy"><svg class="i sm"><use href="#i-copy"/></svg><span data-i18n="common.copy"></span></button></div>
+      <p class="sub" id="share-size"></p>
+    </div>
+    <div class="dlg-foot"><button type="button" class="btn ghost" id="share-native" hidden><svg class="i sm"><use href="#i-share"/></svg><span data-i18n="share.send"></span></button><button class="btn ghost" value="cancel" data-i18n="common.close"></button></div>
+  </form>
+</dialog>
 
-const MEASURE = document.createElement("canvas").getContext("2d");
-// Largura medida a 100px e guardada; o ajuste de tamanho mede os mesmos textos dezenas de vezes.
-const widths = new Map();
-function textW(t, fs){
-  let w = widths.get(t);
-  if(w===undefined){ MEASURE.font = "100px Lexend, AHSans, sans-serif"; w = MEASURE.measureText(t).width; widths.set(t, w); }
-  return w * fs / 100;
-}
-function lyricsOnly(songs){
-  return songs.map(s=>Object.assign({}, s, {blocks: s.blocks
-    .map(b=>b.filter(it=>it.lyric!==undefined).map(it=>({kind:"lyric", lyric: it.lyric.replace(/_+/g,"").replace(/\s+/g," ").trim()})).filter(it=>it.lyric))
-    .filter(b=>b.length)}));
-}
-function wrapWords(it, fs){
-  const max = COLW*0.97, words = it.lyric.split(" "), out = []; let cur = "";
-  words.forEach(w=>{ const t = cur ? cur + " " + w : w; if(textW(t, fs) <= max || !cur) cur = t; else { out.push({kind:"lyric", lyric:cur}); cur = w; } });
-  if(cur) out.push({kind:"lyric", lyric:cur});
-  return out;
-}
+<dialog id="dlg-incoming" aria-labelledby="incoming-h">
+  <form method="dialog" class="dlg">
+    <div class="dlg-head"><h2 id="incoming-h" data-i18n="incoming.title"></h2><button class="icon-btn" value="cancel" data-i18n-attr="aria-label:common.close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="dlg-body"><p id="incoming-desc"></p><ol class="steps" id="incoming-list"></ol></div>
+    <div class="dlg-foot"><button class="btn ghost" value="cancel" data-i18n="incoming.later"></button><button class="btn primary" value="ok" data-i18n="incoming.save"></button></div>
+  </form>
+</dialog>
 
-function layout(songs, fs, k, mode){
-  const maxCols = Math.floor(COLW/(CW*fs));
-  const L = mode==="letra";
-  const CH = fs*1.05, LY = L ? fs*(1.15+0.25*k) : fs*1.32*k, CO = fs*1.5*k, BG = L ? fs*1.3*k : fs*0.95*k, TH = TITLE_SIZE + 10, SG = 12*k;
-  const ops = []; let col = 0, y = M, overflow = false, tooWide = false;
-  const x = () => M + col*(COLW+GAP);
-  const bottom = PH - M;
-  function itemH(it){ return it.kind==="pair" ? CH+LY : it.kind==="chord" ? CO : LY; }
-  function nextCol(){ col++; y = M; if(col>1) overflow = true; }
-  songs.forEach((s, si)=>{
-    const blocks = s.blocks.map(b=>b.flatMap(it=>mode==="letra" ? wrapWords(it, fs) : wrapItem(it, maxCols)));
-    if(mode!=="letra") blocks.forEach(b=>b.forEach(it=>{ if(Math.max((it.chord||"").length,(it.lyric||"").length) > maxCols) tooWide = true; }));
-    const firstH = blocks.length ? blocks[0].reduce((h,it)=>h+itemH(it),0) : 0;
-    if(si>0) y += SG;
-    if(y + TH + firstH > bottom && y > M) nextCol();
-    ops.push({t:"text",x:x(),y:y+TITLE_SIZE*0.85,s:TITLE_SIZE,f:mode==="letra"?"lex":"sans",b:true,c:[31,78,121],txt:s.title.toUpperCase()});
-    ops.push({t:"line",x1:x(),x2:x()+COLW,y:y+TITLE_SIZE+3,c:[31,78,121],w:0.9});
-    y += TH;
-    blocks.forEach((b, bi)=>{
-      const h = b.reduce((h,it)=>h+itemH(it),0) + (bi?BG:0);
-      if(y + h > bottom && y > M + TH) nextCol(); else if(bi) y += BG;
-      b.forEach(it=>{
-        if(y + itemH(it) > bottom) nextCol();
-        if(it.chord!==undefined && it.chord!==null){
-          const txt = mode==="graus" ? lineToDegrees(it.chord, s.key) : lineTranspose(it.chord, s.shift, s.target);
-          ops.push({t:"text",x:x(),y:y+fs*0.82,s:fs,f:"mono",b:true,c:[176,32,26],txt});
-          y += it.kind==="pair" ? CH : CO;
-        }
-        if(it.lyric!==undefined){
-          ops.push({t:"text",x:x(),y:y+fs*0.82,s:fs,f:mode==="letra"?"lex":"mono",b:false,c:[17,17,17],txt:it.lyric});
-          y += LY;
-        }
-      });
-    });
-  });
-  if(col===1) ops.push({t:"line",x1:M+COLW+GAP/2,x2:M+COLW+GAP/2,y1:M,y2:PH-M,c:[205,205,205],w:0.5,v:true});
-  return {ops, overflow, tooWide};
-}
+<dialog id="dlg-install" aria-labelledby="install-h">
+  <form method="dialog" class="dlg">
+    <div class="dlg-head"><h2 id="install-h" data-i18n="install.title"></h2><button class="icon-btn" value="cancel" data-i18n-attr="aria-label:common.close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="dlg-body">
+      <ol class="steps">
+        <li data-i18n-html="install.s1"></li>
+        <li data-i18n-html="install.s2"></li>
+        <li data-i18n-html="install.s3"></li>
+      </ol>
+      <p class="sub" data-i18n="install.sub"></p>
+    </div>
+    <div class="dlg-foot"><button class="btn primary" value="ok" data-i18n="common.gotIt"></button></div>
+  </form>
+</dialog>
 
-function fit(songs, mode){
-  let best = null, maxLen = 1;
-  songs.forEach(s=>s.blocks.forEach(b=>b.forEach(it=>{
-    const ch = it.chord ? (mode==="graus" ? lineToDegrees(it.chord, s.key) : lineTranspose(it.chord, s.shift, s.target)) : "";
-    maxLen = Math.max(maxLen, ch.length, (it.lyric||"").length);
-  })));
-  const noWrap = mode==="letra"
-    ? COLW*0.97/Math.max(1e-6, ...songs.flatMap(s=>s.blocks.flatMap(b=>b.map(it=>textW(it.lyric||"",100)/100))))
-    : COLW/(CW*maxLen);
-  const top = mode==="letra" ? 18 : 15;
-  const start = noWrap >= 11 ? Math.min(top, Math.floor(noWrap*4)/4) : top;
-  for(let fs = start; fs >= 9; fs -= 0.25){
-    const r = layout(songs, fs, 1, mode);
-    if(!r.overflow){ best = {fs, r}; break; }
-  }
-  if(!best) return {res: layout(songs, 9, 1, mode), warn:"Não coube em uma folha. Tire uma música ou desmarque algo repetido."};
-  let lo = 1, hi = 2.2;
-  for(let i=0;i<18;i++){ const mid=(lo+hi)/2; if(layout(songs,best.fs,mid,mode).overflow) hi=mid; else lo=mid; }
-  const res = layout(songs, best.fs, lo, mode);
-  return {res, warn: res.tooWide ? "Uma linha ficou larga demais para a coluna e pode cortar." : null};
-}
-
-// ---------- rendering ----------
-function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
-function toSVG(ops){
-  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${PW} ${PH}" role="img" aria-label="Pré-visualização da folha">`;
-  ops.forEach(o=>{
-    const col = `rgb(${o.c.join(",")})`;
-    if(o.t==="text"){
-      const fam = o.f==="mono" ? `AHMono,'Courier New',monospace` : o.f==="lex" ? `Lexend,AHSans,sans-serif` : `AHSans,Helvetica,Arial,sans-serif`;
-      s += `<text x="${o.x}" y="${o.y}" font-family="${fam}" font-size="${o.s}" font-weight="${o.b?700:400}" fill="${col}" style="white-space:pre">${esc(o.txt)}</text>`;
-    } else if(o.v){
-      s += `<line x1="${o.x1}" y1="${o.y1}" x2="${o.x2}" y2="${o.y2}" stroke="${col}" stroke-width="${o.w}"/>`;
-    } else {
-      s += `<line x1="${o.x1}" y1="${o.y}" x2="${o.x2}" y2="${o.y}" stroke="${col}" stroke-width="${o.w}"/>`;
-    }
-  });
-  return s + "</svg>";
-}
-// [arquivo, família na tela, peso, nome no jsPDF, estilo no jsPDF]
-const FONTS = [
-  ["atkinson-mono-regular","AHMono","400","ahmono","normal"], ["atkinson-mono-bold","AHMono","700","ahmono","bold"],
-  ["atkinson-regular","AHSans","400","ahsans","normal"], ["atkinson-bold","AHSans","700","ahsans","bold"],
-  ["lexend-regular","Lexend","400","lexend","normal"], ["lexend-bold","Lexend","700","lexend","bold"]
-];
-const fontURL = f => "fonts/" + f + ".ttf";
-// O jsPDF recebe as fontes em base64; só busca na primeira vez que alguém baixa um PDF.
-let pdfFonts = null;
-function loadPdfFonts(){
-  if(!pdfFonts) pdfFonts = Promise.all(FONTS.map(async ([f])=>{
-    const r = await fetch(fontURL(f)); if(!r.ok) throw new Error(f);
-    const u = new Uint8Array(await r.arrayBuffer()); let s = "";
-    for(let i=0;i<u.length;i+=0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i+0x8000));
-    return btoa(s);
-  })).catch(e=>{ pdfFonts = null; throw e; });
-  return pdfFonts;
-}
-async function toPDF(ops){
-  const fonts = await loadPdfFonts();
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({unit:"pt", format:"a4"});
-  FONTS.forEach(([f,,,n,st], i)=>{ doc.addFileToVFS(f+".ttf", fonts[i]); doc.addFont(f+".ttf", n, st); });
-  ops.forEach(o=>{
-    if(o.t==="text"){
-      doc.setFont(o.f==="mono" ? "ahmono" : o.f==="lex" ? "lexend" : "ahsans", o.b ? "bold" : "normal"); doc.setFontSize(o.s); doc.setTextColor(...o.c);
-      doc.text(o.txt, o.x, o.y);
-    } else {
-      doc.setDrawColor(...o.c); doc.setLineWidth(o.w);
-      if(o.v) doc.line(o.x1,o.y1,o.x2,o.y2); else doc.line(o.x1,o.y,o.x2,o.y);
-    }
-  });
-  return doc.output("blob");
-}
-
-const last = {};
-function saveBlob(blob, filename){
-  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename;
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
-}
-
-function renderPreview(){
-  const pv = document.getElementById("preview");
-  let songs = state.songs.map((t,i)=>({t,i})).filter(o=>o.t.trim()).map(o=>{
-    const s = parseSong(o.t, state.types[o.i]==="letra"), auto = detectKey(s);
-    const opt = document.querySelector(`select[data-key="${o.i}"] option[value=""]`);
-    if(opt) opt.textContent = "Automático (" + auto + ")";
-    const key = state.keys[o.i]||auto, target = state.targets[o.i]||"";
-    return Object.assign(s,{key, target, shift: target ? (NOTES[target]-NOTES[key]+12)%12 : 0});
-  }).filter(s=>s.title);
-  if(state.dedupe) songs = dedupeBlocks(songs);
-  if(!songs.length){ pv.innerHTML = `<p class="empty">Cole a primeira música ao lado para ver a folha aqui.</p>`; return; }
-  pv.innerHTML = "";
-  [["cifras","Com cifras"],["graus","Com graus"],["letra","Só letra"]].forEach(([mode,label])=>{
-    const {res, warn} = fit(mode==="letra" ? lyricsOnly(songs) : songs, mode);
-    last[mode] = res.ops;
-    const wrap = document.createElement("div");
-    wrap.innerHTML = `<div class="sheet-head"><h2>${esc(label)}</h2><div><button data-mode="${mode}" class="dl">Baixar PDF</button></div></div>
-      ${warn?`<p class="note">${esc(warn)}</p>`:""}<div class="paper">${toSVG(res.ops)}</div><p class="status" id="st-${mode}"></p>`;
-    pv.appendChild(wrap);
-  });
-  pv.querySelectorAll(".dl").forEach(b=>b.addEventListener("click", ()=>download(b.dataset.mode)));
-  const printBtn = document.createElement("button");
-  printBtn.className = "ghost"; printBtn.textContent = "Imprimir as três folhas";
-  printBtn.addEventListener("click", ()=>window.print());
-  pv.querySelectorAll(".sheet-head")[0].querySelector("div").appendChild(printBtn);
-  if(!window.jspdf) pv.querySelectorAll(".dl").forEach(b=>b.hidden = true);
-}
-
-async function download(mode){
-  const st = document.getElementById("st-"+mode);
-  if(!window.jspdf){ st.textContent = "Baixar não está disponível aqui. Use Imprimir e escolha Salvar como PDF."; return; }
-  const first = (state.songs.find(t=>t.trim())||"folha").trim().split("\n")[0].trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu,"-").replace(/^-|-$/g,"");
-  try{
-    saveBlob(await toPDF(last[mode]), `${first||"folha"}-${mode}.pdf`);
-    st.textContent = "PDF salvo.";
-  }catch(e){
-    st.textContent = "Não foi possível baixar aqui. Use Imprimir e escolha Salvar como PDF.";
-  }
-}
-
-// ---------- editor ----------
-function renderEditor(){
-  const box = document.getElementById("songs"); box.innerHTML = "";
-  state.songs.forEach((txt, i)=>{
-    const d = document.createElement("div"); d.className = "song";
-    d.innerHTML = `<div class="song-head"><span class="song-title"></span><span class="song-actions">${state.types[i]==="letra"?`<span class="badge">Só letra</span>`:""}${state.songs.length>1?`<button class="move" data-mv="${i},-1" aria-label="Subir música" ${i===0?"disabled":""}>↑</button><button class="move" data-mv="${i},1" aria-label="Descer música" ${i===state.songs.length-1?"disabled":""}>↓</button><button class="link" data-rm="${i}">Remover</button>`:""}</span></div>
-      <div class="song-keys" ${state.types[i]==="letra"?"hidden":""}><label class="inline">Tom da cifra colada <select data-key="${i}"><option value="">Automático</option>${KEYS.map(k=>`<option ${state.keys[i]===k?"selected":""}>${k}</option>`).join("")}</select></label>
-      <label class="inline">Tocar em <select data-target="${i}"><option value="">Mesmo tom</option>${KEYS.map(k=>`<option ${state.targets[i]===k?"selected":""}>${k}</option>`).join("")}</select></label></div>
-      <textarea spellcheck="false" aria-label="Cifra da música ${i+1}" placeholder="${state.types[i]==="letra" ? "Título da música&#10;&#10;Primeira linha da letra...&#10;Segunda linha..." : "Título da música&#10;&#10;E&#10;Primeira linha da letra..."}"></textarea>`;
-    const ta = d.querySelector("textarea"); ta.value = txt;
-    const st = d.querySelector(".song-title");
-    const setTitle = ()=>{ const t = (ta.value.split("\n").find(l=>l.trim())||"").trim(); st.textContent = (i+1) + ". " + (t || "Nova música"); };
-    setTitle(); ta.addEventListener("input", setTitle);
-    d.querySelector("[data-key]").addEventListener("change", e=>{ state.keys[i] = e.target.value; save(); renderPreview(); scheduleLibSave(); });
-    d.querySelector("[data-target]").addEventListener("change", e=>{ state.targets[i] = e.target.value; save(); renderPreview(); scheduleLibSave(); });
-    let tmr; ta.addEventListener("input", ()=>{ state.songs[i] = ta.value; save(); clearTimeout(tmr); tmr = setTimeout(renderPreview, 250); scheduleLibSave(); });
-    box.appendChild(d);
-  });
-  box.querySelectorAll("[data-mv]").forEach(b=>b.addEventListener("click", ()=>{
-    const [i, dir] = b.dataset.mv.split(",").map(Number), j = i + dir;
-    if(j < 0 || j >= state.songs.length) return;
-    [state.songs, state.keys, state.targets, state.types, state.libIds].forEach(a=>{ const t = a[i]; a[i] = a[j]; a[j] = t; });
-    save(); renderEditor(); renderPreview();
-    const btn = document.querySelector(`[data-mv="${j},${dir}"]`) || document.querySelector(`[data-mv="${j},${-dir}"]`); if(btn) btn.focus();
-  }));
-  box.querySelectorAll("[data-rm]").forEach(b=>b.addEventListener("click", ()=>{ state.songs.splice(+b.dataset.rm,1); state.keys.splice(+b.dataset.rm,1); state.targets.splice(+b.dataset.rm,1); state.types.splice(+b.dataset.rm,1); state.libIds.splice(+b.dataset.rm,1); save(); renderEditor(); renderPreview(); renderLibrary(); }));
-}
-
-// ---------- library ----------
-let lib = [];
-const LOCAL_LIB = "folha-biblioteca-v1";
-function normTitle(t){ return (t||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," "); }
-function localLib(){
-  try{ const a = JSON.parse(localStorage.getItem(LOCAL_LIB)||"[]"); return Array.isArray(a) ? a : []; }catch(e){ return []; }
-}
-function persistLocal(){ try{ localStorage.setItem(LOCAL_LIB, JSON.stringify(lib)); }catch(e){ setLibStatus("N\u00e3o foi poss\u00edvel salvar na biblioteca agora."); } }
-function newId(){ return "s" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
-
-let libTimer = null;
-function scheduleLibSave(){ clearTimeout(libTimer); libTimer = setTimeout(saveSequenceToLibrary, 1200); }
-function saveSequenceToLibrary(){
-  let changed = false;
-  for(let i=0;i<state.songs.length;i++){
-    const text = state.songs[i], title = songTitle(text);
-    if(!title || text.split("\n").filter(l=>l.trim()).length < 2) continue;
-    let id = state.libIds[i];
-    if(!id){ const same = lib.find(e=>normTitle(e.title)===normTitle(title)); id = same ? same.id : newId(); state.libIds[i] = id; save(); }
-    const entry = {title, text, type: state.types[i]||"", key: state.keys[i]||"", target: state.targets[i]||""};
-    const cur = lib.find(e=>e.id===id);
-    if(cur && cur.title===entry.title && cur.text===entry.text && cur.type===entry.type && cur.key===entry.key && cur.target===entry.target) continue;
-    entry.updatedAt = Date.now();
-    const k = lib.findIndex(e=>e.id===id); const row = Object.assign({id}, entry);
-    if(k<0) lib.push(row); else lib[k] = row;
-    changed = true;
-  }
-  if(changed){ persistLocal(); renderLibrary(); }
-}
-function deleteFromLibrary(id){
-  lib = lib.filter(e=>e.id!==id); persistLocal();
-  state.libIds = state.libIds.map(x=>x===id ? "" : x); save();
-  renderLibrary();
-}
-function addFromLibrary(id){
-  const e = lib.find(x=>x.id===id); if(!e) return;
-  let i = state.songs.length;
-  if(state.songs.length===1 && !state.songs[0].trim()) i = 0;
-  state.songs[i] = e.text; state.types[i] = e.type||""; state.keys[i] = e.key||""; state.targets[i] = e.target||""; state.libIds[i] = e.id;
-  save(); renderEditor(); renderPreview(); renderLibrary();
-  setLibStatus(`\u201c${e.title}\u201d entrou na sequ\u00eancia.`);
-}
-function setLibStatus(t){ const el = document.getElementById("lib-status"); if(el) el.textContent = t; }
-function renderLibrary(){
-  const list = document.getElementById("lib-list"); if(!list) return;
-  const q = normTitle(document.getElementById("lib-q").value);
-  const inSeq = new Set(state.libIds.filter(Boolean));
-  const rows = lib.filter(e=>!q || normTitle(e.title).includes(q) || normTitle(e.text).includes(q))
-                  .sort((a,b)=>a.title.localeCompare(b.title,"pt-BR"));
-  document.getElementById("lib-count").textContent = lib.length ? `(${lib.length})` : "";
-  if(!lib.length){ list.innerHTML = `<li class="lib-empty">As m\u00fasicas que voc\u00ea colar na sequ\u00eancia ficam salvas aqui automaticamente.</li>`; return; }
-  if(!rows.length){ list.innerHTML = `<li class="lib-empty">Nenhuma m\u00fasica encontrada.</li>`; return; }
-  list.innerHTML = "";
-  rows.forEach(e=>{
-    const li = document.createElement("li");
-    li.innerHTML = `<span class="lib-name"></span><span class="lib-actions">${e.type==="letra"?`<span class="badge">S\u00f3 letra</span>`:""}${inSeq.has(e.id)?`<span class="in-use">Na sequ\u00eancia</span>`:`<button class="move lib-add">Adicionar</button>`}<button class="link lib-del">Excluir</button></span>`;
-    li.querySelector(".lib-name").textContent = e.title;
-    const add = li.querySelector(".lib-add"); if(add) add.addEventListener("click", ()=>addFromLibrary(e.id));
-    const del = li.querySelector(".lib-del"); let armed = null;
-    del.addEventListener("click", ()=>{
-      if(armed){ clearTimeout(armed); deleteFromLibrary(e.id); return; }
-      del.textContent = "Confirmar exclus\u00e3o"; del.classList.add("danger");
-      armed = setTimeout(()=>{ armed = null; del.textContent = "Excluir"; del.classList.remove("danger"); }, 3500);
-    });
-    list.appendChild(li);
-  });
-}
-function initLibrary(){
-  lib = localLib(); renderLibrary();
-  setLibStatus("Salvo neste aparelho. Use Exportar de vez em quando para ter um backup.");
-  if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
-}
-
-document.getElementById("lib-q").addEventListener("input", renderLibrary);
-function libraryJSON(){ return JSON.stringify({app:"folha-de-cifras", version:1, exportedAt:new Date().toISOString(), songs: lib.map(({id,title,text,type,key,target,updatedAt})=>({id,title,text,type,key,target,updatedAt}))}, null, 2); }
-document.getElementById("lib-export").addEventListener("click", ()=>{
-  if(!lib.length){ setLibStatus("A biblioteca está vazia."); return; }
-  saveBlob(new Blob([libraryJSON()], {type:"application/json"}), "biblioteca-cifras-" + new Date().toISOString().slice(0,10) + ".json");
-  setLibStatus("Biblioteca exportada.");
-});
-document.getElementById("lib-import").addEventListener("change", async e=>{
-  const f = e.target.files[0]; e.target.value = ""; if(!f) return;
-  try{
-    const data = JSON.parse(await f.text()); const songs = Array.isArray(data) ? data : data && data.songs;
-    if(!Array.isArray(songs)) throw 0;
-    let n = 0;
-    for(const raw of songs){
-      const r = sanitizeEntry(raw); if(!r) continue;
-      const same = (r.id && lib.find(x=>x.id===r.id)) || lib.find(x=>normTitle(x.title)===normTitle(r.title));
-      const id = same ? same.id : (r.id || newId());
-      const row = Object.assign(r, {id}); const k = lib.findIndex(x=>x.id===id);
-      if(k<0) lib.push(row); else lib[k] = row;
-      n++;
-    }
-    persistLocal(); renderLibrary();
-    setLibStatus(n + (n===1 ? " música importada." : " músicas importadas."));
-  }catch(err){ setLibStatus("Esse arquivo não parece uma biblioteca exportada."); }
-});
-(function(){
-  const b = document.getElementById("new-seq"); let armed = null;
-  b.addEventListener("click", ()=>{
-    if(!armed){ b.textContent = "Clique de novo para limpar"; armed = setTimeout(()=>{ armed = null; b.textContent = "Nova sequência"; }, 3500); return; }
-    clearTimeout(armed); armed = null; b.textContent = "Nova sequência";
-    saveSequenceToLibrary();
-    state.songs = [""]; state.keys = []; state.targets = []; state.types = []; state.libIds = [];
-    save(); renderEditor(); renderPreview(); renderLibrary();
-    setLibStatus("Sequência limpa. As músicas continuam na biblioteca.");
-  });
-})();
-const dd = document.getElementById("dedupe"); dd.checked = state.dedupe;
-dd.addEventListener("change", ()=>{ state.dedupe = dd.checked; save(); renderPreview(); });
-document.getElementById("add-lyrics").addEventListener("click", ()=>{ state.songs.push(""); state.types[state.songs.length-1] = "letra"; save(); renderEditor(); const t=document.querySelectorAll("textarea"); t[t.length-1].focus(); });
-document.getElementById("add").addEventListener("click", ()=>{ state.songs.push(""); state.types[state.songs.length-1] = ""; save(); renderEditor(); const t=document.querySelectorAll("textarea"); t[t.length-1].focus(); });
-
-renderEditor();
-initLibrary();
-Promise.all(FONTS.map(([f,fam,w])=>{
-  try{ const ff = new FontFace(fam, `url(${fontURL(f)})`, {weight:w}); document.fonts.add(ff); return ff.load().catch(()=>null); }catch(e){ return null; }
-})).then(()=>{ widths.clear(); renderPreview(); });
-
-renderPreview();
-if("serviceWorker" in navigator){ window.addEventListener("load", ()=>navigator.serviceWorker.register("sw.js").catch(()=>{})); }
-})();
-</script>
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
 </body>
 </html>

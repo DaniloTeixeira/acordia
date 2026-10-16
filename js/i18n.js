@@ -1,0 +1,245 @@
+// Textos em português e inglês. `t("chave", {n: 2})` troca {n} pelos parâmetros.
+// Chaves com variantes de plural usam ".one" e ".other" (veja `tn`).
+
+const pt = {
+  "app.tagline":"Cifras, graus e letra em A4",
+  "nav.medley":"Medley", "nav.library":"Biblioteca", "nav.study":"Estudo", "nav.install":"Instalar app", "nav.nav":"Navegação",
+  "theme.label":"Tema: {name}", "theme.aria":"Tema: {name}. Trocar tema", "theme.system":"sistema", "theme.light":"claro", "theme.dark":"escuro",
+  "lang.toggle":"English", "lang.aria":"Mudar idioma para inglês",
+  "common.cancel":"Cancelar", "common.close":"Fechar", "common.save":"Salvar", "common.add":"Adicionar", "common.addN":"Adicionar {n}",
+  "common.undo":"Desfazer", "common.open":"Abrir", "common.see":"Ver", "common.confirm":"Confirmar", "common.confirmDelete":"Confirmar exclusão",
+  "common.edit":"Editar", "common.delete":"Excluir", "common.duplicate":"Duplicar", "common.share":"Compartilhar", "common.copy":"Copiar", "common.gotIt":"Entendi",
+  "common.now":"agora",
+  "song.one":"{n} música", "song.other":"{n} músicas", "medley.one":"{n} medley", "medley.other":"{n} medleys",
+
+  "medley.nameAria":"Nome do medley", "medley.new":"Novo", "medley.share":"Compartilhar", "medley.stage":"Palco",
+  "medley.saved":"{songs} · salvo automaticamente", "medley.startHint":"Comece adicionando uma música",
+  "medley.defaultName":"Meu medley", "medley.newName":"Medley {date}", "medley.noName":"Sem nome",
+  "medley.created":"Novo medley criado. O anterior continua salvo na Biblioteca.",
+  "medley.emptyTitle":"Medley vazio", "medley.emptyText":"Cole uma música com o título na primeira linha, ou traga músicas da biblioteca.",
+  "pane.aria":"Painel", "pane.edit":"Editar", "pane.sheet":"Folha",
+  "add.chords":"Com cifra", "add.lyrics":"Só letra", "add.library":"Da biblioteca",
+  "item.up":"Subir", "item.down":"Descer", "item.remove":"Tirar do medley", "item.toggle":"Abrir ou fechar",
+  "item.typeAria":"Tipo", "item.withChords":"Com cifra", "item.lyricsOnly":"Só letra",
+  "item.textAria":"Música {n}: título e cifra", "item.phChords":"Título da música\n\nE\nPrimeira linha da letra...", "item.phLyrics":"Título da música\n\nPrimeira linha da letra...",
+  "item.key":"Tom da cifra", "item.target":"Tocar em", "item.capo":"Capotraste", "item.bpm":"BPM", "item.singer":"Quem canta", "item.notes":"Observações",
+  "item.notesPh":"Ex.: só violão na primeira vez", "item.auto":"Automático", "item.autoKey":"Automático ({key})", "item.sameKey":"Mesmo tom",
+  "item.newSong":"Nova música", "item.capoChip":"Capo {n}", "item.removed":"“{title}” saiu do medley.", "item.song":"Música",
+  "keys.major":"Maiores", "keys.minor":"Menores",
+
+  "sheet.modeAria":"O que mostrar na folha", "sheet.chords":"Cifras", "sheet.degrees":"Graus", "sheet.lyrics":"Só letra", "sheet.lyricsShort":"Letra",
+  "sheet.options":"Ajustes da folha", "sheet.print":"Imprimir", "sheet.pdf":"PDF",
+  "sheet.emptyTitle":"A folha aparece aqui", "sheet.emptyText":"Cole a primeira música para ver as folhas com cifras, graus ou só a letra.",
+  "sheet.aria":"Folha {label}, página {n}", "sheet.label.cifras":"com cifras", "sheet.label.graus":"com graus", "sheet.label.letra":"só com a letra",
+  "sheet.page":"Página {n} de {total}", "sheet.needSong":"Adicione uma música primeiro.",
+  "sheet.noPdf":"PDF indisponível aqui. Use Imprimir e escolha Salvar como PDF.", "sheet.pdfSaved":"PDF salvo.",
+  "sheet.pdfFail":"Não foi possível gerar o PDF. Use Imprimir e escolha Salvar como PDF.",
+  "sheet.warnFit1":"Não coube em uma folha. Tire uma música, diminua a fonte mínima ou permita 2 páginas.",
+  "sheet.warnFit2":"Não coube em duas folhas. Tire uma música ou diminua a fonte mínima.",
+  "sheet.warnWide":"Uma linha ficou larga demais para a coluna e pode cortar.",
+  "sheet.voice":"Voz: {name}", "sheet.capo":"Capo {n}", "sheet.bpm":"{n} bpm", "sheet.passing":"passagem {chord}",
+  "opt.dedupe":"Remover repetições", "opt.showKey":"Tom ao lado do título", "opt.transitions":"Transições entre músicas", "opt.maxPages":"Permitir 2 páginas",
+  "opt.columns":"Colunas", "opt.auto":"Auto", "opt.degrees":"Graus", "opt.minFont":"Fonte mínima",
+  "tr.same":"mesmo tom", "tr.tonic":"mesma tônica", "tr.up":"sobe {step}", "tr.down":"desce {step}",
+  "tr.step1":"½ tom", "tr.step2":"1 tom", "tr.step3":"1 tom e ½", "tr.step4":"2 tons", "tr.step5":"2 tons e ½", "tr.step6":"3 tons",
+
+  "picker.title":"Adicionar da biblioteca", "picker.search":"Buscar", "picker.searchAria":"Buscar música", "picker.none":"Nenhuma música encontrada.",
+  "picker.emptyLib":"A biblioteca ainda está vazia. As músicas que você colar no medley ficam salvas lá.", "picker.inMedley":"No medley",
+  "picker.added.one":"{n} música adicionada.", "picker.added.other":"{n} músicas adicionadas.", "picker.addedTo":"“{title}” entrou em {medley}.",
+
+  "share.title":"Compartilhar medley", "share.desc":"Quem abrir este link vê o medley completo (letras, cifras, tons e ordem) e pode salvar na própria biblioteca. Nada passa por servidor.",
+  "share.urlAria":"Link do medley", "share.send":"Enviar…", "share.copied":"Link copiado.", "share.needSong":"Adicione uma música antes de compartilhar.",
+  "share.long":"Link longo ({n} caracteres). Alguns apps podem cortar; se acontecer, use Exportar na Biblioteca.", "share.count":"{songs} no link.",
+  "share.text":"Medley: {name}",
+  "incoming.title":"Medley recebido", "incoming.desc":"“{name}” com {songs}:", "incoming.later":"Agora não", "incoming.save":"Salvar e abrir",
+  "incoming.bad":"Esse link de medley parece incompleto.", "incoming.saved":"Medley salvo na sua biblioteca.", "incoming.defaultName":"Medley compartilhado",
+
+  "lib.title":"Biblioteca", "lib.new":"Nova música", "lib.export":"Exportar", "lib.import":"Importar", "lib.tabsAria":"Seção da biblioteca",
+  "lib.songs":"Músicas ({n})", "lib.medleys":"Medleys ({n})", "lib.search":"Buscar por título ou trecho", "lib.searchAria":"Buscar",
+  "lib.filterAria":"Filtro", "lib.all":"Todas", "lib.withChords":"Com cifra", "lib.lyricsOnly":"Só letra", "lib.sortAria":"Ordenar", "lib.az":"A–Z", "lib.recent":"Recentes",
+  "lib.sub":"{songs} · {medleys} · salvo neste aparelho", "lib.noResults":"Nada encontrado", "lib.noResultsText":"Tente outro termo ou filtro.",
+  "lib.empty":"Biblioteca vazia", "lib.emptyText":"As músicas que você colar no medley ficam salvas aqui automaticamente. Você também pode criar ou importar.",
+  "lib.key":"Tom {key}", "lib.inCurrent":"No medley atual", "lib.deleteUsed":"Excluir (sai de {medleys})",
+  "lib.noMedleys":"Nenhum medley encontrado", "lib.open":"Aberto", "lib.emptyMedley":"Vazio", "lib.copyName":"{name} (cópia)", "lib.created":"“{name}” criado.",
+  "lib.songDeleted":"“{title}” excluída.", "lib.songDeletedUsed":"“{title}” excluída e removida de {medleys}.",
+  "lib.medleyDeleted":"“{name}” excluído. As músicas continuam na biblioteca.",
+  "lib.exported":"Backup exportado.", "lib.emptyExport":"A biblioteca está vazia.", "lib.badFile":"Esse arquivo não parece um backup do app.",
+  "lib.imported":"{songs} importadas.", "lib.importedBoth":"{songs} e {medleys} importados.", "lib.importedMedley":"Medley importado",
+  "lib.saveFail":"Não foi possível salvar neste aparelho. Exporte um backup.",
+  "song.newTitle":"Nova música", "song.editTitle":"Editar música", "song.typeAria":"Tipo", "song.textAria":"Título e cifra", "song.key":"Tom original",
+  "song.needTitle":"Escreva o título na primeira linha.", "song.saved":"Música salva na biblioteca.", "song.updated":"Música atualizada.",
+
+  "stage.aria":"Modo palco", "stage.close":"Sair do modo palco", "stage.smaller":"Diminuir letra", "stage.bigger":"Aumentar letra", "stage.modeAria":"O que mostrar",
+  "stage.hint":"Toque embaixo para avançar · em cima para voltar", "stage.empty":"Nada para mostrar", "stage.emptyText":"Adicione músicas ao medley.",
+
+  "install.title":"Instalar no iPhone ou iPad", "install.s1":"Abra este endereço no <b>Safari</b>.", "install.s2":"Toque em <b>Compartilhar</b> (o quadrado com a seta para cima).",
+  "install.s3":"Escolha <b>Adicionar à Tela de Início</b> e confirme.", "install.sub":"O app abre em tela cheia e funciona sem internet.", "install.done":"App instalado.",
+  "update.ready":"Nova versão disponível.", "update.reload":"Atualizar",
+
+  "study.title":"Estudo", "study.sub":"Escalas, campo harmônico e treino para fixar.", "study.tabsAria":"Seção do estudo",
+  "study.explore":"Escalas e campo harmônico", "study.train":"Treino", "study.root":"Tônica", "study.scale":"Escala", "study.sevenths":"Tétrades (com sétima)",
+  "study.scaleOf":"Escala de {root} {scale}", "study.play":"Tocar escala", "study.relMinor":"Relativa menor: {key}", "study.relMajor":"Relativa maior: {key}",
+  "study.field":"Campo harmônico", "study.fieldHint":"Toque num acorde para ouvir.", "study.noField":"Esta escala tem 5 notas, então não forma um campo harmônico de 7 graus.",
+  "study.fnT":"Tônica", "study.fnSD":"Subdominante", "study.fnD":"Dominante",
+  "study.fnTitle":"Funções harmônicas", "study.fnIntro":"Cada acorde do campo cumpre um papel na música. Saber a função ajuda a entender por que uma progressão soa como chegada, caminho ou tensão, e a trocar um acorde por outro da mesma função.",
+  "study.fnTD":"Repouso e estabilidade. É a “casa” do tom: dá sensação de chegada e costuma abrir e fechar as frases.",
+  "study.fnSDD":"Afastamento e movimento. Sai do repouso e prepara a tensão; soa como o caminho entre a casa e o clímax.",
+  "study.fnDD":"Tensão que pede resolução. Puxa de volta para a tônica; V → I é a cadência mais forte da música tonal.",
+  "study.fnHere":"Neste campo: {degrees}", "study.fnFlow":"Caminho típico: T → SD → D → T (ex.: {example}).", "study.keyboardAria":"Teclado com as notas da escala",
+  "study.useInMedley":"Usar graus no medley", "study.noAudio":"Este navegador não toca áudio.",
+  "scale.maior":"Maior", "scale.menor":"Menor natural", "scale.harmonica":"Menor harmônica", "scale.melodica":"Menor melódica", "scale.pentaMaior":"Pentatônica maior", "scale.pentaMenor":"Pentatônica menor",
+  "train.kind":"O que treinar", "train.level":"Nível", "train.easy":"Fácil", "train.medium":"Médio", "train.hard":"Difícil", "train.start":"Começar", "train.again":"Jogar de novo", "train.change":"Trocar treino",
+  "train.mixed":"Misturado", "train.mixedD":"Um pouco de tudo",
+  "train.grau":"Acorde do grau", "train.grauD":"Qual acorde é o V em G?", "train.qualGrau":"Qual é o grau", "train.qualGrauD":"Em G, Em é qual grau?",
+  "train.nota":"Notas da escala", "train.notaD":"Qual a 3ª nota de D maior?", "train.relativa":"Relativas", "train.relativaD":"Relativa menor de F?",
+  "train.ouvido":"Ouvido", "train.ouvidoD":"O acorde é maior ou menor?",
+  "train.levelD.facil":"Tons com poucos acidentes, só maiores", "train.levelD.medio":"Todos os tons maiores", "train.levelD.dificil":"Maiores e menores, com diminutos no ouvido",
+  "train.question":"Pergunta {n} de {total}", "train.right":"Isso!", "train.wrong":"A resposta era {answer}.", "train.next":"Próxima", "train.finish":"Ver resultado",
+  "train.listen":"Ouvir de novo", "train.result":"{right} de {total} certas", "train.best":"Recorde neste treino: {n} de {total}", "train.newBest":"Novo recorde!",
+  "train.streak":"Sequência", "train.msg.great":"Mandou muito bem.", "train.msg.good":"Bom trabalho. Mais uma rodada fixa de vez.", "train.msg.try":"Vale revisar o campo harmônico e tentar de novo.",
+  "q.grau":"No tom de {key}, qual acorde é o {degree}?", "q.qualGrau":"No tom de {key}, {chord} é qual grau?", "q.nota":"Qual é a {ord} nota da escala de {root} {scale}?",
+  "q.relMinor":"Qual é a relativa menor de {key}?", "q.relMajor":"Qual é a relativa maior de {key}?", "q.ouvido":"Ouça o acorde. Ele é maior, menor ou diminuto?", "q.ouvidoEasy":"Ouça o acorde. Ele é maior ou menor?",
+  "q.major":"Maior", "q.minor":"Menor", "q.dim":"Diminuto"
+};
+
+const en = {
+  "app.tagline":"Chords, degrees and lyrics on A4",
+  "nav.medley":"Medley", "nav.library":"Library", "nav.study":"Study", "nav.install":"Install app", "nav.nav":"Navigation",
+  "theme.label":"Theme: {name}", "theme.aria":"Theme: {name}. Change theme", "theme.system":"system", "theme.light":"light", "theme.dark":"dark",
+  "lang.toggle":"Português", "lang.aria":"Switch language to Portuguese",
+  "common.cancel":"Cancel", "common.close":"Close", "common.save":"Save", "common.add":"Add", "common.addN":"Add {n}",
+  "common.undo":"Undo", "common.open":"Open", "common.see":"View", "common.confirm":"Confirm", "common.confirmDelete":"Confirm delete",
+  "common.edit":"Edit", "common.delete":"Delete", "common.duplicate":"Duplicate", "common.share":"Share", "common.copy":"Copy", "common.gotIt":"Got it",
+  "common.now":"now",
+  "song.one":"{n} song", "song.other":"{n} songs", "medley.one":"{n} medley", "medley.other":"{n} medleys",
+
+  "medley.nameAria":"Medley name", "medley.new":"New", "medley.share":"Share", "medley.stage":"Stage",
+  "medley.saved":"{songs} · saved automatically", "medley.startHint":"Start by adding a song",
+  "medley.defaultName":"My medley", "medley.newName":"Medley {date}", "medley.noName":"Untitled",
+  "medley.created":"New medley created. The previous one is still saved in the Library.",
+  "medley.emptyTitle":"Empty medley", "medley.emptyText":"Paste a song with its title on the first line, or bring songs from the library.",
+  "pane.aria":"Panel", "pane.edit":"Edit", "pane.sheet":"Sheet",
+  "add.chords":"With chords", "add.lyrics":"Lyrics only", "add.library":"From library",
+  "item.up":"Move up", "item.down":"Move down", "item.remove":"Remove from medley", "item.toggle":"Expand or collapse",
+  "item.typeAria":"Type", "item.withChords":"With chords", "item.lyricsOnly":"Lyrics only",
+  "item.textAria":"Song {n}: title and chords", "item.phChords":"Song title\n\nE\nFirst lyric line...", "item.phLyrics":"Song title\n\nFirst lyric line...",
+  "item.key":"Written key", "item.target":"Play in", "item.capo":"Capo", "item.bpm":"BPM", "item.singer":"Singer", "item.notes":"Notes",
+  "item.notesPh":"E.g. acoustic only the first time", "item.auto":"Automatic", "item.autoKey":"Automatic ({key})", "item.sameKey":"Same key",
+  "item.newSong":"New song", "item.capoChip":"Capo {n}", "item.removed":"“{title}” removed from the medley.", "item.song":"Song",
+  "keys.major":"Major", "keys.minor":"Minor",
+
+  "sheet.modeAria":"What to show on the sheet", "sheet.chords":"Chords", "sheet.degrees":"Degrees", "sheet.lyrics":"Lyrics only", "sheet.lyricsShort":"Lyrics",
+  "sheet.options":"Sheet settings", "sheet.print":"Print", "sheet.pdf":"PDF",
+  "sheet.emptyTitle":"Your sheet shows up here", "sheet.emptyText":"Paste the first song to see sheets with chords, degrees or lyrics only.",
+  "sheet.aria":"Sheet {label}, page {n}", "sheet.label.cifras":"with chords", "sheet.label.graus":"with degrees", "sheet.label.letra":"with lyrics only",
+  "sheet.page":"Page {n} of {total}", "sheet.needSong":"Add a song first.",
+  "sheet.noPdf":"PDF isn't available here. Use Print and choose Save as PDF.", "sheet.pdfSaved":"PDF saved.",
+  "sheet.pdfFail":"Couldn't create the PDF. Use Print and choose Save as PDF.",
+  "sheet.warnFit1":"It doesn't fit on one page. Remove a song, lower the minimum font or allow 2 pages.",
+  "sheet.warnFit2":"It doesn't fit on two pages. Remove a song or lower the minimum font.",
+  "sheet.warnWide":"A line is too wide for the column and may be cut off.",
+  "sheet.voice":"Singer: {name}", "sheet.capo":"Capo {n}", "sheet.bpm":"{n} bpm", "sheet.passing":"lead-in {chord}",
+  "opt.dedupe":"Remove repeats", "opt.showKey":"Key next to title", "opt.transitions":"Transitions between songs", "opt.maxPages":"Allow 2 pages",
+  "opt.columns":"Columns", "opt.auto":"Auto", "opt.degrees":"Degrees", "opt.minFont":"Minimum font",
+  "tr.same":"same key", "tr.tonic":"same tonic", "tr.up":"up {step}", "tr.down":"down {step}",
+  "tr.step1":"a half step", "tr.step2":"a whole step", "tr.step3":"3 half steps", "tr.step4":"2 whole steps", "tr.step5":"5 half steps", "tr.step6":"a tritone",
+
+  "picker.title":"Add from library", "picker.search":"Search", "picker.searchAria":"Search songs", "picker.none":"No songs found.",
+  "picker.emptyLib":"Your library is still empty. Songs you paste into a medley are saved there.", "picker.inMedley":"In medley",
+  "picker.added.one":"{n} song added.", "picker.added.other":"{n} songs added.", "picker.addedTo":"“{title}” added to {medley}.",
+
+  "share.title":"Share medley", "share.desc":"Anyone who opens this link sees the full medley (lyrics, chords, keys and order) and can save it to their own library. Nothing goes through a server.",
+  "share.urlAria":"Medley link", "share.send":"Send…", "share.copied":"Link copied.", "share.needSong":"Add a song before sharing.",
+  "share.long":"Long link ({n} characters). Some apps may cut it; if that happens, use Export in the Library.", "share.count":"{songs} in the link.",
+  "share.text":"Medley: {name}",
+  "incoming.title":"Medley received", "incoming.desc":"“{name}” with {songs}:", "incoming.later":"Not now", "incoming.save":"Save and open",
+  "incoming.bad":"This medley link looks incomplete.", "incoming.saved":"Medley saved to your library.", "incoming.defaultName":"Shared medley",
+
+  "lib.title":"Library", "lib.new":"New song", "lib.export":"Export", "lib.import":"Import", "lib.tabsAria":"Library section",
+  "lib.songs":"Songs ({n})", "lib.medleys":"Medleys ({n})", "lib.search":"Search title or lyrics", "lib.searchAria":"Search",
+  "lib.filterAria":"Filter", "lib.all":"All", "lib.withChords":"With chords", "lib.lyricsOnly":"Lyrics only", "lib.sortAria":"Sort", "lib.az":"A–Z", "lib.recent":"Recent",
+  "lib.sub":"{songs} · {medleys} · saved on this device", "lib.noResults":"Nothing found", "lib.noResultsText":"Try another term or filter.",
+  "lib.empty":"Empty library", "lib.emptyText":"Songs you paste into a medley are saved here automatically. You can also create or import them.",
+  "lib.key":"Key {key}", "lib.inCurrent":"In current medley", "lib.deleteUsed":"Delete (leaves {medleys})",
+  "lib.noMedleys":"No medleys found", "lib.open":"Open", "lib.emptyMedley":"Empty", "lib.copyName":"{name} (copy)", "lib.created":"“{name}” created.",
+  "lib.songDeleted":"“{title}” deleted.", "lib.songDeletedUsed":"“{title}” deleted and removed from {medleys}.",
+  "lib.medleyDeleted":"“{name}” deleted. Its songs are still in the library.",
+  "lib.exported":"Backup exported.", "lib.emptyExport":"The library is empty.", "lib.badFile":"This file doesn't look like an app backup.",
+  "lib.imported":"{songs} imported.", "lib.importedBoth":"{songs} and {medleys} imported.", "lib.importedMedley":"Imported medley",
+  "lib.saveFail":"Couldn't save on this device. Export a backup.",
+  "song.newTitle":"New song", "song.editTitle":"Edit song", "song.typeAria":"Type", "song.textAria":"Title and chords", "song.key":"Written key",
+  "song.needTitle":"Write the title on the first line.", "song.saved":"Song saved to the library.", "song.updated":"Song updated.",
+
+  "stage.aria":"Stage mode", "stage.close":"Exit stage mode", "stage.smaller":"Smaller text", "stage.bigger":"Larger text", "stage.modeAria":"What to show",
+  "stage.hint":"Tap the bottom to go forward · the top to go back", "stage.empty":"Nothing to show", "stage.emptyText":"Add songs to the medley.",
+
+  "install.title":"Install on iPhone or iPad", "install.s1":"Open this address in <b>Safari</b>.", "install.s2":"Tap <b>Share</b> (the square with an up arrow).",
+  "install.s3":"Choose <b>Add to Home Screen</b> and confirm.", "install.sub":"The app opens full screen and works offline.", "install.done":"App installed.",
+  "update.ready":"A new version is available.", "update.reload":"Update",
+
+  "study.title":"Study", "study.sub":"Scales, harmonic field and practice to make it stick.", "study.tabsAria":"Study section",
+  "study.explore":"Scales & harmonic field", "study.train":"Practice", "study.root":"Root", "study.scale":"Scale", "study.sevenths":"Seventh chords",
+  "study.scaleOf":"{root} {scale} scale", "study.play":"Play scale", "study.relMinor":"Relative minor: {key}", "study.relMajor":"Relative major: {key}",
+  "study.field":"Harmonic field", "study.fieldHint":"Tap a chord to hear it.", "study.noField":"This scale has 5 notes, so it doesn't form a 7-degree harmonic field.",
+  "study.fnT":"Tonic", "study.fnSD":"Subdominant", "study.fnD":"Dominant",
+  "study.fnTitle":"Harmonic functions", "study.fnIntro":"Every chord in the field plays a role. Knowing the function explains why a progression feels like arriving, moving or building tension, and lets you swap a chord for another with the same function.",
+  "study.fnTD":"Rest and stability. It's the “home” of the key: it feels like arrival and usually opens and closes phrases.",
+  "study.fnSDD":"Departure and motion. It leaves home and sets up tension; it sounds like the road between home and the climax.",
+  "study.fnDD":"Tension that wants to resolve. It pulls back to the tonic; V → I is the strongest cadence in tonal music.",
+  "study.fnHere":"In this field: {degrees}", "study.fnFlow":"Typical path: T → SD → D → T (e.g. {example}).", "study.keyboardAria":"Keyboard showing the scale notes",
+  "study.useInMedley":"Use degrees in the medley", "study.noAudio":"This browser can't play audio.",
+  "scale.maior":"Major", "scale.menor":"Natural minor", "scale.harmonica":"Harmonic minor", "scale.melodica":"Melodic minor", "scale.pentaMaior":"Major pentatonic", "scale.pentaMenor":"Minor pentatonic",
+  "train.kind":"What to practice", "train.level":"Level", "train.easy":"Easy", "train.medium":"Medium", "train.hard":"Hard", "train.start":"Start", "train.again":"Play again", "train.change":"Change practice",
+  "train.mixed":"Mixed", "train.mixedD":"A bit of everything",
+  "train.grau":"Chord from degree", "train.grauD":"Which chord is V in G?", "train.qualGrau":"Name the degree", "train.qualGrauD":"In G, Em is which degree?",
+  "train.nota":"Scale notes", "train.notaD":"What's the 3rd note of D major?", "train.relativa":"Relative keys", "train.relativaD":"Relative minor of F?",
+  "train.ouvido":"Ear training", "train.ouvidoD":"Is the chord major or minor?",
+  "train.levelD.facil":"Keys with few accidentals, major only", "train.levelD.medio":"All major keys", "train.levelD.dificil":"Major and minor, with diminished chords by ear",
+  "train.question":"Question {n} of {total}", "train.right":"Correct!", "train.wrong":"The answer was {answer}.", "train.next":"Next", "train.finish":"See results",
+  "train.listen":"Listen again", "train.result":"{right} of {total} correct", "train.best":"Best for this practice: {n} of {total}", "train.newBest":"New record!",
+  "train.streak":"Streak", "train.msg.great":"Excellent work.", "train.msg.good":"Good job. One more round will lock it in.", "train.msg.try":"Review the harmonic field and give it another go.",
+  "q.grau":"In the key of {key}, which chord is {degree}?", "q.qualGrau":"In the key of {key}, {chord} is which degree?", "q.nota":"What is the {ord} note of the {root} {scale} scale?",
+  "q.relMinor":"What is the relative minor of {key}?", "q.relMajor":"What is the relative major of {key}?", "q.ouvido":"Listen to the chord. Is it major, minor or diminished?", "q.ouvidoEasy":"Listen to the chord. Is it major or minor?",
+  "q.major":"Major", "q.minor":"Minor", "q.dim":"Diminished"
+};
+
+const DICTS = {pt, en};
+let lang = "pt";
+const listeners = new Set();
+
+export function getLang(){ return lang; }
+export function setLang(l){
+  lang = l === "en" ? "en" : "pt";
+  if(typeof document !== "undefined") document.documentElement.lang = lang === "en" ? "en" : "pt-BR";
+  listeners.forEach(fn => fn(lang));
+}
+export function onLang(fn){ listeners.add(fn); }
+export function detectLang(){
+  const n = (typeof navigator !== "undefined" && (navigator.languages && navigator.languages[0] || navigator.language)) || "pt";
+  return /^pt\b/i.test(n) ? "pt" : "en";
+}
+export function t(key, params){
+  let s = DICTS[lang][key] ?? pt[key] ?? key;
+  if(params) s = s.replace(/\{(\w+)\}/g, (m, k) => params[k] !== undefined ? params[k] : m);
+  return s;
+}
+// Plural: tn("song", 2) -> "2 músicas".
+export function tn(key, n, params){
+  const k = key + (n === 1 ? ".one" : ".other");
+  return t(k, Object.assign({n: n.toLocaleString(locale())}, params));
+}
+export function locale(){ return lang === "en" ? "en" : "pt-BR"; }
+export function ordinal(n){
+  if(lang === "pt") return n + "ª";
+  const s = n % 100 >= 11 && n % 100 <= 13 ? "th" : ({1:"st",2:"nd",3:"rd"}[n % 10] || "th");
+  return n + s;
+}
+// Preenche textos estáticos do HTML: data-i18n (texto), data-i18n-html (HTML confiável do dicionário),
+// data-i18n-attr="aria-label:chave;placeholder:chave".
+export function translateDOM(root = document){
+  root.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+  root.querySelectorAll("[data-i18n-html]").forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
+  root.querySelectorAll("[data-i18n-attr]").forEach(el => el.dataset.i18nAttr.split(";").forEach(p => {
+    const [attr, key] = p.split(":"); if(attr && key) el.setAttribute(attr.trim(), t(key.trim()));
+  }));
+}

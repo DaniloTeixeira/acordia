@@ -1,6 +1,8 @@
-// A versão é gerada por `node scripts/bump-cache.mjs` a partir do conteúdo dos arquivos abaixo.
-const CACHE = "medley-generator-pwa-dc8481425a";
-const FILES = ["./", "index.html", "manifest.webmanifest", "js/core.js", "vendor/jspdf.umd.min.js",
+// No deploy, `npm run build` troca a versão abaixo por um hash do conteúdo dos arquivos da lista.
+const CACHE = "medley-generator-pwa-dev";
+const FILES = ["./", "index.html", "manifest.webmanifest", "css/app.css",
+  "js/app.js", "js/core.js", "js/layout.js", "js/pdf.js", "js/share.js", "js/store.js", "js/study.js", "js/audio.js", "js/i18n.js",
+  "vendor/jspdf.umd.min.js",
   "fonts/atkinson-mono-regular.ttf", "fonts/atkinson-mono-bold.ttf", "fonts/atkinson-regular.ttf",
   "fonts/atkinson-bold.ttf", "fonts/lexend-regular.ttf", "fonts/lexend-bold.ttf",
   "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png"];
@@ -14,7 +16,7 @@ self.addEventListener("activate", e => {
     .then(() => self.clients.claim()));
 });
 // Rede primeiro para a página e o manifesto (pegam atualizações, como o nome do app),
-// cache para o resto e para usar offline.
+// cache para o resto e para usar offline. Links de medley (#m=...) não mudam a URL buscada.
 function networkFirst(e, key){
   e.respondWith(fetch(e.request)
     .then(r => { if (r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(key, copy)); } return r; })
@@ -24,5 +26,5 @@ self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
   if (e.request.mode === "navigate") return networkFirst(e, "index.html");
   if (new URL(e.request.url).pathname.endsWith("/manifest.webmanifest")) return networkFirst(e, "manifest.webmanifest");
-  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+  e.respondWith(caches.match(e.request, {ignoreSearch: true}).then(r => r || fetch(e.request)));
 });
