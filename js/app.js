@@ -742,11 +742,11 @@ function editSong(s){
 function exportLibrary(){
   const all = [...data.songs.values()].filter(s=>s.title);
   if(!all.length) return toast(t("lib.emptyExport"));
-  const json = JSON.stringify({app:"sonora", version:3, exportedAt:new Date().toISOString(),
+  const json = JSON.stringify({app:"acordia", version:3, exportedAt:new Date().toISOString(),
     songs: all.map(({id,title,text,type,key,bpm,ref,arrangements,updatedAt})=>({id,title,text,type,key,bpm,ref,arrangements:arrangements||[],updatedAt})),
     medleys: [...data.medleys.values()].map(({id,kind,name,items,options,updatedAt})=>({id,kind:kind||"setlist",name,options,updatedAt,
       items:items.map(i => i.type === "medley" ? {type:"medley", medleyId:i.medleyId} : {songId:i.songId,arrangementId:i.arrangementId||"",target:i.target,capo:i.capo,singer:i.singer,notes:i.notes})}))}, null, 2);
-  saveBlob(new Blob([json], {type:"application/json"}), "sonora-backup-" + new Date().toISOString().slice(0,10) + ".json");
+  saveBlob(new Blob([json], {type:"application/json"}), "acordia-backup-" + new Date().toISOString().slice(0,10) + ".json");
   toast(t("lib.exported"));
 }
 async function importLibrary(file){

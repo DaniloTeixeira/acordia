@@ -1,5 +1,5 @@
 // No deploy, `npm run build` troca a versão abaixo por um hash do conteúdo dos arquivos da lista.
-const CACHE = "sonora-dev";
+const CACHE = "acordia-dev";
 const FILES = ["./", "index.html", "manifest.webmanifest", "css/app.css",
   "js/app.js", "js/core.js", "js/layout.js", "js/pdf.js", "js/share.js", "js/store.js", "js/study.js", "js/audio.js", "js/i18n.js", "js/hands.js", "js/metronome.js", "js/instruments.js", "js/chordview.js", "js/tuner.js", "js/keys.js", "js/dropdown.js",
   "vendor/jspdf.umd.min.js",

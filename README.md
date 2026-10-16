@@ -1,10 +1,10 @@
-# Sonora
+# Acordia
 
 **Sua música. Um só lugar.** App instalável (PWA) para músicos montarem repertórios com cifras, graus ou só a
 letra, tocarem no palco e estudarem teoria, ritmo e ouvido. Funciona offline, em português e inglês, e guarda
 tudo no próprio aparelho.
 
-**Abrir o app:** https://daniloteixeira.github.io/sonora/
+**Abrir o app:** https://daniloteixeira.github.io/acordia/
 
 ## O que dá para fazer
 
