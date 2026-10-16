@@ -35,59 +35,53 @@ tudo no próprio aparelho.
   - **Mãos:** 10 exercícios de independência das mãos com metrônomo e precisão por mão.
 - **Ferramentas:** metrônomo (compasso, subdivisão, acento, tap tempo) e afinador pelo microfone, com as cordas
   do instrumento e A4 ajustável.
-- PDF, impressão, tema claro/escuro/sistema e PT/EN.
+- PDF, impressão, tema claro/escuro/sistema e português, inglês e espanhol.
 
 ## Rodar localmente
 
-Módulos ES e service worker precisam de `http://localhost` ou HTTPS; não abra o `index.html` direto do disco.
+Feito em React + TypeScript com Vite. Precisa do Node 22 ou mais novo.
 
 ```bash
-npx serve .
-# ou
-python3 -m http.server 8080
+npm install
+npm run dev        # servidor de desenvolvimento em http://localhost:5173/acordia/
+npm run build      # checa os tipos e gera a pasta _site (o que vai para o ar)
+npm run preview    # serve o _site, para testar o modo offline e a instalação
 ```
 
 ## Testes
 
 ```bash
-npm test
+npm test           # Vitest
+npm run typecheck  # TypeScript estrito
 ```
 
-Usam só o `node:test` (Node 22 ou mais novo, sem dependências). Cobrem parser, detecção de acordes e tom,
-graus, transposição, transições, teoria (escalas, campo harmônico, relativas), perguntas do treino,
-layout das folhas, links de compartilhamento, validação de importação e traduções.
+Cobrem parser, detecção de acordes e tom, graus, transposição, transições, teoria (escalas, campo
+harmônico, relativas), perguntas do treino, layout das folhas, links de compartilhamento, instrumentos,
+afinador, exercícios das mãos e do teclado, validação de importação e traduções.
 
 ## Publicar
 
 Cada push na `main` roda o GitHub Actions ([.github/workflows/deploy.yml](.github/workflows/deploy.yml)):
-testes, `npm run build` e deploy no GitHub Pages. O build monta a pasta `_site` só com os arquivos da lista
-`FILES` do `sw.js` e grava no `sw.js` publicado uma versão de cache calculada pelo conteúdo, então quem já
-instalou recebe a versão nova e vê o aviso **Nova versão disponível**.
-
-Ao criar um arquivo novo que o app carrega, inclua-o na lista `FILES` do [sw.js](sw.js).
+testes, `npm run build` e deploy no GitHub Pages. O build lista todos os arquivos no service worker
+([src/sw.ts](src/sw.ts)), que guarda o app inteiro na instalação; quem já instalou recebe a versão nova no
+próximo carregamento e vê o aviso **Nova versão disponível**.
 
 ## Estrutura
 
 | Arquivo | Papel |
 |---|---|
-| [index.html](index.html) | Estrutura da interface e ícones (SVG) |
-| [css/app.css](css/app.css) | Design system: tokens, temas, layouts desktop/celular, animações |
-| [js/app.js](js/app.js) | Interface: medley, folha, biblioteca, compartilhamento, palco, instalação |
-| [js/core.js](js/core.js) | Funções puras: parser, graus, transposição, tom, teoria, treino, validação |
-| [js/layout.js](js/layout.js) | Montagem das folhas A4 (sem DOM) e SVG da pré-visualização |
-| [js/pdf.js](js/pdf.js) | PDF com jsPDF; as fontes só são baixadas na primeira exportação |
-| [js/store.js](js/store.js) | IndexedDB (músicas, medleys, preferências) |
-| [js/share.js](js/share.js) | Links de medley compactados |
-| [js/study.js](js/study.js), [js/audio.js](js/audio.js) | Modo Estudo e síntese de som (Web Audio) |
-| [js/hands.js](js/hands.js), [js/metronome.js](js/metronome.js) | Independência das mãos e metrônomo |
-| [js/instruments.js](js/instruments.js), [js/chordview.js](js/chordview.js) | Afinações, leitura de acordes, posições para cordas, diagramas e braço |
-| [js/tuner.js](js/tuner.js) | Afinador (detecção de altura) |
-| [js/i18n.js](js/i18n.js) | Textos em português e inglês |
-| [sw.js](sw.js) | Cache offline |
-| [scripts/build.mjs](scripts/build.mjs) | Build do deploy |
+| [index.html](index.html) | Página base e ícones (sprite SVG) |
+| [src/main.tsx](src/main.tsx), [src/App.tsx](src/App.tsx) | Início, navegação, menus de idioma/volume/tema, instalação e atualização |
+| [src/state.ts](src/state.ts) | Estado da interface (Zustand): página, idioma, avisos e janelas |
+| [src/repertoire.ts](src/repertoire.ts) | Regras do repertório aberto: medleys, arranjos, músicas da folha |
+| [src/views/](src/views/) | Páginas: Repertório e folha, Biblioteca, Estudo, Ferramentas, Palco |
+| [src/dialogs/](src/dialogs/) | Janelas: biblioteca, música, compartilhar, link recebido, acorde, vídeo... |
+| [src/ui/](src/ui/) | Peças da interface: lista suspensa, controle segmentado, janela, avisos, dicas |
+| [src/lib/](src/lib/) | Lógica sem interface: cifras e teoria, folhas A4, PDF, IndexedDB, links, áudio, metrônomo, afinador, instrumentos, exercícios, traduções |
+| [src/styles/app.scss](src/styles/app.scss) | Design system: tokens, temas, layouts desktop/celular, animações |
+| [src/sw.ts](src/sw.ts) | Cache offline |
 
-Os dados ficam no IndexedDB do navegador. Na primeira abertura, o app migra a biblioteca e a sequência da
-versão anterior (localStorage). Como nada sai do aparelho, exporte um backup de vez em quando.
+Os dados ficam no IndexedDB do navegador. Como nada sai do aparelho, exporte um backup de vez em quando.
 
 ## Licença
 

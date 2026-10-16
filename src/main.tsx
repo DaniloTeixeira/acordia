@@ -1,0 +1,65 @@
+// Início do app: carrega os dados, aplica idioma/tema/volume, desenha e liga o modo offline.
+import { createRoot } from "react-dom/client";
+import { StrictMode } from "react";
+import "./styles/app.scss";
+import * as store from "./lib/store";
+import { setLang, detectLang, t, getLang } from "./lib/i18n";
+import { decodeMedley } from "./lib/share";
+import { clearMeasureCache } from "./lib/util";
+import { useUI, toast, openDialog, VIEWS, type View } from "./state";
+import { current } from "./repertoire";
+import { initMetro } from "./metro";
+import { initTooltips } from "./ui/tooltips";
+import { App, applyTheme, applyVolume, theme } from "./App";
+
+await store.init(() => toast(t("lib.saveFail")));
+setLang((store.data.settings.lang as string) || detectLang());
+const m = current();
+// Com uma música só, ou com alguma ainda vazia, os itens já abrem para editar.
+if(m.items.length === 1 || m.items.some(i => i.type !== "medley" && !(store.data.songs.get(i.songId) || {text: ""}).text.trim()))
+  useUI.setState({expanded: new Set(m.items.map(i => i.id))});
+const view = store.data.settings.view as View;
+useUI.setState({lang: getLang(), view: VIEWS.includes(view) ? view : "medley"});
+applyTheme(theme());
+applyVolume();
+initMetro();
+
+// Para testes: ?debug expõe os dados.
+if(new URLSearchParams(location.search).has("debug")) Object.assign(window, {__store: store});
+
+createRoot(document.getElementById("root")!).render(<StrictMode><App/></StrictMode>);
+initTooltips();
+document.documentElement.classList.add("ready");
+
+// As fontes da folha precisam estar carregadas para medir o texto certo.
+Promise.all(["700 10px AHMono","400 10px AHMono","400 10px AHSans","700 10px AHSans","400 10px Lexend","700 10px Lexend"].map(f => document.fonts.load(f).catch(()=>null)))
+  .then(() => { clearMeasureCache(); store.touch(); });
+addEventListener("pagehide", () => store.flush());
+
+// ---------- repertório recebido por link (#m=...) ----------
+async function checkIncoming(){
+  const mt = /^#m=(.+)$/.exec(location.hash); if(!mt) return;
+  const med = await decodeMedley(mt[1]);
+  history.replaceState(null, "", location.pathname + location.search);
+  if(!med) return toast(t("incoming.bad"));
+  openDialog("incoming", {med});
+}
+checkIncoming();
+addEventListener("hashchange", checkIncoming);
+
+// ---------- modo offline e atualizações ----------
+// Avisa quando uma versão nova assumir; procura versão nova ao voltar para o app e a cada 30 minutos.
+if("serviceWorker" in navigator && import.meta.env.PROD){
+  const had = !!navigator.serviceWorker.controller;
+  let shown = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if(!had || shown) return; shown = true;
+    toast(t("update.ready"), {label: t("update.reload"), run: () => location.reload()}, {sticky: true});
+  });
+  const register = () => navigator.serviceWorker.register(import.meta.env.BASE_URL + "sw.js").then(reg => {
+    const check = () => reg.update().catch(()=>{});
+    document.addEventListener("visibilitychange", () => { if(!document.hidden) check(); });
+    setInterval(check, 30 * 60 * 1000);
+  }).catch(()=>{});
+  if(document.readyState === "complete") register(); else addEventListener("load", register);
+}

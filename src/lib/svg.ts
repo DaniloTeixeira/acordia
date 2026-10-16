@@ -1,0 +1,112 @@
+// Desenhos em SVG (como texto, com tudo escapado): diagrama de acorde, braço do instrumento,
+// teclados e o grau/função de um acorde no tom.
+import { INSTRUMENTS, parseChord, isInstrument, type Voicing } from "./instruments";
+import { NOTES, parseKey, chordToDegree, harmonicField, rootFor, type Fn } from "./core";
+import { t } from "./i18n";
+
+export const esc = (s: unknown) => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const inst = (id: string) => INSTRUMENTS[isInstrument(id) ? id : "guitar"];
+
+export const voicingMidis = (v: Voicing, instId: string) => v.frets.map((f, i) => f < 0 ? null : inst(instId).strings[i] + f).filter((n): n is number => n !== null);
+
+// Diagrama de acorde: cordas na vertical (grave à esquerda), 4 casas.
+export function diagramSVG(v: Voicing, instId: string, {small = false} = {}){
+  const I = inst(instId), n = I.strings.length, rows = 4;
+  const fretted = v.frets.filter(f => f > 0), max = fretted.length ? Math.max(...fretted) : 0;
+  const base = max <= rows ? 1 : Math.min(...fretted);
+  const gap = small ? 16 : 24, rowH = small ? 18 : 26, left = small ? 16 : 26, top = small ? 16 : 26;
+  const W = left * 2 + gap * (n - 1), H = top + rowH * rows + (small ? 6 : 26);
+  const x = (i: number) => left + i * gap, y = (r: number) => top + r * rowH;
+  let s = `<svg class="diagram${small ? " sm" : ""}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(v.frets.map(f => f < 0 ? "x" : f).join(" "))}">`;
+  for(let r = 0; r <= rows; r++) s += `<line x1="${x(0)}" x2="${x(n - 1)}" y1="${y(r)}" y2="${y(r)}" class="fret${r === 0 && base === 1 ? " nut" : ""}"/>`;
+  for(let i = 0; i < n; i++) s += `<line x1="${x(i)}" x2="${x(i)}" y1="${y(0)}" y2="${y(rows)}" class="str"/>`;
+  if(base > 1) s += `<text x="${x(n - 1) + (small ? 6 : 9)}" y="${y(0.5) + 4}" class="base">${base}</text>`;
+  if(v.barre){
+    const min = Math.min(...fretted), i0 = v.frets.indexOf(min), i1 = v.frets.lastIndexOf(min);
+    s += `<rect x="${x(i0) - (small ? 5 : 8)}" y="${y(min - base + 0.5) - (small ? 5 : 8)}" width="${x(i1) - x(i0) + (small ? 10 : 16)}" height="${small ? 10 : 16}" rx="${small ? 5 : 8}" class="dot"/>`;
+  }
+  v.frets.forEach((f, i) => {
+    if(f < 0) s += `<text x="${x(i)}" y="${top - (small ? 5 : 8)}" class="mark">×</text>`;
+    else if(f === 0) s += `<circle cx="${x(i)}" cy="${top - (small ? 8 : 12)}" r="${small ? 3.5 : 5}" class="open"/>`;
+    else s += `<circle cx="${x(i)}" cy="${y(f - base + 0.5)}" r="${small ? 5.5 : 9}" class="dot"/>`;
+  });
+  if(!small) I.names.forEach((nm, i) => { s += `<text x="${x(i)}" y="${H - 6}" class="sname">${nm}</text>`; });
+  return s + "</svg>";
+}
+
+// Braço com as notas marcadas: marks[pc] = {label, root}. Corda mais aguda em cima, como na tablatura.
+export type Marks = Record<number, {label: string; root: boolean}>;
+export function fretboardSVG(instId: string, marks: Marks, frets = 12){
+  const I = inst(instId), n = I.strings.length;
+  const fw = 44, sh = 26, left = 36, top = 18, W = left + fw * (frets + 0.6) + 8, H = top * 2 + sh * (n - 1) + 14;
+  const fx = (f: number) => f === 0 ? left - 16 : left + fw * (f - 0.5), sy = (i: number) => top + sh * (n - 1 - i);
+  let s = `<svg class="fretboard" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t("inst.boardAria"))}">`;
+  s += `<rect x="${left}" y="${top - 6}" width="${fw * frets}" height="${sh * (n - 1) + 12}" class="wood"/>`;
+  [3,5,7,9].filter(f => f <= frets).forEach(f => { s += `<circle cx="${left + fw * (f - 0.5)}" cy="${top + sh * (n - 1) / 2}" r="5" class="inlay"/>`; });
+  if(frets >= 12) [-1, 1].forEach(d => { s += `<circle cx="${left + fw * 11.5}" cy="${top + sh * (n - 1) / 2 + d * sh * 0.9}" r="5" class="inlay"/>`; });
+  for(let f = 0; f <= frets; f++) s += `<line x1="${left + fw * f}" x2="${left + fw * f}" y1="${top - 6}" y2="${top + sh * (n - 1) + 6}" class="${f ? "fret" : "nut"}"/>`;
+  for(let i = 0; i < n; i++) s += `<line x1="${left - 26}" x2="${left + fw * frets}" y1="${sy(i)}" y2="${sy(i)}" class="str" style="stroke-width:${1 + (n - 1 - i) * 0.35}"/>`;
+  [3,5,7,9,12].filter(f => f <= frets).forEach(f => { s += `<text x="${left + fw * (f - 0.5)}" y="${H - 2}" class="fnum">${f}</text>`; });
+  for(let i = 0; i < n; i++) for(let f = 0; f <= frets; f++){
+    const midi = I.strings[i] + f, m = marks[midi % 12];
+    if(!m) continue;
+    s += `<g class="pos${m.root ? " root" : ""}" data-midi="${midi}"><circle cx="${fx(f)}" cy="${sy(i)}" r="10.5"/><text x="${fx(f)}" y="${sy(i) + 3.5}">${esc(m.label)}</text></g>`;
+  }
+  return s + "</svg>";
+}
+
+// Mini teclado de 2 oitavas com as notas do acorde.
+export function pianoSVG(midis: number[], rootPc: number){
+  const lo = Math.min(...midis), start = lo - (lo % 12);
+  const W = 24, H = 84, BW = 15, BH = 52; let whites = "", blacks = "", x = 0;
+  const on = new Set(midis);
+  for(let k = 0; k < 24; k++){
+    const midi = start + k, pc = midi % 12, cls = on.has(midi) ? (pc === rootPc ? " root" : " in") : "";
+    if([0,2,4,5,7,9,11].includes(pc)){ whites += `<rect class="w${cls}" data-midi="${midi}" x="${x}" y="0" width="${W}" height="${H}" rx="3"/>`; x += W; }
+    else blacks += `<rect class="b${cls}" data-midi="${midi}" x="${x - BW/2}" y="0" width="${BW}" height="${BH}" rx="2"/>`;
+  }
+  return `<svg class="keyboard mini" viewBox="-1 -1 ${x + 2} ${H + 2}" role="img">${whites}${blacks}</svg>`;
+}
+
+const WHITE = [0,2,4,5,7,9,11];
+// Teclado de 2 oitavas do explorador, com os nomes das notas da escala (notesByPc).
+export function scaleKeyboardSVG(startMidi: number, rootPc: number, notesByPc: Record<number, string>){
+  const kbStart = startMidi - rootPc, W = 24, H = 96, BW = 15, BH = 58;
+  let whites = "", blacks = "", x = 0;
+  for(let o = 0; o < 2; o++) for(let pc = 0; pc < 12; pc++){
+    const midi = kbStart + o*12 + pc, name = notesByPc[pc], root = pc === rootPc;
+    const cls = (name ? " in" : "") + (root ? " root" : "");
+    if(WHITE.includes(pc)){
+      whites += `<rect class="w${cls}" data-midi="${midi}" x="${x}" y="0" width="${W}" height="${H}" rx="3"/>` + (name ? `<text class="${root?"root":"in"}" x="${x + W/2}" y="${H-8}" text-anchor="middle">${esc(name)}</text>` : "");
+      x += W;
+    } else {
+      blacks += `<rect class="b${cls}" data-midi="${midi}" x="${x - BW/2}" y="0" width="${BW}" height="${BH}" rx="2"/>` + (name ? `<text class="${root?"root":"in"}" x="${x}" y="${BH-6}" text-anchor="middle" style="fill:#fff;font-size:8px">${esc(name)}</text>` : "");
+    }
+  }
+  return `<svg class="keyboard" viewBox="-1 -1 ${x + 2} ${H + 2}" role="img" aria-label="${esc(t("study.keyboardAria"))}">${whites}${blacks}</svg>`;
+}
+
+// Teclado dos exercícios: cobre de lo a hi (em oitavas inteiras), com espaço para o número do dedo.
+export function practiceKeyboardSVG(lo: number, hi: number){
+  const start = lo - (((lo % 12) + 12) % 12), end = hi + (11 - hi % 12);
+  const W = 26, H = 110, BW = 16, BH = 66; let whites = "", blacks = "", x = 0;
+  for(let m = start; m <= end; m++){
+    const pc = m % 12;
+    if(WHITE.includes(pc)){ whites += `<rect class="w" data-midi="${m}" x="${x}" y="0" width="${W}" height="${H}" rx="3"/>${pc === 0 ? `<text class="oct" x="${x + W/2}" y="${H - 6}">C${Math.floor(m / 12) - 1}</text>` : ""}<text class="fing" data-f="${m}" x="${x + W/2}" y="${H - 22}"></text>`; x += W; }
+    else blacks += `<rect class="b" data-midi="${m}" x="${x - BW/2}" y="0" width="${BW}" height="${BH}" rx="2"/><text class="fing light" data-f="${m}" x="${x}" y="${BH - 10}"></text>`;
+  }
+  return `<svg class="keyboard practice" viewBox="-1 -1 ${x + 2} ${H + 2}" role="img" aria-label="${esc(t("study.keyboardAria"))}">${whites}${blacks}</svg>`;
+}
+
+// Grau e função de um acorde no tom (quando é diatônico).
+export function chordInKey(symbol: string, key: string): {degree: string; fn: Fn | ""; diatonic: boolean} | null {
+  const c = parseChord(symbol), k = parseKey(key);
+  if(!c || !k) return null;
+  const degree = chordToDegree(symbol, key);
+  const root = rootFor(k.pc, k.minor ? "menor" : "maior");
+  const field = harmonicField(root, k.minor ? "menor" : "maior");
+  const third = c.tones.find(x => x.role === "3"), fifth = c.tones.find(x => x.role === "5");
+  const q = !third ? "" : third.iv === 3 ? (fifth && fifth.iv === 6 ? "d" : "m") : (fifth && fifth.iv === 8 ? "a" : "M");
+  const hit = field.find(f => NOTES[f.name.replace(/[^A-G#b].*$/, "")] === c.rootPc && f.quality === q);
+  return {degree, fn: hit ? hit.fn : "", diatonic: !!hit};
+}
