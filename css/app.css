@@ -533,6 +533,44 @@ a.btn{text-decoration:none}
 .lang-icon{position:relative;overflow:hidden}
 .lang-overlay{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 
+/* segmentos dentro de cards não esticam */
+.item-inner > .seg, .dlg-body > .seg{align-self:flex-start}
+.sub-seg{margin:16px 0 4px}
+
+/* exercícios de teclado */
+.k-controls{gap:10px 16px}
+.k-board{background:var(--surface-2);border-radius:var(--r-md);padding:8px}
+.keyboard.practice{min-width:560px;max-width:none;width:100%;cursor:pointer;touch-action:manipulation}
+.keyboard.practice .w.rh{fill:#2160B0} .keyboard.practice .b.rh{fill:#3B82F6}
+.keyboard.practice .w.lh{fill:var(--lh)} .keyboard.practice .b.lh{fill:#8B5CF6}
+.keyboard.practice .w.next{fill:#E8EEF8} .keyboard.practice .b.next{fill:#475569}
+.keyboard.practice .hit{fill:#16A34A!important} .keyboard.practice .bad{fill:#DC2626!important}
+.keyboard.practice .fing{font-size:13px;font-weight:800;fill:#fff;text-anchor:middle;pointer-events:none}
+.keyboard.practice .oct{font-size:9px;fill:#94A3B8;text-anchor:middle;pointer-events:none}
+.kgrid-wrap{overflow-x:auto;padding-bottom:4px}
+.kgrid{display:flex;gap:4px;min-width:min-content}
+.kstep{display:flex;flex-direction:column;gap:3px;align-items:stretch;min-width:46px;padding:4px;border-radius:var(--r-sm);transition:background-color var(--t-fast)}
+.kstep.on{background:var(--accent-soft)}
+.kbeat{font-size:.7rem;color:var(--muted);text-align:center;font-weight:700}
+.kc{display:flex;flex-direction:column;align-items:center;padding:4px 2px;border-radius:6px;font-size:.78rem;min-height:38px;justify-content:center}
+.kc.rh{background:color-mix(in srgb,#2160B0 16%,transparent);color:var(--ink)} .kc.lh{background:color-mix(in srgb,var(--lh) 18%,transparent);color:var(--ink)}
+.kc.auto{opacity:.45}
+.kc small{color:var(--muted);font-weight:700}
+.kc.empty{background:transparent}
+.k-actions{gap:8px}
+.k-sound{margin-left:auto}
+
+/* menu de idioma */
+.menu-pop{width:220px;padding:6px}
+.menu-item{display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 12px;border:none;background:none;border-radius:var(--r-sm);font-weight:600;color:var(--ink);cursor:pointer;text-align:left;transition:background-color var(--t-fast)}
+.menu-item:hover,.menu-item:focus-visible{background:var(--surface-2)}
+.menu-item[aria-checked="true"]{color:var(--accent-soft-ink);background:var(--accent-soft)}
+.lang-item [data-lang-name]{flex:1}
+/* guia de uso */
+.help-btn{color:var(--muted)}
+.help-steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px;line-height:1.5}
+.help-steps li::marker{color:var(--accent);font-weight:700}
+
 /* ---------- diálogos ---------- */
 dialog{border:none;padding:0;border-radius:var(--r-lg);background:var(--surface);color:var(--ink);box-shadow:var(--shadow-lg);width:min(560px,calc(100vw - 24px));max-height:min(86dvh,760px);
   opacity:1;transform:none;transition:opacity var(--t) var(--ease),transform var(--t) var(--ease-out),display var(--t) allow-discrete,overlay var(--t) allow-discrete}

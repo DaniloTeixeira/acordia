@@ -2,6 +2,7 @@
 import { SCALES, spellScale, scaleDegrees, harmonicField, relativeKey, rootFor, makeQuestion, makeRepertoireQuestion, QUIZ_KINDS, NOTE_GRID, CHORD_QUALITIES } from "./core.js";
 import * as audio from "./audio.js";
 import { initHands } from "./hands.js";
+import { initKeys } from "./keys.js";
 import { INSTRUMENTS, voicings } from "./instruments.js";
 import { instrumentSelect, fretboardSVG, diagramSVG, voicingMidis } from "./chordview.js";
 const { playChord, playSequence } = audio;
@@ -11,9 +12,22 @@ const ROUND = 10;
 const WHITE = [0,2,4,5,7,9,11], BLACK = [1,3,6,8,10];
 
 export function initStudy({explore, train, hands, tabs, seg, paintSeg, data, store, toast, icon, esc, getInstrument, chordDialog, getRepertoire}){
-  const st = Object.assign({tab:"explore", rootPc:0, scaleId:"maior", sevenths:false, kind:"misto", level:"facil", mode:"choice"}, data.settings.study || {});
-  const persist = () => store.setSetting("study", {tab:st.tab, rootPc:st.rootPc, scaleId:st.scaleId, sevenths:st.sevenths, kind:st.kind, level:st.level, mode:st.mode});
-  const handsUI = initHands({root:hands, data, store, toast, icon, esc, audio});
+  const st = Object.assign({tab:"explore", rootPc:0, scaleId:"maior", sevenths:false, kind:"misto", level:"facil", mode:"choice", handsMode:"rhythm"}, data.settings.study || {});
+  const persist = () => store.setSetting("study", {tab:st.tab, rootPc:st.rootPc, scaleId:st.scaleId, sevenths:st.sevenths, kind:st.kind, level:st.level, mode:st.mode, handsMode:st.handsMode});
+  // Mãos: ritmo (duas mãos em batidas) ou teclado (exercícios técnicos com notas e dedilhado).
+  hands.innerHTML = `<div class="seg sub-seg" id="hands-mode" role="group"><button data-v="rhythm"></button><button data-v="keys"></button></div><div id="hands-rhythm"></div><div id="hands-keys" hidden></div>`;
+  const handsUI = initHands({root:hands.querySelector("#hands-rhythm"), data, store, toast, icon, esc, audio});
+  const keysUI = initKeys({root:hands.querySelector("#hands-keys"), data, store, toast, icon, esc, audio, seg});
+  const handsModeSeg = hands.querySelector("#hands-mode");
+  seg(handsModeSeg, st.handsMode, v => { st.handsMode = v; persist(); showHands(); });
+  function showHands(){
+    handsModeSeg.querySelector('[data-v="rhythm"]').textContent = t("hands.modeRhythm");
+    handsModeSeg.querySelector('[data-v="keys"]').textContent = t("hands.modeKeys");
+    const keys = st.handsMode === "keys";
+    hands.querySelector("#hands-rhythm").hidden = keys; hands.querySelector("#hands-keys").hidden = !keys;
+    if(keys){ handsUI.hide(); keysUI.show(); } else { keysUI.hide(); handsUI.show(); }
+    requestAnimationFrame(() => paintSeg(handsModeSeg));
+  }
   let quiz = null;
 
   seg(tabs, st.tab, v => { st.tab = v; persist(); show(); });
@@ -233,13 +247,13 @@ export function initStudy({explore, train, hands, tabs, seg, paintSeg, data, sto
     tabs.setSeg(st.tab);
     if(st.tab === "metro") st.tab = "explore";
     explore.hidden = st.tab !== "explore"; train.hidden = st.tab !== "train"; hands.hidden = st.tab !== "hands";
-    if(st.tab !== "hands") handsUI.hide();
+    if(st.tab !== "hands"){ handsUI.hide(); keysUI.hide(); }
     if(st.tab === "explore") renderExplore();
-    else if(st.tab === "hands") handsUI.show();
+    else if(st.tab === "hands") showHands();
     else if(!quiz) renderSetup();
     requestAnimationFrame(() => document.querySelectorAll("#view-study .seg").forEach(paintSeg));
   }
   // Ao trocar de idioma: redesenha (uma pergunta em andamento é refeita no novo idioma).
   function relabel(){ if(quiz && !quiz.answered) nextQuestion(); else if(quiz) renderQuiz(); show(); }
-  return {show, relabel, hide: () => handsUI.hide(), rerender(){ if(!explore.hidden && st.tab === "explore") renderExplore(); }};
+  return {show, relabel, hide: () => { handsUI.hide(); keysUI.hide(); }, rerender(){ if(!explore.hidden && st.tab === "explore") renderExplore(); }};
 }

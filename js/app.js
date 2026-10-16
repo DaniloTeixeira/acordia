@@ -120,7 +120,10 @@ function cycleTheme(){
 }
 function applyLang(){
   translateDOM();
-  $$("[data-lang-select]").forEach(sel => { sel.innerHTML = LANGS.map(([v, n]) => `<option value="${v}" ${v === getLang() ? "selected" : ""}>${n}</option>`).join(""); sel.title = t("lang.label"); });
+  const name = (LANGS.find(([v]) => v === getLang()) || LANGS[0])[1];
+  $$("[data-lang-name]").forEach(e => e.textContent = name);
+  $("#lang-pop").innerHTML = LANGS.map(([v, n]) => `<button class="menu-item" role="menuitemradio" aria-checked="${v === getLang()}" data-lang="${v}">${n}${v === getLang() ? icon("check", "sm") : ""}</button>`).join("");
+  $$("#lang-pop [data-lang]").forEach(b => b.onclick = () => { $("#lang-pop").hidePopover(); changeLang(b.dataset.lang); });
   applyTheme(data.settings.theme || "system");
 }
 function changeLang(l){
@@ -150,6 +153,7 @@ function go(v, {instant} = {}){
     if(v === "medley") renderSheet.flush();
     $$(".seg").forEach(paintSeg);
     window.scrollTo({top:0});
+    offerHelp(v);
   };
   store.setSetting("view", v);
   if(instant) run(); else vt(run);
@@ -983,6 +987,32 @@ function repertoireEntries(){
     chords: s.blocks.flatMap(b => b.flatMap(it => it.chord ? chordLine(it.chord, s, "cifras").chords.map(c => c.chord) : []))}));
 }
 
+// Abre um popover perto do botão que o chamou (abaixo, ou acima quando não cabe).
+function openNear(pop, btn, w){
+  if(pop.matches(":popover-open")) return pop.hidePopover();
+  const r = btn.getBoundingClientRect();
+  pop.style.left = Math.max(12, Math.min(r.left, innerWidth - w - 12)) + "px";
+  pop.style.top = "0px"; pop.showPopover();
+  const h = pop.offsetHeight;
+  pop.style.top = (r.bottom + 8 + h > innerHeight ? Math.max(12, r.top - h - 8) : r.bottom + 8) + "px";
+}
+// Guia "Como usar" de cada página.
+const HELP_STEPS = {medley: 6, library: 4, study: 5, tools: 3};
+function openHelp(page){
+  const n = HELP_STEPS[page]; if(!n) return;
+  $("#help-h").textContent = t("help." + page + ".title");
+  $("#help-intro").textContent = t("help." + page + ".intro");
+  $("#help-steps").innerHTML = Array.from({length: n}, (_, i) => `<li>${esc(t("help." + page + ".s" + (i + 1)))}</li>`).join("");
+  seenHelp(page);
+  $("#dlg-help").showModal();
+}
+function seenHelp(page){ const s = Object.assign({}, data.settings.seenHelp || {}); if(!s[page]){ s[page] = true; store.setSetting("seenHelp", s); } }
+// Na primeira visita a uma página, um aviso discreto oferece o guia.
+function offerHelp(page){
+  if(!HELP_STEPS[page] || (data.settings.seenHelp || {})[page]) return;
+  seenHelp(page);
+  setTimeout(() => toast(t("help.first"), {label: t("help.button"), run: () => openHelp(page)}), 600);
+}
 function initVolume(){
   const pop = $("#vol-pop"), range = $("#vol-range");
   const cur = () => ({v: data.settings.volume ?? 80, m: !!data.settings.muted});
@@ -997,12 +1027,7 @@ function initVolume(){
   range.oninput = () => { store.setSetting("volume", +range.value); if(+range.value) store.setSetting("muted", false); paint(); };
   range.onchange = () => audio.playChord([0, 4, 7], {base: 60, dur: 0.6});
   $("#vol-mute").onclick = () => { store.setSetting("muted", !cur().m); paint(); };
-  $$("[data-volume]").forEach(b => b.onclick = () => {
-    const r = b.getBoundingClientRect(), w = 280;
-    pop.style.left = Math.max(12, Math.min(r.left, innerWidth - w - 12)) + "px";
-    pop.style.top = (r.bottom + 8 + 160 > innerHeight ? Math.max(12, r.top - 168) : r.bottom + 8) + "px";
-    pop.togglePopover();
-  });
+  $$("[data-volume]").forEach(b => b.onclick = () => openNear(pop, b, 280));
   paint();
   return {paint};
 }
@@ -1027,7 +1052,8 @@ async function main(){
   $$("[data-nav]").forEach(b => b.onclick = () => go(b.dataset.nav));
   $$(".brand").forEach(a => a.addEventListener("click", e => { e.preventDefault(); go("medley"); }));
   $$("[data-theme-toggle]").forEach(b => b.onclick = cycleTheme);
-  $$("[data-lang-select]").forEach(sel => sel.onchange = () => changeLang(sel.value));
+  $$("[data-lang-menu]").forEach(b => b.onclick = () => openNear($("#lang-pop"), b, 220));
+  $$("[data-help]").forEach(b => b.onclick = () => openHelp(b.dataset.help));
   seg($("#mode-seg"), sheetMode, setMode);
   const pane = data.settings.pane === "sheet" ? "sheet" : "edit";
   seg($("#pane-toggle"), pane, setPane); $("#medley-grid").dataset.pane = pane;

@@ -60,6 +60,13 @@ export function click(kind, at){
   o.start(t0); o.stop(t0 + c.dur + 0.02);
   return true;
 }
+// Toca notas (MIDI) num instante agendado do relógio do áudio; usado nas demonstrações do teclado.
+export function playNotesAt(midis, at, dur = 0.8){
+  const ac = audio(); if(!ac) return false;
+  const g = 0.22 / Math.sqrt(midis.length || 1);
+  midis.forEach(m => voice(ac, m, Math.max(at, ac.currentTime), dur, g));
+  return true;
+}
 export function playSequence(pcs, {base = 60, step = 0.32} = {}){
   const ac = audio(); if(!ac) return false;
   const t = ac.currentTime + 0.02;
