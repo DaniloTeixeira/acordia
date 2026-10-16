@@ -59,6 +59,14 @@
 :root[data-theme="dark"] .brand .logo-on-dark{display:block}
 
 /* ---------- base ---------- */
+/* Hover padrão de tudo que é clicável e tem borda: a borda vira o gradiente do logo, com fade.
+   A borda em gradiente é uma camada por cima da borda normal, recortada por máscara (mantém o arredondado). */
+:is(.lib-card,.chord-card,.root-btn,.note-chip,.kind,.answer,.btn.ghost){position:relative}
+.kind,.answer{--bw:1.5px} .note-chip{--bw:0px}
+:is(.lib-card,.chord-card,.root-btn,.note-chip,.kind,.answer,.btn.ghost)::before{content:"";position:absolute;inset:calc(-1 * var(--bw,1px));border-radius:inherit;padding:max(1.5px,var(--bw,1px));background:var(--range-grad);pointer-events:none;opacity:0;transition:opacity var(--t) var(--ease);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+:is(.lib-card,.chord-card,.root-btn,.note-chip,.kind,.answer,.btn.ghost):hover:not(:disabled)::before{opacity:1}
+
 /* Barras deslizantes: gradiente do logo até a bolinha (--f vem de js/range.js). */
 input[type=range]{--f:.5;--thumb:18px;-webkit-appearance:none;appearance:none;height:24px;background:transparent;cursor:pointer;margin:0}
 input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:linear-gradient(var(--line-strong),var(--line-strong)) right/calc(100% - var(--thumb)/2 - var(--f)*(100% - var(--thumb))) 100% no-repeat,var(--range-grad)}
@@ -283,13 +291,9 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .lib-toolbar>.seg{min-height:40px;box-sizing:border-box}
 .lib-toolbar>.seg button{display:inline-flex;align-items:center}
 .cards{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-.lib-card{position:relative;cursor:pointer;display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-sm);
+.lib-card{cursor:pointer;display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-sm);
   transition:transform var(--t) var(--ease-out),box-shadow var(--t) var(--ease),border-color var(--t);animation:card-in var(--t-slow) var(--ease-out) backwards}
 .lib-card:hover{box-shadow:var(--shadow-md)}
-/* No hover a borda vira o gradiente do logo: camada por cima da borda, recortada por máscara, com fade. */
-.lib-card::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1.5px;background:var(--range-grad);pointer-events:none;opacity:0;transition:opacity var(--t) var(--ease);
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
-.lib-card:hover::before{opacity:1}
 @keyframes card-in{from{opacity:0;transform:translateY(8px)}}
 .lib-card h3{font-size:1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lib-card .meta{display:flex;gap:6px;flex-wrap:wrap}
@@ -303,7 +307,6 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .roots{display:flex;gap:6px;flex-wrap:wrap}
 .root-btn{min-width:44px;height:40px;padding:0 10px;border-radius:var(--r-md);border:1px solid var(--line-strong);background:var(--surface);font-weight:700;cursor:pointer;
   transition:background-color var(--t-fast),color var(--t-fast),border-color var(--t-fast),transform var(--t-fast) var(--ease)}
-.root-btn:hover{border-color:var(--accent)}
 .root-btn:active{transform:scale(.94)}
 .root-btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .study-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -334,7 +337,7 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .field-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
 .chord-card{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:14px;border-radius:var(--r-lg);border:1px solid var(--line);background:var(--surface);cursor:pointer;text-align:left;
   box-shadow:var(--shadow-sm);transition:transform var(--t) var(--ease-out),box-shadow var(--t),border-color var(--t);animation:card-in var(--t-slow) var(--ease-out) backwards}
-.chord-card:hover{box-shadow:var(--shadow-md);border-color:var(--accent)}
+.chord-card:hover{box-shadow:var(--shadow-md)}
 .chord-card:active{transform:scale(.97)}
 .chord-card .deg{font-family:var(--font-display);font-weight:700;color:var(--accent);font-size:.95rem}
 .chord-card .name{font-family:var(--font-display);font-weight:700;font-size:1.5rem;line-height:1.1}
@@ -352,7 +355,6 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .kinds{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
 .kind{display:flex;flex-direction:column;gap:2px;padding:14px;border-radius:var(--r-lg);border:1.5px solid var(--line);background:var(--surface);cursor:pointer;text-align:left;
   transition:border-color var(--t-fast),background-color var(--t-fast),transform var(--t-fast) var(--ease)}
-.kind:hover{border-color:var(--line-strong)}
 .kind:active{transform:scale(.98)}
 .kind[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
 .kind b{font-size:.95rem} .kind span{font-size:.8rem;color:var(--muted)}
@@ -366,7 +368,7 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .answers{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .answer{min-height:64px;border-radius:var(--r-lg);border:1.5px solid var(--line-strong);background:var(--surface);font-family:var(--font-display);font-weight:700;font-size:1.25rem;cursor:pointer;
   transition:border-color var(--t-fast),background-color var(--t-fast),transform var(--t-fast) var(--ease),color var(--t-fast);animation:card-in var(--t) var(--ease-out) backwards}
-.answer:hover:not(:disabled){border-color:var(--accent);background:var(--accent-soft)}
+.answer:hover:not(:disabled){background:var(--accent-soft)}
 .answer:disabled{cursor:default}
 .answer.right{border-color:var(--ok);background:var(--ok-soft);color:var(--ok);animation:pop .4s var(--ease-out)}
 .answer.wrong{border-color:var(--bad);background:var(--bad-soft);color:var(--bad);animation:shake .4s var(--ease)}
