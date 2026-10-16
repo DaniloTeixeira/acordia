@@ -17,7 +17,7 @@ async function pipe(bytes, stream){
 
 // medley: {name, options, songs:[{text, type, key, bpm, target, capo, singer, notes}]}
 export async function encodeMedley(medley){
-  const compact = {v:1, n:medley.name, o:medley.options, k: medley.kind === "medley" ? "m" : undefined, gn: medley.groups && medley.groups.length ? medley.groups : undefined, s:medley.songs.map(s=>{
+  const compact = {v:1, i: medley.sourceId || undefined, n:medley.name, o:medley.options, k: medley.kind === "medley" ? "m" : undefined, gn: medley.groups && medley.groups.length ? medley.groups : undefined, s:medley.songs.map(s=>{
     const o = {t:s.text}; ["type","key","bpm","ref","target","capo","singer","notes"].forEach(k=>{ if(s[k]) o[k] = s[k]; }); if(Number.isInteger(s.g)) o.g = s.g; return o;
   })};
   const json = new TextEncoder().encode(JSON.stringify(compact));
@@ -42,6 +42,6 @@ export async function decodeMedley(code){
       return e;
     }).filter(Boolean);
     if(!songs.length) return null;
-    return {name: typeof d.n === "string" && d.n.trim() ? d.n.trim().slice(0, 80) : t("incoming.defaultName"), options: sanitizeOptions(d.o), kind: d.k === "m" ? "medley" : "setlist", groups, songs};
+    return {name: typeof d.n === "string" && d.n.trim() ? d.n.trim().slice(0, 80) : t("incoming.defaultName"), sourceId: typeof d.i === "string" ? d.i.slice(0, 40) : "", options: sanitizeOptions(d.o), kind: d.k === "m" ? "medley" : "setlist", groups, songs};
   }catch(e){ return null; }
 }

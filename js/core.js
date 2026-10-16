@@ -218,7 +218,7 @@ export function harmonicField(root, scaleId, sevenths = false, style = "roman"){
     if(sevenths){
       const s = SEVENTH[q + "," + at(6)];
       // Notação brasileira (7M) em português; internacional (maj7) em inglês.
-      const intl = v => getLang() === "en" ? v.replace("7M", "maj7") : v;
+      const intl = v => getLang() !== "pt" ? v.replace("7M", "maj7") : v;
       if(s){ chordSuf = intl(s[0]); degSuf = intl(s[1]); }
       notes.push(names[(i+6)%7]);
     }

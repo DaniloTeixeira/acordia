@@ -98,9 +98,9 @@ export function initHands({root, data, store, toast, icon, esc, audio}){
         <div class="scale-head"><div><h2>${esc(t("hands.p." + p.id))} ${levelDots(p.level)}</h2><p class="sub">${esc(t("hands.p." + p.id + "D"))}</p></div></div>
         <div class="lane-wrap">${laneSVG(p, marks)}<div class="hands-count" id="h-count" aria-live="assertive"></div></div>
         <div class="study-row hands-controls">
-          <div class="bpm"><button class="icon-btn sm" id="h-slower" aria-label="${esc(t("hands.slower"))}">−</button>
+          <div class="bpm"><button class="icon-btn sm" id="h-slower" aria-label="${esc(t("hands.slower"))}">${icon("minus","sm")}</button>
             <label><input type="range" id="h-bpm" min="40" max="160" step="2" value="${bpm}" aria-label="BPM"><span><b id="h-bpm-v">${bpm}</b> bpm</span></label>
-            <button class="icon-btn sm" id="h-faster" aria-label="${esc(t("hands.faster"))}">+</button></div>
+            <button class="icon-btn sm" id="h-faster" aria-label="${esc(t("hands.faster"))}">${icon("plus","sm")}</button></div>
           <button class="btn soft" id="h-demo">${icon("sound","sm")} ${esc(t("hands.listen"))}</button>
           <button class="btn primary" id="h-start">${icon("play","sm")} ${esc(t(result ? "hands.again" : "hands.start"))}</button>
         </div>

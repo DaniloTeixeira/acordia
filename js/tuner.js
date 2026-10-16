@@ -52,7 +52,7 @@ export function mountTuner(root, {icon, esc, toast, data, store, instrumentSelec
     const I = INSTRUMENTS[inst()];
     root.innerHTML = `
       <div class="card tuner">
-        <div class="tuner-top">${instrumentSelect()}<label class="field a4">A4<select class="input" id="tu-a4">${[432,436,438,440,442,444,446].map(v => `<option ${v === a4() ? "selected" : ""}>${v}</option>`).join("")}</select></label></div>
+        <div class="tuner-top">${instrumentSelect()}<label class="field a4" title="${esc(t("tuner.refHelp"))}"><span>${esc(t("tuner.ref"))}</span><select class="input" id="tu-a4">${[432,436,438,440,442,444,446].map(v => `<option value="${v}" ${v === a4() ? "selected" : ""}>${v} Hz${v === 440 ? " · " + esc(t("tuner.default")) : ""}</option>`).join("")}</select></label></div>
         <div class="tuner-dial" aria-live="polite">
           <div class="tuner-note"><b id="tu-note">—</b><small id="tu-oct"></small></div>
           <div class="tuner-meter"><div class="tuner-scale">${[-50,-25,0,25,50].map(v => `<span style="left:${50 + v * 0.9}%">${v > 0 ? "+" + v : v}</span>`).join("")}</div><div class="tuner-needle" id="tu-needle"></div><div class="tuner-zone"></div></div>
@@ -61,6 +61,7 @@ export function mountTuner(root, {icon, esc, toast, data, store, instrumentSelec
         ${I.kind === "strings" ? `<div class="tuner-strings">${I.strings.map((m, i) => `<span class="tstring" data-i="${i}"><b>${esc(midiName(m).replace(/\d/, ""))}</b><small>${midiName(m).replace(/\D/g, "")}</small></span>`).join("")}</div>` : ""}
         <button class="btn primary metro-go" id="tu-toggle">${icon("sound","sm")} ${esc(t("tuner.start"))}</button>
         <p class="sub">${esc(t("tuner.hint"))}</p>
+        <p class="sub">${esc(t("tuner.refHelp"))}</p>
       </div>`;
     root.querySelector("#tu-a4").onchange = e => store.setSetting("a4", +e.target.value);
     root.querySelector("#tu-toggle").onclick = () => stream ? stop() : start();

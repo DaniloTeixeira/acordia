@@ -158,7 +158,7 @@ export function initStudy({explore, train, hands, tabs, seg, paintSeg, data, sto
   function answersHTML(q){
     if(st.mode !== "full") return `<div class="answers">${q.options.map((o, i) => optBtn(o, i)).join("")}</div>`;
     if(q.full.type === "notes") return noteGrid();
-    if(q.full.type === "list") return `<div class="answer-list">${q.full.options.map((o, i) => optBtn(o, i, "answer cell")).join("")}</div>`;
+    if(q.full.type === "list"){ const w = Math.max(...q.full.options.map(o => o.length)); return `<div class="answer-list" style="--cell:${Math.max(68, w * 11 + 28)}px">${q.full.options.map((o, i) => optBtn(o, i, "answer cell")).join("")}</div>`; }
     return `<p class="sub">${esc(t("train.pickChord"))}</p>${noteGrid("pick")}
       <div class="study-row"><div class="seg" id="tr-qual" role="group" aria-label="${esc(t("train.quality"))}">${CHORD_QUALITIES.map(x => `<button data-v="${esc(x)}">${esc(t(QUAL_LABEL[x]))}</button>`).join("")}</div>
       <button class="btn primary" id="tr-confirm" disabled>${esc(t("train.confirm"))}</button></div>`;

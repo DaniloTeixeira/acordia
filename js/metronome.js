@@ -62,17 +62,17 @@ export function mountMetronome(root, engine, {compact = false, icon, esc, toast,
   const dots = () => Array.from({length: (SIGNATURES[engine.state.sig] || SIGNATURES["4/4"]).beats}, (_, i) => `<i data-b="${i}"></i>`).join("");
   root.innerHTML = compact ? `
     <div class="metro-mini">
-      <button class="icon-btn sm" data-m="minus" aria-label="${esc(t("hands.slower"))}">−</button>
+      <button class="icon-btn sm" data-m="minus" aria-label="${esc(t("hands.slower"))}">${icon("minus","sm")}</button>
       <span class="mini-bpm"><b data-m="bpm"></b> bpm</span>
-      <button class="icon-btn sm" data-m="plus" aria-label="${esc(t("hands.faster"))}">+</button>
+      <button class="icon-btn sm" data-m="plus" aria-label="${esc(t("hands.faster"))}">${icon("plus","sm")}</button>
       <span class="beat-dots" data-m="dots">${dots()}</span>
       <button class="btn primary sm" data-m="toggle"></button>
     </div>` : `
     <div class="card metro">
       <div class="metro-top">
-        <button class="icon-btn metro-step" data-m="minus" aria-label="${esc(t("hands.slower"))}">−</button>
+        <button class="icon-btn metro-step" data-m="minus" aria-label="${esc(t("hands.slower"))}">${icon("minus")}</button>
         <div class="metro-read"><b data-m="bpm"></b><small><span>BPM</span> · <span data-m="tempo"></span></small></div>
-        <button class="icon-btn metro-step" data-m="plus" aria-label="${esc(t("hands.faster"))}">+</button>
+        <button class="icon-btn metro-step" data-m="plus" aria-label="${esc(t("hands.faster"))}">${icon("plus")}</button>
       </div>
       <input type="range" data-m="range" min="${MIN_BPM}" max="${MAX_BPM}" step="1" aria-label="BPM">
       <div class="beat-dots big" data-m="dots">${dots()}</div>

@@ -8,7 +8,7 @@ import * as audio from "./audio.js";
 import { fit, toSVG, lyricsOnly, chordText, chordLine } from "./layout.js";
 import { toPDF, saveBlob, pdfAvailable } from "./pdf.js";
 import { encodeMedley, decodeMedley } from "./share.js";
-import { t, tn, setLang, getLang, detectLang, locale, translateDOM } from "./i18n.js";
+import { t, tn, setLang, getLang, detectLang, locale, translateDOM, LANGS } from "./i18n.js";
 import * as store from "./store.js";
 import { initStudy } from "./study.js";
 
@@ -54,6 +54,15 @@ function armed(btn, run, label = t("common.confirm")){
     if(h){ clearTimeout(h); h = null; run(); return; }
     btn.classList.add("armed"); btn.setAttribute("aria-label", label); btn.title = label;
     h = setTimeout(()=>{ h = null; btn.classList.remove("armed"); btn.innerHTML = orig; if(origLabel) btn.setAttribute("aria-label", origLabel); btn.title = ""; }, 3000);
+  });
+}
+// Confirmação antes de excluir. Resolve true quando a pessoa confirma.
+function confirmDialog({title, message, confirm}){
+  return new Promise(res => {
+    const dlg = $("#dlg-confirm");
+    $("#confirm-h").textContent = title; $("#confirm-msg").textContent = message; $("#confirm-ok").textContent = confirm || t("common.delete");
+    dlg.onclose = () => res(dlg.returnValue === "ok");
+    dlg.returnValue = ""; dlg.showModal(); $("#dlg-confirm .btn.ghost").focus();
   });
 }
 function keyOptions(selected, first){
@@ -111,11 +120,11 @@ function cycleTheme(){
 }
 function applyLang(){
   translateDOM();
-  $$("[data-lang-toggle]").forEach(b => { const s = b.querySelector("span"); if(s) s.textContent = t("lang.toggle"); b.setAttribute("aria-label", t("lang.aria")); b.title = t("lang.toggle"); });
+  $$("[data-lang-select]").forEach(sel => { sel.innerHTML = LANGS.map(([v, n]) => `<option value="${v}" ${v === getLang() ? "selected" : ""}>${n}</option>`).join(""); sel.title = t("lang.label"); });
   applyTheme(data.settings.theme || "system");
 }
-function toggleLang(){
-  const l = getLang() === "pt" ? "en" : "pt";
+function changeLang(l){
+  if(l === getLang()) return;
   store.setSetting("lang", l);
   vt(() => {
     const oldDefault = t("medley.defaultName");
@@ -542,7 +551,7 @@ function medleyPayload(m){
     if(group && !isMedley(m)){ if(!gi.has(group)){ gi.set(group, groups.length); groups.push(gname); } o.g = gi.get(group); }
     return o;
   }).filter(Boolean);
-  return {name: m.name, options: m.options, kind: m.kind, groups, songs: list};
+  return {name: m.name, options: m.options, kind: m.kind, groups, songs: list, sourceId: m.sourceId || m.id};
 }
 async function shareMedley(m = current()){
   const payload = medleyPayload(m);
@@ -569,10 +578,17 @@ async function checkIncoming(){
   history.replaceState(null, "", location.pathname + location.search);
   if(!med) return toast(t("incoming.bad"));
   const dlg = $("#dlg-incoming");
-  $("#incoming-desc").textContent = t("incoming.desc", {name: med.name, songs: songs(med.songs.length)});
+  // Já recebeu este repertório antes? Então o link atualiza a cópia em vez de criar outra.
+  const existing = med.sourceId ? [...data.medleys.values()].find(x => x.sourceId === med.sourceId && x.kind === med.kind) : null;
+  $("#incoming-h").textContent = t(existing ? "incoming.updateTitle" : "incoming.title");
+  $("#incoming-new").hidden = !existing;
+  $("#incoming-ok").textContent = t(existing ? "incoming.update" : "incoming.save");
+  $("#incoming-desc").textContent = existing ? t("incoming.updateDesc", {name: existing.name, songs: songs(med.songs.length)}) : t("incoming.desc", {name: med.name, songs: songs(med.songs.length)});
   $("#incoming-list").innerHTML = med.songs.map(s => `<li>${esc(s.title)}${s.target ? ` <span class="chip accent">${esc(s.target)}</span>` : ""}${s.g !== undefined ? ` <span class="chip">${icon("link","sm")} ${esc(med.groups[s.g])}</span>` : ""}</li>`).join("");
+  dlg.returnValue = "";
   dlg.onclose = () => {
-    if(dlg.returnValue !== "ok") return;
+    if(dlg.returnValue !== "ok" && dlg.returnValue !== "new") return;
+    const update = existing && dlg.returnValue === "ok";
     const blocks = med.groups.map(name => store.createMedley(name, [], med.options, "medley"));
     const items = [], placed = new Set();
     med.songs.forEach(e => {
@@ -582,8 +598,16 @@ async function checkIncoming(){
         if(!placed.has(e.g)){ placed.add(e.g); items.push(store.newMedleyItem(blocks[e.g].id)); }
       } else items.push(songItem);
     });
-    blocks.forEach(b => store.saveMedley(b));
+    blocks.forEach(b => { b.linkOf = med.sourceId; store.saveMedley(b); });
+    if(update){
+      // Os medleys que vieram do link anterior saem; os novos entram no lugar.
+      existing.items.forEach(i => { const b = i.type === "medley" && data.medleys.get(i.medleyId); if(b && b.linkOf === med.sourceId && !blocks.includes(b)) store.deleteMedley(b.id); });
+      Object.assign(existing, {name: med.name, items, options: med.options}); store.saveMedley(existing);
+      openMedley(existing.id); go("medley");
+      return toast(t("incoming.updated"));
+    }
     const nm = store.createMedley(med.name, items, med.options, med.kind === "medley" ? "medley" : "setlist");
+    if(med.sourceId && !existing) { nm.sourceId = med.sourceId; store.saveMedley(nm); }
     // Um repertório vazio aberto (ex.: primeiro acesso pelo link) não precisa ficar sobrando.
     const prev = current(); if(prev.id !== nm.id && !prev.items.length) store.deleteMedley(prev.id);
     openMedley(nm.id); go("medley");
@@ -635,7 +659,7 @@ function renderLibrary(){
       const refBtn = $('[data-a="ref"]', li); if(refBtn) refBtn.onclick = () => openRef(s.ref, s.title);
       const add = $('[data-a="add"]', li); if(add) add.onclick = () => addSongToMedley(s.id);
       $('[data-a="edit"]', li).onclick = () => editSong(s);
-      armed($('[data-a="del"]', li), () => deleteSong(s), n ? t("lib.deleteUsed", {medleys: medleys(n)}) : t("common.confirmDelete"));
+      $('[data-a="del"]', li).onclick = async () => { if(await confirmDialog({title: t("confirm.songTitle"), message: t(n ? "confirm.songUsed" : "confirm.song", {title: s.title, medleys: medleys(n)})})) deleteSong(s); };
       list.appendChild(li);
     });
     return;
@@ -663,7 +687,7 @@ function renderLibrary(){
       toast(t("lib.created", {name:c.name}), {label:t("common.open"), run:()=>{ openMedley(c.id); go("medley"); }}); renderLibrary();
     };
     $('[data-a="share"]', li).onclick = () => shareMedley(m);
-    armed($('[data-a="del"]', li), () => deleteMedley(m), usedIn ? t("lib.deleteUsed", {medleys: medleys(usedIn)}) : t("common.confirmDelete"));
+    $('[data-a="del"]', li).onclick = async () => { if(await confirmDialog({title: t(wantBlocks ? "confirm.medleyTitle" : "confirm.setlistTitle"), message: t(usedIn ? "confirm.medleyUsed" : wantBlocks ? "confirm.medley" : "confirm.setlist", {name: m.name, medleys: medleys(usedIn)})})) deleteMedley(m); };
     list.appendChild(li);
   });
 }
@@ -959,7 +983,31 @@ function repertoireEntries(){
     chords: s.blocks.flatMap(b => b.flatMap(it => it.chord ? chordLine(it.chord, s, "cifras").chords.map(c => c.chord) : []))}));
 }
 
-let study, metro, tools, chordDialog;
+function initVolume(){
+  const pop = $("#vol-pop"), range = $("#vol-range");
+  const cur = () => ({v: data.settings.volume ?? 80, m: !!data.settings.muted});
+  const paint = () => {
+    const {v, m} = cur(); range.value = v; $("#vol-val").textContent = m ? t("vol.muted") : v + "%";
+    const ic = m || !v ? "#i-mute" : "#i-sound";
+    $$("[data-volume] use, #vol-mute use").forEach(u => u.setAttribute("href", ic));
+    $$("[data-vol-label]").forEach(e => e.textContent = m ? t("vol.muted") : v + "%");
+    $("#vol-mute").setAttribute("aria-label", t(m ? "vol.unmute" : "vol.mute"));
+    audio.setVolume(v / 100, m);
+  };
+  range.oninput = () => { store.setSetting("volume", +range.value); if(+range.value) store.setSetting("muted", false); paint(); };
+  range.onchange = () => audio.playChord([0, 4, 7], {base: 60, dur: 0.6});
+  $("#vol-mute").onclick = () => { store.setSetting("muted", !cur().m); paint(); };
+  $$("[data-volume]").forEach(b => b.onclick = () => {
+    const r = b.getBoundingClientRect(), w = 280;
+    pop.style.left = Math.max(12, Math.min(r.left, innerWidth - w - 12)) + "px";
+    pop.style.top = (r.bottom + 8 + 160 > innerHeight ? Math.max(12, r.top - 168) : r.bottom + 8) + "px";
+    pop.togglePopover();
+  });
+  paint();
+  return {paint};
+}
+
+let study, metro, tools, chordDialog, volume;
 async function main(){
   await store.init(() => toast(t("lib.saveFail")));
   setLang(data.settings.lang || detectLang());
@@ -971,6 +1019,7 @@ async function main(){
   metro.onChange(debounce(s => store.setSetting("metro", s), 500));
   chordDialog = createChordDialog({dlg: $("#dlg-chord"), audio, getInstrument, setInstrument, icon});
   tools = initTools();
+  volume = initVolume();
   document.addEventListener("change", e => { if(e.target.matches && e.target.matches("select[data-instrument]")) setInstrument(e.target.value); });
   $("#pages").addEventListener("click", e => { const r = e.target.closest && e.target.closest("rect.hit"); if(r) chordDialog.open(r.dataset.chord, r.dataset.key); });
   study = initStudy({explore: $("#study-explore"), train: $("#study-train"), hands: $("#study-hands"), getInstrument, chordDialog, getRepertoire: repertoireEntries, tabs: $("#study-tabs"), seg, paintSeg, data, store, toast, icon, esc});
@@ -978,7 +1027,7 @@ async function main(){
   $$("[data-nav]").forEach(b => b.onclick = () => go(b.dataset.nav));
   $$(".brand").forEach(a => a.addEventListener("click", e => { e.preventDefault(); go("medley"); }));
   $$("[data-theme-toggle]").forEach(b => b.onclick = cycleTheme);
-  $$("[data-lang-toggle]").forEach(b => b.onclick = toggleLang);
+  $$("[data-lang-select]").forEach(sel => sel.onchange = () => changeLang(sel.value));
   seg($("#mode-seg"), sheetMode, setMode);
   const pane = data.settings.pane === "sheet" ? "sheet" : "edit";
   seg($("#pane-toggle"), pane, setPane); $("#medley-grid").dataset.pane = pane;

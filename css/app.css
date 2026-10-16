@@ -323,7 +323,7 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .answers{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .answer{min-height:64px;border-radius:var(--r-lg);border:1.5px solid var(--line-strong);background:var(--surface);font-family:var(--font-display);font-weight:700;font-size:1.25rem;cursor:pointer;
   transition:border-color var(--t-fast),background-color var(--t-fast),transform var(--t-fast) var(--ease),color var(--t-fast);animation:card-in var(--t) var(--ease-out) backwards}
-.answer:hover:not(:disabled){border-color:var(--accent);transform:translateY(-1px)}
+.answer:hover:not(:disabled){border-color:var(--accent);background:var(--accent-soft)}
 .answer:disabled{cursor:default}
 .answer.right{border-color:var(--ok);background:var(--ok-soft);color:var(--ok);animation:pop .4s var(--ease-out)}
 .answer.wrong{border-color:var(--bad);background:var(--bad-soft);color:var(--bad);animation:shake .4s var(--ease)}
@@ -342,8 +342,8 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .setup-row>div{display:flex;flex-direction:column;gap:8px;min-width:240px}
 .quiz .back{margin:0}
 .note-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.answer-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:6px}
-.answer.cell{min-height:46px;font-size:1rem;border-radius:var(--r-md)}
+.answer-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--cell,68px),1fr));gap:6px}
+.answer.cell{min-height:46px;font-size:1rem;border-radius:var(--r-md);padding:0 10px;white-space:nowrap}
 .note-grid.pick .answer[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
 .right-btn{background:var(--ok)!important;border-color:var(--ok)!important;color:#fff!important;animation:pop .4s var(--ease-out)}
 .wrong-btn{background:var(--bad)!important;border-color:var(--bad)!important;color:#fff!important;animation:shake .4s var(--ease)}
@@ -391,7 +391,8 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 /* metrônomo */
 .metro{max-width:560px;margin-top:16px;display:flex;flex-direction:column;gap:18px;align-items:stretch}
 .metro-top{display:flex;align-items:center;justify-content:center;gap:18px}
-.metro-step{width:52px;height:52px;font-size:1.6rem;font-weight:700;border:1px solid var(--line-strong)}
+.metro-step{width:52px;height:52px;border:1px solid var(--line-strong)}
+.metro-step .i{width:24px;height:24px}
 .metro-read{display:flex;flex-direction:column;align-items:center;min-width:150px}
 .metro-read b{font-family:var(--font-display);font-size:4rem;line-height:1;font-variant-numeric:tabular-nums}
 .metro-read small{color:var(--muted);font-weight:600;font-size:.9rem}
@@ -513,6 +514,24 @@ a.btn{text-decoration:none}
 .link-btn{border:none;background:none;padding:0;color:var(--accent);font-weight:700;cursor:pointer;text-decoration:underline}
 .tr-ctl{display:flex;align-items:center;gap:4px}
 .tr-ctl b{min-width:26px;text-align:center;font-variant-numeric:tabular-nums}
+
+/* volume e confirmação */
+.vol-pop{width:280px}
+.vol-row{display:flex;align-items:center;gap:10px}
+.vol-row input{flex:1;accent-color:var(--accent)}
+.vol-row b{min-width:48px;text-align:right;font-variant-numeric:tabular-nums}
+.btn.danger-solid{background:var(--bad);color:#fff}
+.btn.danger-solid:hover{filter:brightness(1.08)}
+.tuner-top .a4 span{font-size:.8rem;font-weight:600;color:var(--muted)}
+
+/* idioma */
+.lang-item{position:relative;cursor:pointer}
+.lang-select{appearance:none;border:none;background:transparent;color:inherit;font:inherit;font-weight:600;cursor:pointer;flex:1;padding:0;outline:none}
+.lang-select option{color:var(--ink);background:var(--surface)}
+.lang-item:focus-within{outline:3px solid color-mix(in srgb,var(--accent) 55%,transparent);outline-offset:-2px}
+.lang-item .chev-down{margin-left:auto;opacity:.6}
+.lang-icon{position:relative;overflow:hidden}
+.lang-overlay{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 
 /* ---------- diálogos ---------- */
 dialog{border:none;padding:0;border-radius:var(--r-lg);background:var(--surface);color:var(--ink);box-shadow:var(--shadow-lg);width:min(560px,calc(100vw - 24px));max-height:min(86dvh,760px);

@@ -66,5 +66,13 @@ test("traduções: parâmetros, plural e ordinal", () => {
   assert.equal(tn("song", 3), "3 songs");
   assert.equal(ordinal(1), "1st"); assert.equal(ordinal(2), "2nd"); assert.equal(ordinal(3), "3rd"); assert.equal(ordinal(11), "11th");
   assert.equal(t("nao.existe"), "nao.existe");
+  setLang("es");
+  assert.equal(tn("song", 1), "1 canción");
+  assert.equal(tn("song", 3), "3 canciones");
+  assert.equal(ordinal(3), "3.ª");
+  assert.equal(t("lib.sub", {songs: "2 canciones", medleys: "1 repertorio"}), "2 canciones · 1 repertorio · guardado en este dispositivo");
+  setLang("xx");
+  assert.equal(tn("song", 2), "2 músicas");
   setLang("pt");
+  assert.equal(t("item.phChords").split("\n").length, 4);
 });

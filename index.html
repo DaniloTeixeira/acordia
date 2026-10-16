@@ -56,6 +56,8 @@
   <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
   <symbol id="i-metro" viewBox="0 0 24 24"><path d="M9 3h6l4 18H5z"/><path d="M12 16l5-9M8 17h8"/></symbol>
   <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m22 9-6 6M16 9l6 6"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
   <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 21V9M7 14l5-5 5 5M5 3h14"/></symbol>
 </svg>
 
@@ -68,15 +70,17 @@
     <button class="nav-item" data-nav="tools"><svg class="i"><use href="#i-metro"/></svg><span data-i18n="nav.tools"></span></button>
     <div class="rail-foot">
       <button class="nav-item" data-install hidden><svg class="i"><use href="#i-phone"/></svg><span data-i18n="nav.install"></span></button>
-      <button class="nav-item" data-lang-toggle><svg class="i"><use href="#i-globe"/></svg><span></span></button>
+      <button class="nav-item" data-volume><svg class="i"><use href="#i-sound"/></svg><span data-i18n="vol.title"></span><span class="count" data-vol-label></span></button>
       <button class="nav-item" data-theme-toggle><svg class="i"><use href="#i-monitor"/></svg><span></span></button>
+      <label class="nav-item lang-item"><svg class="i"><use href="#i-globe"/></svg><select class="lang-select" data-lang-select data-i18n-attr="aria-label:lang.label"></select><svg class="i sm chev-down"><use href="#i-chev"/></svg></label>
     </div>
   </aside>
 
   <header class="topbar">
     <a class="brand" href="./"><img src="icons/icon.svg" alt=""><span>Sonora</span></a>
     <button class="icon-btn" data-install hidden data-i18n-attr="aria-label:nav.install"><svg class="i"><use href="#i-phone"/></svg></button>
-    <button class="icon-btn" data-lang-toggle><svg class="i"><use href="#i-globe"/></svg></button>
+    <label class="icon-btn lang-icon"><svg class="i"><use href="#i-globe"/></svg><select class="lang-overlay" data-lang-select data-i18n-attr="aria-label:lang.label"></select></label>
+    <button class="icon-btn" data-volume data-i18n-attr="aria-label:vol.title"><svg class="i"><use href="#i-sound"/></svg></button>
     <button class="icon-btn" data-theme-toggle><svg class="i"><use href="#i-monitor"/></svg></button>
   </header>
 
@@ -248,7 +252,7 @@
   <form method="dialog" class="dlg">
     <div class="dlg-head"><h2 id="incoming-h" data-i18n="incoming.title"></h2><button class="icon-btn" value="cancel" data-i18n-attr="aria-label:common.close"><svg class="i"><use href="#i-x"/></svg></button></div>
     <div class="dlg-body"><p id="incoming-desc"></p><ol class="steps" id="incoming-list"></ol></div>
-    <div class="dlg-foot"><button class="btn ghost" value="cancel" data-i18n="incoming.later"></button><button class="btn primary" value="ok" data-i18n="incoming.save"></button></div>
+    <div class="dlg-foot"><button class="btn ghost" value="cancel" data-i18n="incoming.later"></button><button class="btn ghost" value="new" id="incoming-new" hidden data-i18n="incoming.saveNew"></button><button class="btn primary" value="ok" id="incoming-ok" data-i18n="incoming.save"></button></div>
   </form>
 </dialog>
 
@@ -296,6 +300,20 @@
       </div>
     </div>
     <div class="dlg-foot"><a class="btn ghost" id="player-open" target="_blank" rel="noopener" data-i18n="ref.open"></a><button class="btn primary" value="cancel" data-i18n="common.close"></button></div>
+  </form>
+</dialog>
+
+<div id="vol-pop" class="popover vol-pop" popover>
+  <h3 data-i18n="vol.title"></h3>
+  <div class="vol-row"><button class="icon-btn" id="vol-mute"><svg class="i"><use href="#i-sound"/></svg></button><input type="range" id="vol-range" min="0" max="100" step="5" data-i18n-attr="aria-label:vol.title"><b id="vol-val"></b></div>
+  <p class="sub" data-i18n="vol.hint"></p>
+</div>
+
+<dialog id="dlg-confirm" aria-labelledby="confirm-h">
+  <form method="dialog" class="dlg">
+    <div class="dlg-head"><h2 id="confirm-h"></h2><button class="icon-btn" value="cancel" data-i18n-attr="aria-label:common.close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="dlg-body"><p id="confirm-msg"></p></div>
+    <div class="dlg-foot"><button class="btn ghost" value="cancel" data-i18n="common.cancel"></button><button class="btn danger-solid" value="ok" id="confirm-ok"></button></div>
   </form>
 </dialog>
 

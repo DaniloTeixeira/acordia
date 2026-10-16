@@ -1,5 +1,8 @@
 // Síntese simples com Web Audio para tocar notas, escalas e acordes no modo Estudo.
-let ctx = null;
+let ctx = null, master = null, volume = 0.8, muted = false;
+// Saída comum de todos os sons do app, com o volume geral.
+function out(ac){ if(!master){ master = ac.createGain(); master.connect(ac.destination); } master.gain.value = muted ? 0 : volume; return master; }
+export function setVolume(v, m){ volume = Math.max(0, Math.min(1, v)); muted = !!m; if(master) master.gain.value = muted ? 0 : volume; }
 function audio(){
   if(!ctx){ const C = window.AudioContext || window.webkitAudioContext; if(!C) return null; ctx = new C(); }
   if(ctx.state === "suspended") ctx.resume();
@@ -17,7 +20,7 @@ function voice(ac, midi, at, dur, gain){
   g.gain.exponentialRampToValueAtTime(gain * 0.35, at + 0.25);
   g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
   const g2 = ac.createGain(); g2.gain.value = 0.25;
-  o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(f); f.connect(ac.destination);
+  o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(f); f.connect(out(ac));
   o1.start(at); o2.start(at); o1.stop(at + dur + 0.05); o2.stop(at + dur + 0.05);
 }
 // pcs: alturas relativas a C (podem passar de 12); base: oitava do C central.
@@ -53,7 +56,7 @@ export function click(kind, at){
   g.gain.setValueAtTime(0.0001, t0);
   g.gain.exponentialRampToValueAtTime(c.gain, t0 + 0.004);
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + c.dur);
-  o.connect(g); g.connect(ac.destination);
+  o.connect(g); g.connect(out(ac));
   o.start(t0); o.stop(t0 + c.dur + 0.02);
   return true;
 }
