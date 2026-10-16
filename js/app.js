@@ -4,6 +4,7 @@ import { createMetronome, mountMetronome } from "./metronome.js";
 import { mountTuner } from "./tuner.js";
 import { createChordDialog, instrumentSelect } from "./chordview.js";
 import { suggestCapo } from "./instruments.js";
+import { initDropdowns, bindToggle } from "./dropdown.js";
 import * as audio from "./audio.js";
 import { fit, toSVG, lyricsOnly, chordText, chordLine } from "./layout.js";
 import { toPDF, saveBlob, pdfAvailable } from "./pdf.js";
@@ -992,7 +993,6 @@ function repertoireEntries(){
 
 // Abre um popover perto do botão que o chamou (abaixo, ou acima quando não cabe).
 function openNear(pop, btn, w){
-  if(pop.matches(":popover-open")) return pop.hidePopover();
   const r = btn.getBoundingClientRect();
   pop.style.left = Math.max(12, Math.min(r.left, innerWidth - w - 12)) + "px";
   pop.style.top = "0px"; pop.showPopover();
@@ -1031,6 +1031,46 @@ function initDialogs(){
     });
   });
 }
+// Tooltips no visual do app: ao passar o mouse (com atraso) ou ao focar pelo teclado.
+// Usa data-tip-key (texto traduzido), data-tip, ou o aria-label/title de botões só com ícone.
+function initTooltips(){
+  if(!matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+  const tip = document.createElement("div");
+  tip.className = "tooltip"; tip.id = "tooltip"; tip.setAttribute("role", "tooltip"); tip.popover = "manual";
+  document.body.appendChild(tip);
+  let timer = 0, target = null;
+  const SEL = "[data-tip-key],[data-tip],[title],.icon-btn[aria-label]";
+  const textOf = el => {
+    if(el.title){ el.dataset.tip = el.title; el.removeAttribute("title"); }
+    if(el.dataset.tipKey) return t(el.dataset.tipKey);
+    if(el.dataset.tip) return el.dataset.tip;
+    return el.getAttribute("aria-label") || "";
+  };
+  const hide = () => { clearTimeout(timer); if(target){ target.removeAttribute("aria-describedby"); target = null; } if(tip.matches(":popover-open")) tip.hidePopover(); };
+  const show = el => {
+    const txt = textOf(el); if(!txt || !el.isConnected) return;
+    tip.textContent = txt; target = el; el.setAttribute("aria-describedby", "tooltip");
+    tip.style.left = "0px"; tip.style.top = "0px";
+    if(!tip.matches(":popover-open")) tip.showPopover();
+    const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+    let top = r.top - h - 8; if(top < 8) top = r.bottom + 8;
+    tip.style.left = Math.max(8, Math.min(r.left + r.width / 2 - w / 2, innerWidth - w - 8)) + "px";
+    tip.style.top = top + "px";
+  };
+  document.addEventListener("mouseover", e => {
+    const el = e.target.closest && e.target.closest(SEL);
+    if(el === target) return;
+    hide(); if(!el) return;
+    textOf(el);
+    timer = setTimeout(() => show(el), 450);
+  });
+  document.addEventListener("mouseout", e => { if(target && !target.contains(e.relatedTarget)) hide(); else if(!target) clearTimeout(timer); });
+  document.addEventListener("focusin", e => { const el = e.target.closest && e.target.closest(SEL); if(el && el.matches(":focus-visible")){ hide(); show(el); } });
+  document.addEventListener("focusout", hide);
+  document.addEventListener("pointerdown", hide, true);
+  document.addEventListener("keydown", e => { if(e.key === "Escape") hide(); });
+  addEventListener("scroll", hide, true);
+}
 function initVolume(){
   const pop = $("#vol-pop"), range = $("#vol-range");
   const cur = () => ({v: data.settings.volume ?? 80, m: !!data.settings.muted});
@@ -1053,13 +1093,14 @@ function initVolume(){
     paint();
   };
   $$("[data-volume], #vol-range").forEach(el => el.addEventListener("wheel", wheel, {passive: false}));
-  $$("[data-volume]").forEach(b => b.onclick = () => openNear(pop, b, 280));
+  $$("[data-volume]").forEach(b => bindToggle(b, pop, () => openNear(pop, b, 280)));
   paint();
   return {paint};
 }
 
 let study, metro, tools, chordDialog, volume;
 async function main(){
+  initDropdowns();
   await store.init(() => toast(t("lib.saveFail")));
   setLang(data.settings.lang || detectLang());
   // Nomes padrão antigos (de quando o app se chamava Medley Generator) passam para o nome atual.
@@ -1072,6 +1113,7 @@ async function main(){
   tools = initTools();
   volume = initVolume();
   initDialogs();
+  initTooltips();
   document.addEventListener("change", e => { if(e.target.matches && e.target.matches("select[data-instrument]")) setInstrument(e.target.value); });
   $("#pages").addEventListener("click", e => { const r = e.target.closest && e.target.closest("rect.hit"); if(r) chordDialog.open(r.dataset.chord, r.dataset.key); });
   study = initStudy({explore: $("#study-explore"), train: $("#study-train"), hands: $("#study-hands"), getInstrument, chordDialog, getRepertoire: repertoireEntries, tabs: $("#study-tabs"), seg, paintSeg, data, store, toast, icon, esc});
@@ -1079,7 +1121,7 @@ async function main(){
   $$("[data-nav]").forEach(b => b.onclick = () => go(b.dataset.nav));
   $$(".brand").forEach(a => a.addEventListener("click", e => { e.preventDefault(); go("medley"); }));
   $$("[data-theme-toggle]").forEach(b => b.onclick = cycleTheme);
-  $$("[data-lang-menu]").forEach(b => b.onclick = () => openNear($("#lang-pop"), b, 220));
+  $$("[data-lang-menu]").forEach(b => bindToggle(b, $("#lang-pop"), () => openNear($("#lang-pop"), b, 220)));
   $$("[data-help]").forEach(b => b.onclick = () => openHelp(b.dataset.help));
   seg($("#mode-seg"), sheetMode, setMode);
   const pane = data.settings.pane === "sheet" ? "sheet" : "edit";

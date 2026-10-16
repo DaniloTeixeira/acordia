@@ -153,7 +153,7 @@ export function initKeys({root, data, store, toast, icon, esc, audio, seg}){
         <div class="scale-head"><div><h2>${esc(t("keys.p." + ex.id))} ${levelDots(ex.level)}</h2><p class="sub">${esc(t("keys.p." + ex.id + "D"))}</p></div><span id="k-midi" class="chip"></span></div>
         <div class="study-row k-controls">
           <label class="field inst-field"><span>${esc(t("study.root"))}</span><select class="input" id="k-key">${Array.from({length:12}, (_, pc) => `<option value="${pc}" ${pc === st.key ? "selected" : ""}>${esc(rootFor(pc, "maior"))}</option>`).join("")}</select></label>
-          <div class="field inst-field"><span>${esc(t("keys.youPlay"))}</span><div class="seg sm" id="k-hands" role="group" aria-label="${esc(t("keys.youPlay"))}"><button data-v="rh">${esc(t("keys.rh"))}</button><button data-v="lh">${esc(t("keys.lh"))}</button><button data-v="both">${esc(t("keys.both"))}</button></div></div>
+          <div class="field inst-field" data-tip-key="tip.youPlay"><span>${esc(t("keys.youPlay"))}</span><div class="seg sm" id="k-hands" role="group" aria-label="${esc(t("keys.youPlay"))}"><button data-v="rh">${esc(t("keys.rh"))}</button><button data-v="lh">${esc(t("keys.lh"))}</button><button data-v="both">${esc(t("keys.both"))}</button></div></div>
           <div class="bpm"><button class="icon-btn sm" id="k-slower" aria-label="${esc(t("hands.slower"))}">${icon("minus","sm")}</button>
             <label><input type="range" id="k-bpm" min="30" max="160" step="2" value="${bpm}" aria-label="BPM"><span><b id="k-bpm-v">${bpm}</b> bpm</span></label>
             <button class="icon-btn sm" id="k-faster" aria-label="${esc(t("hands.faster"))}">${icon("plus","sm")}</button></div>
@@ -219,10 +219,11 @@ export function initKeys({root, data, store, toast, icon, esc, audio, seg}){
     r.classList.remove("hit","bad"); void r.getBoundingClientRect(); r.classList.add(cls); setTimeout(() => r.classList.remove(cls), ms);
   }
   // Ao completar um passo: apaga o destaque atual e deixa só o verde da confirmação.
-  function clearMarks(){
+  // As teclas acertadas (keep) só trocam de cor e mantêm o número do dedo.
+  function clearMarks(keep = []){
     const svg = root.querySelector(".keyboard.practice"); if(!svg) return;
-    svg.querySelectorAll("rect.rh,rect.lh,rect.next,rect.target").forEach(r => r.classList.remove("rh","lh","next","target"));
-    svg.querySelectorAll("text.fing").forEach(tx => tx.textContent = "");
+    svg.querySelectorAll("rect.rh,rect.lh,rect.next,rect.target").forEach(r => { if(!keep.includes(+r.dataset.midi)) r.classList.remove("rh","lh","next","target"); else r.classList.remove("target","next"); });
+    svg.querySelectorAll("text.fing").forEach(tx => { if(!keep.includes(+tx.dataset.f)) tx.textContent = ""; });
   }
   const CONFIRM_MS = 380;
 
@@ -259,7 +260,7 @@ export function initKeys({root, data, store, toast, icon, esc, audio, seg}){
     if(!r.done){ flashKey(m, "hit"); return; }
     // Passo completo: primeiro a confirmação em verde (só nas teclas tocadas), depois o próximo destaque.
     const done = [...new Set(cur.pressed)];
-    clearMarks();
+    clearMarks(done);
     done.forEach(n => flashKey(n, "hit", CONFIRM_MS));
     cur.busy = true; cur.queue = cur.queue || [];
     const c = cur;

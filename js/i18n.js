@@ -548,7 +548,23 @@ const pt = {
   "keys.rhFull":"Mão direita",
   "keys.lhFull":"Mão esquerda",
   "keys.finger":"dedo {n}",
-  "keys.stop":"Parar"
+  "keys.stop":"Parar",
+  "tip.new":"Começa um repertório novo. O atual continua salvo na Biblioteca.",
+  "tip.share":"Gera um link para mandar o repertório; cada pessoa salva no próprio app.",
+  "tip.stage":"Tela cheia para tocar: letra grande, tela sempre acesa e metrônomo.",
+  "tip.addLibrary":"Traz músicas e medleys que você já salvou.",
+  "tip.addMedley":"Cria um bloco de músicas emendadas, com aviso de mudança de tom e acorde de passagem.",
+  "tip.cifras":"Acordes em cima da letra, no tom escolhido.",
+  "tip.graus":"Acordes como graus (I, IV, V…): o mesmo desenho serve para qualquer tom.",
+  "tip.letra":"Só a letra, para quem canta.",
+  "tip.pdf":"Baixa a folha que está na tela em PDF.",
+  "tip.dedupe":"Esconde estrofes e refrões repetidos para caber na folha.",
+  "tip.capoShapes":"Para violão com capotraste: mostra os desenhos que você toca e o tom que soa.",
+  "tip.transpose":"Muda o tom de todas as músicas só na folha, sem alterar as músicas salvas.",
+  "tip.export":"Salva um arquivo com todas as suas músicas, repertórios e medleys.",
+  "tip.import":"Carrega um backup exportado antes, deste ou de outro aparelho.",
+  "tip.volume":"Volume dos sons do app. Role o mouse aqui para ajustar.",
+  "tip.youPlay":"Escolha a mão que você vai tocar; o app toca a outra."
 };
 
 const en = {
@@ -1098,7 +1114,23 @@ const en = {
   "keys.rhFull":"Right hand",
   "keys.lhFull":"Left hand",
   "keys.finger":"finger {n}",
-  "keys.stop":"Stop"
+  "keys.stop":"Stop",
+  "tip.new":"Starts a new setlist. The current one stays saved in the Library.",
+  "tip.share":"Creates a link to send the setlist; each person saves it in their own app.",
+  "tip.stage":"Full screen for playing: large text, screen kept on and metronome.",
+  "tip.addLibrary":"Brings in songs and medleys you already saved.",
+  "tip.addMedley":"Creates a block of songs played back to back, with key-change notes and lead-in chords.",
+  "tip.cifras":"Chords above the lyrics, in the chosen key.",
+  "tip.graus":"Chords as degrees (I, IV, V…): the same chart works in any key.",
+  "tip.letra":"Lyrics only, for singers.",
+  "tip.pdf":"Downloads the sheet on screen as a PDF.",
+  "tip.dedupe":"Hides repeated verses and choruses so everything fits.",
+  "tip.capoShapes":"For guitar with a capo: shows the shapes you play and the key that sounds.",
+  "tip.transpose":"Changes the key of every song on the sheet only, without changing the saved songs.",
+  "tip.export":"Saves a file with all your songs, setlists and medleys.",
+  "tip.import":"Loads a backup you exported before, from this or another device.",
+  "tip.volume":"Volume of the app's sounds. Scroll here to adjust.",
+  "tip.youPlay":"Pick the hand you'll play; the app plays the other one."
 };
 
 const es = {
@@ -1648,7 +1680,23 @@ const es = {
   "keys.rhFull":"Mano derecha",
   "keys.lhFull":"Mano izquierda",
   "keys.finger":"dedo {n}",
-  "keys.stop":"Parar"
+  "keys.stop":"Parar",
+  "tip.new":"Empieza un repertorio nuevo. El actual sigue guardado en la Biblioteca.",
+  "tip.share":"Genera un enlace para enviar el repertorio; cada persona lo guarda en su propia app.",
+  "tip.stage":"Pantalla completa para tocar: letra grande, pantalla encendida y metrónomo.",
+  "tip.addLibrary":"Trae canciones y medleys que ya guardaste.",
+  "tip.addMedley":"Crea un bloque de canciones enlazadas, con aviso de cambio de tono y acorde de paso.",
+  "tip.cifras":"Acordes sobre la letra, en el tono elegido.",
+  "tip.graus":"Acordes como grados (I, IV, V…): la misma hoja sirve para cualquier tono.",
+  "tip.letra":"Solo la letra, para quien canta.",
+  "tip.pdf":"Descarga en PDF la hoja que está en pantalla.",
+  "tip.dedupe":"Oculta estrofas y coros repetidos para que todo quepa.",
+  "tip.capoShapes":"Para guitarra con cejilla: muestra las formas que tocas y el tono que suena.",
+  "tip.transpose":"Cambia el tono de todas las canciones solo en la hoja, sin modificar las guardadas.",
+  "tip.export":"Guarda un archivo con todas tus canciones, repertorios y medleys.",
+  "tip.import":"Carga una copia exportada antes, de este u otro dispositivo.",
+  "tip.volume":"Volumen de los sonidos de la app. Desplaza la rueda aquí para ajustar.",
+  "tip.youPlay":"Elige la mano que vas a tocar; la app toca la otra."
 };
 
 

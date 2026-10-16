@@ -71,7 +71,7 @@
     <button class="nav-item" data-nav="tools"><svg class="i"><use href="#i-metro"/></svg><span data-i18n="nav.tools"></span></button>
     <div class="rail-foot">
       <button class="nav-item" data-install hidden><svg class="i"><use href="#i-phone"/></svg><span data-i18n="nav.install"></span></button>
-      <button class="nav-item" data-volume><svg class="i"><use href="#i-sound"/></svg><span data-i18n="vol.title"></span><span class="count" data-vol-label></span></button>
+      <button class="nav-item" data-volume data-tip-key="tip.volume"><svg class="i"><use href="#i-sound"/></svg><span data-i18n="vol.title"></span><span class="count" data-vol-label></span></button>
       <button class="nav-item" data-theme-toggle><svg class="i"><use href="#i-monitor"/></svg><span></span></button>
       <button class="nav-item lang-item" data-lang-menu aria-haspopup="menu" data-i18n-attr="aria-label:lang.label"><svg class="i"><use href="#i-globe"/></svg><span data-lang-name></span><svg class="i sm chev-down"><use href="#i-chev"/></svg></button>
     </div>
@@ -96,9 +96,9 @@
         </div>
         <div class="actions">
           <button class="btn ghost" data-help="medley" data-i18n-attr="title:help.button"><svg class="i"><use href="#i-help"/></svg><span class="label-lg" data-i18n="help.button"></span></button>
-          <button class="btn ghost" id="btn-new-medley"><svg class="i"><use href="#i-plus"/></svg><span class="label-lg" data-i18n="medley.new"></span></button>
-          <button class="btn ghost" id="btn-share"><svg class="i"><use href="#i-share"/></svg><span class="label-lg" data-i18n="medley.share"></span></button>
-          <button class="btn primary" id="btn-stage"><svg class="i"><use href="#i-stage"/></svg><span data-i18n="medley.stage"></span></button>
+          <button class="btn ghost" id="btn-new-medley" data-tip-key="tip.new"><svg class="i"><use href="#i-plus"/></svg><span class="label-lg" data-i18n="medley.new"></span></button>
+          <button class="btn ghost" id="btn-share" data-tip-key="tip.share"><svg class="i"><use href="#i-share"/></svg><span class="label-lg" data-i18n="medley.share"></span></button>
+          <button class="btn primary" id="btn-stage" data-tip-key="tip.stage"><svg class="i"><use href="#i-stage"/></svg><span data-i18n="medley.stage"></span></button>
         </div>
       </div>
       <div class="seg block pane-toggle" id="pane-toggle" role="group" data-i18n-attr="aria-label:pane.aria">
@@ -110,29 +110,29 @@
           <div class="add-bar">
             <button class="btn soft" id="add-chords"><svg class="i"><use href="#i-plus"/></svg><span data-i18n="add.chords"></span></button>
             <button class="btn soft" id="add-lyrics"><svg class="i"><use href="#i-text"/></svg><span data-i18n="add.lyrics"></span></button>
-            <button class="btn soft" id="add-library"><svg class="i"><use href="#i-library"/></svg><span data-i18n="add.library"></span></button>
-            <button class="btn soft" id="add-medley"><svg class="i"><use href="#i-link"/></svg><span data-i18n="add.medley"></span></button>
+            <button class="btn soft" id="add-library" data-tip-key="tip.addLibrary"><svg class="i"><use href="#i-library"/></svg><span data-i18n="add.library"></span></button>
+            <button class="btn soft" id="add-medley" data-tip-key="tip.addMedley"><svg class="i"><use href="#i-link"/></svg><span data-i18n="add.medley"></span></button>
           </div>
         </div>
         <div class="pane pane-sheet">
           <div class="sheet-toolbar">
             <div class="seg" id="mode-seg" role="group" data-i18n-attr="aria-label:sheet.modeAria">
-              <button data-v="cifras" data-i18n="sheet.chords"></button><button data-v="graus" data-i18n="sheet.degrees"></button><button data-v="letra" data-i18n="sheet.lyrics"></button>
+              <button data-v="cifras" data-i18n="sheet.chords" data-tip-key="tip.cifras"></button><button data-v="graus" data-i18n="sheet.degrees" data-tip-key="tip.graus"></button><button data-v="letra" data-i18n="sheet.lyrics" data-tip-key="tip.letra"></button>
             </div>
             <div class="tools">
               <button class="icon-btn" popovertarget="sheet-options" id="btn-options" data-i18n-attr="aria-label:sheet.options;title:sheet.options"><svg class="i"><use href="#i-sliders"/></svg></button>
               <button class="icon-btn" id="btn-print" data-i18n-attr="aria-label:sheet.print;title:sheet.print"><svg class="i"><use href="#i-print"/></svg></button>
-              <button class="btn primary sm" id="btn-pdf"><svg class="i sm"><use href="#i-download"/></svg>PDF</button>
+              <button class="btn primary sm" id="btn-pdf" data-tip-key="tip.pdf"><svg class="i sm"><use href="#i-download"/></svg>PDF</button>
             </div>
           </div>
           <div id="sheet-options" class="popover" popover>
             <h3 data-i18n="sheet.options"></h3>
-            <label class="switch"><span data-i18n="opt.dedupe"></span><input type="checkbox" data-opt="dedupe"></label>
+            <label class="switch" data-tip-key="tip.dedupe"><span data-i18n="opt.dedupe"></span><input type="checkbox" data-opt="dedupe"></label>
             <label class="switch"><span data-i18n="opt.showKey"></span><input type="checkbox" data-opt="showKey"></label>
             <label class="switch"><span data-i18n="opt.transitions"></span><input type="checkbox" data-opt="transitions"></label>
             <label class="switch"><span data-i18n="opt.maxPages"></span><input type="checkbox" data-opt="maxPages"></label>
-            <label class="switch"><span data-i18n="opt.capoShapes"></span><input type="checkbox" data-opt="capoShapes"></label>
-            <div class="row"><span data-i18n="opt.transpose"></span><span class="tr-ctl"><button type="button" class="icon-btn sm" data-tr="-1" aria-label="−½">−</button><b id="opt-tr-val">0</b><button type="button" class="icon-btn sm" data-tr="1" aria-label="+½">+</button><button type="button" class="btn ghost sm" data-tr="0" data-i18n="opt.transposeReset"></button></span></div>
+            <label class="switch" data-tip-key="tip.capoShapes"><span data-i18n="opt.capoShapes"></span><input type="checkbox" data-opt="capoShapes"></label>
+            <div class="row" data-tip-key="tip.transpose"><span data-i18n="opt.transpose"></span><span class="tr-ctl"><button type="button" class="icon-btn sm" data-tr="-1" aria-label="−½">−</button><b id="opt-tr-val">0</b><button type="button" class="icon-btn sm" data-tr="1" aria-label="+½">+</button><button type="button" class="btn ghost sm" data-tr="0" data-i18n="opt.transposeReset"></button></span></div>
             <hr>
             <div class="row"><span data-i18n="opt.columns"></span><div class="seg sm" data-opt-seg="columns"><button data-v="auto" data-i18n="opt.auto"></button><button data-v="1">1</button><button data-v="2">2</button></div></div>
             <div class="row"><span data-i18n="opt.degrees"></span><div class="seg sm" data-opt-seg="degreeStyle"><button data-v="roman">I IV V</button><button data-v="arabic">1 4 5</button></div></div>
@@ -152,8 +152,8 @@
         <div class="actions">
           <button class="btn ghost" data-help="library" data-i18n-attr="title:help.button"><svg class="i"><use href="#i-help"/></svg><span class="label-lg" data-i18n="help.button"></span></button>
           <button class="btn primary" id="lib-new"><svg class="i"><use href="#i-plus"/></svg><span data-i18n="lib.new"></span></button>
-          <button class="btn ghost" id="lib-export"><svg class="i"><use href="#i-download"/></svg><span class="label-lg" data-i18n="lib.export"></span></button>
-          <label class="btn ghost" tabindex="0" id="lib-import-btn"><svg class="i"><use href="#i-upload"/></svg><span class="label-lg" data-i18n="lib.import"></span><input type="file" id="lib-import" accept="application/json,.json" hidden></label>
+          <button class="btn ghost" id="lib-export" data-tip-key="tip.export"><svg class="i"><use href="#i-download"/></svg><span class="label-lg" data-i18n="lib.export"></span></button>
+          <label class="btn ghost" tabindex="0" id="lib-import-btn" data-tip-key="tip.import"><svg class="i"><use href="#i-upload"/></svg><span class="label-lg" data-i18n="lib.import"></span><input type="file" id="lib-import" accept="application/json,.json" hidden></label>
         </div>
       </div>
       <div class="seg" id="lib-tabs" role="group" data-i18n-attr="aria-label:lib.tabsAria">
