@@ -8,11 +8,12 @@
 
 /* ---------- tokens ---------- */
 :root{
-  --bg:#F4F6FA; --seg-bg:#D5DCE6; --seg-ink:#4B5A6E; --surface:#FFFFFF; --surface-2:#EEF2F7; --surface-3:#E4EAF2;
+  --bg:#F5F7FC; --seg-bg:#D7DDEC; --seg-ink:#4A5674; --surface:#FFFFFF; --surface-2:#EEF1F9; --surface-3:#E4E9F5;
   --ink:#0F172A; --ink-2:#334155; --muted:#64748B; --line:#E2E8F0; --line-strong:#CBD5E1;
-  --accent:#2160B0; --accent-hover:#1A4F93; --accent-ink:#FFFFFF; --accent-soft:#E3EDFA; --accent-soft-ink:#1A4F93;
+  --accent:#2F6BF0; --accent-hover:#2457D6; --accent-ink:#FFFFFF; --accent-soft:#E6EDFE; --accent-soft-ink:#1F4FC4;
+  --accent-grad:linear-gradient(135deg,#2F6BF0,#6A3BF2); --accent-grad-hover:linear-gradient(135deg,#2457D6,#5A2BE0);
   --brand-grad:linear-gradient(90deg,#1593D6,#2F6BF0 50%,#7B2FF5);
-  --lh:#7C3AED; --chord:#B0201A; --ok:#15803D; --ok-soft:#DCFCE7; --bad:#B91C1C; --bad-soft:#FEE2E2; --warn:#9A3412; --warn-soft:#FFF1E8;
+  --lh:#7B2FF5; --chord:#B0201A; --ok:#15803D; --ok-soft:#DCFCE7; --bad:#B91C1C; --bad-soft:#FEE2E2; --warn:#9A3412; --warn-soft:#FFF1E8;
   --shadow-sm:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
   --shadow-md:0 4px 12px rgba(15,23,42,.08),0 2px 4px rgba(15,23,42,.05);
   --shadow-lg:0 24px 48px rgba(15,23,42,.18),0 8px 16px rgba(15,23,42,.08);
@@ -26,26 +27,33 @@
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --bg:#0B1018; --seg-bg:#182231; --seg-ink:#8FA0B5; --surface:#121A26; --surface-2:#182231; --surface-3:#1F2B3D;
-    --ink:#E7EDF5; --ink-2:#C3CEDC; --muted:#8FA0B5; --line:#223044; --line-strong:#304159;
-    --accent:#6FA8EC; --accent-hover:#8DBBF0; --accent-ink:#0B1626; --accent-soft:#18304D; --accent-soft-ink:#A9CBF4;
+    --bg:#0B0F1C; --seg-bg:#182036; --seg-ink:#8F9CB8; --surface:#121829; --surface-2:#182036; --surface-3:#1F2942;
+    --ink:#E8ECF7; --ink-2:#C4CCE0; --muted:#8F9CB8; --line:#232D45; --line-strong:#323E5E;
+    --accent:#6E9BFF; --accent-hover:#8DB2FF; --accent-ink:#0B0F1C; --accent-soft:#1B2852; --accent-soft-ink:#B4C8FF;
+    --accent-grad:linear-gradient(135deg,#6E9BFF,#A57BFF); --accent-grad-hover:linear-gradient(135deg,#8DB2FF,#B994FF);
     --brand-grad:linear-gradient(90deg,#3BD5FA,#4C82F5 50%,#9A5CF8);
-    --lh:#A78BFA; --chord:#FF8A80; --ok:#4ADE80; --ok-soft:#12321F; --bad:#F87171; --bad-soft:#3A1717; --warn:#FDBA74; --warn-soft:#2A1C12;
+    --lh:#B48CFF; --chord:#FF8A80; --ok:#4ADE80; --ok-soft:#12321F; --bad:#F87171; --bad-soft:#3A1717; --warn:#FDBA74; --warn-soft:#2A1C12;
     --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow-md:0 4px 14px rgba(0,0,0,.45); --shadow-lg:0 24px 60px rgba(0,0,0,.6);
     --paper-shadow:0 2px 6px rgba(0,0,0,.4),0 12px 32px rgba(0,0,0,.45);
     color-scheme:dark;
   }
+  :root:not([data-theme="light"]) .brand .logo-on-light{display:none}
+  :root:not([data-theme="light"]) .brand .logo-on-dark{display:block}
 }
 :root[data-theme="dark"]{
-  --bg:#0B1018; --seg-bg:#182231; --seg-ink:#8FA0B5; --surface:#121A26; --surface-2:#182231; --surface-3:#1F2B3D;
-  --ink:#E7EDF5; --ink-2:#C3CEDC; --muted:#8FA0B5; --line:#223044; --line-strong:#304159;
-  --accent:#6FA8EC; --accent-hover:#8DBBF0; --accent-ink:#0B1626; --accent-soft:#18304D; --accent-soft-ink:#A9CBF4;
+  --bg:#0B0F1C; --seg-bg:#182036; --seg-ink:#8F9CB8; --surface:#121829; --surface-2:#182036; --surface-3:#1F2942;
+  --ink:#E8ECF7; --ink-2:#C4CCE0; --muted:#8F9CB8; --line:#232D45; --line-strong:#323E5E;
+  --accent:#6E9BFF; --accent-hover:#8DB2FF; --accent-ink:#0B0F1C; --accent-soft:#1B2852; --accent-soft-ink:#B4C8FF;
+  --accent-grad:linear-gradient(135deg,#6E9BFF,#A57BFF); --accent-grad-hover:linear-gradient(135deg,#8DB2FF,#B994FF);
   --brand-grad:linear-gradient(90deg,#3BD5FA,#4C82F5 50%,#9A5CF8);
-  --lh:#A78BFA; --chord:#FF8A80; --ok:#4ADE80; --ok-soft:#12321F; --bad:#F87171; --bad-soft:#3A1717; --warn:#FDBA74; --warn-soft:#2A1C12;
+  --lh:#B48CFF; --chord:#FF8A80; --ok:#4ADE80; --ok-soft:#12321F; --bad:#F87171; --bad-soft:#3A1717; --warn:#FDBA74; --warn-soft:#2A1C12;
   --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow-md:0 4px 14px rgba(0,0,0,.45); --shadow-lg:0 24px 60px rgba(0,0,0,.6);
   --paper-shadow:0 2px 6px rgba(0,0,0,.4),0 12px 32px rgba(0,0,0,.45);
   color-scheme:dark;
 }
+
+:root[data-theme="dark"] .brand .logo-on-light{display:none}
+:root[data-theme="dark"] .brand .logo-on-dark{display:block}
 
 /* ---------- base ---------- */
 *,*::before,*::after{box-sizing:border-box}
@@ -82,8 +90,8 @@ textarea::-webkit-scrollbar{width:8px;height:8px}
   transition:background-color var(--t-fast) var(--ease),color var(--t-fast),border-color var(--t-fast),transform var(--t-fast) var(--ease),box-shadow var(--t-fast)}
 .btn:hover{background:var(--surface-3)}
 .btn:active{transform:scale(.97)}
-.btn.primary{background:var(--accent);color:var(--accent-ink);box-shadow:var(--shadow-sm)}
-.btn.primary:hover{background:var(--accent-hover)}
+.btn.primary{background:var(--accent-grad);color:var(--accent-ink);box-shadow:var(--shadow-sm)}
+.btn.primary:hover{background:var(--accent-grad-hover)}
 .btn.ghost{background:transparent;border-color:var(--line-strong)}
 .btn.ghost:hover{background:var(--surface-2)}
 .btn.soft{background:var(--accent-soft);color:var(--accent-soft-ink)}
@@ -131,6 +139,7 @@ select.input{appearance:none;padding-right:32px;cursor:pointer;
 .shell{min-height:100dvh}
 .rail{position:fixed;inset:0 auto 0 0;width:var(--rail);display:flex;flex-direction:column;gap:4px;padding:20px 14px;background:var(--surface);border-right:1px solid var(--line);z-index:20}
 .brand{display:flex;align-items:center;gap:10px;padding:4px 10px 18px;font-family:var(--font-display);font-weight:700;font-size:1.05rem;color:var(--ink);text-decoration:none}
+.brand .logo-on-dark{display:none}
 .brand img{width:34px;height:34px;border-radius:10px;box-shadow:var(--shadow-sm)}
 .brand small{display:block;font-family:var(--font-ui);font-weight:500;font-size:.72rem;color:var(--muted);letter-spacing:.02em}
 .brand-name{background:var(--brand-grad);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700}
@@ -284,14 +293,14 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 /* Cores fixas de piano nos dois temas. */
 .keyboard .w{fill:#FFFFFF;stroke:#CBD5E1}
 .keyboard .b{fill:#1E293B}
-.keyboard .w.in{fill:#D9E7FA}
-.keyboard .b.in{fill:#2160B0}
-.keyboard .w.root{fill:#2160B0}
-.keyboard .b.root{fill:#174A8C}
-.keyboard .w:hover{fill:#EEF4FC} .keyboard .w.in:hover{fill:#C5DAF6} .keyboard .b:hover{fill:#334155}
+.keyboard .w.in{fill:#DCE6FE}
+.keyboard .b.in{fill:#2F6BF0}
+.keyboard .w.root{fill:#2F6BF0}
+.keyboard .b.root{fill:#1F4FC4}
+.keyboard .w:hover{fill:#EEF3FF} .keyboard .w.in:hover{fill:#C7D6FD} .keyboard .b:hover{fill:#334155}
 .keyboard .w.on,.keyboard .b.on{fill:#F59E0B}
 .keyboard text{font-size:10px;font-weight:700;pointer-events:none}
-.keyboard text.in{fill:#1A4F93} .keyboard text.root{fill:#fff}
+.keyboard text.in{fill:#1F4FC4} .keyboard text.root{fill:#fff}
 .field-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
 .chord-card{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:14px;border-radius:var(--r-lg);border:1px solid var(--line);background:var(--surface);cursor:pointer;text-align:left;
   box-shadow:var(--shadow-sm);transition:transform var(--t) var(--ease-out),box-shadow var(--t),border-color var(--t);animation:card-in var(--t-slow) var(--ease-out) backwards}
@@ -320,7 +329,7 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .quiz{max-width:720px;display:flex;flex-direction:column;gap:18px}
 .quiz-top{display:flex;align-items:center;gap:14px;font-size:.85rem;color:var(--muted);font-weight:600}
 .progress{flex:1;height:8px;border-radius:var(--r-full);background:var(--surface-2);overflow:hidden}
-.progress span{display:block;height:100%;width:0;background:var(--accent);border-radius:inherit;transition:width var(--t-slow) var(--ease-out)}
+.progress span{display:block;height:100%;width:0;background:var(--accent-grad);border-radius:inherit;transition:width var(--t-slow) var(--ease-out)}
 .streak{display:inline-flex;align-items:center;gap:4px;color:#D97706}
 .streak.bump{animation:pop .4s var(--ease-out)}
 .prompt{font-family:var(--font-display);font-size:1.45rem;font-weight:700;line-height:1.3;animation:view-in var(--t) var(--ease-out)}
@@ -444,9 +453,9 @@ a.btn{text-decoration:none}
 .fretboard .str{stroke:#8C8C8C}
 .fretboard .inlay{fill:#CDBEA5}
 .fretboard .fnum{font-size:10px;fill:var(--muted);text-anchor:middle}
-.fretboard .pos circle{fill:#D9E7FA;stroke:#2160B0;stroke-width:1.5;transition:fill var(--t-fast)}
-.fretboard .pos text{font-size:9px;font-weight:700;fill:#1A4F93;text-anchor:middle;pointer-events:none}
-.fretboard .pos.root circle{fill:#2160B0} .fretboard .pos.root text{fill:#fff}
+.fretboard .pos circle{fill:#DCE6FE;stroke:#2F6BF0;stroke-width:1.5;transition:fill var(--t-fast)}
+.fretboard .pos text{font-size:9px;font-weight:700;fill:#1F4FC4;text-anchor:middle;pointer-events:none}
+.fretboard .pos.root circle{fill:#2F6BF0} .fretboard .pos.root text{fill:#fff}
 .fretboard .pos.on circle{fill:#F59E0B;stroke:#F59E0B}
 .diagram{width:150px;height:auto;display:block}
 .diagram.sm{width:74px;margin-top:4px}
@@ -467,7 +476,7 @@ a.btn{text-decoration:none}
 .voicing-nav{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted)}
 .chord-actions{justify-content:space-between}
 .paper rect.hit{cursor:pointer}
-.paper rect.hit:hover{fill:rgba(33,96,176,.12)}
+.paper rect.hit:hover{fill:rgba(47,107,240,.12)}
 .stage-line .chd{cursor:pointer;border-radius:4px;padding:0 1px;margin:0 -1px;transition:background-color var(--t-fast)}
 .stage-line .chd:hover,.stage-line .chd:active{background:color-mix(in srgb,var(--chord) 18%,transparent)}
 
@@ -545,9 +554,9 @@ a.btn{text-decoration:none}
 .k-controls{gap:10px 16px}
 .k-board{background:var(--surface-2);border-radius:var(--r-md);padding:8px}
 .keyboard.practice{min-width:560px;max-width:none;width:100%;cursor:pointer;touch-action:manipulation}
-.keyboard.practice .w.rh{fill:#2160B0} .keyboard.practice .b.rh{fill:#3B82F6}
-.keyboard.practice .w.lh{fill:var(--lh)} .keyboard.practice .b.lh{fill:#8B5CF6}
-.keyboard.practice .w.next{fill:#E8EEF8} .keyboard.practice .b.next{fill:#475569}
+.keyboard.practice .w.rh{fill:#2F6BF0} .keyboard.practice .b.rh{fill:#5B8CFF}
+.keyboard.practice .w.lh{fill:var(--lh)} .keyboard.practice .b.lh{fill:#9B5CF8}
+.keyboard.practice .w.next{fill:#E9EEFB} .keyboard.practice .b.next{fill:#475569}
 .keyboard.practice .hit{fill:#16A34A!important} .keyboard.practice .bad{fill:#DC2626!important}
 /* rótulo da oitava legível sobre teclas coloridas */
 .keyboard.practice rect.rh + .oct,.keyboard.practice rect.lh + .oct,.keyboard.practice rect.hit + .oct,.keyboard.practice rect.bad + .oct{fill:rgba(255,255,255,.8)}
@@ -559,7 +568,7 @@ a.btn{text-decoration:none}
 .kstep.on{background:var(--accent-soft)}
 .kbeat{font-size:.7rem;color:var(--muted);text-align:center;font-weight:700}
 .kc{display:flex;flex-direction:column;align-items:center;padding:4px 2px;border-radius:6px;font-size:.78rem;min-height:38px;justify-content:center}
-.kc.rh{background:color-mix(in srgb,#2160B0 16%,transparent);color:var(--ink)} .kc.lh{background:color-mix(in srgb,var(--lh) 18%,transparent);color:var(--ink)}
+.kc.rh{background:color-mix(in srgb,#2F6BF0 16%,transparent);color:var(--ink)} .kc.lh{background:color-mix(in srgb,var(--lh) 18%,transparent);color:var(--ink)}
 .kc.auto{opacity:.45}
 .kc small{color:var(--muted);font-weight:700}
 .kc.empty{background:transparent}
@@ -589,7 +598,7 @@ dialog.nudge{animation:shake .35s var(--ease)}
 .k-prompt{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:12px 16px;border-radius:var(--r-md);background:var(--accent-soft);color:var(--accent-soft-ink);font-size:1rem;animation:view-in var(--t) var(--ease-out)}
 .kp-step{font-weight:800;font-family:var(--font-display)}
 .kp b{font-size:1.15rem;color:var(--ink)} .kp small{font-size:.8rem;color:var(--muted);font-weight:600}
-.kp.rh::before,.kp.lh::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;background:#2160B0}
+.kp.rh::before,.kp.lh::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;background:#2F6BF0}
 .kp.lh::before{background:var(--lh)}
 /* fora da prática o destaque é só uma prévia */
 .hands-card:not(.practicing) .keyboard.practice rect.rh,.hands-card:not(.practicing) .keyboard.practice rect.lh{opacity:.75}

@@ -113,7 +113,7 @@ function applyTheme(th){
     const span = b.querySelector("span"); if(span) span.textContent = t("theme.label", {name});
     b.setAttribute("aria-label", t("theme.aria", {name}));
   });
-  $$('meta[name="theme-color"]').forEach(m => { const dark = th === "dark" || (th === "system" && m.media.includes("dark")); m.content = dark ? "#0B1018" : "#F4F6FA"; });
+  $$('meta[name="theme-color"]').forEach(m => { const dark = th === "dark" || (th === "system" && m.media.includes("dark")); m.content = dark ? "#0B0F1C" : "#F5F7FC"; });
 }
 function cycleTheme(){
   const order = ["system","light","dark"], th = order[(order.indexOf(data.settings.theme || "system") + 1) % 3];
