@@ -1,6 +1,6 @@
 # Acordia
 
-**Sua música. Um só lugar.** App instalável (PWA) para músicos montarem repertórios com cifras, graus ou só a
+**Aprenda. Crie. Toque.** App instalável (PWA) para músicos montarem repertórios com cifras, graus ou só a
 letra, tocarem no palco e estudarem teoria, ritmo e ouvido. Funciona offline, em português e inglês, e guarda
 tudo no próprio aparelho.
 

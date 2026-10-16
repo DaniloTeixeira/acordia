@@ -2,7 +2,7 @@
 // Chaves com variantes de plural usam ".one" e ".other" (veja `tn`).
 
 const pt = {
-  "app.tagline":"Sua música. Um só lugar.",
+  "app.tagline":"Aprenda. Crie. Toque.",
   "nav.medley":"Repertório",
   "nav.library":"Biblioteca",
   "nav.study":"Estudo",
@@ -568,7 +568,7 @@ const pt = {
 };
 
 const en = {
-  "app.tagline":"Your music. One place.",
+  "app.tagline":"Learn. Create. Play.",
   "nav.medley":"Setlist",
   "nav.library":"Library",
   "nav.study":"Study",
@@ -1134,7 +1134,7 @@ const en = {
 };
 
 const es = {
-  "app.tagline":"Tu música. Un solo lugar.",
+  "app.tagline":"Aprende. Crea. Toca.",
   "nav.medley":"Repertorio",
   "nav.library":"Biblioteca",
   "nav.study":"Estudio",

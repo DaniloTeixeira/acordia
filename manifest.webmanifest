@@ -1,7 +1,7 @@
 {
   "name": "Acordia",
   "short_name": "Acordia",
-  "description": "Sua música em um só lugar: repertórios com cifra, graus e letra, folhas A4, modo palco, estudo e metrônomo.",
+  "description": "Aprenda, crie e toque: repertórios com cifra, graus e letra, folhas A4, modo palco, estudo e metrônomo.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -1,16 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Acordia: um acorde (tríade em semibreves) sobre a pauta. -->
+  <!-- Acordia: barras de som que sobem e formam o A. -->
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#2468C4"/>
-      <stop offset="1" stop-color="#5B32C8"/>
+    <linearGradient id="g" gradientUnits="userSpaceOnUse" x1="410" y1="220" x2="800" y2="430">
+      <stop offset="0" stop-color="#3BD5FA"/>
+      <stop offset=".48" stop-color="#2F6BF0"/>
+      <stop offset="1" stop-color="#7B2FF5"/>
     </linearGradient>
-    <g id="n"><ellipse rx="78" ry="54" fill="#fff"/><ellipse rx="34" ry="40" transform="rotate(-38)" fill="#000"/></g>
-    <mask id="notes"><use href="#n" x="256" y="134"/><use href="#n" x="256" y="256"/><use href="#n" x="256" y="378"/></mask>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#161D33"/><stop offset="1" stop-color="#0B0F1C"/></linearGradient>
   </defs>
   <rect width="512" height="512" rx="116" fill="url(#bg)"/>
-  <g>
-    <path d="M84 134H164M348 134H428M84 256H164M348 256H428M84 378H164M348 378H428" stroke="#fff" stroke-width="12" stroke-linecap="round" opacity=".26"/>
-    <rect width="512" height="512" fill="#fff" mask="url(#notes)"/>
+  <g transform="translate(256 258) scale(.8) translate(-615 -313)">
+    <g fill="none" stroke="url(#g)" stroke-width="44" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M440 342V458M508 270V446M646 340V383"/>
+      <path d="M578 396V214C578 188 598 168 624 168C642 168 656 178 665 194L790 445"/>
+    </g>
   </g>
 </svg>
