@@ -176,10 +176,15 @@ main{margin-left:var(--rail);padding:28px 32px 48px;max-width:calc(1480px + var(
   .topbar .brand img{width:30px;height:30px}
   .tabbar{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;inset:auto 0 0 0;z-index:20;height:calc(var(--tabbar) + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);
     background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:saturate(1.6) blur(14px);-webkit-backdrop-filter:saturate(1.6) blur(14px);border-top:1px solid var(--line)}
-  .tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;color:var(--muted);font-size:.72rem;font-weight:600;cursor:pointer;position:relative}
-  .tab .pill{display:grid;place-items:center;width:56px;height:30px;border-radius:var(--r-full);transition:background-color var(--t) var(--ease)}
-  .tab[aria-current="page"]{color:var(--accent-soft-ink)}
-  .tab[aria-current="page"] .pill{background:var(--accent-soft)}
+  /* Aba ativa: barrinha com o gradiente do logo no topo e fundo no quadrado do item. */
+  .tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;margin:6px 3px;border:none;border-radius:14px;background:none;color:var(--muted);font-size:.72rem;font-weight:600;cursor:pointer;position:relative;
+    transition:background-color var(--t) var(--ease),color var(--t) var(--ease)}
+  .tab::before{content:"";position:absolute;top:-6px;left:50%;width:34px;height:3px;border-radius:0 0 4px 4px;background:var(--range-grad);transform:translateX(-50%) scaleX(0);transition:transform var(--t) var(--ease-out)}
+  .tab .pill{display:grid;place-items:center;height:26px;transition:transform var(--t) var(--ease-out)}
+  .tab:active{background:var(--surface-2)}
+  .tab[aria-current="page"]{background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--ink)}
+  .tab[aria-current="page"]::before{transform:translateX(-50%) scaleX(1)}
+  .tab[aria-current="page"] .pill{color:var(--accent);transform:translateY(-1px)}
   main{margin-left:0;padding:16px 16px calc(var(--tabbar) + env(safe-area-inset-bottom) + 24px)}
   h1{font-size:1.35rem}
 }
@@ -205,10 +210,10 @@ main{margin-left:var(--rail);padding:28px 32px 48px;max-width:calc(1480px + var(
 .note{font-size:.88rem;padding:10px 14px;border-radius:var(--r-md);background:var(--warn-soft);color:var(--warn)}
 
 /* ---------- medley ---------- */
-.medley-grid{display:grid;grid-template-columns:minmax(340px,460px) minmax(0,1fr);gap:28px;align-items:start}
-.pane-sheet{position:sticky;top:20px;min-width:0}
+.medley-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start}
+.pane-sheet{position:sticky;top:20px;min-width:0;container-type:inline-size}
 .seg.pane-toggle{display:none;margin-bottom:16px}
-@media (max-width:1099px){ .medley-grid{grid-template-columns:minmax(300px,400px) minmax(0,1fr);gap:20px} }
+@media (max-width:1099px){ .medley-grid{gap:20px} }
 @media (max-width:899px){
   .seg.pane-toggle{display:flex}
   .medley-grid{grid-template-columns:1fr}
@@ -245,10 +250,14 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .add-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
 .add-bar:has(#add-medley[hidden]){grid-template-columns:repeat(3,1fr)}
 @media (max-width:420px){ .add-bar{grid-template-columns:repeat(2,1fr)} }
+.pane-edit{container-type:inline-size;min-width:0}
+@media (min-width:500px){ @container (max-width:560px){ .add-bar,.add-bar:has(#add-medley[hidden]){grid-template-columns:repeat(2,1fr)} } }
 .add-bar .btn{border-radius:var(--r-md);min-height:46px;flex-direction:column;gap:2px;font-size:.8rem;padding:6px}
-@media (min-width:500px){ .add-bar .btn{flex-direction:row;font-size:.86rem} }
+@media (min-width:500px){ .add-bar .btn{flex-direction:row;gap:8px;font-size:.86rem} }
 
-.sheet-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+/* Abas (cifras, graus, letra) à esquerda, alinhadas com a folha; ferramentas à direita. */
+.sheet-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;max-width:780px;margin:0 auto 14px}
+.sheet-toolbar .tools{margin-left:auto}
 .sheet-toolbar .tools{display:flex;gap:6px;align-items:center}
 .pages{display:flex;flex-direction:column;align-items:center;gap:20px}
 .paper{background:#fff;border-radius:4px;box-shadow:var(--paper-shadow);width:100%;max-width:780px;aspect-ratio:595.28/841.89;overflow:hidden;
@@ -668,6 +677,18 @@ dialog:not([open])::backdrop{opacity:0}
 }
 
 /* ---------- toasts ---------- */
+/* Ajuda: botão "?" fixo no canto inferior direito, abre o guia da tela atual. */
+/* right desconta a faixa reservada da barra de rolagem (scrollbar-gutter), para ficar a 24px da borda como o bottom. */
+.help-fab{position:fixed;right:calc(24px - (100vw - 100%));bottom:24px;z-index:15;isolation:isolate;display:grid;place-items:center;width:46px;height:46px;border-radius:50%;border:2px solid transparent;
+  background:linear-gradient(var(--surface),var(--surface)) padding-box,var(--range-grad) border-box;color:var(--accent);box-shadow:var(--shadow-md);cursor:pointer;transition:color var(--t) var(--ease),box-shadow var(--t) var(--ease)}
+/* O preenchimento com o gradiente fica numa camada própria, para poder aparecer com transição. */
+.help-fab::before{content:"";position:absolute;inset:-2px;z-index:-1;border-radius:50%;background:var(--accent-grad);opacity:0;transition:opacity var(--t) var(--ease)}
+.help-fab .i{width:26px;height:26px;stroke-width:2.6;transition:transform var(--t) var(--ease-out)}
+.help-fab:hover{color:var(--accent-ink);box-shadow:var(--shadow-lg)}
+.help-fab:hover::before{opacity:1}
+.help-fab:hover .i{transform:scale(1.08)}
+/* No celular o "?" fica na barra de cima, para não cobrir campos da página. */
+@media (max-width:899px){ .help-fab{display:none} }
 .toasts{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;z-index:100;pointer-events:none;width:max-content;max-width:calc(100vw - 24px)}
 @media (max-width:899px){ .toasts{bottom:calc(var(--tabbar) + env(safe-area-inset-bottom) + 12px)} }
 .toast{display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;border-radius:var(--r-full);background:var(--ink);color:var(--bg);font-size:.9rem;font-weight:500;box-shadow:var(--shadow-lg);pointer-events:auto;
@@ -709,7 +730,7 @@ dialog:not([open])::backdrop{opacity:0}
 @media print{
   @page{size:A4;margin:0}
   body{background:#fff}
-  .rail,.topbar,.tabbar,.view-head,.pane-toggle,.pane-edit,.sheet-toolbar,.note,.page-label,.toasts,#view-library,#view-study{display:none!important}
+  .rail,.topbar,.tabbar,.help-fab,.view-head,.pane-toggle,.pane-edit,.sheet-toolbar,.note,.page-label,.toasts,#view-library,#view-study{display:none!important}
   main{margin:0;padding:0}
   .medley-grid{display:block}
   .pane-sheet{display:block!important;position:static}

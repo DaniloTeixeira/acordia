@@ -1131,7 +1131,7 @@ async function main(){
   $$(".brand").forEach(a => a.addEventListener("click", e => { e.preventDefault(); go("medley"); }));
   $$("[data-theme-toggle]").forEach(b => b.onclick = cycleTheme);
   $$("[data-lang-menu]").forEach(b => bindToggle(b, $("#lang-pop"), () => openNear($("#lang-pop"), b, 220)));
-  $$("[data-help]").forEach(b => b.onclick = () => openHelp(b.dataset.help));
+  $$("#help-fab, [data-help-btn]").forEach(b => b.onclick = () => openHelp(view));
   seg($("#mode-seg"), sheetMode, setMode);
   const pane = data.settings.pane === "sheet" ? "sheet" : "edit";
   seg($("#pane-toggle"), pane, setPane); $("#medley-grid").dataset.pane = pane;

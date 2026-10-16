@@ -1712,9 +1712,16 @@ export function setLang(l){
   listeners.forEach(fn => fn(lang));
 }
 export function onLang(fn){ listeners.add(fn); }
-export function detectLang(){
-  const n = (typeof navigator !== "undefined" && (navigator.languages && navigator.languages[0] || navigator.language)) || "pt";
-  return /^pt\b/i.test(n) ? "pt" : /^es\b/i.test(n) ? "es" : "en";
+// Idioma inicial: o primeiro idioma do navegador que o app tem. Se nenhum servir, o fuso horário
+// do aparelho dá a região (sem pedir localização e sem internet); senão, inglês.
+const TZ_PT = /^(America\/(Sao_Paulo|Fortaleza|Recife|Bahia|Belem|Manaus|Cuiaba|Campo_Grande|Porto_Velho|Boa_Vista|Rio_Branco|Maceio|Araguaina|Santarem|Noronha|Eirunepe)|Europe\/Lisbon|Atlantic\/(Azores|Madeira|Cape_Verde)|Africa\/(Luanda|Maputo|Bissau|Sao_Tome)|Asia\/Dili)$/;
+const TZ_ES = /^(America\/(Mexico_City|Monterrey|Merida|Cancun|Chihuahua|Ciudad_Juarez|Tijuana|Hermosillo|Mazatlan|Matamoros|Bahia_Banderas|Bogota|Lima|Santiago|Punta_Arenas|Argentina\/.+|Buenos_Aires|Caracas|Guayaquil|La_Paz|Asuncion|Montevideo|Panama|Costa_Rica|Guatemala|El_Salvador|Tegucigalpa|Managua|Havana|Santo_Domingo|Puerto_Rico)|Europe\/Madrid|Atlantic\/Canary|Africa\/(Ceuta|Malabo)|Pacific\/Galapagos)$/;
+export function detectLang(langs, timeZone){
+  const nav = typeof navigator !== "undefined" ? navigator : {};
+  langs = langs || (nav.languages && nav.languages.length ? nav.languages : [nav.language || ""]);
+  for(const l of langs){ const m = /^(pt|es|en)\b/i.exec(l || ""); if(m) return m[1].toLowerCase(); }
+  if(timeZone === undefined){ try{ timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; }catch(e){ timeZone = ""; } }
+  return TZ_PT.test(timeZone) ? "pt" : TZ_ES.test(timeZone) ? "es" : "en";
 }
 export function t(key, params){
   let s = DICTS[lang][key] ?? pt[key] ?? key;
