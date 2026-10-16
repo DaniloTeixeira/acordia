@@ -25,5 +25,7 @@ for (const f of files) {
 }
 const version = "medley-generator-pwa-" + hash.digest("hex").slice(0, 10);
 writeFileSync(join(out, "sw.js"), sw.replace(/const CACHE = "[^"]*";/, `const CACHE = "${version}";`));
+// Licenças acompanham as fontes e o código publicados (não entram no cache offline).
+for (const f of ["LICENSE", "fonts/OFL.txt"]) copyFileSync(join(root, f), join(out, f));
 writeFileSync(join(out, ".nojekyll"), "");
 console.log(`${files.length + 1} arquivos em ${out} · cache ${version}`);
