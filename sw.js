@@ -1,0 +1,26 @@
+// A versão é gerada por `node scripts/bump-cache.mjs` a partir do conteúdo dos arquivos abaixo.
+const CACHE = "medley-generator-pwa-f99699b814";
+const FILES = ["./", "index.html", "manifest.webmanifest", "js/core.js", "vendor/jspdf.umd.min.js",
+  "fonts/atkinson-mono-regular.ttf", "fonts/atkinson-mono-bold.ttf", "fonts/atkinson-regular.ttf",
+  "fonts/atkinson-bold.ttf", "fonts/lexend-regular.ttf", "fonts/lexend-bold.ttf",
+  "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png"];
+
+self.addEventListener("install", e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+});
+self.addEventListener("activate", e => {
+  e.waitUntil(caches.keys()
+    .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+    .then(() => self.clients.claim()));
+});
+// Rede primeiro para a página (pega atualizações), cache para o resto e para usar offline.
+self.addEventListener("fetch", e => {
+  if (e.request.method !== "GET") return;
+  if (e.request.mode === "navigate") {
+    e.respondWith(fetch(e.request)
+      .then(r => { const copy = r.clone(); caches.open(CACHE).then(c => c.put("index.html", copy)); return r; })
+      .catch(() => caches.match("index.html")));
+    return;
+  }
+  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+});
