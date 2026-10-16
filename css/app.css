@@ -14,6 +14,7 @@
   --accent-grad:linear-gradient(135deg,#2F6BF0,#6A3BF2); --accent-grad-hover:linear-gradient(135deg,#2457D6,#5A2BE0);
   --brand-grad:linear-gradient(90deg,#1593D6,#2F6BF0 50%,#7B2FF5);
   --range-grad:linear-gradient(90deg,#22C2F5,#2F6BF0 55%,#7B2FF5);
+  --ok-vivid:#16A34A;
   --sd:#EAB308; --sd-soft:#FEF3C7; --sd-ink:#92400E;
   --lh:#7B2FF5; --chord:#B0201A; --ok:#15803D; --ok-soft:#DCFCE7; --bad:#B91C1C; --bad-soft:#FEE2E2; --warn:#9A3412; --warn-soft:#FFF1E8;
   --shadow-sm:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
@@ -35,7 +36,7 @@
     --accent-grad:linear-gradient(135deg,#6E9BFF,#A57BFF); --accent-grad-hover:linear-gradient(135deg,#8DB2FF,#B994FF);
     --brand-grad:linear-gradient(90deg,#3BD5FA,#4C82F5 50%,#9A5CF8);
     --range-grad:linear-gradient(90deg,#3BD5FA,#4C82F5 55%,#9A5CF8);
-    --sd:#FACC15; --sd-soft:#33260C; --sd-ink:#FCD34D;
+    --sd:#FACC15; --sd-soft:#33260C; --sd-ink:#FCD34D; --ok-vivid:#4ADE80;
     --lh:#B48CFF; --chord:#FF8A80; --ok:#4ADE80; --ok-soft:#12321F; --bad:#F87171; --bad-soft:#3A1717; --warn:#FDBA74; --warn-soft:#2A1C12;
     --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow-md:0 4px 14px rgba(0,0,0,.45); --shadow-lg:0 24px 60px rgba(0,0,0,.6);
     --paper-shadow:0 2px 6px rgba(0,0,0,.4),0 12px 32px rgba(0,0,0,.45);
@@ -45,7 +46,7 @@
   :root:not([data-theme="light"]) .brand .logo-on-dark{display:block}
 }
 :root[data-theme="dark"]{
-  --sd:#FACC15; --sd-soft:#33260C; --sd-ink:#FCD34D;
+  --sd:#FACC15; --sd-soft:#33260C; --sd-ink:#FCD34D; --ok-vivid:#4ADE80;
   --bg:#0B0F1C; --seg-bg:#182036; --seg-ink:#8F9CB8; --surface:#121829; --surface-2:#182036; --surface-3:#1F2942;
   --ink:#E8ECF7; --ink-2:#C4CCE0; --muted:#8F9CB8; --line:#232D45; --line-strong:#323E5E;
   --accent:#6E9BFF; --accent-hover:#8DB2FF; --accent-ink:#0B0F1C; --accent-soft:#1B2852; --accent-soft-ink:#B4C8FF;
@@ -370,7 +371,7 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 /* Título fixo no topo; nota e grau centralizados no espaço que sobra (margens automáticas dos dois lados). */
 .key-box-h{margin-bottom:auto;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
 .key-box-note{font-family:var(--font-display);font-size:2.6rem;line-height:1.1;color:var(--ink)}
-.key-box-sub{font-size:.82rem;font-weight:600;color:var(--ok)}
+.key-box-sub{font-size:.82rem;font-weight:700;color:var(--ok-vivid)}
 .key-box.out .key-box-sub{color:var(--bad)}
 /* Função harmônica fixa no rodapé do quadro; ocupa o lugar mesmo vazia, para nota e grau não pularem. */
 .key-box-fn{margin-top:auto;min-height:18px;line-height:16px}
