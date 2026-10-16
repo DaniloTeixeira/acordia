@@ -171,7 +171,7 @@ test("sanitizeEntry valida campos importados", () => {
   assert.equal(r.title, "Nome");
   assert.equal(r.type, "");
   assert.equal(r.key, "");
-  assert.equal(r.target, "Bb");
+  assert.equal(r.target, undefined);
   assert.equal(r.bpm, "");
   assert.ok(Number.isFinite(r.updatedAt));
   assert.equal(C.sanitizeEntry({ id: "a1", text: "X\ny", type: "letra", key: "F#m", bpm: 72.4, updatedAt: 5 }).key, "F#m");

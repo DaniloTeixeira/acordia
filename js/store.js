@@ -1,10 +1,9 @@
 // Armazenamento no IndexedDB (músicas, medleys e preferências), com cópia em memória para leitura
-// síncrona pela interface. Na primeira vez, migra os dados da versão antiga (localStorage).
-import { sanitizeEntry, sanitizeOptions, songTitle, DEFAULT_OPTIONS } from "./core.js";
+// síncrona pela interface.
+import { sanitizeOptions, songTitle, DEFAULT_OPTIONS } from "./core.js";
 import { t } from "./i18n.js";
 
-// Nome interno mantido da primeira versão para não perder dados já salvos.
-const DB_NAME = "medley-generator", DB_VERSION = 1, STORES = ["songs","medleys","settings"];
+const DB_NAME = "acordia", DB_VERSION = 1, STORES = ["songs","medleys","settings"];
 export const data = {songs: new Map(), medleys: new Map(), settings: {}};
 let db = null, onError = () => {};
 
@@ -42,7 +41,6 @@ export async function init(errorHandler){
   }catch(e){
     db = null; onError(e);
   }
-  if(!data.settings.migrated){ await migrateLegacy(); setSetting("migrated", true); }
   cleanup();
   if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
   return !!db;
@@ -71,29 +69,4 @@ export const newMedleyItem = medleyId => ({id:newId("i"), type:"medley", medleyI
 function cleanup(){
   const used = new Set([...data.medleys.values()].flatMap(m=>m.items.map(i=>i.songId)));
   [...data.songs.values()].forEach(s=>{ if(!s.text.trim() && !used.has(s.id)) deleteSong(s.id); });
-}
-
-async function migrateLegacy(){
-  let lib = [], state = null;
-  try{ lib = JSON.parse(localStorage.getItem("folha-biblioteca-v1") || "[]"); }catch(e){}
-  try{ state = JSON.parse(localStorage.getItem("folha-cifras-v1") || "null"); }catch(e){}
-  if(!Array.isArray(lib)) lib = [];
-  const byOld = new Map();
-  lib.forEach(raw=>{
-    const e = sanitizeEntry(raw); if(!e) return;
-    const s = createSong({title:e.title, text:e.text, type:e.type, key:e.key, bpm:e.bpm});
-    if(e.id) byOld.set(e.id, s);
-  });
-  if(state && Array.isArray(state.songs) && state.songs.some(t=>typeof t === "string" && t.trim())){
-    const at = (a, i) => Array.isArray(a) && typeof a[i] === "string" ? a[i] : "";
-    const items = [];
-    state.songs.forEach((text, i)=>{
-      if(typeof text !== "string" || !text.trim()) return;
-      let s = byOld.get(at(state.libIds, i));
-      if(!s) s = createSong({text, type: at(state.types, i) === "letra" ? "letra" : "", key: at(state.keys, i)});
-      items.push(newItem(s.id, {target: at(state.targets, i)}));
-    });
-    const m = createMedley(t("medley.defaultName"), items, Object.assign({}, DEFAULT_OPTIONS, {dedupe: state.dedupe !== false}));
-    setSetting("currentMedley", m.id);
-  }
 }

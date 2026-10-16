@@ -76,7 +76,7 @@ Ao criar um arquivo novo que o app carrega, inclua-o na lista `FILES` do [sw.js]
 | [js/core.js](js/core.js) | Funções puras: parser, graus, transposição, tom, teoria, treino, validação |
 | [js/layout.js](js/layout.js) | Montagem das folhas A4 (sem DOM) e SVG da pré-visualização |
 | [js/pdf.js](js/pdf.js) | PDF com jsPDF; as fontes só são baixadas na primeira exportação |
-| [js/store.js](js/store.js) | IndexedDB (músicas, medleys, preferências) e migração da versão antiga |
+| [js/store.js](js/store.js) | IndexedDB (músicas, medleys, preferências) |
 | [js/share.js](js/share.js) | Links de medley compactados |
 | [js/study.js](js/study.js), [js/audio.js](js/audio.js) | Modo Estudo e síntese de som (Web Audio) |
 | [js/hands.js](js/hands.js), [js/metronome.js](js/metronome.js) | Independência das mãos e metrônomo |

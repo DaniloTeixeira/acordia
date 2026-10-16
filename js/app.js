@@ -106,7 +106,7 @@ function measure(s, fs, font){
 const THEME_ICON = {system:"monitor", light:"sun", dark:"moon"};
 function applyTheme(th){
   if(th === "light" || th === "dark") document.documentElement.dataset.theme = th; else delete document.documentElement.dataset.theme;
-  try{ localStorage.setItem("mg-theme", th); }catch(e){}
+  try{ localStorage.setItem("acordia-theme", th); }catch(e){}
   const name = t("theme." + th);
   $$("[data-theme-toggle]").forEach(b=>{
     b.querySelector("use").setAttribute("href", "#i-" + THEME_ICON[th]);
@@ -752,7 +752,7 @@ function exportLibrary(){
 async function importLibrary(file){
   try{
     const d = JSON.parse(await file.text());
-    const rows = Array.isArray(d) ? d : d && d.songs;
+    const rows = d && d.songs;
     if(!Array.isArray(rows)) throw 0;
     const idMap = new Map(), medMap = new Map(); let ns = 0, nm = 0;
     rows.forEach(raw => {
@@ -1113,8 +1113,6 @@ async function main(){
   initDropdowns();
   await store.init(() => toast(t("lib.saveFail")));
   setLang(data.settings.lang || detectLang());
-  // Nomes padrão antigos (de quando o app se chamava Medley Generator) passam para o nome atual.
-  data.medleys.forEach(m => { if(["Meu medley", "My medley", "Meu repertório", "My setlist"].includes(m.name) && m.name !== t("medley.defaultName")){ m.name = t("medley.defaultName"); store.saveMedley(m); } });
   applyLang();
   sheetMode = ["cifras","graus","letra"].includes(data.settings.sheetMode) ? data.settings.sheetMode : "cifras";
   metro = createMetronome(audio, data.settings.metro || {});

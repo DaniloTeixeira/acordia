@@ -344,8 +344,6 @@ export function sanitizeEntry(r){
     text: r.text,
     type: r.type === "letra" ? "letra" : "",
     key: ALL_KEYS.includes(r.key) ? r.key : "",
-    // `target` só existia nas bibliotecas antigas, que guardavam o tom de execução na música.
-    target: ALL_KEYS.includes(r.target) ? r.target : "",
     bpm: Number.isFinite(+r.bpm) && +r.bpm > 0 && +r.bpm < 400 ? String(Math.round(+r.bpm)) : "",
     ref: sanitizeUrl(r.ref),
     arrangements: sanitizeArrangements(r.arrangements),
