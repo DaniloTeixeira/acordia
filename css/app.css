@@ -283,9 +283,13 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .lib-toolbar>.seg{min-height:40px;box-sizing:border-box}
 .lib-toolbar>.seg button{display:inline-flex;align-items:center}
 .cards{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-.lib-card{cursor:pointer;display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-sm);
+.lib-card{position:relative;cursor:pointer;display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-sm);
   transition:transform var(--t) var(--ease-out),box-shadow var(--t) var(--ease),border-color var(--t);animation:card-in var(--t-slow) var(--ease-out) backwards}
-.lib-card:hover{box-shadow:var(--shadow-md);border-color:var(--line-strong)}
+.lib-card:hover{box-shadow:var(--shadow-md)}
+/* No hover a borda vira o gradiente do logo: camada por cima da borda, recortada por máscara, com fade. */
+.lib-card::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1.5px;background:var(--range-grad);pointer-events:none;opacity:0;transition:opacity var(--t) var(--ease);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+.lib-card:hover::before{opacity:1}
 @keyframes card-in{from{opacity:0;transform:translateY(8px)}}
 .lib-card h3{font-size:1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lib-card .meta{display:flex;gap:6px;flex-wrap:wrap}
