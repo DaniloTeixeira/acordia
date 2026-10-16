@@ -1,8 +1,9 @@
 import { KEYS, MINOR_KEYS, parseSong, dedupeBlocks, detectKey, keyShift, songTitle, sanitizeEntry, sanitizeItem,
-  sanitizeOptions, transition, isChordLine, sanitizeUrl, youtubeId, youtubeStart } from "./core.js";
+  sanitizeOptions, transition, isChordLine, sanitizeUrl, youtubeId, youtubeStart, parseKey } from "./core.js";
 import { createMetronome, mountMetronome } from "./metronome.js";
 import { mountTuner } from "./tuner.js";
 import { createChordDialog, instrumentSelect } from "./chordview.js";
+import { suggestCapo } from "./instruments.js";
 import * as audio from "./audio.js";
 import { fit, toSVG, lyricsOnly, chordText, chordLine } from "./layout.js";
 import { toPDF, saveBlob, pdfAvailable } from "./pdf.js";
@@ -203,7 +204,8 @@ function songItems(m){
 }
 function updateMedleySub(){
   const n = songItems(current()).length;
-  $("#medley-sub").textContent = n ? t("medley.saved", {songs: songs(n)}) : t("medley.startHint");
+  const off = current().options.transpose || 0;
+  $("#medley-sub").textContent = (n ? t("medley.saved", {songs: songs(n)}) : t("medley.startHint")) + (off ? " · " + t("medley.transposed", {n: (off > 0 ? "+" : "") + off}) : "");
 }
 function updateCounts(){
   const n = [...data.songs.values()].filter(s=>s.title).length;
@@ -276,6 +278,7 @@ function itemCard(m, it, i){
         <label class="field" data-chords>${esc(t("item.key"))}<select class="input" data-f="key">${keyOptions(s.key, t("item.auto"))}</select></label>
         <label class="field" data-chords>${esc(t("item.target"))}<select class="input" data-f="target">${keyOptions(e.target, t("item.sameKey"))}</select></label>
         <label class="field" data-chords>${esc(t("item.capo"))}<select class="input" data-f="capo"><option value="">—</option>${Array.from({length:11},(_,k)=>`<option ${e.capo==String(k+1)?"selected":""}>${k+1}</option>`).join("")}</select></label>
+        <p class="capo-hint wide" data-capo-hint hidden></p>
         <label class="field" data-chords>${esc(t("item.bpm"))}<input class="input" data-f="bpm" type="number" inputmode="numeric" min="20" max="300" placeholder="—"></label>
         <label class="field" style="grid-column:span 2">${esc(t("item.singer"))}<input class="input" data-f="singer" maxlength="80" placeholder="—"></label>
         <label class="field wide">${esc(t("item.notes"))}<input class="input" data-f="notes" maxlength="300" placeholder="${esc(t("item.notesPh"))}"></label>
@@ -289,7 +292,17 @@ function itemCard(m, it, i){
   $('[data-f="ref"]', li).value = s.ref || "";
   const showChordFields = () => { $$("[data-chords]", li).forEach(el => el.hidden = s.type === "letra"); ta.placeholder = t(s.type === "letra" ? "item.phLyrics" : "item.phChords"); };
   showChordFields();
-  const head = () => updateItemHead(li, s, it);
+  // Sugestão de capotraste para quem toca cordas (desenhos fáceis no tom de execução).
+  const capoHint = () => {
+    const el = $("[data-capo-hint]", li), cur = eff(s, it), inst = getInstrument();
+    const key = cur.target || s.key || (s.text.trim() ? detectKey(parseSong(s.text)) : "");
+    const sug = s.type !== "letra" && key ? suggestCapo(key, inst) : null;
+    el.hidden = !sug || cur.capo === String(sug && sug.capo);
+    if(el.hidden) return;
+    el.innerHTML = `${esc(t("capo.suggest", {inst: t("inst." + inst).toLowerCase(), capo: sug.capo, shape: sug.shapeKey}))} <button type="button" class="link-btn">${esc(t("capo.use"))}</button>`;
+    $("button", el).onclick = () => { $('[data-f="capo"]', li).value = String(sug.capo); setField("capo", String(sug.capo)); };
+  };
+  const head = () => { updateItemHead(li, s, it); capoHint(); };
   head();
   const toggle = () => {
     const nowOpen = li.classList.toggle("collapsed") === false;
@@ -403,9 +416,17 @@ function sheetSongs(m){
     const letra = s.type === "letra", p = parseSong(s.text, letra);
     if(!p.title) return null;
     const e = eff(s, it);
-    const auto = letra ? "" : detectKey(p), key = letra ? "" : (s.key || auto), target = letra ? "" : (e.target || "");
+    const auto = letra ? "" : detectKey(p), key = letra ? "" : (s.key || auto);
+    let target = letra ? "" : (e.target || ""), capo = letra ? "" : e.capo;
+    const keyName = (k, d) => (k.minor ? MINOR_KEYS : KEYS)[((k.pc + d) % 12 + 12) % 12];
+    // Transpor tudo: desloca o tom de cada música só na folha deste repertório.
+    const off = m.options.transpose || 0;
+    if(off && key){ const k = parseKey(target || key); if(k) target = keyName(k, off); }
+    // Desenhos do capo: a cifra mostra o desenho tocado com capotraste e avisa o tom que soa.
+    if(m.options.capoShapes && capo && key){ const real = target || key, k = parseKey(real); if(k){ target = keyName(k, -(+capo)); capo = t("sheet.capoSounds", {n: capo, key: real}); } }
+    if(target === key) target = "";
     return Object.assign(p, {key, target, shift: target ? keyShift(key, target) : 0, auto, itemId: it.id, ref: s.ref || "", group, gname,
-      meta: {bpm: letra ? "" : s.bpm, capo: letra ? "" : e.capo, singer: it.singer, notes: e.notes}});
+      meta: {bpm: letra ? "" : s.bpm, capo, singer: it.singer, notes: e.notes}});
   }).filter(Boolean);
   if(m.options.dedupe) list = dedupeBlocks(list);
   return list;
@@ -461,6 +482,13 @@ function initOptions(){
     pop.style.left = Math.max(16, Math.min(r.right - w, innerWidth - w - 16)) + "px";
   });
   pop.addEventListener("toggle", () => $$(".seg", pop).forEach(paintSeg));
+  const trVal = () => { const v = current().options.transpose || 0; $("#opt-tr-val").textContent = (v > 0 ? "+" : "") + v; };
+  $$("[data-tr]", pop).forEach(b => b.onclick = () => {
+    const m = current(), d = +b.dataset.tr;
+    m.options.transpose = d ? ((m.options.transpose || 0) + d + 17) % 12 - 5 : 0;
+    store.saveMedley(m); trVal(); updateMedleySub(); renderSheet();
+  });
+  pop.addEventListener("beforetoggle", e => { if(e.newState === "open") trVal(); });
 }
 
 // ---------- adicionar da biblioteca ----------
@@ -846,9 +874,53 @@ function openRef(url, title){
   $("#player-open").href = url;
   $("#player-offline").hidden = navigator.onLine !== false;
   const start = youtubeStart(url);
-  box.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1${start ? "&start=" + start : ""}" title="${esc(title || "YouTube")}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
-  dlg.onclose = () => { box.innerHTML = ""; };
+  const plain = () => { box.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1${start ? "&start=" + start : ""}" title="${esc(title || "YouTube")}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`; };
+  const tools = $("#player-tools"); tools.hidden = true;
+  let player = null, poll = 0;
+  box.innerHTML = navigator.onLine === false ? "" : `<div class="player-loading">${esc(t("player.loading"))}</div>`;
+  if(navigator.onLine === false) plain();
+  dlg.onclose = () => { clearInterval(poll); try{ player && player.destroy(); }catch(e){} ytPlayer = null; box.innerHTML = ""; tools.hidden = true; };
   dlg.showModal();
+  if(navigator.onLine === false) return;
+  // Com a API do YouTube: loop A–B e velocidade. Sem ela (offline, bloqueada), o player simples.
+  loadYouTubeAPI().then(YT => {
+    if(!dlg.open) return;
+    box.innerHTML = `<div id="yt-player"></div>`;
+    const loops = data.settings.loops || {}, saved = loops[id] || {};
+    const st = {a: saved.a ?? null, b: saved.b ?? null, on: !!saved.on && saved.a != null && saved.b != null};
+    player = new YT.Player("yt-player", {videoId: id, host: "https://www.youtube-nocookie.com",
+      playerVars: {autoplay: 1, rel: 0, playsinline: 1, start: st.on ? Math.floor(st.a) : start},
+      events: {onReady: () => { tools.hidden = false; paint(); }}});
+    ytPlayer = player;
+    const fmt = s => s == null ? "–:––" : Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0");
+    const persist = () => { const l = Object.assign({}, data.settings.loops || {}); l[id] = {a: st.a, b: st.b, on: st.on}; store.setSetting("loops", l); };
+    function paint(){
+      $("#pl-a").textContent = "A " + fmt(st.a); $("#pl-b").textContent = "B " + fmt(st.b);
+      $("#pl-loop").setAttribute("aria-pressed", String(st.on)); $("#pl-loop").disabled = st.a == null || st.b == null || st.b <= st.a;
+      $("#pl-status").textContent = st.on ? t("player.loopOn", {a: fmt(st.a), b: fmt(st.b)}) : t("player.hint");
+    }
+    const now = () => player && player.getCurrentTime ? player.getCurrentTime() : 0;
+    $("#pl-a").onclick = () => { st.a = now(); if(st.b != null && st.b <= st.a) st.b = null; persist(); paint(); };
+    $("#pl-b").onclick = () => { const t0 = now(); if(st.a != null && t0 > st.a){ st.b = t0; st.on = true; persist(); paint(); } };
+    $("#pl-loop").onclick = () => { st.on = !st.on; if(st.on) player.seekTo(st.a, true); persist(); paint(); };
+    $("#pl-clear").onclick = () => { st.a = st.b = null; st.on = false; persist(); paint(); };
+    if(!$("#pl-speed").setSeg) seg($("#pl-speed"), "1", v => ytPlayer && ytPlayer.setPlaybackRate && ytPlayer.setPlaybackRate(+v));
+    $("#pl-speed").setSeg("1");
+    poll = setInterval(() => { if(st.on && st.b != null && now() >= st.b) player.seekTo(st.a, true); }, 120);
+  }).catch(plain);
+}
+let ytApi = null, ytPlayer = null;
+function loadYouTubeAPI(){
+  if(window.YT && window.YT.Player) return Promise.resolve(window.YT);
+  if(!ytApi) ytApi = new Promise((res, rej) => {
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { if(prev) prev(); res(window.YT); };
+    const sc = document.createElement("script"); sc.src = "https://www.youtube.com/iframe_api"; sc.async = true;
+    sc.onerror = () => { ytApi = null; rej(new Error("yt")); };
+    document.head.appendChild(sc);
+    setTimeout(() => { ytApi = null; rej(new Error("timeout")); }, 8000);
+  });
+  return ytApi;
 }
 
 // ---------- instrumento escolhido ----------
@@ -857,7 +929,7 @@ function setInstrument(v){
   if(v === getInstrument()) return;
   store.setSetting("instrument", v);
   $$("select[data-instrument]").forEach(s => { s.value = v; });
-  study.rerender(); tools.instrumentChanged(); chordDialog.refresh();
+  study.rerender(); tools.instrumentChanged(); chordDialog.refresh(); renderItems();
 }
 
 // ---------- ferramentas: metrônomo e afinador ----------
@@ -881,6 +953,12 @@ function initTools(){
   };
 }
 
+// Acordes que soam em cada música do repertório aberto (para o treino "Do meu repertório").
+function repertoireEntries(){
+  return sheetSongs(current()).filter(s => s.key).map(s => ({title: s.title, key: s.target || s.key,
+    chords: s.blocks.flatMap(b => b.flatMap(it => it.chord ? chordLine(it.chord, s, "cifras").chords.map(c => c.chord) : []))}));
+}
+
 let study, metro, tools, chordDialog;
 async function main(){
   await store.init(() => toast(t("lib.saveFail")));
@@ -895,7 +973,7 @@ async function main(){
   tools = initTools();
   document.addEventListener("change", e => { if(e.target.matches && e.target.matches("select[data-instrument]")) setInstrument(e.target.value); });
   $("#pages").addEventListener("click", e => { const r = e.target.closest && e.target.closest("rect.hit"); if(r) chordDialog.open(r.dataset.chord, r.dataset.key); });
-  study = initStudy({explore: $("#study-explore"), train: $("#study-train"), hands: $("#study-hands"), getInstrument, chordDialog, tabs: $("#study-tabs"), seg, paintSeg, data, store, toast, icon, esc});
+  study = initStudy({explore: $("#study-explore"), train: $("#study-train"), hands: $("#study-hands"), getInstrument, chordDialog, getRepertoire: repertoireEntries, tabs: $("#study-tabs"), seg, paintSeg, data, store, toast, icon, esc});
 
   $$("[data-nav]").forEach(b => b.onclick = () => go(b.dataset.nav));
   $$(".brand").forEach(a => a.addEventListener("click", e => { e.preventDefault(); go("medley"); }));

@@ -125,6 +125,8 @@
             <label class="switch"><span data-i18n="opt.showKey"></span><input type="checkbox" data-opt="showKey"></label>
             <label class="switch"><span data-i18n="opt.transitions"></span><input type="checkbox" data-opt="transitions"></label>
             <label class="switch"><span data-i18n="opt.maxPages"></span><input type="checkbox" data-opt="maxPages"></label>
+            <label class="switch"><span data-i18n="opt.capoShapes"></span><input type="checkbox" data-opt="capoShapes"></label>
+            <div class="row"><span data-i18n="opt.transpose"></span><span class="tr-ctl"><button type="button" class="icon-btn sm" data-tr="-1" aria-label="−½">−</button><b id="opt-tr-val">0</b><button type="button" class="icon-btn sm" data-tr="1" aria-label="+½">+</button><button type="button" class="btn ghost sm" data-tr="0" data-i18n="opt.transposeReset"></button></span></div>
             <hr>
             <div class="row"><span data-i18n="opt.columns"></span><div class="seg sm" data-opt-seg="columns"><button data-v="auto" data-i18n="opt.auto"></button><button data-v="1">1</button><button data-v="2">2</button></div></div>
             <div class="row"><span data-i18n="opt.degrees"></span><div class="seg sm" data-opt-seg="degreeStyle"><button data-v="roman">I IV V</button><button data-v="arabic">1 4 5</button></div></div>
@@ -286,6 +288,12 @@
     <div class="dlg-body">
       <p class="note" id="player-offline" hidden data-i18n="ref.offline"></p>
       <div class="player-box" id="player-box"></div>
+      <div class="player-tools" id="player-tools" hidden>
+        <div class="pl-row"><button type="button" class="btn ghost sm" id="pl-a">A</button><button type="button" class="btn ghost sm" id="pl-b">B</button>
+          <button type="button" class="btn soft sm" id="pl-loop" aria-pressed="false" data-i18n="player.loop"></button><button type="button" class="btn ghost sm" id="pl-clear" data-i18n="player.clear"></button>
+          <span class="pl-speed-wrap"><span class="sub" data-i18n="player.speed"></span><span class="seg sm" id="pl-speed" role="group"><button type="button" data-v="0.5">0.5×</button><button type="button" data-v="0.75">0.75×</button><button type="button" data-v="1">1×</button></span></span></div>
+        <p class="sub" id="pl-status"></p>
+      </div>
     </div>
     <div class="dlg-foot"><a class="btn ghost" id="player-open" target="_blank" rel="noopener" data-i18n="ref.open"></a><button class="btn primary" value="cancel" data-i18n="common.close"></button></div>
   </form>

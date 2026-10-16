@@ -209,3 +209,26 @@ test("arranjos importados são validados", () => {
   assert.deepEqual(list, [{id: "a1", name: "Acústico", target: "G", capo: "2", notes: "leve"}, {id: "a2", name: "—", target: "", capo: "", notes: ""}]);
   assert.equal(C.sanitizeEntry({text: "A\nb", arrangements: [{id: "x", name: "Banda", target: "A"}]}).arrangements[0].target, "A");
 });
+
+test("treino com os acordes do repertório", () => {
+  assert.equal(C.makeRepertoireQuestion([]), null);
+  assert.equal(C.makeRepertoireQuestion([{title: "Só letra", key: "", chords: []}]), null);
+  const entries = [{title: "Grande é o Senhor", key: "A", chords: ["A", "E/G#", "F#m7", "D", "Bm", "E7(9)"]}];
+  for (let i = 0; i < 60; i++) {
+    const q = C.makeRepertoireQuestion(entries, seeded(5 + i));
+    assert.ok(q.prompt.includes("Grande é o Senhor"));
+    assert.ok(q.options.includes(q.answer), q.prompt + " " + q.answer);
+    if (q.full.type === "list") assert.ok(q.full.options.includes(q.answer));
+    else assert.ok(["A","E","F#m","D","Bm"].includes(q.answer), q.answer);
+  }
+  const graus = new Set(Array.from({length: 80}, (_, i) => C.makeRepertoireQuestion(entries, seeded(100 + i))).filter(q => q.full.type === "list").map(q => q.answer));
+  for (const g of graus) assert.ok(["I","V","vi","IV","ii"].includes(g), g);
+});
+
+test("opções: transpor tudo e desenhos do capo", () => {
+  assert.equal(C.sanitizeOptions({transpose: 3}).transpose, 3);
+  assert.equal(C.sanitizeOptions({transpose: 40}).transpose, 0);
+  assert.equal(C.sanitizeOptions({transpose: 1.5}).transpose, 0);
+  assert.equal(C.sanitizeOptions({capoShapes: true}).capoShapes, true);
+  assert.equal(C.sanitizeOptions({capoShapes: "sim"}).capoShapes, false);
+});

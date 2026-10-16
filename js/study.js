@@ -1,5 +1,5 @@
 // Modo Estudo: explorador de escalas e campo harmônico, e o treino em forma de jogo.
-import { SCALES, spellScale, scaleDegrees, harmonicField, relativeKey, rootFor, makeQuestion, QUIZ_KINDS, NOTE_GRID, CHORD_QUALITIES } from "./core.js";
+import { SCALES, spellScale, scaleDegrees, harmonicField, relativeKey, rootFor, makeQuestion, makeRepertoireQuestion, QUIZ_KINDS, NOTE_GRID, CHORD_QUALITIES } from "./core.js";
 import * as audio from "./audio.js";
 import { initHands } from "./hands.js";
 import { INSTRUMENTS, voicings } from "./instruments.js";
@@ -10,7 +10,7 @@ import { t } from "./i18n.js";
 const ROUND = 10;
 const WHITE = [0,2,4,5,7,9,11], BLACK = [1,3,6,8,10];
 
-export function initStudy({explore, train, hands, tabs, seg, paintSeg, data, store, toast, icon, esc, getInstrument, chordDialog}){
+export function initStudy({explore, train, hands, tabs, seg, paintSeg, data, store, toast, icon, esc, getInstrument, chordDialog, getRepertoire}){
   const st = Object.assign({tab:"explore", rootPc:0, scaleId:"maior", sevenths:false, kind:"misto", level:"facil", mode:"choice"}, data.settings.study || {});
   const persist = () => store.setSetting("study", {tab:st.tab, rootPc:st.rootPc, scaleId:st.scaleId, sevenths:st.sevenths, kind:st.kind, level:st.level, mode:st.mode});
   const handsUI = initHands({root:hands, data, store, toast, icon, esc, audio});
@@ -114,7 +114,8 @@ export function initStudy({explore, train, hands, tabs, seg, paintSeg, data, sto
   }
 
   // ---------- treino ----------
-  const KINDS = ["misto", ...QUIZ_KINDS];
+  const KINDS = ["misto", ...QUIZ_KINDS, "repertorio"];
+  const question = () => st.kind === "repertorio" ? makeRepertoireQuestion(getRepertoire()) : makeQuestion(st.kind, st.level);
   const kindLabel = k => k === "misto" ? [t("train.mixed"), t("train.mixedD")] : [t("train." + k), t("train." + k + "D")];
   const bestKey = () => st.kind + ":" + st.level + (st.mode === "full" ? ":full" : "");
   const QUAL_LABEL = {"":"train.qM", "m":"train.qm", "°":"train.qd", "+":"train.qa"};
@@ -138,12 +139,16 @@ export function initStudy({explore, train, hands, tabs, seg, paintSeg, data, sto
     train.querySelectorAll(".kind").forEach(b => b.onclick = () => { st.kind = b.dataset.k; persist(); renderSetup(); });
     seg(train.querySelector("#tr-level"), st.level, v => { st.level = v; persist(); renderSetup(); });
     seg(train.querySelector("#tr-mode"), st.mode, v => { st.mode = v; persist(); renderSetup(); });
-    train.querySelector("#tr-start").onclick = startQuiz;
+    const noRep = st.kind === "repertorio" && !makeRepertoireQuestion(getRepertoire());
+    const startBtn = train.querySelector("#tr-start"); startBtn.disabled = noRep;
+    if(noRep) startBtn.insertAdjacentHTML("afterend", `<span class="note">${esc(t("train.needRepertoire"))}</span>`);
+    startBtn.onclick = startQuiz;
   }
   function startQuiz(){ quiz = {i:0, right:0, streak:0, answered:false, q:null, last:"", root:null, qual:""}; nextQuestion(); }
   function nextQuestion(){
     let q, tries = 0;
-    do { q = makeQuestion(st.kind, st.level); } while(q.prompt + q.answer === quiz.last && ++tries < 5);
+    do { q = question(); } while(q && q.prompt + q.answer === quiz.last && ++tries < 5);
+    if(!q) return renderSetup();
     Object.assign(quiz, {q, last:q.prompt + q.answer, answered:false, root:null, qual:""});
     renderQuiz();
     if(q.autoplay) setTimeout(() => playChord(q.play), 250);

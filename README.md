@@ -11,23 +11,30 @@ tudo no próprio aparelho.
 - **Repertório:** cole as músicas (título na primeira linha), troque o tom de cada uma, reordene e veja a folha
   na hora. A folha alterna entre **Cifras**, **Graus** e **Só letra**, ajusta o tamanho da letra para
   ocupar a página e usa 1 ou 2 colunas e até 2 páginas.
-- **Transições:** entre uma música e outra, a folha avisa a mudança de tom e sugere o acorde de passagem
-  (o V7 do tom seguinte).
-- **Detalhes por música:** tom original, tom para tocar, capotraste, BPM, quem canta, observações e um link de
-  referência (vídeos do YouTube tocam dentro do app).
-- **Biblioteca:** todas as músicas e repertórios salvos, com busca, filtros, edição, duplicação e backup
+- **Medleys:** dentro de um repertório, um bloco de músicas emendadas. A folha mostra o nome do medley, a mudança
+  de tom e o acorde de passagem (o V7 do tom seguinte). O mesmo medley pode entrar em vários repertórios.
+- **Arranjos:** versões nomeadas de uma música (por exemplo, "Acústico em G" ou "Banda em A", com tom, capotraste
+  e observações) para reaproveitar entre repertórios.
+- **Detalhes por música:** tom original, tom para tocar, capotraste (com sugestão para cordas), BPM, quem canta,
+  observações e um link de referência. Vídeos do YouTube tocam dentro do app, com loop A–B e velocidade reduzida.
+- **Transpor tudo:** muda o tom do repertório inteiro na folha, sem alterar as músicas; opção de mostrar os
+  desenhos do capotraste ("soa em…").
+- **Acordes clicáveis:** na folha e no palco, cada acorde mostra o grau, a função, as notas e o desenho no
+  instrumento escolhido (teclado, violão/guitarra, baixo, ukulele ou cavaquinho).
+- **Biblioteca:** músicas, repertórios e medleys salvos, com busca, filtros, edição, duplicação e backup
   (exportar e importar em JSON).
-- **Compartilhar por link:** o repertório inteiro vai compactado no próprio link (`#m=...`), sem servidor.
-  Quem abre pode salvar na própria biblioteca.
+- **Compartilhar por link:** o repertório inteiro, com medleys, vai compactado no próprio link (`#m=...`), sem
+  servidor. Quem abre pode salvar na própria biblioteca.
 - **Modo palco:** tela cheia, letra grande, tela sempre acesa, metrônomo no BPM da música, avança por toque,
   teclado ou pedal Bluetooth.
 - **Estudo:**
-  - **Escalas:** maior, menores e pentatônicas num teclado que toca ao clicar; campo harmônico com tríades ou
-    tétrades e as funções (tônica, subdominante, dominante) explicadas.
-  - **Treino:** 5 jogos (acorde do grau, qual é o grau, notas da escala, relativas e ouvido), 3 níveis,
-    respostas com 4 alternativas ou lista completa, sequência de acertos e recorde.
+  - **Escalas:** maior, menores e pentatônicas no teclado ou no braço do instrumento, que tocam ao clicar; campo
+    harmônico com tríades ou tétrades, diagramas de acordes e as funções explicadas.
+  - **Treino:** 6 jogos (acorde do grau, qual é o grau, notas da escala, relativas, ouvido e "do meu
+    repertório"), 3 níveis, respostas com 4 alternativas ou lista completa, sequência de acertos e recorde.
   - **Mãos:** 10 exercícios de independência das mãos com metrônomo e precisão por mão.
-  - **Metrônomo:** compasso, subdivisão, acento e tap tempo.
+- **Ferramentas:** metrônomo (compasso, subdivisão, acento, tap tempo) e afinador pelo microfone, com as cordas
+  do instrumento e A4 ajustável.
 - PDF, impressão, tema claro/escuro/sistema e PT/EN.
 
 ## Rodar localmente
@@ -73,6 +80,8 @@ Ao criar um arquivo novo que o app carrega, inclua-o na lista `FILES` do [sw.js]
 | [js/share.js](js/share.js) | Links de medley compactados |
 | [js/study.js](js/study.js), [js/audio.js](js/audio.js) | Modo Estudo e síntese de som (Web Audio) |
 | [js/hands.js](js/hands.js), [js/metronome.js](js/metronome.js) | Independência das mãos e metrônomo |
+| [js/instruments.js](js/instruments.js), [js/chordview.js](js/chordview.js) | Afinações, leitura de acordes, posições para cordas, diagramas e braço |
+| [js/tuner.js](js/tuner.js) | Afinador (detecção de altura) |
 | [js/i18n.js](js/i18n.js) | Textos em português e inglês |
 | [sw.js](sw.js) | Cache offline |
 | [scripts/build.mjs](scripts/build.mjs) | Build do deploy |

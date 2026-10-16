@@ -17,7 +17,7 @@ test("link de medley vai e volta igual", async () => {
   assert.match(code, /^[zj][A-Za-z0-9_-]+$/);
   const back = await decodeMedley(code);
   assert.equal(back.name, "Culto domingo");
-  assert.deepEqual(back.options, medley.options);
+  assert.deepEqual(back.options, Object.assign({}, medley.options, {transpose: 0, capoShapes: false}));
   assert.equal(back.songs.length, 2);
   assert.equal(back.songs[0].title, "Primeira");
   assert.equal(back.songs[0].target, "A");

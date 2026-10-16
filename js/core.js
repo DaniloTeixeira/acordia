@@ -313,6 +313,27 @@ export function youtubeStart(url){
   try{ const v = new URL(url).searchParams.get("t") || ""; const m = v.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/); return m ? (+(m[1]||0))*3600 + (+(m[2]||0))*60 + (+(m[3]||0)) : 0; }catch(e){ return 0; }
 }
 
+// Treino com as músicas do repertório: entries = [{title, key (tom tocado), chords:[acordes que soam]}].
+function triadOf(ch){
+  const m = /^([A-G][#b]?)(m(?!aj)|dim|°|º|aug|\+)?/.exec(ch || "");
+  if(!m) return null;
+  const q = m[2] ? (m[2] === "m" ? "m" : /dim|°|º/.test(m[2]) ? "°" : "+") : "";
+  return m[1] + q;
+}
+export function makeRepertoireQuestion(entries, rng = Math.random){
+  const usable = (entries || []).map(e => ({...e, triads: [...new Set((e.chords || []).map(triadOf).filter(Boolean))]})).filter(e => parseKey(e.key) && e.triads.length);
+  if(!usable.length) return null;
+  const e = pick(usable, rng), chord = pick(e.triads, rng), degree = chordToDegree(chord, e.key);
+  const k = parseKey(e.key), field = harmonicField(rootFor(k.pc, k.minor ? "menor" : "maior"), k.minor ? "menor" : "maior");
+  if(rng() < 0.5){
+    const pool = e.triads.map(c => chordToDegree(c, e.key)).concat(field.map(f => f.degree));
+    return {kind:"repertorio", prompt:t("q.repGrau", {song:e.title, key:e.key, chord}), answer:degree, options:options(degree, pool, rng),
+      full:{type:"list", options: DEGREE_LIST.includes(degree) ? DEGREE_LIST : DEGREE_LIST.concat(degree)}};
+  }
+  const pool = e.triads.concat(field.map(f => f.name));
+  return {kind:"repertorio", prompt:t("q.repAcorde", {song:e.title, key:e.key, degree}), answer:chord, options:options(chord, pool, rng), full:{type:"chord"}};
+}
+
 // ---------- validação de dados importados ----------
 const str = v => typeof v === "string" ? v : "";
 export function sanitizeEntry(r){
@@ -331,7 +352,7 @@ export function sanitizeEntry(r){
     updatedAt: Number.isFinite(r.updatedAt) ? r.updatedAt : Date.now()
   };
 }
-export const DEFAULT_OPTIONS = {dedupe:true, columns:"auto", maxPages:2, minFont:9, showKey:true, transitions:true, degreeStyle:"roman"};
+export const DEFAULT_OPTIONS = {dedupe:true, columns:"auto", maxPages:2, minFont:9, showKey:true, transitions:true, degreeStyle:"roman", transpose:0, capoShapes:false};
 export function sanitizeOptions(o){
   const d = DEFAULT_OPTIONS; o = o && typeof o === "object" ? o : {};
   return {
@@ -341,7 +362,9 @@ export function sanitizeOptions(o){
     minFont: Number.isFinite(o.minFont) ? Math.min(14, Math.max(7, o.minFont)) : d.minFont,
     showKey: typeof o.showKey === "boolean" ? o.showKey : d.showKey,
     transitions: typeof o.transitions === "boolean" ? o.transitions : d.transitions,
-    degreeStyle: o.degreeStyle === "arabic" ? "arabic" : "roman"
+    degreeStyle: o.degreeStyle === "arabic" ? "arabic" : "roman",
+    transpose: Number.isInteger(o.transpose) && Math.abs(o.transpose) < 12 ? o.transpose : 0,
+    capoShapes: o.capoShapes === true
   };
 }
 // Item de medley: referência à música e o que muda só neste medley.
