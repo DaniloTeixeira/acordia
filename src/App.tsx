@@ -95,15 +95,15 @@ function VolumePop(){
 const langPop = () => document.getElementById("lang-pop");
 const langToggle = toggler(langPop, btn => openNear(langPop()!, btn, 220));
 function LangButton({rail}: {rail?: boolean}){
-  const name = (LANGS.find(([v]) => v === getLang()) || LANGS[0])[1];
+  const name = t("lang." + getLang());
   return <button className={rail ? "nav-item lang-item" : "icon-btn"} data-lang-menu aria-haspopup="menu" aria-label={t("lang.label")}
     onPointerDown={langToggle.onPointerDown} onClick={langToggle.onClick}>
     <Icon name="globe"/>{rail && <><span data-lang-name>{name}</span><Icon name="chev" sm className="chev-down"/></>}</button>;
 }
 function LangPop(){
   return <div id="lang-pop" className="popover menu-pop" popover="auto" role="menu">
-    {LANGS.map(([v, n]) => <button key={v} className="menu-item" role="menuitemradio" aria-checked={v === getLang()} data-lang={v}
-      onClick={() => { langPop()?.hidePopover(); changeLang(v); }}>{n}{v === getLang() && <Icon name="check" sm/>}</button>)}
+    {LANGS.map(([v]) => <button key={v} className="menu-item" role="menuitemradio" aria-checked={v === getLang()} data-lang={v}
+      onClick={() => { langPop()?.hidePopover(); changeLang(v); }}>{t("lang." + v)}{v === getLang() && <Icon name="check" sm/>}</button>)}
   </div>;
 }
 
