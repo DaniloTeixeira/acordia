@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="412 140 406 346">
+  <!-- Acordia sem o fundo: só as barras de som que formam o A (tela de entrar). -->
+  <defs>
+    <linearGradient id="g" gradientUnits="userSpaceOnUse" x1="410" y1="220" x2="800" y2="430">
+      <stop offset="0" stop-color="#3BD5FA"/>
+      <stop offset=".48" stop-color="#2F6BF0"/>
+      <stop offset="1" stop-color="#7B2FF5"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#g)" stroke-width="44" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M440 342V458M508 270V446M646 340V383"/>
+    <path d="M578 396V214C578 188 598 168 624 168C642 168 656 178 665 194L790 445"/>
+  </g>
+</svg>

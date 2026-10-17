@@ -1106,3 +1106,42 @@ dialog.ear-dlg{width:min(760px,calc(100vw - 24px))}
 /* ---------- aviso para deitar o celular ---------- */
 .rotate-hint{display:flex;align-items:center;gap:8px;margin:0;font-size:.82rem;color:var(--muted)}
 .rotate-hint .i{flex-shrink:0;color:var(--accent)}
+
+/* ---------- conta: entrar e perfil ---------- */
+.auth-screen{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px 16px;background:var(--bg)}
+/* Borda com o gradiente da marca girando devagar em volta do bloco (parada com movimento reduzido). */
+@property --auth-angle{syntax:"<angle>";inherits:false;initial-value:0deg}
+.auth-card{width:min(400px,100%);display:flex;flex-direction:column;gap:14px;padding:28px 24px;border:2px solid transparent;
+  background:linear-gradient(var(--surface),var(--surface)) padding-box,conic-gradient(from var(--auth-angle),#22C2F5,#2F6BF0,#7B2FF5,#2F6BF0,#22C2F5) border-box;
+  animation:auth-border 6s linear infinite}
+@keyframes auth-border{to{--auth-angle:360deg}}
+@media (prefers-reduced-motion:reduce){.auth-card{animation:none}}
+.auth-corner{position:fixed;top:calc(env(safe-area-inset-top) + 10px);right:12px;z-index:5}
+.auth-card form{display:flex;flex-direction:column;gap:14px}
+.auth-card h1{font-size:1.35rem}
+.auth-card .sub{margin:-6px 0 0}
+.auth-logo{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:4px;font:700 2.1rem/1.1 var(--font-display)}
+.auth-logo img{width:76px;height:auto}
+.auth-links{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.avatar{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent-grad);color:#fff;font:700 .72rem var(--font-ui);flex-shrink:0}
+.avatar.big{width:56px;height:56px;font-size:1.2rem}
+.profile-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));align-items:start}
+.profile-card,.people-card{display:flex;flex-direction:column;gap:14px}
+.profile-card > .btn{align-self:flex-start}
+.profile-who{display:flex;align-items:center;gap:14px}
+.profile-who > div{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
+.profile-who b{font-size:1.1rem}
+.people-card .sub{margin:-8px 0 0}
+.people-add{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.people-add .input{flex:1;min-width:200px}
+.people-list{list-style:none;margin:0;padding:0}
+.people-list li{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.people-email{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.people-actions{display:flex;align-items:center;gap:4px}
+.google-btn{background:var(--surface);color:var(--ink);border:1px solid var(--line-strong);gap:10px}
+.google-btn:hover:where(:not(:disabled)){background:var(--surface-2)}
+.g-logo{width:18px;height:18px;flex-shrink:0}
+.auth-or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.8rem}
+.auth-or::before,.auth-or::after{content:"";flex:1;height:1px;background:var(--line)}
+.auth-forgot{align-self:flex-end;margin:-6px 0 -4px;font-size:.85rem}
+.auth-switch{margin:0;text-align:center;font-size:.88rem;color:var(--muted)}

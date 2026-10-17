@@ -10,6 +10,7 @@ import { clearMeasureCache } from "./lib/util";
 import { useUI, toast, openDialog, VIEWS, viewFromHash, viewUrl, type View } from "./state";
 import { peekCurrent } from "./repertoire";
 import { initMetro } from "./metro";
+import { initAuth } from "./lib/cloud";
 import { initTooltips } from "./ui/tooltips";
 import { App, applyTheme, applyVolume, theme } from "./App";
 
@@ -31,6 +32,8 @@ applyVolume();
 setTimbre((store.data.settings.timbre as string) || "piano");
 setCues(store.setting("cues", true));
 initMetro();
+// Com login configurado, a tela de entrar aparece até a sessão ser confirmada.
+initAuth();
 
 // Para testes: ?debug expõe os dados.
 if(new URLSearchParams(location.search).has("debug")) Object.assign(window, {__store: store});

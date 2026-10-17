@@ -28,6 +28,10 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+        # Login (Supabase): variáveis do repositório. Sem elas, o app sai sem login, como antes.
+        env:
+          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          VITE_SUPABASE_KEY: ${{ vars.SUPABASE_KEY }}
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:

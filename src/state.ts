@@ -9,8 +9,9 @@ import { vt, type VtKind } from "./lib/util";
 import type { Song, Medley, SongItem } from "./lib/types";
 import type { IncomingMedley } from "./lib/share";
 
-export type View = "medley" | "library" | "study" | "tools";
-export const VIEWS: View[] = ["medley", "library", "study", "tools"];
+// "profile" não está na barra de abas: abre pela bolinha do perfil.
+export type View = "medley" | "library" | "study" | "tools" | "profile";
+export const VIEWS: View[] = ["medley", "library", "study", "tools", "profile"];
 
 export interface ToastAction { label: string; run: () => void }
 export interface Toast { id: number; msg: string; action?: ToastAction; sticky?: boolean; out?: boolean }

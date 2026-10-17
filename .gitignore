@@ -5,3 +5,6 @@ Thumbs.db
 .claude/
 # Gravações originais dos pads (10 min cada); o app usa os trechos de public/pads.
 src/infinite-pads/
+
+# Chaves do Supabase para rodar local (VITE_SUPABASE_URL e VITE_SUPABASE_KEY).
+*.local

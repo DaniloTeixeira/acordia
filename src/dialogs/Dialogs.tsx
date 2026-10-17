@@ -266,7 +266,7 @@ function HelpDialog({page}: DialogProps["help"]){
     <form method="dialog" className="dlg">
       <DialogHead id="help-h" title={t("help." + page + ".title")} closeLabel={t("common.close")}/>
       <div className="dlg-body"><p id="help-intro">{t("help." + page + ".intro")}</p>
-        <ol className="help-steps" id="help-steps">{Array.from({length: HELP_STEPS[page]}, (_, i) => <li key={i}>{t("help." + page + ".s" + (i + 1))}</li>)}</ol></div>
+        <ol className="help-steps" id="help-steps">{Array.from({length: HELP_STEPS[page as keyof typeof HELP_STEPS] ?? 0}, (_, i) => <li key={i}>{t("help." + page + ".s" + (i + 1))}</li>)}</ol></div>
       <Foot><button className="btn primary" value="ok">{t("common.gotIt")}</button></Foot>
     </form>
   </Dialog>;

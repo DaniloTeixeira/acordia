@@ -18,6 +18,8 @@ import { Study } from "./views/study/Study";
 import { Tools } from "./views/Tools";
 import { Stage } from "./views/Stage";
 import { Dialogs, HELP_STEPS, seenHelp } from "./dialogs/Dialogs";
+import { AuthScreen, Avatar, Profile } from "./views/Account";
+import { useAuth } from "./lib/cloud";
 
 const { data } = store;
 const BASE = import.meta.env.BASE_URL;
@@ -152,6 +154,11 @@ export function App(){
   const brand = (tagline: boolean) => <a className="brand" href="./" onClick={e => { e.preventDefault(); go("medley"); }}>
     <img className="logo-on-light" src={BASE + "icons/icon.svg"} alt=""/><img className="logo-on-dark" src={BASE + "icons/icon-light.svg"} alt=""/><span><b className="brand-name">Acordia</b>{tagline && <small>{t("app.tagline")}</small>}</span></a>;
   const current = (v: View) => view === v ? "page" as const : undefined;
+  const auth = useAuth(s => s.status), recovery = useAuth(s => s.recovery), helpable = view in HELP_STEPS;
+  // Com login ligado, nada do app aparece antes de a pessoa entrar e ter acesso (nem antes da senha nova).
+  if((auth !== "off" && auth !== "in") || recovery) return <><div className="auth-corner"><ThemeButton/></div><AuthScreen/><Toasts/></>;
+  const profileBtn = (rail: boolean) => auth === "in" && <button className={rail ? "nav-item" : "icon-btn"} data-nav="profile" aria-current={current("profile")} aria-label={t("profile.title")} onClick={() => go("profile")}>
+    <Avatar/>{rail && <span>{t("profile.title")}</span>}</button>;
   return <>
     <div className="shell">
       <aside className="rail" aria-label={t("nav.nav")}>
@@ -163,6 +170,7 @@ export function App(){
           <VolumeButton rail/>
           <ThemeButton rail/>
           <LangButton rail/>
+          {profileBtn(true)}
         </div>
       </aside>
       <header className="topbar">
@@ -171,15 +179,17 @@ export function App(){
         <LangButton/>
         <VolumeButton/>
         <ThemeButton/>
-        <button className="icon-btn" data-help-btn data-tip-key="help.button" aria-label={t("help.button")} onClick={() => openDialog("help", {page: view})}><Icon name="question"/></button>
+        {helpable && <button className="icon-btn" data-help-btn data-tip-key="help.button" aria-label={t("help.button")} onClick={() => openDialog("help", {page: view})}><Icon name="question"/></button>}
+        {profileBtn(false)}
       </header>
       <main id="main">
         {view === "medley" && <Repertoire/>}
         {view === "library" && <Library/>}
         {view === "study" && <Study/>}
         {view === "tools" && <Tools/>}
+        {view === "profile" && <Profile/>}
       </main>
-      <button className="help-fab" id="help-fab" data-tip-key="help.button" aria-label={t("help.button")} onClick={() => openDialog("help", {page: view})}><Icon name="question"/></button>
+      <button className="help-fab" id="help-fab" hidden={!helpable} data-tip-key="help.button" aria-label={t("help.button")} onClick={() => openDialog("help", {page: view})}><Icon name="question"/></button>
       <nav className="tabbar" aria-label={t("nav.nav")} style={{"--i": NAV.findIndex(([v]) => v === view)} as CSSProperties}>
         {NAV.map(([v, ic, label]) => <button key={v} className="tab" data-nav={v} aria-current={current(v)} onClick={() => go(v)}>
           <span className="pill"><Icon name={ic}/></span><span>{t(label)}</span></button>)}
