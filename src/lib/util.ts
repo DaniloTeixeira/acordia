@@ -54,3 +54,10 @@ export function vt(run: () => void, kind: VtKind = "fade"): ViewTransitionLike |
   tr.ready.catch(()=>{}); tr.finished.catch(()=>{}).finally(() => { if(root.dataset.vt === kind) delete root.dataset.vt; });
   return tr;
 }
+
+// Como impedir que outros apps e notificações apareçam por cima depende do sistema.
+export function focusPlatform(ua: string, touchPoints = 0): "ios" | "android" | "other" {
+  if(/iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && touchPoints > 1)) return "ios";
+  if(/Android/.test(ua)) return "android";
+  return "other";
+}
