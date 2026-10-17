@@ -378,7 +378,8 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 @keyframes lit{30%{transform:translateY(-4px);background:var(--accent-soft)}}
 .note-chip b{font-size:1.1rem;font-family:var(--font-display)}
 .note-chip small{font-size:.72rem;color:var(--muted);font-weight:600}
-.keyboard{width:100%;max-width:640px;height:auto;display:block;user-select:none;touch-action:none;cursor:pointer}
+/* No toque, arrastar na vertical rola a página; na horizontal desliza pelas teclas tocando cada uma. */
+.keyboard{width:100%;max-width:640px;height:auto;display:block;user-select:none;touch-action:pan-y;cursor:pointer}
 /* Corpo do teclado em volta das teclas: moldura escura, mais alta em cima, com uma faixa no gradiente do logo
    (o "feltro") logo acima das teclas. --kb-pad é a espessura da moldura nas laterais e embaixo. */
 .keyboard{--kb-pad:8px;padding:calc(var(--kb-pad) + 8px) var(--kb-pad) var(--kb-pad);border-radius:calc(var(--kb-pad) + 6px);
@@ -649,7 +650,7 @@ a.btn{text-decoration:none}
 @media (max-width:640px){ .study-row:has(.inst-field)>.inst-field{flex:1 1 calc(50% - 5px);min-width:0}
   .study-row .inst-field .input{width:100%;min-width:0} .study-row .inst-field .oct-step{width:100%} }
 .board-wrap{overflow-x:auto;padding-bottom:4px}
-.fretboard{min-width:560px;width:100%;max-width:760px;height:auto;display:block;touch-action:none;cursor:pointer;user-select:none}
+.fretboard{min-width:560px;width:100%;max-width:760px;height:auto;display:block;touch-action:pan-y;cursor:pointer;user-select:none}
 .fretboard .wood{fill:#E9DCC6} :root[data-theme="dark"] .fretboard .wood{fill:#3A3026}
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .fretboard .wood{fill:#3A3026} }
 .fretboard .fret{stroke:#B8A58A;stroke-width:2} .fretboard .nut{stroke:#5B4B39;stroke-width:5}
