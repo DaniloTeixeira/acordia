@@ -5,7 +5,7 @@ import "./styles/app.scss";
 import * as store from "./lib/store";
 import { setLang, detectLang, t, getLang } from "./lib/i18n";
 import { decodeMedley } from "./lib/share";
-import { setTimbre } from "./lib/audio";
+import { setTimbre, setCues } from "./lib/audio";
 import { clearMeasureCache } from "./lib/util";
 import { useUI, toast, openDialog, VIEWS, viewFromHash, viewUrl, type View } from "./state";
 import { current } from "./repertoire";
@@ -28,6 +28,7 @@ applyTheme(theme());
 applyVolume();
 // Um timbre salvo que não existe mais (ex.: o antigo "Teclado") volta ao Piano.
 setTimbre((store.data.settings.timbre as string) || "piano");
+setCues(!!store.data.settings.cues);
 initMetro();
 
 // Para testes: ?debug expõe os dados.

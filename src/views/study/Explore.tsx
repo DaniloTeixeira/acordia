@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { SCALES, noteName, spellScale, scaleDegrees, harmonicField, relativeKey, rootFor, type FieldChord, type ScaleId } from "../../lib/core";
 import { INSTRUMENTS, isInstrument, voicings } from "../../lib/instruments";
 import { fretboardSVG, diagramSVG, scaleKeyboardSVG, type Marks } from "../../lib/svg";
-import { playSequence, noteOn } from "../../lib/audio";
+import { playSequence, noteOn, cue } from "../../lib/audio";
 import { t, degLabel } from "../../lib/i18n";
 import { toast, openDialog } from "../../state";
 import { Icon } from "../../ui/Icon";
@@ -46,7 +46,7 @@ export function Explore(){
   const prevOct = useRef(oct), octDir = useRef<"up" | "dn" | "">("");
   if(prevOct.current !== oct){ octDir.current = oct > prevOct.current ? "up" : "dn"; prevOct.current = oct; }
   const octBtn = (d: -1 | 1) => <button className={"oct-btn " + (d < 0 ? "dn" : "up")} data-oct={d} aria-label={t(d < 0 ? "study.octaveDown" : "study.octaveUp")}
-    disabled={d < 0 ? oct <= -OCT_MAX : oct >= OCT_MAX} onClick={() => setStudy({octave: oct + d})}><Icon name="chev" sm/></button>;
+    disabled={d < 0 ? oct <= -OCT_MAX : oct >= OCT_MAX} onClick={() => { cue("tick"); setStudy({octave: oct + d}); }}><Icon name="chev" sm/></button>;
   const flash = (midis: number[], cls = "on") => midis.forEach(m => root_.current?.querySelectorAll(`[data-midi="${m}"]`).forEach(k => { k.classList.add(cls); setTimeout(()=>k.classList.remove(cls), 450); }));
   // Caixa ao lado do teclado: sempre a última nota tocada, com o grau na escala (ou "fora da escala")
   // e a função harmônica do grau (só nas escalas que têm T/SD/D).

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from 
 import { useIndicator } from "./ui/Seg";
 import { t, getLang, LANGS } from "./lib/i18n";
 import * as store from "./lib/store";
-import { setVolume, playChord } from "./lib/audio";
+import { setVolume, playChord, setCues, cue } from "./lib/audio";
 import { useUI, useData, go, changeLang, toast, animate, openDialog, type View } from "./state";
 import { Icon } from "./ui/Icon";
 import { Toasts } from "./ui/Toasts";
@@ -75,6 +75,11 @@ function VolumePop(){
         onPointerUp={() => playChord([0, 4, 7], {base: 60, dur: 0.6})} onKeyUp={() => playChord([0, 4, 7], {base: 60, dur: 0.6})}/>
       <b id="vol-val">{m ? t("vol.muted") : v + "%"}</b></div>
     <p className="sub">{t("vol.hint")}</p>
+    {/* Sons de retorno (tic da oitava, acerto e erro): desligados por padrão. */}
+    <hr/>
+    <label className="switch lead vol-cues">{t("vol.cues")}<input type="checkbox" id="vol-cues" checked={!!data.settings.cues}
+      onChange={e => { const on = e.target.checked; store.setSetting("cues", on); setCues(on); cue("ok"); }}/></label>
+    <p className="sub">{t("vol.cuesHint")}</p>
     {/* Timbre das notas (acordes, escalas, teclado); o metrônomo não muda. */}
     <h3>{t("timbre.title")}</h3>
     <div className="timbres" id="timbres" role="group" aria-label={t("timbre.title")}>

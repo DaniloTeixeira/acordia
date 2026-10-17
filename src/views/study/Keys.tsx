@@ -157,7 +157,7 @@ function Practice({ex}: {ex: KeyExercise}){
     const c = cur.current; if(!c || c.mode !== "wait") return;
     const total = built.steps.reduce((n, s) => n + required(s, c.hands).length, 0);
     const acc = Math.max(0, Math.round(total / (total + c.errors) * 100));
-    saveBest(acc);
+    saveBest(acc); audio.cue("ok");
     reset({mode:"wait", accuracy: acc, errors: c.errors, secs: Math.round((performance.now() - c.start) / 1000)});
   }
   // Notas soando enquanto a tecla (na tela ou no MIDI) está apertada.
@@ -175,7 +175,7 @@ function Practice({ex}: {ex: KeyExercise}){
     while(!req.length && c.i < built.steps.length - 1){ c.i++; s = built.steps[c.i]; req = required(s, c.hands); }
     c.pressed.push(m);
     const r = checkStep(req, c.pressed, m);
-    if(r.wrong){ c.errors++; flashKey(m, "bad"); c.pressed = c.pressed.filter(n => n !== m); return; }
+    if(r.wrong){ c.errors++; flashKey(m, "bad"); audio.cue("bad"); c.pressed = c.pressed.filter(n => n !== m); return; }
     if(!r.done){ flashKey(m, "hit"); return; }
     // Passo completo: primeiro a confirmação em verde (só nas teclas tocadas), depois o próximo destaque.
     const done = [...new Set(c.pressed)];

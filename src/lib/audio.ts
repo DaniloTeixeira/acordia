@@ -357,6 +357,32 @@ export function click(kind: ClickKind, at?: number){
   o.start(t0); o.stop(t0 + c.dur + 0.02);
   return true;
 }
+// ---------- sons de retorno (opcionais, desligados por padrão) ----------
+// Curtos e diferentes do metrônomo (onda quadrada) para não se confundirem com um tempo: um "tic" de vidro ao
+// trocar de oitava, duas notinhas subindo no acerto e, no erro, um zumbido grave e áspero em duas batidas que descem
+// ("é-é"), o sinal clássico de resposta errada.
+let cues = false;
+export function setCues(on: boolean){ cues = on; }
+export type Cue = "tick" | "ok" | "bad";
+export function cue(kind: Cue){
+  if(!cues) return false;
+  const ac = audio(); if(!ac) return false;
+  const t0 = ac.currentTime + 0.005, dest = out(ac);
+  const tone = (type: OscillatorType, f: number, f2: number, at: number, dur: number, peak: number, to: AudioNode = dest) => {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, at); if(f2 !== f) o.frequency.exponentialRampToValueAtTime(f2, at + dur);
+    g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(peak, at + 0.006); g.gain.setValueAtTime(peak, at + dur * 0.6); g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    o.connect(g); g.connect(to); o.start(at); o.stop(at + dur + 0.02);
+  };
+  if(kind === "tick") tone("sine", 2400, 2400, t0, 0.018, 0.05);
+  else if(kind === "ok"){ tone("sine", 1318.5, 1318.5, t0, 0.12, 0.07); tone("sine", 1975.5, 1975.5, t0 + 0.08, 0.18, 0.06); }
+  else {
+    // Duas ondas quadradas desafinadas entre si batem e dão a aspereza; o filtro tira o agudo que machucaria.
+    const lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1100; lp.connect(dest);
+    [[196, 0, 0.13], [155, 0.17, 0.24]].forEach(([f, d, len]) => { tone("square", f, f, t0 + d, len, 0.07, lp); tone("square", f * 1.06, f * 1.06, t0 + d, len, 0.06, lp); });
+  }
+  return true;
+}
 // Toca notas (MIDI) num instante agendado do relógio do áudio; usado nas demonstrações do teclado.
 export function playNotesAt(midis: number[], at: number, dur = 0.8){
   const ac = audio(); if(!ac) return false;
