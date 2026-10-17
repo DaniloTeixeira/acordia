@@ -123,7 +123,7 @@ export function Explore(){
             <span className="oct-dots" aria-hidden="true">{Array.from({length: OCT_MAX * 2 + 1}, (_, i) => <i key={i} className={i - OCT_MAX === oct ? "on" : ""}/>)}</span></span>
           {octBtn(1)}
         </div></div>}
-        <label className="switch lead" style={{marginLeft: "auto"}}>{t("study.sevenths")}<input type="checkbox" id="st-7" checked={st.sevenths} disabled={!field.length && !st.sevenths} onChange={e => setStudy({sevenths: e.target.checked})}/></label>
+        <label className="switch lead boxed" style={{marginLeft: "auto"}}>{t("study.sevenths")}<input type="checkbox" id="st-7" checked={st.sevenths} disabled={!field.length && !st.sevenths} onChange={e => setStudy({sevenths: e.target.checked})}/></label>
       </div>
       <div className="field roots-field"><span id="st-root-h">{t("study.pickRoot")}</span>
         <div className="roots" role="group" aria-labelledby="st-root-h">{Array.from({length:12}, (_, pc) =>

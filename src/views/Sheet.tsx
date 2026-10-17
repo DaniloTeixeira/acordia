@@ -58,7 +58,7 @@ function SheetOptions({m}: {m: Medley}){
   const tr = o.transpose || 0;
   const transpose = (d: number) => { m.options.transpose = d ? ((m.options.transpose || 0) + d + 17) % 12 - 5 : 0; store.saveMedley(m); };
   const sw = (k: "dedupe" | "showKey" | "transitions" | "capoShapes", label: string, tip?: string) =>
-    <label className="switch" data-tip-key={tip}><span>{label}</span><input type="checkbox" data-opt={k} checked={!!o[k]} onChange={e => change(k, e.target.checked)}/></label>;
+    <label className="switch lead boxed" data-tip-key={tip}><span>{label}</span><input type="checkbox" data-opt={k} checked={!!o[k]} onChange={e => change(k, e.target.checked)}/></label>;
   return <>
     <button className="icon-btn" id="btn-options" aria-label={t("sheet.options")} title={t("sheet.options")} onPointerDown={tg.onPointerDown} onClick={tg.onClick}><Icon name="sliders"/></button>
     <div id="sheet-options" className="popover" popover="auto" ref={pop}>
@@ -66,7 +66,7 @@ function SheetOptions({m}: {m: Medley}){
       {sw("dedupe", t("opt.dedupe"), "tip.dedupe")}
       {sw("showKey", t("opt.showKey"))}
       {sw("transitions", t("opt.transitions"))}
-      <label className="switch"><span>{t("opt.maxPages")}</span><input type="checkbox" data-opt="maxPages" checked={o.maxPages === 2} onChange={e => change("maxPages", e.target.checked ? 2 : 1)}/></label>
+      <label className="switch lead boxed"><span>{t("opt.maxPages")}</span><input type="checkbox" data-opt="maxPages" checked={o.maxPages === 2} onChange={e => change("maxPages", e.target.checked ? 2 : 1)}/></label>
       {sw("capoShapes", t("opt.capoShapes"), "tip.capoShapes")}
       <div className="row" data-tip-key="tip.transpose"><span>{t("opt.transpose")}</span><span className="tr-ctl">
         <button type="button" className="icon-btn sm" data-tr="-1" aria-label="−½" onClick={() => transpose(-1)}>−</button><b id="opt-tr-val">{(tr > 0 ? "+" : "") + tr}</b>

@@ -1,4 +1,4 @@
-// Pad infinito: escolhe o tom e o estilo, toca e ajusta o volume. O som segue tocando fora desta tela.
+// Pad infinito: escolhe o tom e o estilo, toca e ajusta o volume. Sair desta tela para tudo o que ela toca.
 // Ao lado, os drum pads (efeitos para soltar por cima); abaixo, o ritmo (BPM, caixa, shaker e grave) e os grooves por estilo.
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { KEYS } from "../lib/core";
@@ -22,6 +22,8 @@ function usePad(){
 export function PadUI(){
   const s = usePad(), key = KEYS[s.pc];
   useEffect(() => { pad.preload(); }, [s.pc]);
+  // Sair da tela (trocar de aba ou de página) para o pad, os loops e o groove.
+  useEffect(() => () => { pad.stop(); [snare, shaker, bass, groove].forEach(l => l.stop()); }, []);
   const fail = (ok: boolean) => { if(!ok) toast(t("pad.error")); };
   const on = s.playing || s.loading;
   return <div className="pad-layout">
@@ -172,7 +174,7 @@ function Grooves(){
     <div className="groove-row">
       <label className="field"><span>{t("vol.title")}</span>
         <Range min={0} max={100} step={1} value={Math.round(vol * 100)} aria-label={t("groove.title") + " · " + t("vol.title")} onChange={e => { setVol(+e.target.value / 100); groove.setVolume(+e.target.value / 100); }}/></label>
-      {bpm !== typical && <button className="btn ghost sm" onClick={() => metro.set({bpm: typical})}>{t("groove.useBpm", {n: typical})}</button>}
+      <button className="btn ghost" disabled={bpm === typical} onClick={() => metro.set({bpm: typical})}>{t("groove.useBpm", {n: typical})}</button>
       <button className={"btn primary metro-go" + (on ? " running" : "")} onClick={() => groove.toggle().then(ok => { if(!ok) toast(t("study.noAudio")); })}>
         {on ? <><Icon name="stop" sm/> {t("pad.stop")}</> : <><Icon name="play" sm/> {t("groove.play")}</>}</button>
     </div>

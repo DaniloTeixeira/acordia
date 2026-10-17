@@ -11,6 +11,7 @@ import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
 import { openRef, shareMedley } from "./Repertoire";
+import { useSync } from "../lib/sync";
 import type { Medley, Song, Item } from "../lib/types";
 
 const { data } = store;
@@ -112,6 +113,8 @@ function EmptyCard({icon, title, text}: {icon: string; title: string; text?: str
 
 export function Library(){
   useData();
+  // Com a conta ligada, a biblioteca fica na nuvem (e neste aparelho para usar sem internet).
+  const syncing = useSync(s => s.state !== "off");
   const [tab, setTab] = useState<Tab>("songs");
   const [filter, setFilter] = useState<"all" | "chords" | "letra">("all");
   const [sort, setSort] = useState("az");
@@ -121,7 +124,7 @@ export function Library(){
   const setlists = meds.filter(m => !isMedley(m)), blocks = meds.filter(isMedley);
   return <section className="view" id="view-library" data-view="library" aria-labelledby="lib-h">
     <div className="view-head">
-      <div><h1 id="lib-h">{t("lib.title")}</h1><p className="sub" id="lib-sub">{t("lib.sub", {songs: songsN(all.length), medleys: medleysN(setlists.length)})}</p></div>
+      <div><h1 id="lib-h">{t("lib.title")}</h1><p className="sub" id="lib-sub">{t(syncing ? "lib.subCloud" : "lib.sub", {songs: songsN(all.length), medleys: medleysN(setlists.length)})}</p></div>
       <div className="actions">
         <button className="btn primary" id="lib-new" onClick={() => openDialog("song", {song: null})}><Icon name="plus"/><span>{t("lib.new")}</span></button>
         <button className="btn ghost" id="lib-export" data-tip-key="tip.export" aria-label={t("lib.export")} onClick={exportLibrary}><Icon name="export"/><span className="label-lg">{t("lib.export")}</span></button>

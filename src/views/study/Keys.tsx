@@ -290,7 +290,7 @@ function Practice({ex}: {ex: KeyExercise}){
         <button className="btn primary" id="k-wait" onClick={() => mode === "wait" ? reset(null) : startWait()}>
           {mode === "wait" ? <><Icon name="x" sm/> {t("keys.stop")}</> : <><Icon name="play" sm/> {t("keys.wait")}</>}</button>
         <button className="btn ghost" id="k-timed" disabled={!midi} title={midi ? "" : t("keys.timedNeedsMidi")} onClick={() => startTimed(false)}><Icon name="metro" sm/> {t("keys.timed")}</button>
-        <label className="switch lead k-sound">{t("keys.sound")}<input type="checkbox" id="k-sound" checked={st.sound} onChange={e => setKeys({sound: e.target.checked})}/></label>
+        <label className="switch lead boxed k-sound">{t("keys.sound")}<input type="checkbox" id="k-sound" checked={st.sound} onChange={e => setKeys({sound: e.target.checked})}/></label>
       </div>
       <p className="sub" id="k-status">{status}</p>
       <div id="k-result">{r && <div className="hands-result"><div className="big">{r.accuracy}%</div>

@@ -4,7 +4,7 @@
 import { audioOut, audioReady } from "./lib/audio";
 import * as store from "./lib/store";
 import { metro } from "./metro";
-import { fxRoute, fxNoise, tumbHit, kickHit, subHit, snareHit, rimHit, hatHit } from "./padfx";
+import { fxRoute, fxNoise, tumbHit, kickHit, subHit, snareHit, rimHit, hatHit, rideHit, snapHit } from "./padfx";
 import { setLoopAnchor } from "./grid";
 
 export interface Loop {
@@ -146,33 +146,117 @@ function shakerHit(ac: AudioContext, at: number, out: AudioNode, vel: number, cu
   n.connect(hp); hp.connect(g); g.connect(out); n.start(at, Math.random()); n.stop(at + len + 0.01);
 }
 
-// ---------- grooves: bumbo, caixa, aro, chimbal e shaker juntos, no padrão de cada estilo ----------
-// Cada estilo tem um compasso de 16 semicolcheias (os tempos caem em 0, 4, 8 e 12) com a intensidade de cada
-// instrumento em cada uma (0 = não toca). `swing` atrasa as colcheias do contratempo para o balanço de tercina do
-// jazz; `bpm` é o andamento típico do estilo, mostrado como sugestão.
-// bass é o bumbo (o som do tumb); rim é o aro da caixa; hat é o chimbal fechado.
-type Pattern = {bass: number[]; snare?: number[]; rim?: number[]; hat?: number[]; shaker?: number[]; swing?: boolean; bpm: number};
+// ---------- grooves: bumbo, caixa, aro, chimbal, prato e shaker juntos, no padrão de cada estilo ----------
+// Cada estilo tem dois compassos de 16 semicolcheias (32 casas; os tempos caem a cada 4), com a intensidade de cada
+// instrumento em cada uma (0 = não toca): o segundo compasso varia um pouco o primeiro, como um baterista faz.
+// Os padrões seguem as levadas de referência de cada estilo (o "one drop" do reggae, a clave da bossa, o teleco-teco
+// do samba, as notas fantasma do funk de James Brown, o ride do jazz, o boom bap do hip-hop).
+// kick é o bumbo (`kit` "tumb" = abafado, de feltro; "kick" = com ataque); rim é o aro (baqueta atravessada); hat é o
+// chimbal fechado, open o chimbal aberto (abafado pelo próximo toque de chimbal); ride é o prato de condução.
+// `swing` é onde cai a colcheia do contratempo dentro do tempo (0,5 = reta; 0,67 = tercina, do jazz e do shuffle);
+// `swing16` faz o mesmo com as semicolcheias (o balanço "torto" do hip-hop e do funk). Com `trip`, cada tempo é uma
+// tercina: as casas 0, 1 e 2 de cada tempo caem em 0, 1/3 e 2/3 dele (a casa 3 não toca). `rimPitch` afina o aro.
+// `bpm` é o andamento típico.
+type Pattern = {bpm: number; kit?: "tumb" | "kick"; kick: number[]; snare?: number[]; rim?: number[]; hat?: number[]; open?: number[]; ride?: number[]; snap?: number[]; shaker?: number[]; swing?: number; swing16?: number; trip?: boolean; rimPitch?: number};
+// Dois compassos: o segundo é o primeiro com as mudanças de `b` (0 apaga uma nota).
+const bars = (a: Record<number, number>, b: Record<number, number> = {}) => { const one = at16(a); return [...one, ...one.map((v, i) => b[i] ?? v)]; };
+const twice = (vals: number[]) => Array.from({length: 32}, (_, i) => vals[i % vals.length]);
 export const GROOVES: Record<string, Pattern> = {
-  worship: {bpm: 72, bass: at16({0: 1, 8: 0.8, 10: 0.45}), snare: at16({4: 0.85, 12: 0.85}), shaker: every([0.5, 0.15, 0.8, 0.15])},
-  pop:     {bpm: 110, bass: at16({0: 1, 7: 0.6, 8: 0.9, 10: 0.6}), snare: at16({4: 0.9, 12: 0.9}), shaker: every([0.6, 0, 0.9, 0])},
-  ballad:  {bpm: 66, bass: at16({0: 1, 10: 0.6}), snare: at16({8: 0.85}), shaker: every([0.45, 0, 0.7, 0])},
-  // Bumbo em todos os tempos, chimbal nos contratempos e a caixa junto com o bumbo no 3.
-  reggae:  {bpm: 76, bass: every([1, 0, 0, 0]), hat: every([0, 0, 0.7, 0]), snare: at16({8: 0.85})},
-  samba:   {bpm: 100, bass: at16({0: 0.35, 4: 1, 8: 0.35, 12: 1}), snare: at16({0: 0.45, 3: 0.4, 6: 0.45, 10: 0.45, 13: 0.4}), shaker: every([0.55, 0.3, 0.45, 0.9])},
-  bossa:   {bpm: 130, bass: at16({0: 0.9, 6: 0.6, 8: 0.9, 14: 0.6}), snare: at16({0: 0.35, 3: 0.35, 6: 0.35, 10: 0.35, 12: 0.35}), shaker: every([0.4, 0, 0.6, 0])},
-  jazz:    {bpm: 120, swing: true, bass: every([0.55, 0, 0, 0]), snare: at16({4: 0.3, 12: 0.3, 14: 0.18}), shaker: at16({0: 0.6, 4: 0.85, 6: 0.5, 8: 0.6, 12: 0.85, 14: 0.5})},
-  funk:    {bpm: 100, bass: at16({0: 1, 3: 0.55, 6: 0.8, 10: 0.8}), snare: at16({4: 0.9, 7: 0.22, 9: 0.22, 12: 0.9}), shaker: every([0.7, 0.3, 0.55, 0.3])},
+  // Worship: bumbo redondo no 1 e no 3 com antecipação, caixa grande no 2 e no 4, chimbal em colcheias e o shaker
+  // em semicolcheias por baixo; no fim do segundo compasso, um bumbo puxando a volta.
+  worship: {bpm: 72, kit: "tumb",
+    kick: bars({0: 1, 8: 0.85, 10: 0.5}, {14: 0.45}), snare: bars({4: 0.85, 12: 0.85}),
+    hat: twice([0.5, 0, 0.32, 0]), shaker: twice([0.3, 0.12, 0.45, 0.12])},
+  // Pop / rock: a levada básica (bumbo 1, 3 e "e" do 3; caixa 2 e 4; chimbal em colcheias com o tempo mais forte) e
+  // um chimbal aberto no "e" do 4 do segundo compasso.
+  pop: {bpm: 110, kit: "kick",
+    kick: bars({0: 1, 8: 0.95, 10: 0.7}, {7: 0.55}), snare: bars({4: 0.95, 12: 0.95}),
+    hat: bars({0: 0.7, 2: 0.42, 4: 0.6, 6: 0.42, 8: 0.7, 10: 0.42, 12: 0.6, 14: 0.42}, {14: 0}), open: bars({}, {14: 0.6})},
+  // Balada: meio tempo (caixa só no 3), com o aro no lugar da caixa no primeiro compasso, como nos versos.
+  ballad: {bpm: 66, kit: "tumb",
+    kick: bars({0: 1, 10: 0.5}, {10: 0.5, 14: 0.35}), rim: bars({8: 0.8}, {8: 0}), snare: bars({}, {8: 0.85}),
+    hat: twice([0.45, 0, 0.28, 0])},
+  // Reggae "one drop" no jeito de Carlton Barrett (Bob Marley & The Wailers), em tercinas: o 1 fica vazio, bumbo e
+  // aro agudo caem juntos no 3. O chimbal é o shuffle "quebrado" dele: o tempo fraco e o contratempo forte, às vezes
+  // só a semínima, às vezes a tercina inteira, e um chimbal aberto na última colcheia puxando o compasso seguinte;
+  // no segundo compasso o aro também responde no contratempo do 4.
+  reggae: {bpm: 76, kit: "kick", trip: true, rimPitch: 1.45,
+    kick: bars({8: 1}), rim: bars({8: 0.95}, {14: 0.4}),
+    hat: bars({0: 0.3, 2: 0.6, 4: 0.4, 8: 0.28, 10: 0.62, 12: 0.32, 13: 0.22, 14: 0.58},
+              {4: 0.35, 5: 0.2, 6: 0.55, 14: 0}),
+    open: bars({}, {14: 0.6})},
+  // Reggae leve, no clima de "Don't Worry Be Happy" (Bobby McFerrin, a cappella): batida de peito grave e abafada no
+  // 1 e no 3 com uma puxada antes do 3, estalo de dedo no 2 e no 4 e um "ts" de boca em semicolcheias, tudo com o
+  // balanço de semicolcheia em tercina.
+  happy: {bpm: 69, kit: "tumb", swing16: 0.64,
+    kick: bars({0: 0.9, 7: 0.4, 8: 0.75}, {15: 0.4}), snap: bars({4: 0.85, 12: 0.85}, {14: 0.3}),
+    shaker: twice([0.32, 0.18, 0.48, 0.22])},
+  // Samba (em 2/4, dois compassos de 2/4 a cada 16 casas): bumbo "tum . . tum TUM" com o acento no 2, como o surdo;
+  // o aro faz o teleco-teco do tamborim; o shaker é o ganzá em semicolcheias, acentuando a última de cada tempo.
+  samba: {bpm: 100, kit: "kick",
+    kick: twice([0.45, 0, 0, 0.55, 1, 0, 0, 0.55]),
+    rim: twice([0.7, 0, 0.55, 0.65, 0, 0.6, 0, 0.6, 0, 0.6, 0.55, 0, 0.6, 0, 0.6, 0]),
+    shaker: twice([0.5, 0.25, 0.35, 0.8]), hat: twice([0, 0, 0, 0, 0.3, 0, 0, 0])},
+  // Bossa nova: bumbo suave "tum . . tum" (semínima pontuada e colcheia) no 1 e no 3, aro na clave da bossa (três
+  // no primeiro compasso e dois no segundo), chimbal leve em colcheias e o pé do chimbal no 2 e no 4.
+  bossa: {bpm: 130, kit: "tumb",
+    kick: twice([0.6, 0, 0, 0, 0, 0, 0.45, 0, 0.6, 0, 0, 0, 0, 0, 0.45, 0]),
+    rim: bars({0: 0.6, 6: 0.6, 12: 0.6}, {0: 0, 6: 0, 12: 0, 4: 0.6, 10: 0.6}),
+    hat: twice([0.28, 0, 0.2, 0, 0.4, 0, 0.2, 0])},
+  // Jazz: o ride "ding, ding-da, ding, ding-da" em tercina, o pé do chimbal no 2 e no 4, o bumbo bem leve em todos os
+  // tempos ("feathering") e a caixa comentando de leve.
+  jazz: {bpm: 120, kit: "tumb", swing: 0.66,
+    kick: twice([0.22, 0, 0, 0]), snare: bars({14: 0.22}, {14: 0, 6: 0.2, 10: 0.28}),
+    ride: twice([0.75, 0, 0, 0, 0.9, 0, 0.5, 0]), hat: twice([0, 0, 0, 0, 0.45, 0, 0, 0])},
+  // Funk (no estilo de "Funky Drummer"): chimbal em semicolcheias, bumbo forte nas duas primeiras colcheias, caixa
+  // no 2 e no 4 cercada de notas fantasma e um chimbal aberto no fim do segundo compasso; semicolcheias levemente tortas.
+  funk: {bpm: 100, kit: "kick", swing16: 0.54,
+    kick: bars({0: 1, 2: 0.85, 10: 0.8, 13: 0.6}, {13: 0, 11: 0.65}),
+    snare: bars({4: 0.95, 7: 0.18, 9: 0.2, 12: 0.95, 15: 0.18}, {15: 0, 14: 0.2}),
+    hat: bars({0: 0.6, 1: 0.25, 2: 0.45, 3: 0.25, 4: 0.6, 5: 0.25, 6: 0.45, 7: 0.25, 8: 0.6, 9: 0.25, 10: 0.45, 11: 0.25, 12: 0.6, 13: 0.25, 14: 0.45, 15: 0.25}, {14: 0, 15: 0}),
+    open: bars({}, {14: 0.55})},
+  // Hip-hop boom bap: bumbo pesado e sincopado, caixa forte no 2 e no 4, chimbal em colcheias e o balanço "torto"
+  // das baterias eletrônicas (MPC) nas semicolcheias.
+  hiphop: {bpm: 90, kit: "kick", swing16: 0.58,
+    kick: bars({0: 1, 7: 0.6, 10: 0.9}, {7: 0, 3: 0.55, 11: 0.6}), snare: bars({4: 1, 12: 1}, {15: 0.3}),
+    hat: twice([0.65, 0, 0.4, 0, 0.55, 0, 0.4, 0])},
+  // Shuffle (blues): tudo em tercina; chimbal "tá . tá" no swing, bumbo no 1 e no 3 e caixa no 2 e no 4.
+  shuffle: {bpm: 96, kit: "kick", swing: 0.67,
+    kick: bars({0: 1, 8: 0.85}, {10: 0.5}), snare: bars({4: 0.9, 12: 0.9}, {14: 0.3}),
+    hat: twice([0.65, 0, 0.45, 0, 0.55, 0, 0.45, 0])},
 };
 export const GROOVE_STYLES = Object.keys(GROOVES);
 export const grooveStyle = () => { const g = store.setting("groove", "worship"); return g in GROOVES ? g : "worship"; };
 export const setGrooveStyle = (g: string) => { if(g in GROOVES) store.setSetting("groove", g); };
+// O chimbal aberto que ainda está soando: o próximo toque de chimbal o fecha, como o pé faz na bateria.
+let ringing: GainNode | null = null;
+function choke(ac: AudioContext, t: number){
+  if(!ringing) return;
+  const p = ringing.gain; ringing = null;
+  if(t < ac.currentTime) return;
+  if(p.cancelAndHoldAtTime) p.cancelAndHoldAtTime(t); else p.cancelScheduledValues(t);
+  p.setTargetAtTime(0, t, 0.012);
+}
+// Um baterista nunca toca duas notas iguais: cada nota varia um pouco de força (±7%) e de tempo (até ±4 ms).
+const human = (v: number) => v * (0.93 + Math.random() * 0.14);
+const nudge = () => (Math.random() - 0.5) * 0.008;
 export const groove = createLoop("grooveVol", 4, 0.05, (ac, at, step, out) => {
-  const p = GROOVES[grooveStyle()], pos = step % 16;
-  // Swing: a colcheia do contratempo cai a 2/3 do tempo em vez de 1/2 (atraso de 2/3 de semicolcheia).
-  const t = p.swing && pos % 4 === 2 ? at + (60 / metro.state.bpm / 4) * 2 / 3 : at;
-  if(p.bass[pos]) tumbHit(ac, t, out, p.bass[pos]);
-  if(p.snare?.[pos]) snareHit(ac, t, out, p.snare[pos]);
-  if(p.rim?.[pos]) rimHit(ac, t, out, p.rim[pos]);
-  if(p.hat?.[pos]) hatHit(ac, t, out, p.hat[pos]);
-  if(p.shaker?.[pos]) shakerHit(ac, t, out, p.shaker[pos]);
+  const p = GROOVES[grooveStyle()], pos = step % p.kick.length, dt = 60 / metro.state.bpm / 4;
+  // Swing: a colcheia do contratempo (casa 2 de cada tempo) cai em `swing` do tempo em vez da metade; com `swing16`,
+  // as semicolcheias pares (casas ímpares) também atrasam.
+  let t = at;
+  if(p.trip){ const k = pos % 4; if(k === 3) return; t += k * dt / 3; }
+  if(p.swing && pos % 4 === 2) t += (p.swing - 0.5) * 4 * dt;
+  if(p.swing16 && pos % 2 === 1) t += (p.swing16 * 2 - 1) * dt;
+  const hit = (vals: number[] | undefined, play: (at: number, v: number) => void, loose = 1) => {
+    const v = vals?.[pos]; if(v) play(Math.max(ac.currentTime, t + nudge() * loose), human(v));
+  };
+  hit(p.kick, (t, v) => (p.kit === "kick" ? kickHit : tumbHit)(ac, t, out, v), 0.5);
+  hit(p.snare, (t, v) => snareHit(ac, t, out, v));
+  hit(p.rim, (t, v) => rimHit(ac, t, out, v, p.rimPitch));
+  hit(p.ride, (t, v) => rideHit(ac, t, out, v));
+  hit(p.hat, (t, v) => { choke(ac, t); hatHit(ac, t, out, v); });
+  hit(p.open, (t, v) => { choke(ac, t); ringing = hatHit(ac, t, out, v, 0.35); });
+  hit(p.snap, (t, v) => snapHit(ac, t, out, v));
+  hit(p.shaker, (t, v) => shakerHit(ac, t, out, v));
 });

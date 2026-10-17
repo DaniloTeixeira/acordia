@@ -11,6 +11,8 @@ export function useIndicator(ref: RefObject<HTMLElement | null>, sel: string, ve
     const el = ref.current; if(!el) return;
     const paint = () => {
       const b = el.querySelector<HTMLElement>(sel);
+      // Nenhum item ativo (ex.: a página atual fica fora da lista): o CSS esconde o fundo.
+      el.toggleAttribute("data-empty", !b);
       if(!b || !b.offsetWidth) return;
       const first = !placed.current; placed.current = true;
       if(first) el.classList.add("still");

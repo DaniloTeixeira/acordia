@@ -60,7 +60,7 @@ export function MetronomeUI({compact = false}: {compact?: boolean}){
       <div><span className="lbl">{t("metro.signature")}</span><Seg className="sm" value={s.sig} onChange={v => metro.set({sig: v})} options={Object.keys(SIGNATURES).map(k => ({v: k, label: k}))}/></div>
       <div><span className="lbl">{t("metro.subdivision")}</span><Seg className="sm" value={String(s.subdiv)} onChange={v => metro.set({subdiv: +v})}
         options={[1,2,3,4].map(n => ({v: String(n), label: ["♩","♫","3","4"][n-1], aria: t("metro.sub" + n), title: t("metro.sub" + n)}))}/></div>
-      <label className="switch lead">{t("metro.accent")}<input type="checkbox" data-m="accent" checked={s.accent} onChange={e => metro.set({accent: e.target.checked})}/></label>
+      <label className="switch lead boxed">{t("metro.accent")}<input type="checkbox" data-m="accent" checked={s.accent} onChange={e => metro.set({accent: e.target.checked})}/></label>
     </div>
     <div className="metro-actions">
       <button className="btn ghost" data-m="tap" data-tip-key="tip.tap" onClick={tap}>{t("metro.tap")}</button>

@@ -1,13 +1,14 @@
 // Conta: tela de entrar (Google ou e-mail e senha), aviso de sem acesso e a página Perfil, com a lista de quem
 // pode entrar para os admins.
 import { useEffect, useRef, useState } from "react";
-import { t } from "../lib/i18n";
+import { t, tn } from "../lib/i18n";
 import { useAuth, signIn, signUp, resendConfirmation, pendingConfirm, setPendingConfirm, forgotPassword, setNewPassword, signInWithGoogle, signOut, saveName, listAllowed, addAllowed, setAllowedAdmin, removeAllowed, validEmail, initials, cloud, type Allowed } from "../lib/cloud";
 import { DEFAULT_POLICY, missing, passes, fromError, isPwned, type PwPolicy, type PwRule } from "../lib/password";
 import { reduced } from "../lib/util";
 import { toast, confirmDialog } from "../state";
 import { Icon } from "../ui/Icon";
 import { InstrumentSelect } from "./InstrumentSelect";
+import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
 
 const BASE = import.meta.env.BASE_URL;
 // Logo sem o fundo (as barras em gradiente servem nos dois temas), o nome com o gradiente da marca e o slogan.
@@ -127,7 +128,7 @@ export function AuthScreen(){
   if(recovery) return <NewPassword/>;
   if(status === "denied") return <div className="auth-screen"><NotesBg/><div className="card auth-card"><Logo/>
     <h1>{t("auth.deniedTitle")}</h1><p className="sub">{t("auth.denied", {email: who})}</p>
-    <button className="btn ghost" onClick={signOut}>{t("auth.signOut")}</button></div></div>;
+    <button className="btn ghost" onClick={() => { forgetLocal(); signOut(); }}>{t("auth.signOut")}</button></div></div>;
   const go = (m: Mode) => { setMode(m); setMsg(""); setDetail(""); setPw(""); setSent(""); };
   const run = (e: React.FormEvent) => { e.preventDefault(); lock(async () => {
     setMsg(""); setDetail(""); submitted.current = true;
@@ -272,9 +273,13 @@ const GoogleIcon = () => <svg className="g-logo" viewBox="0 0 48 48" aria-hidden
   <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>;
 
 // Bolinha com as iniciais (botão do perfil no topo e no trilho).
+// Com foto da conta Google, mostra a foto; se ela não carregar (sem internet, link vencido), volta às iniciais.
 export function Avatar({big}: {big?: boolean}){
   const p = useAuth(s => s.profile);
-  return <span className={"avatar" + (big ? " big" : "")} aria-hidden="true">{initials(p) || <Icon name="user" sm/>}</span>;
+  const [broken, setBroken] = useState("");
+  const photo = p?.photo && p.photo !== broken ? p.photo : "";
+  return <span className={"avatar" + (big ? " big" : "") + (photo ? " photo" : "")} aria-hidden="true">
+    {photo ? <img src={photo} alt="" referrerPolicy="no-referrer" onError={() => setBroken(photo)}/> : initials(p) || <Icon name="user" sm/>}</span>;
 }
 
 export function Profile(){
@@ -290,11 +295,38 @@ export function Profile(){
           onChange={e => setName(e.target.value)} onBlur={async () => { if(name.trim() !== (profile?.name || "")) toast(t(await saveName(name) ? "profile.nameSaved" : "profile.saveFail")); }}
           onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}/></label>
         <div className="profile-row"><InstrumentSelect/></div>
-        <button className="btn ghost" id="profile-out" onClick={signOut}><Icon name="back" sm/> {t("auth.signOut")}</button>
+        <SyncStatus/>
+        <SignOut/>
       </div> : <div className="card profile-card"><p>{t(cloud ? "profile.out" : "profile.local")}</p><div className="profile-row"><InstrumentSelect/></div></div>}
       {status === "in" && admin && <People me={email}/>}
     </div>
   </section>;
+}
+
+// Estado da nuvem: tudo salvo, sincronizando, sem internet (com quantas mudanças esperam) ou erro.
+function SyncStatus(){
+  const {state, pending} = useSync();
+  if(state === "off") return null;
+  const text = state === "syncing" ? t("sync.syncing") : state === "offline" ? (pending ? tn("sync.offline", pending) : t("sync.offlineNone"))
+    : state === "error" ? t("sync.error") : pending ? tn("sync.pending", pending) : t("sync.ok");
+  return <div className={"sync-status " + state} role="status">
+    {state === "syncing" ? <Spin/> : <Icon name={state === "idle" && !pending ? "check" : "sync"} sm/>}
+    <span>{text}</span>
+    {(state === "error" || state === "offline" || (state === "idle" && pending > 0)) && <button type="button" className="link-btn" onClick={() => syncNow()}>{t("sync.now")}</button>}
+  </div>;
+}
+
+// Sair: tenta subir o que falta; se ficou algo sem subir (sem internet), pergunta antes. Depois os
+// dados desta conta saem do aparelho, para a próxima pessoa que usar não ver nada seu.
+function SignOut(){
+  const [busy, setBusy] = useState(false), lock = useLock();
+  const leave = () => lock(async () => {
+    setBusy(true);
+    const left = await flushBeforeSignOut();
+    if(left && !await confirmDialog({title: t("sync.leaveTitle"), message: tn("sync.leaveMsg", left), confirm: t("auth.signOut")})){ setBusy(false); return; }
+    forgetLocal(); await signOut();
+  });
+  return <button className="btn ghost" id="profile-out" aria-busy={busy} onClick={leave}>{busy ? <Spin/> : <Icon name="back" sm/>} {t("auth.signOut")}</button>;
 }
 
 function People({me}: {me: string}){
@@ -322,7 +354,7 @@ function People({me}: {me: string}){
     <h2>{t("people.title")}</h2><p className="sub">{t("people.sub")}</p>
     <form className="people-add" onSubmit={add}>
       <input className="input" id="people-email" type="email" inputMode="email" placeholder={t("people.emailPh")} aria-label={t("auth.email")} value={email} onChange={e => setEmail(e.target.value)}/>
-      <label className="switch"><span>{t("profile.admin")}</span><input type="checkbox" id="people-admin" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>
+      <label className="switch lead boxed"><span>{t("profile.admin")}</span><input type="checkbox" id="people-admin" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>
       <button className="btn primary" disabled={!email.trim()} aria-busy={busy}>{busy ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
     </form>
     <ul className="people-list" id="people-list">

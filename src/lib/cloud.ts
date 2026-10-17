@@ -9,7 +9,8 @@ const URL = import.meta.env.VITE_SUPABASE_URL as string | undefined, KEY = impor
 export const cloud: SupabaseClient | null = URL && KEY ? createClient(URL, KEY, {auth: {flowType: "pkce", persistSession: true, detectSessionInUrl: true}}) : null;
 
 export type AuthStatus = "off" | "loading" | "out" | "denied" | "in";
-export interface Profile { id: string; email: string; name: string }
+// photo: foto da conta Google (vem com o login, não fica no banco); vazia em quem entra com e-mail e senha.
+export interface Profile { id: string; email: string; name: string; photo?: string }
 export interface Allowed { email: string; is_admin: boolean }
 // error: o que deu errado na volta do Google ou de um link do e-mail, para a tela de entrar avisar.
 // recovery: voltou pelo link de "esqueci minha senha"; a tela pede a senha nova antes de abrir o app.
@@ -39,7 +40,9 @@ async function refresh(){
   if(!a.allowed){ useAuth.setState({status: "denied", email, admin: false, profile: null}); return; }
   setPendingConfirm("");
   const prof = await cloud.from("profiles").select("id,email,name").eq("id", session.user.id).maybeSingle();
-  useAuth.setState({status: "in", email, admin: a.admin, profile: (prof.data as Profile | null) || {id: session.user.id, email, name: ""}});
+  const meta = session.user.user_metadata || {}, pic = String(meta.avatar_url || meta.picture || "");
+  const photo = /^https:\/\//.test(pic) ? pic : "";
+  useAuth.setState({status: "in", email, admin: a.admin, profile: {...((prof.data as Profile | null) || {id: session.user.id, email, name: ""}), photo}});
 }
 
 export async function initAuth(){

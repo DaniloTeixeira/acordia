@@ -82,7 +82,7 @@ function VolumePop(){
     <p className="sub">{t("vol.hint")}</p>
     {/* Sons de retorno (tic da oitava, acerto e erro): ligados por padrão. */}
     <hr/>
-    <label className="switch lead vol-cues">{t("vol.cues")}<input type="checkbox" id="vol-cues" checked={store.setting("cues", true)}
+    <label className="switch lead boxed vol-cues">{t("vol.cues")}<input type="checkbox" id="vol-cues" checked={store.setting("cues", true)}
       onChange={e => { const on = e.target.checked; store.setSetting("cues", on); setCues(on); cue("ok"); }}/></label>
     <p className="sub">{t("vol.cuesHint")}</p>
     {/* Timbre das notas (acordes, escalas, teclado); o metrônomo não muda. */}

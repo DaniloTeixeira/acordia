@@ -166,8 +166,8 @@ select.input{appearance:none;padding-right:32px;cursor:pointer;
 .switch input:checked{background-size:100% 100%}
 .switch input:checked::after{transform:translateX(16px)}
 /* Hover em toda a chave (texto e trilho), menos quando desativada. */
-.switch:has(input:not(:disabled)):hover{color:var(--accent)}
-.switch:has(input:not(:disabled)):hover input{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent)}
+.switch:not(.boxed):has(input:not(:disabled)):hover{color:var(--accent)}
+.switch:not(.boxed):has(input:not(:disabled)):hover input{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent)}
 .switch:has(input:disabled){cursor:default;opacity:.55}
 .switch input:disabled{cursor:default}
 /* Chave solta numa linha (fora das listas de opções): menor e antes do texto. */
@@ -175,6 +175,11 @@ select.input{appearance:none;padding-right:32px;cursor:pointer;
 .switch.lead input{width:32px;height:18px}
 .switch.lead input::after{top:2px;left:2px;width:14px;height:14px}
 .switch.lead input:checked::after{transform:translateX(14px)}
+/* Toggle e texto dentro de uma moldura na altura dos campos, para ficar claro que o texto é do botão. */
+.switch.boxed{min-height:40px;padding:0 12px;border:1px solid var(--line-strong);border-radius:var(--r-sm);background:var(--surface);transition:color var(--t-fast),border-color var(--t-fast)}
+.switch.boxed:has(input:not(:disabled)):hover{border-color:var(--accent)}
+.switch.boxed:has(input:checked){border-color:color-mix(in srgb,var(--accent) 55%,var(--line-strong))}
+.switch.boxed+.switch.boxed{margin-top:6px}
 
 /* ---------- controle segmentado (com indicador deslizante) ---------- */
 .seg{position:relative;display:inline-flex;padding:4px;border-radius:var(--r-full);background:var(--seg-bg);gap:2px;isolation:isolate;max-width:100%}
@@ -202,9 +207,13 @@ select.input{appearance:none;padding-right:32px;cursor:pointer;
 /* O fundo do ativo é o ::before da lista, que desliza até o item da página atual. */
 .nav-list{position:relative;display:flex;flex-direction:column;gap:4px;isolation:isolate}
 .nav-list::before{content:"";position:absolute;z-index:-1;left:0;right:0;top:0;height:var(--h,0);transform:translateY(var(--y,0));border-radius:var(--r-sm);
-  background:var(--nav-active);transition:transform var(--t) var(--ease-out),height var(--t) var(--ease-out)}
+  background:var(--nav-active);transition:transform var(--t) var(--ease-out),height var(--t) var(--ease-out),opacity var(--t-fast)}
+/* Página atual fora da lista (Perfil): o fundo some em vez de ficar no último item. */
+.nav-list[data-empty]::before{opacity:0}
 .nav-item[aria-current="page"]{background:transparent;color:var(--nav-active-ink)}
 .nav-item[aria-current="page"] .i{stroke:url(#g-logo)}
+/* Fora da lista (Perfil, no rodapé) não há o fundo que desliza: o item ativo pinta o próprio fundo. */
+.rail-foot .nav-item[aria-current="page"]{background:var(--nav-active)}
 .nav-item .count{margin-left:auto;font-size:.75rem;color:var(--muted);font-weight:600}
 .rail-foot{margin-top:auto;display:flex;flex-direction:column;gap:6px}
 .topbar,.tabbar{display:none}
@@ -696,8 +705,14 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 @media (max-width:640px){ .steps-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px} }
 /* Grooves: estilos em grade e, embaixo, volume, sugestão de BPM e tocar. */
 .groove-card{margin-top:16px}
-.groove-styles{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.groove-styles{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));grid-auto-rows:1fr}
+.groove-styles .root-btn{justify-content:flex-start}
 .groove-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 16px} .groove-row .field{flex:1 1 220px}
+/* "Usar x BPM" e "Tocar groove" do mesmo tamanho. */
+.groove-row .btn{min-width:160px;min-height:48px;font-size:1rem}
+/* A barra de volume sobe 12px (metade da diferença para os botões), para a trilha ficar no meio deles com o rótulo
+   colado em cima. */
+.groove-row input[type=range]{margin-bottom:12px}
 .metro-mini{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
 .mini-bpm{font-variant-numeric:tabular-nums;min-width:68px;text-align:center}
 .mini-bpm b{font-size:1.1rem}
@@ -722,7 +737,7 @@ a.btn{text-decoration:none}
 .inst-field .input{width:auto;min-width:170px}
 /* Rótulos acima dos campos: a linha alinha pela base, para botões e chaves ficarem na altura dos campos. */
 .study-row:has(.inst-field){align-items:flex-end}
-.study-row:has(.inst-field)>.switch{min-height:40px;padding:0}
+.study-row:has(.inst-field)>.switch:not(.boxed){min-height:40px;padding:0}
 /* Escala, instrumento, timbre e oitava com a mesma largura (cabe o rótulo mais longo, "Pentatônica maior"). */
 .study-row .inst-field .input,.study-row .inst-field .oct-step{width:190px;min-width:0}
 .study-row .inst-field .oct-step{display:flex;justify-content:space-between}
@@ -1171,8 +1186,12 @@ dialog.ear-dlg{width:min(760px,calc(100vw - 24px))}
 .auth-logo img{width:76px;height:auto}
 .auth-logo small{margin-top:-2px;font:500 .85rem var(--font-ui);color:var(--ink-2);letter-spacing:.02em}
 .auth-links{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.avatar{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent-grad);color:#fff;font:700 .72rem var(--font-ui);flex-shrink:0}
-.avatar.big{width:56px;height:56px;font-size:1.2rem}
+.avatar{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--accent-grad);color:#fff;font:700 .72rem var(--font-ui);flex-shrink:0}
+.avatar.big{width:72px;height:72px;font-size:1.45rem}
+.avatar{overflow:hidden} .avatar img{box-sizing:border-box;width:100%;height:100%;object-fit:cover;display:block;border-radius:50%}
+/* Foto com anel no gradiente padrão; na grande, uma folga na cor do fundo entre o anel e a foto. */
+.avatar.photo{padding:1px;background:var(--range-grad)}
+.avatar.big.photo{padding:1px} .avatar.big.photo img{border:2px solid var(--surface)}
 .profile-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));align-items:start}
 .profile-card,.people-card{display:flex;flex-direction:column;gap:14px}
 .profile-card > .btn{align-self:flex-start}
@@ -1226,3 +1245,7 @@ dialog.ear-dlg{width:min(760px,calc(100vw - 24px))}
 .auth-notices{display:flex;flex-direction:column;gap:10px;scroll-margin:16px}
 .note[role="alert"]{margin:0}
 .note-detail{display:block;margin-top:4px;font-size:.74rem;opacity:.75;word-break:break-word}
+/* Estado da nuvem no Perfil. */
+.sync-status{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.85rem;color:var(--muted)}
+.sync-status.idle .i{color:var(--ok)}
+.sync-status.offline,.sync-status.error{color:var(--warn)}

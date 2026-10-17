@@ -75,11 +75,36 @@ export async function init(errorHandler?: (e: unknown) => void){
 }
 export const persistent = () => !!db;
 
+// Quem quer saber de cada mudança feita aqui (a sincronização com a nuvem põe na fila de envio).
+type Change = (kind: "s" | "m", id: string, op: "put" | "del") => void;
+let onChange: Change | null = null;
+export function watchChanges(fn: Change | null){ onChange = fn; }
+
 // Salvar atualiza a memória na hora (a interface já mostra) e grava no banco logo depois.
-export function saveSong(s: Song){ s.updatedAt = Date.now(); data.songs.set(s.id, s); later("s:" + s.id, () => write("songs", st=>st.put(s))); touch(); }
-export function deleteSong(id: string){ cancel("s:" + id); data.songs.delete(id); write("songs", st=>st.delete(id)); touch(); }
-export function saveMedley(m: Medley){ m.updatedAt = Date.now(); data.medleys.set(m.id, m); later("m:" + m.id, () => write("medleys", st=>st.put(m))); touch(); }
-export function deleteMedley(id: string){ cancel("m:" + id); data.medleys.delete(id); write("medleys", st=>st.delete(id)); touch(); }
+export function saveSong(s: Song){ s.updatedAt = Date.now(); data.songs.set(s.id, s); later("s:" + s.id, () => write("songs", st=>st.put(s))); touch(); onChange?.("s", s.id, "put"); }
+export function deleteSong(id: string){ cancel("s:" + id); data.songs.delete(id); write("songs", st=>st.delete(id)); touch(); onChange?.("s", id, "del"); }
+export function saveMedley(m: Medley){ m.updatedAt = Date.now(); data.medleys.set(m.id, m); later("m:" + m.id, () => write("medleys", st=>st.put(m))); touch(); onChange?.("m", m.id, "put"); }
+export function deleteMedley(id: string){ cancel("m:" + id); data.medleys.delete(id); write("medleys", st=>st.delete(id)); touch(); onChange?.("m", id, "del"); }
+
+// ---------- o que vem da nuvem ----------
+// Grava a versão de outro aparelho como está (sem mudar a hora nem voltar para a fila de envio).
+export function putRemote(kind: "s" | "m", obj: Song | Medley){
+  if(kind === "s"){ cancel("s:" + obj.id); data.songs.set(obj.id, obj as Song); write("songs", st=>st.put(obj)); }
+  else { cancel("m:" + obj.id); data.medleys.set(obj.id, obj as Medley); write("medleys", st=>st.put(obj)); }
+  touch();
+}
+export function removeRemote(kind: "s" | "m", id: string){
+  if(kind === "s"){ cancel("s:" + id); data.songs.delete(id); write("songs", st=>st.delete(id)); }
+  else { cancel("m:" + id); data.medleys.delete(id); write("medleys", st=>st.delete(id)); }
+  touch();
+}
+// Apaga as músicas e os repertórios deste aparelho (ao sair da conta, ou ao entrar outra pessoa).
+export function wipeLibrary(){
+  [...pending.keys()].filter(k => !k.startsWith("k:")).forEach(cancel);
+  data.songs.clear(); data.medleys.clear();
+  write("songs", st=>st.clear()); write("medleys", st=>st.clear());
+  touch();
+}
 export function setSetting(key: string, value: unknown){ data.settings[key] = value; later("k:" + key, () => write("settings", st=>st.put({key, value})), 150); touch(); }
 export function setting<T>(key: string, fallback: T): T { const v = data.settings[key]; return v === undefined || v === null ? fallback : v as T; }
 

@@ -136,7 +136,8 @@ export function snareHit(ac: AudioContext, t: number, dest: AudioNode, vel = 1, 
   n.connect(hp); hp.connect(pk); pk.connect(g); g.connect(dest); n.start(t); n.stop(t + wires + 0.03);
 }
 // O som do chimbal, ligado em `dest`: seis ondas quadradas em razões não harmônicas (o metal) e ruído, num passa-alta
-// bem agudo; `len` é quanto ele soa (curto = fechado, mais longo = aberto).
+// bem agudo; `len` é quanto ele soa (curto = fechado, mais longo = aberto). Devolve o volume do toque, para quem
+// quiser fechar o chimbal antes (o aberto é abafado pelo fechado seguinte).
 export function hatHit(ac: AudioContext, t: number, dest: AudioNode, vel = 1, len = 0.05){
   const hp = ac.createBiquadFilter(), g = env(ac);
   hp.type = "highpass"; hp.frequency.value = 7000;
@@ -144,12 +145,28 @@ export function hatHit(ac: AudioContext, t: number, dest: AudioNode, vel = 1, le
   [1, 1.48, 1.8, 2.55, 2.63, 3.9].forEach(r => { const o = ac.createOscillator(); o.type = "square"; o.frequency.value = 330 * r; o.connect(hp); o.start(t); o.stop(t + len + 0.02); });
   const n = noise(ac), ng = ac.createGain(); ng.gain.value = 0.6; n.connect(ng); ng.connect(hp); n.start(t, Math.random()); n.stop(t + len + 0.02);
   hp.connect(g); g.connect(dest);
+  return g;
 }
-// O som do aro (a baqueta atravessada batendo no aro da caixa): um "toc" de madeira curto, sem a esteira.
-export function rimHit(ac: AudioContext, t: number, dest: AudioNode, vel = 1){
+// O prato de condução (ride) do jazz: o mesmo metal do chimbal, mais grave e soando bem mais (o "ding" que fica
+// no ar), com um brilho em volta de 5 kHz e o toque da ponta da baqueta no ataque.
+export function rideHit(ac: AudioContext, t: number, dest: AudioNode, vel = 1){
+  const len = 1.1, hp = ac.createBiquadFilter(), pk = ac.createBiquadFilter(), g = env(ac);
+  hp.type = "highpass"; hp.frequency.value = 2800; pk.type = "peaking"; pk.frequency.value = 5200; pk.Q.value = 2; pk.gain.value = 6;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.13 * vel, t + 0.003);
+  g.gain.exponentialRampToValueAtTime(0.04 * vel, t + 0.12); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+  [1, 1.34, 1.79, 2.21, 2.73, 3.41].forEach(r => { const o = ac.createOscillator(); o.type = "square"; o.frequency.value = 410 * r; o.connect(hp); o.start(t); o.stop(t + len + 0.02); });
+  hp.connect(pk); pk.connect(g); g.connect(dest);
+  const n = noise(ac), bp = ac.createBiquadFilter(), ng = env(ac);
+  bp.type = "bandpass"; bp.frequency.value = 6000; bp.Q.value = 1.2;
+  ng.gain.setValueAtTime(0.25 * vel, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.025);
+  n.connect(bp); bp.connect(ng); ng.connect(dest); n.start(t, Math.random()); n.stop(t + 0.03);
+}
+// O som do aro (a baqueta atravessada batendo no aro da caixa): um "toc" de madeira curto, sem a esteira. `pitch`
+// sobe a afinação (a caixa de metal afinada bem alta do reggae).
+export function rimHit(ac: AudioContext, t: number, dest: AudioNode, vel = 1, pitch = 1){
   [[520, "triangle", 0.5], [1650, "square", 0.12]].forEach(([f, type, peak]) => {
     const o = ac.createOscillator(), g = env(ac);
-    o.type = type as OscillatorType; o.frequency.value = f as number;
+    o.type = type as OscillatorType; o.frequency.value = (f as number) * pitch;
     g.gain.setValueAtTime((peak as number) * vel, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
     o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.06);
   });
@@ -157,6 +174,16 @@ export function rimHit(ac: AudioContext, t: number, dest: AudioNode, vel = 1){
   bp.type = "bandpass"; bp.frequency.value = 3000; bp.Q.value = 1.5;
   g.gain.setValueAtTime(0.5 * vel, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
   n.connect(bp); bp.connect(g); g.connect(dest); n.start(t); n.stop(t + 0.04);
+}
+// Estalo de dedo: um estalo de ruído bem curto em volta de 2,8 kHz e um "tic" agudo no ataque.
+export function snapHit(ac: AudioContext, t: number, dest: AudioNode, vel = 1){
+  const n = noise(ac), bp = ac.createBiquadFilter(), g = env(ac);
+  bp.type = "bandpass"; bp.frequency.value = 2800; bp.Q.value = 3;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(1.1 * vel, t + 0.001); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.045);
+  n.connect(bp); bp.connect(g); g.connect(dest); n.start(t, Math.random()); n.stop(t + 0.05);
+  const o = ac.createOscillator(), og = env(ac);
+  o.frequency.value = 1900; og.gain.setValueAtTime(0.18 * vel, t); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.015);
+  o.connect(og); og.connect(dest); o.start(t); o.stop(t + 0.02);
 }
 // Bumbo com ataque: seno que despenca rápido de 160 a 48 Hz, sem o filtro que abafa o tumb, e um clique de batedor.
 export function kickHit(ac: AudioContext, t: number, dest: AudioNode, vel = 1){
