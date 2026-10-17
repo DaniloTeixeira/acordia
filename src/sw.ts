@@ -7,6 +7,8 @@ const sw = self as any;
 const MANIFEST: {url: string; revision: string | null}[] = self.__WB_MANIFEST;
 const FILES = MANIFEST.map(e => e.url);
 // Versão do cache: muda quando qualquer arquivo muda.
+// Os pads (áudio grande, fora da lista) ficam num cache próprio, guardados no primeiro uso e mantidos entre versões.
+const PADS = "acordia-pads";
 const CACHE = "acordia-" + MANIFEST.map(e => e.url + (e.revision || "")).join("|").split("").reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7).toString(36);
 
 sw.addEventListener("install", (e: any) => {
@@ -14,7 +16,7 @@ sw.addEventListener("install", (e: any) => {
 });
 sw.addEventListener("activate", (e: any) => {
   e.waitUntil(caches.keys()
-    .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+    .then(keys => Promise.all(keys.filter(k => k !== CACHE && k !== PADS).map(k => caches.delete(k))))
     .then(() => sw.clients.claim()));
 });
 // `no-cache` revalida com o servidor: sem ele o cache HTTP do navegador pode devolver uma página antiga.
@@ -31,5 +33,6 @@ sw.addEventListener("fetch", (e: any) => {
   // Links de repertório (#m=...) e parâmetros não mudam a página guardada.
   if(req.mode === "navigate") return networkFirst(e, "index.html");
   if(url.pathname.endsWith("/manifest.webmanifest")) return networkFirst(e, "manifest.webmanifest");
+  if(url.pathname.includes("/pads/")) return e.respondWith(caches.open(PADS).then(c => c.match(req).then(r => r || fetch(req).then(res => { if(res.ok) c.put(req, res.clone()); return res; }))));
   e.respondWith(caches.match(req, {ignoreSearch: true}).then(r => r || fetch(req)));
 });

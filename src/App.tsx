@@ -23,25 +23,28 @@ const { data } = store;
 const BASE = import.meta.env.BASE_URL;
 
 // ---------- tema ----------
+// Sem escolha salva, segue o aparelho ("system"); o botão só alterna entre claro e escuro.
 type Theme = "system" | "light" | "dark";
-const THEME_ICON: Record<Theme, string> = {system:"monitor", light:"sun", dark:"moon"};
+const DARK_MQ = "(prefers-color-scheme: dark)";
 export const theme = (): Theme => (["light", "dark"] as const).find(v => v === data.settings.theme) || "system";
+const shownTheme = (): "light" | "dark" => { const th = theme(); return th !== "system" ? th : matchMedia(DARK_MQ).matches ? "dark" : "light"; };
 export function applyTheme(th: Theme){
   if(th === "light" || th === "dark") document.documentElement.dataset.theme = th; else delete document.documentElement.dataset.theme;
   try{ localStorage.setItem("acordia-theme", th); }catch(e){ /* sem armazenamento */ }
   document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach(m => { const dark = th === "dark" || (th === "system" && m.media.includes("dark")); m.content = dark ? "#0B0F1C" : "#F5F7FC"; });
 }
-function cycleTheme(){
-  const order: Theme[] = ["system","light","dark"], prev = theme(), th = order[(order.indexOf(prev) + 1) % 3];
-  const isDark = (x: Theme) => x === "dark" || (x === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+function toggleTheme(){
+  const th = shownTheme() === "dark" ? "light" : "dark";
   store.setSetting("theme", th);
-  // Se a aparência efetiva não muda (ex.: escuro → sistema com o SO escuro), não há o que animar.
-  if(isDark(th) === isDark(prev)) applyTheme(th); else animate(() => applyTheme(th), "theme");
+  animate(() => applyTheme(th), "theme");
 }
 function ThemeButton({rail}: {rail?: boolean}){
-  const th = theme(), name = t("theme." + th);
-  return <button className={rail ? "nav-item" : "icon-btn"} data-theme-toggle aria-label={t("theme.aria", {name})} onClick={cycleTheme}>
-    <Icon name={THEME_ICON[th]}/>{rail && <span>{t("theme.label", {name})}</span>}</button>;
+  // Enquanto segue o aparelho, o ícone acompanha se o tema do sistema mudar com o app aberto.
+  const [, redraw] = useState(0);
+  useEffect(() => { const mq = matchMedia(DARK_MQ), f = () => redraw(n => n + 1); mq.addEventListener("change", f); return () => mq.removeEventListener("change", f); }, []);
+  const th = shownTheme(), name = t("theme." + th);
+  return <button className={rail ? "nav-item" : "icon-btn"} data-theme-toggle aria-label={t("theme.aria", {name})} onClick={toggleTheme}>
+    <Icon name={th === "dark" ? "moon" : "sun"}/>{rail && <span>{t("theme.label", {name})}</span>}</button>;
 }
 
 // ---------- volume ----------

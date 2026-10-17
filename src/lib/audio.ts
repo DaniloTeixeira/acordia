@@ -334,6 +334,8 @@ export async function audioReady(){
   return ac.state === "running";
 }
 export function audioNow(): number | null { const ac = audio(); return ac ? ac.currentTime : null; }
+// Contexto e saída geral (com o volume do app), para quem toca áudio gravado, como o pad.
+export function audioOut(): {ac: AudioContext; out: AudioNode} | null { const ac = audio(); return ac ? {ac, out: out(ac)} : null; }
 export type ClickKind = "accent" | "beat" | "mid" | "sub" | "lh" | "rh";
 const CLICKS: Record<ClickKind, {f: number; type: OscillatorType; dur: number; gain: number}> = {
   accent: {f:1760, type:"square", dur:0.045, gain:0.16},

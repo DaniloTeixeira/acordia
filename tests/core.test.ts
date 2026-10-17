@@ -210,6 +210,10 @@ test("sanitizeEntry valida campos importados", () => {
   assert.ok(Number.isFinite(r.updatedAt));
   assert.equal(C.sanitizeEntry({ id: "a1", text: "X\ny", type: "letra", key: "F#m", bpm: 72.4, updatedAt: 5 }).key, "F#m");
   assert.equal(C.sanitizeEntry({ text: "X\ny", bpm: 72.4 }).bpm, "72");
+  // Dó sustenido maior salvo antes vira Ré bemol; o menor continua C#m.
+  assert.equal(C.sanitizeEntry({ text: "X\ny", key: "C#" }).key, "Db");
+  assert.equal(C.sanitizeEntry({ text: "X\ny", key: "C#m" }).key, "C#m");
+  assert.equal(C.sanitizeItem({ target: "C#" }).target, "Db");
 });
 
 test("links de referência e YouTube", () => {

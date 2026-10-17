@@ -2,7 +2,7 @@
 // pedido, com o microfone conferindo a afinação) e "Minha extensão" (mede a voz e sugere o tom das
 // músicas do repertório aberto).
 import { useEffect, useRef, useState } from "react";
-import { KEYS, MINOR_KEYS, parseKey, cadence, DEGREE_STEPS, voiceType, voiceShift, transposeKey, type Level } from "../../lib/core";
+import { KEYS, MINOR_KEYS, validKey, parseKey, cadence, DEGREE_STEPS, voiceType, voiceShift, transposeKey, type Level } from "../../lib/core";
 import { listenPitch, midiName } from "../../lib/tuner";
 import * as audio from "../../lib/audio";
 import { t, ordinal } from "../../lib/i18n";
@@ -22,7 +22,10 @@ const LOWEST = 36, HIGHEST = 96; // C2..C7, limites da medição e das listas de
 
 interface VoiceState { mode: "sing" | "range"; key: string; set: "triad" | "scale"; level: Level; singer: string }
 const VOICE_DEFAULTS: VoiceState = {mode:"sing", key:"random", set:"triad", level:"facil", singer:""};
-const voiceState = (): VoiceState => Object.assign({}, VOICE_DEFAULTS, data.settings.voice || {});
+const voiceState = (): VoiceState => {
+  const s: VoiceState = Object.assign({}, VOICE_DEFAULTS, data.settings.voice || {});
+  return s.key === "random" ? s : Object.assign(s, {key: validKey(s.key) || "random"});
+};
 const setVoice = (p: Partial<VoiceState>) => store.setSetting("voice", Object.assign(voiceState(), p));
 type Voices = Record<string, {low?: number; high?: number}>;
 const voices = (): Voices => (data.settings.voices || {}) as Voices;

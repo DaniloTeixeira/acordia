@@ -238,7 +238,7 @@ function ConfirmDialog({title, message, confirm, resolve}: DialogProps["confirm"
 }
 
 // ---------- guia "Como usar" de cada página ----------
-export const HELP_STEPS = {medley: 6, library: 4, study: 6, tools: 3} as const;
+export const HELP_STEPS = {medley: 6, library: 4, study: 6, tools: 6} as const;
 export function seenHelp(page: string){ const s = Object.assign({}, data.settings.seenHelp || {}) as Record<string, boolean>; if(!s[page]){ s[page] = true; store.setSetting("seenHelp", s); } }
 function HelpDialog({page}: DialogProps["help"]){
   useEffect(() => seenHelp(page), [page]);

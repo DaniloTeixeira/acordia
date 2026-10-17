@@ -1,4 +1,4 @@
-// Ferramentas: metrônomo e afinador.
+// Ferramentas: metrônomo, afinador e pad infinito.
 import { useEffect, useRef, useState } from "react";
 import { detectPitch, noteFromFreq, nearestString, midiName } from "../lib/tuner";
 import { INSTRUMENTS, isInstrument } from "../lib/instruments";
@@ -10,22 +10,25 @@ import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
 import { MetronomeUI } from "./Metronome";
+import { PadUI } from "./Pad";
+import { pad } from "../pad";
 import { InstrumentSelect } from "./InstrumentSelect";
 
 const { data } = store;
 
 export function Tools(){
   useData();
-  const tab = data.settings.toolsTab === "tuner" ? "tuner" : "metro";
+  const tab = data.settings.toolsTab === "tuner" || data.settings.toolsTab === "pad" ? data.settings.toolsTab : "metro";
   // Sair da página (ou trocar de aba) para o metrônomo.
   useEffect(() => () => metro.stop(), []);
-  useEffect(() => { if(tab === "tuner") metro.stop(); }, [tab]);
+  useEffect(() => { if(tab !== "metro") metro.stop(); }, [tab]);
   return <section className="view" id="view-tools" data-view="tools" aria-labelledby="tools-h">
     <div className="view-head"><div><h1 id="tools-h">{t("tools.title")}</h1><p className="sub">{t("tools.sub")}</p></div></div>
     <Seg id="tools-tabs" aria={t("tools.title")} value={tab} onChange={v => store.setSetting("toolsTab", v)}
-      options={[{v: "metro", label: t("tools.metro")}, {v: "tuner", label: t("tools.tuner")}]}/>
+      options={[{v: "metro", label: t("tools.metro")}, {v: "tuner", label: t("tools.tuner")}, {v: "pad", label: t("tools.pad")}]}/>
     <div id="tools-metro" hidden={tab !== "metro"}>{tab === "metro" && <MetronomeUI/>}</div>
     <div id="tools-tuner" hidden={tab !== "tuner"}>{tab === "tuner" && <Tuner/>}</div>
+    <div id="tools-pad" hidden={tab !== "pad"}>{tab === "pad" && <PadUI/>}</div>
   </section>;
 }
 
@@ -43,6 +46,8 @@ function Tuner(){
   const stopRef = useRef<() => void>(() => {});
   const stop = () => { stopRef.current(); stopRef.current = () => {}; setOn(false); };
   const start = async () => {
+    // O microfone ouviria o pad no lugar do instrumento.
+    pad.stop();
     let stream: MediaStream;
     try{ stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:false}}); }
     catch(e){ return toast(t("tuner.denied")); }

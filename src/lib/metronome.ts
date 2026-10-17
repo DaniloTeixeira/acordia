@@ -55,6 +55,12 @@ export function createMetronome(audio: AudioClock, initial: Partial<MetroState> 
       if(opts.sig && opts.sig !== st.sig){ beat = 0; sub = 0; }
       Object.assign(st, opts); emit();
     },
+    // Onde cai o próximo tempo (relógio do áudio) e qual é ele no compasso, para outros sons entrarem alinhados.
+    grid(): {nextBeatAt: number; beat: number} | null {
+      if(!timer) return null;
+      const sig = SIGNATURES[st.sig] || SIGNATURES["4/4"];
+      return sub ? {nextBeatAt: next + (st.subdiv - sub) * 60 / st.bpm / st.subdiv, beat: (beat + 1) % sig.beats} : {nextBeatAt: next, beat};
+    },
     onTick(fn: (beat: number, sub: number) => void){ listeners.add(fn); return () => { listeners.delete(fn); }; },
     onChange(fn: (s: MetroState, running: boolean) => void){ changes.add(fn); return () => { changes.delete(fn); }; }
   };

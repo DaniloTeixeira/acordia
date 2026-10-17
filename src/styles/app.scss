@@ -114,11 +114,13 @@ textarea::-webkit-scrollbar{width:8px;height:8px}
 /* ---------- botões ---------- */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border-radius:var(--r-full);border:1px solid transparent;
   background:var(--surface-2);color:var(--ink);font-weight:600;font-size:.92rem;cursor:pointer;white-space:nowrap;
-  transition:background-color var(--t-fast) var(--ease),color var(--t-fast),border-color var(--t-fast),transform var(--t-fast) var(--ease),box-shadow var(--t-fast)}
+  transition:background-color var(--t-fast) var(--ease),color var(--t-fast),border-color var(--t-fast),transform var(--t-fast) var(--ease),box-shadow var(--t-fast),filter var(--t-fast)}
 .btn:hover:where(:not(:disabled)){background:var(--surface-3)}
 .btn:active:where(:not(:disabled)){transform:scale(.97)}
 .btn.primary{background:var(--accent-grad);color:var(--accent-ink);box-shadow:var(--shadow-sm)}
 .btn.primary:hover:where(:not(:disabled)){background:var(--accent-grad-hover)}
+/* Botão com cor de estado (parar, apagar): o hover mantém a cor e só escurece um pouco. */
+.btn:is(.running,.armed,.danger-solid):hover:not(:disabled){filter:brightness(.92)}
 .btn.ghost{background:transparent;border-color:var(--line-strong)}
 .btn.ghost:hover:where(:not(:disabled)){background:var(--surface-2)}
 .btn.soft{background:var(--accent-soft);color:var(--accent-soft-ink)}
@@ -615,9 +617,79 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .metro-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
 @media (max-width:360px){ .metro-top{gap:10px} }
 .metro-go{min-width:160px;min-height:48px;font-size:1rem}
-.metro-go.running,.metro-mini .running{background:var(--bad);color:#fff}
+.metro-go.running,.metro-mini .running,:is(.metro-go.running,.metro-mini .running):hover{background:var(--bad);color:#fff}
 .metro .sub{text-align:center}
 @media (pointer:coarse){ .metro .sub{display:none} }
+/* Pad infinito: o tom em destaque no lugar do BPM; os tons e o volume ocupam a largura do card. */
+.pad .pad-read{align-self:center;gap:10px}
+.pad-playing{display:inline-flex;align-items:center;gap:6px}
+.pad-playing .i{stroke:url(#g-logo)}
+.pad-playing span{background:var(--brand-grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.pad .pad-keys{display:grid;grid-template-columns:repeat(6,minmax(0,1fr))}
+.pad .pad-keys .root-btn{min-width:0;padding:0}
+.pad input[type=range]{margin-top:6px}
+/* Estilos: nome e uma linha curta do que muda no som. */
+.pad-styles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px}
+.pad-styles .root-btn{height:auto;min-height:56px;padding:8px 12px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;text-align:left}
+.pad-styles .root-btn small{font-size:.74rem;font-weight:400;line-height:1.3;color:var(--muted)} .pad-styles .root-btn[aria-pressed="true"] small{color:inherit;opacity:.85}
+@media (max-width:640px){ .pad-styles{grid-template-columns:repeat(2,minmax(0,1fr))} }
+/* Efeitos: botões quadrados; acendem com o gradiente e apagam no tempo do som (--d). */
+.fx-card{margin-top:16px}
+/* Título e legenda dos cards do pad, alinhados à esquerda e visíveis também no celular. */
+.pad-layout .card-head{display:flex;flex-direction:column;gap:2px}
+.pad-layout .card-head .sub{text-align:left;display:block}
+/* Em tela grande, pad e efeitos lado a lado e da mesma altura. */
+@media (min-width:1200px){ .pad-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch;max-width:1136px} .pad-layout .metro{max-width:none}
+  .fx-card>.fx-grid+.field{margin-top:auto}
+  /* Botões em 3 colunas × 4 linhas, ocupando a altura que sobra no card (deixam de ser quadrados). */
+  .fx-card .fx-grid{flex:1;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:1fr} .fx-card .fx-pad{aspect-ratio:auto;min-height:72px}
+  .fx-card .fx-pad b{font-size:1rem} .fx-card .fx-pad small{font-size:.78rem} }
+.fx-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.fx-pad{position:relative;isolation:isolate;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px;border-radius:var(--r-md);
+  border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink);cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;text-align:center}
+.fx-pad b{font-size:.9rem;line-height:1.15} .fx-pad small{font-size:.7rem;color:var(--muted);line-height:1.2}
+.fx-pad::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:var(--range-grad);opacity:0}
+.fx-pad.on::before{animation:fx-glow var(--d) var(--ease) both}
+.fx-pad.on{border-color:transparent}
+.fx-pad.on b,.fx-pad.on small{color:#fff}
+@keyframes fx-glow{0%{opacity:.95}100%{opacity:0}}
+/* Hover: borda no gradiente da marca, numa camada própria por cima da borda para poder aparecer com transição. */
+.fx-pad::after{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:var(--range-grad);pointer-events:none;opacity:0;transition:opacity var(--t) var(--ease);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+@media (hover:hover){ .fx-pad:hover::after{opacity:1} }
+@media (max-width:640px){ .fx-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px} .fx-pad small{display:none} .fx-pad b{font-size:.85rem} }
+/* Pad: filtro de build, swell e fade. */
+.pad-filter-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px} .pad-filter-h small{font-weight:400}
+.pad-swell{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.btn.busy{border-color:transparent;background:linear-gradient(var(--surface),var(--surface)) padding-box,var(--range-grad) border-box}
+/* Ritmo: card de largura inteira com BPM, caixa, shaker e grave, dois por linha. */
+.rhythm-card{margin-top:16px}
+.rhythm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:640px){ .rhythm-grid{grid-template-columns:minmax(0,1fr)} }
+/* Modos dos loops: botões compactos que dividem a largura do bloco, sem vazar. */
+.rhythm-item .seg button{flex:1;min-width:0;padding:5px 8px;font-size:.76rem;overflow:hidden;text-overflow:ellipsis}
+/* Cada parte do ritmo (tempo, caixa, shaker, grave) num bloco com borda, para se identificar de relance. */
+.rhythm-item{display:flex;flex-direction:column;gap:10px;justify-content:space-between;padding:14px 16px;border:1px solid var(--line-strong);border-radius:var(--r-md);background:var(--surface-2)}
+.rhythm-item b{display:block} .rhythm-item small{display:block;color:var(--muted);font-size:.8rem}
+.rhythm-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rhythm-tempo{align-items:center} .rhythm-bpm{display:flex;align-items:center;gap:12px}
+.rhythm-bpm .metro-read{min-width:96px} .rhythm-bpm .metro-read b{font-size:2.4rem}
+@media (min-width:1200px){ .rhythm-card,.groove-card{grid-column:1/-1;max-width:none} }
+/* Padrão e som de cada loop, lado a lado. */
+.rhythm-pick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+/* Grade do padrão personalizado: 4 tempos de 4 semicolcheias; forte = gradiente cheio, fraca = gradiente claro. */
+.steps-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.steps-beat{display:flex;flex-direction:column;gap:4px} .steps-n{font-size:.72rem;font-weight:700;color:var(--muted)}
+.steps-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}
+.step{aspect-ratio:1;min-width:0;padding:0;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);cursor:pointer;transition:background-color var(--t-fast),border-color var(--t-fast),opacity var(--t-fast)}
+.step:hover{border-color:var(--accent)}
+.step.hi{border-color:transparent;background:var(--range-grad)}
+.step.lo{border-color:transparent;background:var(--range-grad);opacity:.45}
+@media (max-width:640px){ .steps-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px} }
+/* Grooves: estilos em grade e, embaixo, volume, sugestão de BPM e tocar. */
+.groove-card{margin-top:16px}
+.groove-styles{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.groove-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 16px} .groove-row .field{flex:1 1 220px}
 .metro-mini{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
 .mini-bpm{font-variant-numeric:tabular-nums;min-width:68px;text-align:center}
 .mini-bpm b{font-size:1.1rem}

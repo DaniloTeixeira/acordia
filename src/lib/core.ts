@@ -8,9 +8,14 @@ export const NOTES: Record<string, number> = {C:0,"C#":1,Db:1,D:2,"D#":3,Eb:3,E:
 ([["C",0],["D",2],["E",4],["F",5],["G",7],["A",9],["B",11]] as const).forEach(([l, pc]) => {
   for(const [acc, d] of [["#",1],["##",2],["b",-1],["bb",-2]] as const) if(NOTES[l + acc] === undefined) NOTES[l + acc] = (pc + d + 12) % 12;
 });
-export const KEYS = ["C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"];
+export const KEYS = ["C","Db","D","Eb","E","F","F#","G","Ab","A","Bb","B"];
 export const MINOR_KEYS = ["Cm","C#m","Dm","Ebm","Em","Fm","F#m","Gm","G#m","Am","Bbm","Bm"];
 export const ALL_KEYS = [...KEYS, ...MINOR_KEYS];
+// Tom vindo de dados salvos: "C#" é de antes de Dó sustenido maior virar Ré bemol (mesma altura).
+export function validKey(k: unknown): string {
+  const n = k === "C#" ? "Db" : k;
+  return typeof n === "string" && ALL_KEYS.includes(n) ? n : "";
+}
 // Sufixo só com peças reais de acorde, para palavras como "Amo", "Dois" e "Dia" não virarem cifra.
 export const CHORD_RE = /^[A-G][#b]?(?:m(?!aj))?(?:maj|M|dim|aug|sus|add|°|º|\+|-|[#b]?\d{1,2}|\(|\))*(?:\/[A-G][#b]?)?$/;
 
@@ -408,7 +413,7 @@ export function sanitizeEntry(r: Raw): SongEntry | null {
     title: str(r.title).trim() || songTitle(r.text),
     text: r.text,
     type: r.type === "letra" ? "letra" : "",
-    key: ALL_KEYS.includes(r.key) ? r.key : "",
+    key: validKey(r.key),
     bpm: Number.isFinite(+r.bpm) && +r.bpm > 0 && +r.bpm < 400 ? String(Math.round(+r.bpm)) : "",
     ref: sanitizeUrl(r.ref),
     arrangements: sanitizeArrangements(r.arrangements),
@@ -435,7 +440,7 @@ export function sanitizeOptions(o: Raw): Options {
 export function sanitizeItem(it: Raw): ItemFields | null {
   if(!it || typeof it !== "object") return null;
   const capo = Number.isInteger(+it.capo) && +it.capo > 0 && +it.capo < 12 ? String(+it.capo) : "";
-  return {target: ALL_KEYS.includes(it.target) ? it.target : "", capo, singer: str(it.singer).slice(0, 80), notes: str(it.notes).slice(0, 300),
+  return {target: validKey(it.target), capo, singer: str(it.singer).slice(0, 80), notes: str(it.notes).slice(0, 300),
     arrangementId: str(it.arrangementId).slice(0, 40)};
 }
 // Arranjos de uma música: versões nomeadas (tom, capo, observações).
