@@ -156,7 +156,7 @@ export function App(){
   const current = (v: View) => view === v ? "page" as const : undefined;
   const auth = useAuth(s => s.status), recovery = useAuth(s => s.recovery), helpable = view in HELP_STEPS;
   // Com login ligado, nada do app aparece antes de a pessoa entrar e ter acesso (nem antes da senha nova).
-  if((auth !== "off" && auth !== "in") || recovery) return <><div className="auth-corner"><ThemeButton/></div><AuthScreen/><Toasts/></>;
+  if((auth !== "off" && auth !== "in") || recovery) return <><div className="auth-corner"><LangButton/><ThemeButton/></div><AuthScreen/><LangPop/><Toasts/></>;
   const profileBtn = (rail: boolean) => auth === "in" && <button className={rail ? "nav-item" : "icon-btn"} data-nav="profile" aria-current={current("profile")} aria-label={t("profile.title")} onClick={() => go("profile")}>
     <Avatar/>{rail && <span>{t("profile.title")}</span>}</button>;
   return <>

@@ -60,7 +60,10 @@ export function initTooltips(){
     const vertical = p.side === "top" || p.side === "bottom";
     const arrow = vertical ? r.left + r.width / 2 - at.left - bw : r.top + r.height / 2 - at.top - bw;
     const max = (vertical ? at.width : at.height) - 2 * bw - 10;
-    tip.style.setProperty("--arrow", Math.max(10, Math.min(arrow, max)) + "px");
+    const a = Math.max(10, Math.min(arrow, max));
+    tip.style.setProperty("--arrow", a + "px");
+    // Onde a setinha sai, em % da largura: a borda dela pega a cor do gradiente nesse ponto.
+    tip.style.setProperty("--arrow-p", String(Math.round((a + bw) / at.width * 100)));
   };
   const find = (e: Event) => { const el = e.target as Element | null; return el && el.closest ? el.closest<HTMLElement>(SEL) : null; };
   document.addEventListener("mouseover", e => {

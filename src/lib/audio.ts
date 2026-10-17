@@ -5,6 +5,9 @@ function out(ac: AudioContext){ if(!master){ master = ac.createGain(); master.co
 export function setVolume(v: number, m?: boolean){ volume = Math.max(0, Math.min(1, v)); muted = !!m; if(master) master.gain.value = muted ? 0 : volume; }
 function audio(){
   if(!ctx){
+    // O navegador só libera o áudio depois de um toque na página; antes disso (pré-carga do pad, ajustes salvos)
+    // não cria o contexto, para não gerar o aviso "AudioContext was not allowed to start".
+    if(navigator.userActivation && !navigator.userActivation.hasBeenActive) return null;
     const C = window.AudioContext || (window as unknown as {webkitAudioContext?: typeof AudioContext}).webkitAudioContext;
     if(!C) return null; ctx = new C();
   }

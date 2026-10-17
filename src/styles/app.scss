@@ -13,7 +13,8 @@
   --accent:#2F6BF0; --accent-hover:#2457D6; --accent-ink:#FFFFFF; --accent-soft:#E6EDFE; --accent-soft-ink:#1F4FC4;
   --accent-grad:linear-gradient(135deg,#2F6BF0,#6A3BF2); --accent-grad-hover:linear-gradient(135deg,#2457D6,#5A2BE0);
   --brand-grad:linear-gradient(90deg,#1593D6,#2F6BF0 50%,#7B2FF5);
-  --range-grad:linear-gradient(90deg,#22C2F5,#2F6BF0 55%,#7B2FF5);
+  --grad-1:#22C2F5; --grad-2:#2F6BF0; --grad-3:#7B2FF5;
+  --range-grad:linear-gradient(90deg,var(--grad-1),var(--grad-2) 55%,var(--grad-3));
   --ok-vivid:#16A34A; --sd-vivid:#FACC15; --bad-vivid:#EF4444; --nav-active:var(--seg-bg); --nav-active-ink:var(--ink);
   --sd:#EAB308; --sd-soft:#FEF3C7; --sd-ink:#92400E;
   --lh:#7B2FF5; --chord:#B0201A; --ok:#15803D; --ok-soft:#DCFCE7; --bad:#B91C1C; --bad-soft:#FEE2E2; --warn:#9A3412; --warn-soft:#FFF1E8;
@@ -35,7 +36,8 @@
     --accent:#6E9BFF; --accent-hover:#8DB2FF; --accent-ink:#0B0F1C; --accent-soft:#1B2852; --accent-soft-ink:#B4C8FF;
     --accent-grad:linear-gradient(135deg,#6E9BFF,#A57BFF); --accent-grad-hover:linear-gradient(135deg,#8DB2FF,#B994FF);
     --brand-grad:linear-gradient(90deg,#3BD5FA,#4C82F5 50%,#9A5CF8);
-    --range-grad:linear-gradient(90deg,#3BD5FA,#4C82F5 55%,#9A5CF8);
+    --grad-1:#3BD5FA; --grad-2:#4C82F5; --grad-3:#9A5CF8;
+    --range-grad:linear-gradient(90deg,var(--grad-1),var(--grad-2) 55%,var(--grad-3));
     --sd:#FACC15; --sd-soft:#33260C; --sd-ink:#FCD34D; --ok-vivid:#4ADE80; --sd-vivid:#FDE047; --bad-vivid:#F87171; --nav-active:var(--surface-3); --nav-active-ink:#fff;
     --lh:#B48CFF; --chord:#FF8A80; --ok:#4ADE80; --ok-soft:#12321F; --bad:#F87171; --bad-soft:#3A1717; --warn:#FDBA74; --warn-soft:#2A1C12;
     --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow-md:0 4px 14px rgba(0,0,0,.45); --shadow-lg:0 24px 60px rgba(0,0,0,.6);
@@ -51,7 +53,8 @@
   --accent:#6E9BFF; --accent-hover:#8DB2FF; --accent-ink:#0B0F1C; --accent-soft:#1B2852; --accent-soft-ink:#B4C8FF;
   --accent-grad:linear-gradient(135deg,#6E9BFF,#A57BFF); --accent-grad-hover:linear-gradient(135deg,#8DB2FF,#B994FF);
   --brand-grad:linear-gradient(90deg,#3BD5FA,#4C82F5 50%,#9A5CF8);
-  --range-grad:linear-gradient(90deg,#3BD5FA,#4C82F5 55%,#9A5CF8);
+  --grad-1:#3BD5FA; --grad-2:#4C82F5; --grad-3:#9A5CF8;
+  --range-grad:linear-gradient(90deg,var(--grad-1),var(--grad-2) 55%,var(--grad-3));
   --lh:#B48CFF; --chord:#FF8A80; --ok:#4ADE80; --ok-soft:#12321F; --bad:#F87171; --bad-soft:#3A1717; --warn:#FDBA74; --warn-soft:#2A1C12;
   --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow-md:0 4px 14px rgba(0,0,0,.45); --shadow-lg:0 24px 60px rgba(0,0,0,.6);
   --paper-shadow:0 2px 6px rgba(0,0,0,.4),0 12px 32px rgba(0,0,0,.45);
@@ -124,6 +127,10 @@ textarea::-webkit-scrollbar{width:8px;height:8px}
 .btn.ghost{background:transparent;border-color:var(--line-strong)}
 .btn.ghost:hover:where(:not(:disabled)){background:var(--surface-2)}
 .btn.soft{background:var(--accent-soft);color:var(--accent-soft-ink)}
+/* Hover do botão azul-claro: mantém a cor e só muda a intensidade (no escuro clareia, senão não aparece). */
+.btn.soft:hover:where(:not(:disabled)){filter:brightness(.92)}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .btn.soft:hover:where(:not(:disabled)){filter:brightness(1.25)} }
+:root[data-theme="dark"] .btn.soft:hover:where(:not(:disabled)){filter:brightness(1.25)}
 .btn.danger{color:var(--bad)}
 .btn.danger.armed{background:var(--bad);color:#fff}
 .btn.sm{min-height:34px;padding:0 12px;font-size:.85rem}
@@ -244,6 +251,7 @@ main{margin-left:var(--rail);padding:28px 32px 48px;max-width:calc(1480px + var(
 .chip{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:var(--r-full);font-size:.74rem;font-weight:600;background:var(--surface-2);color:var(--ink-2);white-space:nowrap}
 .chip.accent{background:var(--accent-soft);color:var(--accent-soft-ink)}
 .note{font-size:.88rem;padding:10px 14px;border-radius:var(--r-md);background:var(--warn-soft);color:var(--warn)}
+.note.info{background:var(--accent-soft);color:var(--accent-soft-ink)}
 
 /* ---------- medley ---------- */
 .medley-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start}
@@ -847,7 +855,9 @@ a.btn{text-decoration:none}
 .pl-speed-wrap{display:flex;align-items:center;gap:6px;margin-left:auto}
 /* capo e transpor */
 .capo-hint{grid-column:1/-1;margin:-4px 0 0;font-size:.8rem;color:var(--muted)}
-.link-btn{border:none;background:none;padding:0;color:var(--accent);font-weight:700;cursor:pointer;text-decoration:underline}
+.link-btn{border:none;background:none;padding:0;color:var(--accent);font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:2px;transition:color var(--t-fast),text-decoration-color var(--t-fast)}
+.link-btn:hover:where(:not(:disabled)){color:var(--accent-hover);text-decoration-thickness:2px}
+.link-btn:disabled{opacity:.55;cursor:default;text-decoration:none}
 .tr-ctl{display:flex;align-items:center;gap:4px}
 .tr-ctl b{min-width:26px;text-align:center;font-variant-numeric:tabular-nums}
 
@@ -942,11 +952,14 @@ dialog.nudge{animation:shake .35s var(--ease)}
 @keyframes key-pulse{50%{opacity:.55}}
 .practicing .k-board{outline:3px solid color-mix(in srgb,var(--accent) 45%,transparent);outline-offset:2px}
 
-.tooltip{position:fixed;inset:auto;margin:0;border:1px solid var(--tip-line);padding:6px 11px;border-radius:9px;background:linear-gradient(135deg,var(--tip-a),var(--tip-b));color:var(--ink);font-size:.8rem;font-weight:600;line-height:1.35;max-width:260px;box-shadow:var(--shadow-lg);pointer-events:none;
+.tooltip{position:fixed;inset:auto;margin:0;border:1px solid transparent;padding:6px 11px;border-radius:9px;background:linear-gradient(135deg,var(--tip-a),var(--tip-b)) padding-box,var(--range-grad) border-box;color:var(--ink);font-size:.8rem;font-weight:600;line-height:1.35;max-width:260px;box-shadow:var(--shadow-lg);pointer-events:none;
   opacity:1;transform:none;transition:opacity .12s var(--ease),transform .12s var(--ease-out),display .12s allow-discrete,overlay .12s allow-discrete}
-/* Dica no tom do tema: gradiente discreto do azul ao violeta do logo e borda na cor de destaque.
-   A setinha usa a cor do meio do gradiente. */
-.tooltip{overflow:visible;--from:translateY(3px);--tip-a:color-mix(in srgb,var(--accent) 16%,var(--surface));--tip-b:color-mix(in srgb,var(--lh) 16%,var(--surface));--tip-bg:color-mix(in srgb,var(--tip-a),var(--tip-b));--tip-line:color-mix(in srgb,var(--accent) 40%,transparent)}
+/* Dica no tom do tema: fundo com gradiente discreto do azul ao violeta do logo e a borda gradiente padrão
+   (a mesma do hover). O fundo da setinha usa a cor do meio do fundo; a borda dela, a cor do gradiente da
+   borda no ponto onde ela sai (--arrow-p, em % da largura, vem de tooltips.ts; nas laterais, a ponta do gradiente). */
+.tooltip{overflow:visible;--from:translateY(3px);--tip-a:color-mix(in srgb,var(--accent) 16%,var(--surface));--tip-b:color-mix(in srgb,var(--lh) 16%,var(--surface));--tip-bg:color-mix(in srgb,var(--tip-a),var(--tip-b));
+  --tip-line:color-mix(in srgb,var(--grad-3) calc(clamp(0,(var(--arrow-p,50) - 55) / 45,1) * 100%),color-mix(in srgb,var(--grad-2) calc(clamp(0,var(--arrow-p,50) / 55,1) * 100%),var(--grad-1)))}
+.tooltip[data-side="left"]{--tip-line:var(--grad-3)} .tooltip[data-side="right"]{--tip-line:var(--grad-1)}
 .tooltip[data-side="bottom"]{--from:translateY(-3px)} .tooltip[data-side="left"]{--from:translateX(3px)} .tooltip[data-side="right"]{--from:translateX(-3px)}
 .tooltip:not(:popover-open){opacity:0;transform:var(--from)}
 @starting-style{ .tooltip:popover-open{opacity:0;transform:var(--from)} }
@@ -1108,7 +1121,13 @@ dialog.ear-dlg{width:min(760px,calc(100vw - 24px))}
 .rotate-hint .i{flex-shrink:0;color:var(--accent)}
 
 /* ---------- conta: entrar e perfil ---------- */
-.auth-screen{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px 16px;background:var(--bg)}
+.auth-screen{position:relative;isolation:isolate;overflow:hidden;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:calc(env(safe-area-inset-top) + 64px) 16px 32px;background:var(--bg)}
+/* Notas de fundo: surgem, sobem um pouco e somem (o JS troca o lugar a cada ciclo). Sem movimento reduzido, nada. */
+.auth-notes{position:absolute;inset:0;z-index:-1;pointer-events:none}
+.auth-notes span{position:absolute;line-height:1;opacity:0;background:var(--brand-grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:auth-note 9s var(--ease) both}
+@keyframes auth-note{0%{opacity:0;transform:translateY(10px) scale(.9)}35%,60%{opacity:.26}100%{opacity:0;transform:translateY(-14px) scale(1)}}
+@media (prefers-reduced-motion:reduce){.auth-notes{display:none}}
 /* Borda com o gradiente da marca girando devagar em volta do bloco (parada com movimento reduzido). */
 @property --auth-angle{syntax:"<angle>";inherits:false;initial-value:0deg}
 .auth-card{width:min(400px,100%);display:flex;flex-direction:column;gap:14px;padding:28px 24px;border:2px solid transparent;
@@ -1116,12 +1135,13 @@ dialog.ear-dlg{width:min(760px,calc(100vw - 24px))}
   animation:auth-border 6s linear infinite}
 @keyframes auth-border{to{--auth-angle:360deg}}
 @media (prefers-reduced-motion:reduce){.auth-card{animation:none}}
-.auth-corner{position:fixed;top:calc(env(safe-area-inset-top) + 10px);right:12px;z-index:5}
+.auth-corner{position:absolute;top:calc(env(safe-area-inset-top) + 10px);right:12px;z-index:5;display:flex;gap:6px}
 .auth-card form{display:flex;flex-direction:column;gap:14px}
 .auth-card h1{font-size:1.35rem}
 .auth-card .sub{margin:-6px 0 0}
 .auth-logo{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:4px;font:700 2.1rem/1.1 var(--font-display)}
 .auth-logo img{width:76px;height:auto}
+.auth-logo small{margin-top:-2px;font:500 .85rem var(--font-ui);color:var(--ink-2);letter-spacing:.02em}
 .auth-links{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .avatar{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent-grad);color:#fff;font:700 .72rem var(--font-ui);flex-shrink:0}
 .avatar.big{width:56px;height:56px;font-size:1.2rem}
@@ -1136,7 +1156,11 @@ dialog.ear-dlg{width:min(760px,calc(100vw - 24px))}
 .people-add .input{flex:1;min-width:200px}
 .people-list{list-style:none;margin:0;padding:0}
 .people-list li{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
-.people-email{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+/* E-mail e o selo Admin juntos à esquerda; "Você" e as ações ficam à direita. */
+.people-who{flex:1 1 220px;min-width:0;display:flex;align-items:center;gap:8px}
+.people-actions{margin-left:auto}
+.people-email{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.people-who .chip{flex-shrink:0}
 .people-actions{display:flex;align-items:center;gap:4px}
 .google-btn{background:var(--surface);color:var(--ink);border:1px solid var(--line-strong);gap:10px}
 .google-btn:hover:where(:not(:disabled)){background:var(--surface-2)}
@@ -1145,3 +1169,32 @@ dialog.ear-dlg{width:min(760px,calc(100vw - 24px))}
 .auth-or::before,.auth-or::after{content:"";flex:1;height:1px;background:var(--line)}
 .auth-forgot{align-self:flex-end;margin:-6px 0 -4px;font-size:.85rem}
 .auth-switch{margin:0;text-align:center;font-size:.88rem;color:var(--muted)}
+.auth-invite{display:flex;align-items:flex-start;gap:8px;margin:2px 0 0;padding-top:14px;border-top:1px solid var(--line);font-size:.82rem;color:var(--muted)}
+.auth-invite .i{flex-shrink:0;margin-top:2px}
+.pw-wrap{position:relative}
+.pw-wrap .input{padding-right:46px}
+.pw-eye{position:absolute;right:6px;top:0;bottom:0;margin:auto 0}
+.pw-caps{display:flex;align-items:center;gap:6px;font-size:.8rem;font-weight:600;color:var(--warn)}
+.pw-rules{list-style:none;margin:2px 0 0;padding:0;display:flex;flex-direction:column;gap:3px;font-size:.8rem;color:var(--muted)}
+.pw-rules li{display:flex;align-items:center;gap:6px;transition:color var(--t-fast)}
+.pw-rules li.ok{color:var(--ok)}
+/* Indicador de carregamento dentro dos botões. */
+/* Carregando: as barras do logo paradas, com o gradiente da marca correndo por dentro. O gradiente
+   começa e termina na mesma cor e anda exatamente o tamanho dele, então o movimento não tem emenda. */
+.spinner{width:20px;height:17px;flex-shrink:0;
+  background:linear-gradient(90deg,#22C2F5,#2F6BF0,#7B2FF5,#2F6BF0,#22C2F5) 0 0/40px 100%;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='412 140 406 346'%3E%3Cg fill='none' stroke='%23000' stroke-width='44' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M440 342V458M508 270V446M646 340V383'/%3E%3Cpath d='M578 396V214C578 188 598 168 624 168C642 168 656 178 665 194L790 445'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='412 140 406 346'%3E%3Cg fill='none' stroke='%23000' stroke-width='44' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M440 342V458M508 270V446M646 340V383'/%3E%3Cpath d='M578 396V214C578 188 598 168 624 168C642 168 656 178 665 194L790 445'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;
+  animation:spin-flow 1.6s linear infinite}
+@keyframes spin-flow{to{background-position:40px 0}}
+@media (prefers-reduced-motion:reduce){.spinner{animation-duration:4s}}
+.confirm-box{display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:var(--r-md);background:var(--accent-soft);color:var(--accent-soft-ink)}
+.confirm-box > .i{flex-shrink:0;width:22px;height:22px;margin-top:1px}
+.confirm-box b{display:block;font-size:.95rem;margin-bottom:2px}
+.confirm-box p{margin:0 0 6px;font-size:.86rem;line-height:1.45}
+.confirm-box .link-btn{display:inline-flex;align-items:center;gap:6px;font-size:.86rem;font-weight:700}
+.confirm-box small{display:block;margin-top:4px;font-size:.78rem;opacity:.85}
+.input[aria-invalid="true"]{border-color:var(--bad);box-shadow:0 0 0 3px var(--bad-soft)}
+.field-error{font-size:.8rem;font-weight:600;color:var(--bad)}
+.auth-notices{display:flex;flex-direction:column;gap:10px;scroll-margin:16px}
+.note[role="alert"]{margin:0}
+.note-detail{display:block;margin-top:4px;font-size:.74rem;opacity:.75;word-break:break-word}

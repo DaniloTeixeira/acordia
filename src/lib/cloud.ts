@@ -13,8 +13,9 @@ export interface Profile { id: string; email: string; name: string }
 export interface Allowed { email: string; is_admin: boolean }
 // error: o que deu errado na volta do Google ou de um link do e-mail, para a tela de entrar avisar.
 // recovery: voltou pelo link de "esqueci minha senha"; a tela pede a senha nova antes de abrir o app.
-interface AuthState { status: AuthStatus; email: string; admin: boolean; profile: Profile | null; error: "" | "notAllowed" | "error"; recovery: boolean }
-export const useAuth = create<AuthState>(() => ({status: cloud ? "loading" : "off", email: "", admin: false, profile: null, error: "", recovery: false}));
+// errorFrom: de onde veio a volta com erro ("google" ou um link do e-mail); errorDetail: o texto do Supabase.
+interface AuthState { status: AuthStatus; email: string; admin: boolean; profile: Profile | null; error: "" | "notAllowed" | "error"; errorFrom: "" | "google" | "link"; errorDetail: string; recovery: boolean }
+export const useAuth = create<AuthState>(() => ({status: cloud ? "loading" : "off", email: "", admin: false, profile: null, error: "", errorFrom: "", errorDetail: "", recovery: false}));
 
 // Último "tem acesso?" que deu certo: sem internet, quem já entrou continua usando o app.
 const ACCESS = "acordia-access";
@@ -36,6 +37,7 @@ async function refresh(){
   const a = access || {allowed: true, admin: false};
   if(!error) cacheAccess(email, a);
   if(!a.allowed){ useAuth.setState({status: "denied", email, admin: false, profile: null}); return; }
+  setPendingConfirm("");
   const prof = await cloud.from("profiles").select("id,email,name").eq("id", session.user.id).maybeSingle();
   useAuth.setState({status: "in", email, admin: a.admin, profile: (prof.data as Profile | null) || {id: session.user.id, email, name: ""}});
 }
@@ -49,7 +51,10 @@ export async function initAuth(){
   // Volta do Google ou do link do e-mail com erro (ex.: e-mail fora da lista, o banco recusou a conta).
   const q = new URLSearchParams(location.search), h = new URLSearchParams(location.hash.slice(1));
   const err = q.get("error_description") || h.get("error_description") || q.get("error") || h.get("error");
-  if(err) useAuth.setState({error: notAllowed(err) ? "notAllowed" : "error"});
+  // Quem saiu para o Google deixou uma marca: o erro da volta é do Google, não de um link do e-mail.
+  let fromGoogle = false;
+  try{ fromGoogle = sessionStorage.getItem(OAUTH) === "google"; sessionStorage.removeItem(OAUTH); }catch(e){ /* sem armazenamento */ }
+  if(err) useAuth.setState({error: notAllowed(err) ? "notAllowed" : "error", errorFrom: fromGoogle ? "google" : "link", errorDetail: err.replace(/\+/g, " ")});
   await refresh();
   // O link de "esqueci minha senha" volta com ?reset=1 (o PKCE não avisa sozinho que é recuperação).
   if(q.has("reset") && q.has("code") && useAuth.getState().status !== "out") useAuth.setState({recovery: true});
@@ -60,15 +65,17 @@ export async function initAuth(){
 const notAllowed = (msg: string) => /database error|not allowed|signups not allowed/i.test(msg);
 
 // Entrar com o Google: sai para a página do Google e volta para o app já com a sessão.
+const OAUTH = "acordia-oauth";
 export async function signInWithGoogle(){
   if(!cloud) return false;
-  useAuth.setState({error: ""});
+  useAuth.setState({error: "", errorFrom: "", errorDetail: ""});
+  try{ sessionStorage.setItem(OAUTH, "google"); }catch(e){ /* sem armazenamento */ }
   const {error} = await cloud.auth.signInWithOAuth({provider: "google", options: {redirectTo: location.origin + import.meta.env.BASE_URL, queryParams: {prompt: "select_account"}}});
   return !error;
 }
 
 // ---------- e-mail e senha ----------
-export const MIN_PASSWORD = 8;
+export { MIN_PASSWORD } from "./password";
 const home = () => location.origin + import.meta.env.BASE_URL;
 const clean = (email: string) => email.trim().toLowerCase();
 export async function signIn(email: string, password: string): Promise<"ok" | "badLogin" | "notConfirmed" | "error"> {
@@ -79,24 +86,41 @@ export async function signIn(email: string, password: string): Promise<"ok" | "b
 }
 // Criar conta: o banco recusa e-mails fora da lista; a conta só vale depois do link de confirmação,
 // para ninguém criar a conta com o e-mail de outra pessoa da lista.
-export async function signUp(email: string, password: string): Promise<"confirm" | "ok" | "notAllowed" | "exists" | "weak" | "error"> {
-  if(!cloud) return "error";
+// "weak": o Supabase recusou a senha; detail traz a mensagem dele (diz o que falta, ver password.ts).
+export async function signUp(email: string, password: string): Promise<{r: "confirm" | "ok" | "notAllowed" | "exists" | "weak" | "error"; detail?: string}> {
+  if(!cloud) return {r: "error"};
   const {data, error} = await cloud.auth.signUp({email: clean(email), password, options: {emailRedirectTo: home()}});
-  if(error) return notAllowed(error.message) ? "notAllowed" : /already registered/i.test(error.message) ? "exists" : /password/i.test(error.message) ? "weak" : "error";
+  if(error) return notAllowed(error.message) ? {r: "notAllowed"} : /already registered/i.test(error.message) ? {r: "exists"}
+    : /password/i.test(error.message) ? {r: "weak", detail: error.message} : {r: "error"};
   // Conta que já existe: o Supabase responde sem identidades (para não revelar quem tem conta).
-  if(data.user && !(data.user.identities || []).length) return "exists";
-  return data.session ? "ok" : "confirm";
+  if(data.user && !(data.user.identities || []).length) return {r: "exists"};
+  return {r: data.session ? "ok" : "confirm"};
+}
+// E-mail esperando confirmação, guardado no aparelho: quem sai para o app de e-mail e volta (ou
+// recarrega a página) continua vendo o aviso, com o e-mail preenchido. Some ao entrar.
+const PENDING = "acordia-confirm";
+export function pendingConfirm(){ try{ return localStorage.getItem(PENDING) || ""; }catch(e){ return ""; } }
+export function setPendingConfirm(email: string){
+  try{ if(email) localStorage.setItem(PENDING, email); else localStorage.removeItem(PENDING); }catch(e){ /* sem armazenamento */ }
+}
+
+// Manda de novo o link de confirmação de quem criou a conta e ainda não confirmou.
+export async function resendConfirmation(email: string){
+  if(!cloud) return false;
+  const {error} = await cloud.auth.resend({type: "signup", email: clean(email), options: {emailRedirectTo: home()}});
+  return !error;
 }
 export async function forgotPassword(email: string){
   if(!cloud) return false;
   const {error} = await cloud.auth.resetPasswordForEmail(clean(email), {redirectTo: home() + "?reset=1"});
   return !error;
 }
-export async function setNewPassword(password: string){
-  if(!cloud) return false;
+// "" quando deu certo; senão a mensagem do Supabase.
+export async function setNewPassword(password: string): Promise<string> {
+  if(!cloud) return "error";
   const {error} = await cloud.auth.updateUser({password});
   if(!error) useAuth.setState({recovery: false});
-  return !error;
+  return error ? error.message || "error" : "";
 }
 export async function signOut(){
   if(!cloud) return;
@@ -117,7 +141,8 @@ export async function listAllowed(): Promise<Allowed[] | null> {
   const {data, error} = await cloud.from("allowed_emails").select("email,is_admin").order("email");
   return error ? null : data as Allowed[];
 }
-export const validEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
+// nome@dominio.algo, com pelo menos duas letras no fim (pega "nome@gmail" e "nome@gmail.c").
+export const validEmail = (e: string) => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)*\.[a-z]{2,}$/i.test(e.trim());
 export async function addAllowed(email: string, admin: boolean){
   if(!cloud) return false;
   const {error} = await cloud.from("allowed_emails").upsert({email: email.trim().toLowerCase(), is_admin: admin});
