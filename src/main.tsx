@@ -54,7 +54,8 @@ checkIncoming();
 addEventListener("hashchange", checkIncoming);
 
 // ---------- modo offline e atualizações ----------
-// Avisa quando uma versão nova assumir; procura versão nova ao voltar para o app e a cada 30 minutos.
+// Avisa quando uma versão nova assumir; procura versão nova a cada 30 minutos e ao voltar para o app
+// (esta só se a última procura foi há mais de 5 minutos, para não repetir a cada troca de aba).
 if("serviceWorker" in navigator && import.meta.env.PROD){
   const had = !!navigator.serviceWorker.controller;
   let shown = false;
@@ -63,8 +64,9 @@ if("serviceWorker" in navigator && import.meta.env.PROD){
     toast(t("update.ready"), {label: t("update.reload"), run: () => location.reload()}, {sticky: true});
   });
   const register = () => navigator.serviceWorker.register(import.meta.env.BASE_URL + "sw.js").then(reg => {
-    const check = () => reg.update().catch(()=>{});
-    document.addEventListener("visibilitychange", () => { if(!document.hidden) check(); });
+    let last = Date.now();
+    const check = () => { last = Date.now(); reg.update().catch(()=>{}); };
+    document.addEventListener("visibilitychange", () => { if(!document.hidden && Date.now() - last > 5 * 60 * 1000) check(); });
     setInterval(check, 30 * 60 * 1000);
   }).catch(()=>{});
   if(document.readyState === "complete") register(); else addEventListener("load", register);
