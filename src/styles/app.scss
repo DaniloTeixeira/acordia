@@ -83,7 +83,8 @@ input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px color
 input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 35%,transparent)}
 
 *,*::before,*::after{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%;scroll-padding-top:80px}
+/* Sem o bloco azul do toque no celular: ele ignora o arredondamento e cobre o teclado inteiro. */
+html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;scroll-padding-top:80px}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--font-ui);-webkit-font-smoothing:antialiased;transition:background-color var(--t) var(--ease),color var(--t) var(--ease)}
 h1,h2,h3{font-family:var(--font-display);font-weight:700;letter-spacing:-.01em;margin:0}
 h1{font-size:1.6rem;line-height:1.2} h2{font-size:1.15rem} h3{font-size:1rem}
@@ -328,8 +329,9 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .lib-card .when{font-size:.75rem;color:var(--muted)}
 
 /* ---------- estudo ---------- */
-.study-controls{display:flex;flex-direction:column;gap:12px;margin:16px 0}
+.study-controls{display:flex;flex-direction:column;gap:22px;margin:16px 0}
 .roots{display:flex;gap:6px;flex-wrap:wrap}
+.roots-field{gap:6px}
 .root-btn{min-width:44px;height:40px;padding:0 10px;border-radius:var(--r-md);border:1px solid var(--line-strong);background:var(--surface);font-weight:700;cursor:pointer;
   transition:background-color var(--t-fast),color var(--t-fast),border-color var(--t-fast),transform var(--t-fast) var(--ease)}
 .root-btn:active{transform:scale(.94)}
@@ -449,24 +451,31 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .key-box.pop .key-box-note{animation:key-pop .25s var(--ease-out)}
 @keyframes key-pop{from{transform:scale(.85);opacity:.4}}
 @media (max-width:640px){ .key-box{flex:1 1 100%;width:auto;aspect-ratio:auto;container-type:normal;flex-direction:row;justify-content:flex-start;gap:12px;padding:16px 18px}
-  .key-box-note{font-size:1.8rem} .key-box-h{font-size:.95rem} .key-box-sub{font-size:.82rem} .key-box-fn.fn{font-size:.68rem} .key-box-h,.key-box-fn{margin:0} .key-box-h{align-self:center;padding:0 12px 0 0;border-bottom:0;border-right:1px solid var(--line-strong)} }
+  .key-box-note{font-size:3.5rem;line-height:1} .key-box-h{font-size:.95rem} .key-box-sub{font-size:.82rem} .key-box-fn.fn{font-size:.68rem} .key-box-h,.key-box-fn{margin:0}
+  /* Título em cima, separado por uma linha de ponta a ponta; embaixo a nota à esquerda, centrada na altura, e o grau
+     com o chip da função um abaixo do outro, centralizados no espaço que sobra. */
+  .key-box{display:grid;grid-template-columns:auto 1fr;grid-template-areas:"h h" "n s" "n f";align-items:center;justify-items:center;gap:12px 16px;padding:12px 18px 14px}
+  .key-box-h{grid-area:h;justify-self:stretch;margin:0 -18px;padding:0 18px 10px;text-align:center}
+  .key-box-note{grid-area:n} .key-box-sub{grid-area:s;align-self:end;white-space:nowrap} .key-box-fn{grid-area:f;align-self:start;white-space:nowrap} }
 /* Tecla tocando: as pretas num âmbar mais escuro, para não virarem um bloco só com as brancas ao arrastar. */
 /* A tecla acesa vence o hover e os destaques da escala (como o .hit do teclado de prática). */
 .keyboard .w.on{fill:#F59E0B!important;stroke:#F59E0B!important;opacity:1!important}
 .keyboard .b.on{fill:#B45309!important;opacity:1!important}
 /* Tecla segurada: o azul do hover, um pouco mais escuro, enquanto o dedo estiver nela. Vence o hover, mas não
    as cores de mão, a tecla acesa nem a confirmação verde/vermelha do Teclado. */
-.keyboard rect.w.down:not(.on,.hit,.bad,.rh,.lh){fill:#D2DEFD!important;stroke:#B9CBFB!important}
-.keyboard rect.b.down:not(.on,.hit,.bad,.rh,.lh){fill:#2A3648!important}
+.keyboard rect.w.down:not(.on,.hit,.bad,.rh,.lh,.marked){fill:#D2DEFD!important;stroke:#B9CBFB!important}
+.keyboard rect.b.down:not(.on,.hit,.bad,.rh,.lh,.marked){fill:#2A3648!important}
 .keyboard.mini rect.down:is(.in,.root):not(.on){fill:#1D47B8!important;stroke:#1D47B8!important}
 /* No teclado da escala (chips, Tocar, cards do campo), a tecla acende num azul suave. */
 .keyboard.scale .w.on{fill:#C7D6FD!important;stroke:#9DB8FA!important}
 .keyboard.scale .b.on{fill:#5B8CFF!important}
-/* Tecla tocada à mão no teclado da escala: só um contorno (verde da escala, vermelho fora), sem mudar a cor da tecla. */
-.key-mark{pointer-events:none;animation:key-mark .7s var(--ease) both}
-.key-mark .ring{fill:none;stroke-width:1.2}
-.key-mark.ok .ring{stroke:#16A34A} .key-mark.no .ring{stroke:#DC2626}
-@keyframes key-mark{0%{opacity:0}12%,70%{opacity:1}100%{opacity:0}}
+/* Tecla tocada à mão no teclado da escala: uma camada translúcida (verde da escala, vermelho fora) por cima da tecla,
+   enquanto ela estiver apertada (no lugar do azul de tecla segurada); ao soltar, some devagar. */
+.key-mark{pointer-events:none;animation:key-mark-in 80ms var(--ease) both}
+.key-mark.out{animation:key-mark-out .3s var(--ease) both}
+.key-mark .ring{stroke:none;fill-opacity:.45}
+.key-mark.ok .ring{fill:#16A34A} .key-mark.no .ring{fill:#DC2626}
+@keyframes key-mark-in{from{opacity:0}} @keyframes key-mark-out{to{opacity:0}}
 .keyboard text{font-size:10px;font-weight:700;pointer-events:none}
 .keyboard text.in{fill:#1F4FC4} .keyboard text.root{fill:#fff}
 .field-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
@@ -633,6 +642,12 @@ a.btn{text-decoration:none}
 /* Rótulos acima dos campos: a linha alinha pela base, para botões e chaves ficarem na altura dos campos. */
 .study-row:has(.inst-field){align-items:flex-end}
 .study-row:has(.inst-field)>.switch{min-height:40px;padding:0}
+/* Escala, instrumento, timbre e oitava com a mesma largura (cabe o rótulo mais longo, "Pentatônica maior"). */
+.study-row .inst-field .input,.study-row .inst-field .oct-step{width:190px;min-width:0}
+.study-row .inst-field .oct-step{display:flex;justify-content:space-between}
+/* No celular, escala, instrumento, timbre e oitava ficam dois por linha, cada um com metade da largura. */
+@media (max-width:640px){ .study-row:has(.inst-field)>.inst-field{flex:1 1 calc(50% - 5px);min-width:0}
+  .study-row .inst-field .input{width:100%;min-width:0} .study-row .inst-field .oct-step{width:100%} }
 .board-wrap{overflow-x:auto;padding-bottom:4px}
 .fretboard{min-width:560px;width:100%;max-width:760px;height:auto;display:block;touch-action:none;cursor:pointer;user-select:none}
 .fretboard .wood{fill:#E9DCC6} :root[data-theme="dark"] .fretboard .wood{fill:#3A3026}
@@ -783,7 +798,7 @@ a.btn{text-decoration:none}
 .lang-select{appearance:none;border:none;background:transparent;color:inherit;font:inherit;font-weight:600;cursor:pointer;flex:1;padding:0;outline:none}
 .lang-select option{color:var(--ink);background:var(--surface)}
 .lang-item:focus-within{outline:3px solid color-mix(in srgb,var(--accent) 55%,transparent);outline-offset:-2px}
-.lang-item .chev-down{margin-left:auto;opacity:.6}
+.lang-item .chev-down{margin-left:auto}
 .lang-icon{position:relative;overflow:hidden}
 .lang-overlay{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 
@@ -821,9 +836,16 @@ a.btn{text-decoration:none}
 .menu-item{display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 12px;border:none;background:none;border-radius:var(--r-sm);font-weight:600;color:var(--ink);cursor:pointer;text-align:left;transition:background-color var(--t-fast)}
 .menu-item:hover,.menu-item:focus-visible{background:var(--surface-2)}
 .menu-item[aria-checked="true"],.menu-item[aria-selected="true"]{color:var(--accent-soft-ink);background:var(--accent-soft)}
+/* O check do item escolhido no gradiente, como as setas dos dropdowns. */
+.menu-item .i{stroke:url(#g-logo)}
 .lang-item [data-lang-name]{flex:1}
 /* guia de uso */
 .help-btn{color:var(--muted)}
+/* No celular, a interrogação do topo ganha um círculo com o gradiente, como o botão flutuante do computador. */
+.topbar [data-help-btn]{position:relative;color:var(--accent)}
+.topbar [data-help-btn] .i{width:16px;height:16px;stroke-width:2.6}
+.topbar [data-help-btn]::before{content:"";position:absolute;inset:7px;border-radius:50%;border:1.5px solid transparent;background:var(--range-grad) border-box;
+  -webkit-mask:linear-gradient(#000 0 0) padding-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) padding-box exclude,linear-gradient(#000 0 0)}
 .help-steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px;line-height:1.5}
 .help-steps li::marker{color:var(--accent);font-weight:700}
 
@@ -868,9 +890,11 @@ dialog.nudge{animation:shake .35s var(--ease)}
 .native-hidden{display:none!important}
 .select-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;cursor:pointer;font-weight:400;padding-right:10px;min-width:0}
 .select-btn .select-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.select-btn .chev-down{opacity:.6;flex-shrink:0;transition:transform var(--t-fast) var(--ease)}
+.select-btn .chev-down{flex-shrink:0;transition:transform var(--t-fast) var(--ease)}
 .select-btn[aria-expanded="true"]{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
 .select-btn[aria-expanded="true"] .chev-down{transform:rotate(180deg)}
+/* Setas dos dropdowns no gradiente da marca. */
+.chev-down{stroke:url(#g-logo)}
 .select-btn:disabled{opacity:.5;cursor:default}
 .select-pop{overflow-y:auto;max-width:min(340px,calc(100vw - 16px))}
 .menu-group{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:10px 12px 4px}

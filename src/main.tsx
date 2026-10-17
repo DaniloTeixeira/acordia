@@ -28,7 +28,7 @@ applyTheme(theme());
 applyVolume();
 // Um timbre salvo que não existe mais (ex.: o antigo "Teclado") volta ao Piano.
 setTimbre((store.data.settings.timbre as string) || "piano");
-setCues(!!store.data.settings.cues);
+setCues(store.setting("cues", true));
 initMetro();
 
 // Para testes: ?debug expõe os dados.

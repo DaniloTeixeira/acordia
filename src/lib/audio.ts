@@ -357,11 +357,11 @@ export function click(kind: ClickKind, at?: number){
   o.start(t0); o.stop(t0 + c.dur + 0.02);
   return true;
 }
-// ---------- sons de retorno (opcionais, desligados por padrão) ----------
+// ---------- sons de retorno (opcionais, ligados por padrão) ----------
 // Curtos e diferentes do metrônomo (onda quadrada) para não se confundirem com um tempo: um "tic" de vidro ao
 // trocar de oitava, duas notinhas subindo no acerto e, no erro, um zumbido grave e áspero em duas batidas que descem
 // ("é-é"), o sinal clássico de resposta errada.
-let cues = false;
+let cues = true;
 export function setCues(on: boolean){ cues = on; }
 export type Cue = "tick" | "ok" | "bad";
 export function cue(kind: Cue){

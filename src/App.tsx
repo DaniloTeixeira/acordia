@@ -75,9 +75,9 @@ function VolumePop(){
         onPointerUp={() => playChord([0, 4, 7], {base: 60, dur: 0.6})} onKeyUp={() => playChord([0, 4, 7], {base: 60, dur: 0.6})}/>
       <b id="vol-val">{m ? t("vol.muted") : v + "%"}</b></div>
     <p className="sub">{t("vol.hint")}</p>
-    {/* Sons de retorno (tic da oitava, acerto e erro): desligados por padrão. */}
+    {/* Sons de retorno (tic da oitava, acerto e erro): ligados por padrão. */}
     <hr/>
-    <label className="switch lead vol-cues">{t("vol.cues")}<input type="checkbox" id="vol-cues" checked={!!data.settings.cues}
+    <label className="switch lead vol-cues">{t("vol.cues")}<input type="checkbox" id="vol-cues" checked={store.setting("cues", true)}
       onChange={e => { const on = e.target.checked; store.setSetting("cues", on); setCues(on); cue("ok"); }}/></label>
     <p className="sub">{t("vol.cuesHint")}</p>
     {/* Timbre das notas (acordes, escalas, teclado); o metrônomo não muda. */}

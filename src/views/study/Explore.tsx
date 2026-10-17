@@ -61,22 +61,27 @@ export function Explore(){
     const chips = root_.current!.querySelectorAll(".note-chip");
     seq.forEach((iv, i) => setTimeout(() => { flash([base + iv]); showKey(base + iv); const c = chips[i % chips.length]; if(c && i < chips.length){ c.classList.remove("lit"); void (c as HTMLElement).offsetWidth; c.classList.add("lit"); } }, i * 320));
   };
-  // Contorno por cima da tecla tocada, verde (da escala) ou vermelho (fora). O das brancas entra antes
-  // das pretas (não as cobre), o das pretas no fim.
+  // Camada translúcida por cima da tecla tocada, verde (da escala) ou vermelho (fora), que fica enquanto a tecla
+  // está apertada e some ao soltar. A das brancas entra antes das pretas (não as cobre), a das pretas no fim.
+  type Marked = SVGGraphicsElement & {_mark?: SVGGElement | null};
   const markKey = (key: SVGGraphicsElement, ok: boolean) => {
-    const svg = key.ownerSVGElement!, k = key as SVGGraphicsElement & {_mark?: SVGGElement | null};
+    const svg = key.ownerSVGElement!, k = key as Marked;
     if(k._mark) k._mark.remove();
     const white = key.classList.contains("w"), a = (n: string) => +key.getAttribute(n)!;
     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
     g.setAttribute("class", "key-mark " + (ok ? "ok" : "no"));
     g.innerHTML = `<rect class="ring" x="${a("x") + 1}" y="${a("y") + 1}" width="${a("width") - 2}" height="${a("height") - 2}" rx="${white ? 2.5 : 1.5}"/>`;
     if(white) svg.insertBefore(g, svg.querySelector("rect.b")); else svg.appendChild(g);
-    k._mark = g;
-    setTimeout(() => { g.remove(); if(k._mark === g) k._mark = null; }, 700);
+    k._mark = g; key.classList.add("marked");
+  };
+  const unmarkKey = (key: Element | null) => {
+    const k = key as Marked | null, g = k && k._mark; if(!g) return;
+    k._mark = null; k.classList.remove("marked"); g.classList.add("out");
+    setTimeout(() => g.remove(), 300);
   };
   // Teclas clicáveis: a nota soa enquanto a tecla está apertada; arrastando, troca para as notas por onde passa.
   const drag = useRef<{down: boolean; last: Element | null; release?: (() => void) | null}>({down: false, last: null});
-  const lift = () => { drag.current.release?.(); drag.current.last?.classList.remove("down"); drag.current = {down: false, last: null}; };
+  const lift = () => { drag.current.release?.(); drag.current.last?.classList.remove("down"); unmarkKey(drag.current.last); drag.current = {down: false, last: null}; };
   // Botões das notas da escala: soam como a tecla, enquanto estão apertados, e a tecla correspondente aparece
   // apertada no teclado. Pelo teclado do computador (Enter/Espaço), soam como um toque curto.
   const chip = useRef<{release: (() => void) | null; midi: number}>({release: null, midi: 0});
@@ -93,7 +98,7 @@ export function Explore(){
   const press = (el: Element | null) => {
     const key = el && el.closest ? el.closest("[data-midi]") as (HTMLElement & SVGGraphicsElement) | null : null;
     if(!key || key === drag.current.last) return;
-    drag.current.last?.classList.remove("down");
+    drag.current.last?.classList.remove("down"); unmarkKey(drag.current.last);
     drag.current.last = key; key.classList.add("down");
     const midi = +key.dataset.midi!;
     drag.current.release?.();
@@ -104,8 +109,6 @@ export function Explore(){
   const board = strings ? fretboardSVG(inst, marks, I.frets > 12 ? 12 : I.frets) : scaleKeyboardSVG(base, st.rootPc, byPc);
   return <div ref={root_}>
     <div className="study-controls">
-      <div className="roots" role="group" aria-label={t("study.root")}>{Array.from({length:12}, (_, pc) =>
-        <button key={pc} className="root-btn" data-pc={pc} aria-pressed={pc === st.rootPc} onClick={() => setStudy({rootPc: pc})}>{rootFor(pc, st.scaleId)}</button>)}</div>
       <div className="study-row">
         <label className="field inst-field"><span>{t("study.scale")}</span><Select id="st-scale" value={st.scaleId} onChange={v => setStudy({scaleId: v as ScaleId})}
           options={Object.keys(SCALES).map(id => ({value: id, label: t("scale." + id)}))}/></label>
@@ -119,6 +122,9 @@ export function Explore(){
         </div></div>}
         <label className="switch lead" style={{marginLeft: "auto"}}>{t("study.sevenths")}<input type="checkbox" id="st-7" checked={st.sevenths} disabled={!field.length && !st.sevenths} onChange={e => setStudy({sevenths: e.target.checked})}/></label>
       </div>
+      <div className="field roots-field"><span id="st-root-h">{t("study.pickRoot")}</span>
+        <div className="roots" role="group" aria-labelledby="st-root-h">{Array.from({length:12}, (_, pc) =>
+          <button key={pc} className="root-btn" data-pc={pc} aria-pressed={pc === st.rootPc} onClick={() => setStudy({rootPc: pc})}>{rootFor(pc, st.scaleId)}</button>)}</div></div>
     </div>
     <div className="card scale-card">
       <div className="scale-head">

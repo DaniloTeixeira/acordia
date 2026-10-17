@@ -29,6 +29,13 @@ export function Select({value, options, onChange, id, className = "", aria, styl
     const onToggle = (e: Event) => { if((e as ToggleEvent).newState === "closed") setOpen(false); };
     p.addEventListener("toggle", onToggle); return () => p.removeEventListener("toggle", onToggle);
   }, []);
+  // Rolar a tela fecha a lista (a rolagem dentro da própria lista não conta).
+  useEffect(() => {
+    if(!open) return;
+    const onScroll = (e: Event) => { const p = pop.current; if(p && !(e.target instanceof Node && p.contains(e.target))) p.hidePopover(); };
+    document.addEventListener("scroll", onScroll, {capture: true, passive: true});
+    return () => document.removeEventListener("scroll", onScroll, {capture: true});
+  }, [open]);
   const [tg] = useState(() => toggler(() => pop.current, show));
   const choose = (v: string) => {
     pop.current?.hidePopover();
