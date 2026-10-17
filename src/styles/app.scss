@@ -338,21 +338,25 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .scale-card{display:flex;flex-direction:column;gap:16px;margin-bottom:16px}
 .scale-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .scale-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-/* Seletor de oitava: uma pílula da altura do .btn.sm ao lado, com setas nas pontas (no estilo da aba selecionada), a faixa de notas no meio e pontinhos mostrando onde
-   ela está entre as oitavas possíveis. O fundo é o mesmo das abas (.seg). */
-.oct-step{display:inline-flex;align-items:center;gap:2px;box-sizing:border-box;height:34px;padding:3px;border-radius:var(--r-full);background:var(--seg-bg)}
-.oct-btn{display:grid;place-items:center;width:28px;height:28px;border:none;border-radius:var(--r-full);background:var(--surface);color:var(--ink);box-shadow:var(--shadow-sm);cursor:pointer;opacity:.7;
+/* Seletor de oitava: um campo da altura dos selects ao lado (40px), com cara de input (fundo, borda e cantos do .input), setas nas pontas, a faixa de notas no meio e pontinhos mostrando onde
+   ela está entre as oitavas possíveis. */
+.oct-step{display:inline-flex;align-self:flex-start;align-items:center;color:var(--ink);gap:2px;box-sizing:border-box;height:40px;padding:3px;border-radius:var(--r-sm);border:1px solid var(--line-strong);background:var(--surface);
+  transition:border-color var(--t-fast),box-shadow var(--t-fast)}
+/* Como o .input: a borda acende ao focar uma das setas pelo teclado. */
+.oct-step:has(:focus-visible){border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+.oct-step :focus-visible{outline:none}
+.oct-btn{display:grid;place-items:center;width:32px;height:32px;border:none;border-radius:6px;background:transparent;color:var(--ink);cursor:pointer;opacity:.7;
   transition:background var(--t-fast),color var(--t-fast),opacity var(--t-fast),box-shadow var(--t-fast),transform var(--t-fast) var(--ease)}
 .oct-btn.dn .i{transform:rotate(90deg)} .oct-btn.up .i{transform:rotate(-90deg)}
 /* Seta com o gradiente do logo, como o ícone do item ativo da navegação. */
 .oct-btn:not(:disabled) .i{stroke:url(#g-logo)}
 /* Meio apagadas em repouso; acendem por inteiro no hover. */
-.oct-btn:hover:not(:disabled){opacity:1;box-shadow:var(--shadow-md)}
+.oct-btn:hover:not(:disabled){opacity:1;background:var(--surface-2)}
 .oct-btn:active:not(:disabled){transform:scale(.9)}
-/* No limite, a seta fica como uma aba não selecionada: sem fundo e apagada. */
-.oct-btn:disabled{background:transparent;color:var(--seg-ink);box-shadow:none;opacity:.3;cursor:default}
+/* No limite, a seta fica apagada. */
+.oct-btn:disabled{color:var(--muted);opacity:.3;cursor:default}
 /* O texto fica no centro, na mesma linha das setas; os pontinhos ficam logo abaixo, fora do fluxo. */
-.oct-val{position:relative;display:flex;align-items:center;justify-content:center;height:28px;min-width:72px;padding:0 4px}
+.oct-val{position:relative;display:flex;align-items:center;justify-content:center;height:32px;min-width:72px;padding:0 4px}
 /* block: transform não age em elemento inline, e sem ele o deslize virava só um piscar. */
 .oct-val b{display:block;white-space:nowrap;font-size:.85rem;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:.01em}
 .oct-txt{display:block;overflow:hidden}
@@ -372,6 +376,33 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .note-chip b{font-size:1.1rem;font-family:var(--font-display)}
 .note-chip small{font-size:.72rem;color:var(--muted);font-weight:600}
 .keyboard{width:100%;max-width:640px;height:auto;display:block;user-select:none;touch-action:none;cursor:pointer}
+/* Corpo do teclado em volta das teclas: moldura escura, mais alta em cima, com uma faixa no gradiente do logo
+   (o "feltro") logo acima das teclas. --kb-pad é a espessura da moldura nas laterais e embaixo. */
+.keyboard{--kb-pad:8px;padding:calc(var(--kb-pad) + 8px) var(--kb-pad) var(--kb-pad);border-radius:calc(var(--kb-pad) + 6px);
+  background:var(--range-grad) var(--kb-pad) calc(var(--kb-pad) + 2px)/calc(100% - 2 * var(--kb-pad)) 3px no-repeat,linear-gradient(rgba(255,255,255,.07),rgba(255,255,255,0) 45%),linear-gradient(#1E293B,#0F172A);
+  box-shadow:0 0 0 1px var(--kb-edge),inset 0 1px 0 rgba(255,255,255,.2),inset 0 0 0 1px rgba(255,255,255,.04)}
+/* Sem sombra: uma borda fina e clara contorna o desenho, e o reflexo (a linha clara no topo e o brilho que se
+   desfaz para baixo, no fundo) dá o volume da moldura. */
+.keyboard{--kb-edge:#D5DDEA}
+.keyboard.mini{--kb-pad:5px}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .keyboard{--kb-edge:rgba(255,255,255,.14)} }
+:root[data-theme="dark"] .keyboard{--kb-edge:rgba(255,255,255,.14)}
+/* Com painel desenhado no SVG (que já traz o feltro), a moldura é igual em volta e sem a faixa do CSS. */
+.keyboard.has-panel{padding:var(--kb-pad);background:linear-gradient(rgba(255,255,255,.07),rgba(255,255,255,0) 45%),linear-gradient(#1E293B,#0F172A)}
+.kb-panel{pointer-events:none}
+.kb-panel .wheel-slot{fill:#070B14;stroke:#334155;stroke-width:.6}
+.kb-panel .wheel{fill:#475569}
+.kb-panel .knob{fill:#2A3648;stroke:#0B1220;stroke-width:1.2}
+.kb-panel .knob-tick{stroke:#E2E8F0;stroke-width:1.3;stroke-linecap:round}
+.kb-panel .kb-screen{fill:#06121C;stroke:#334155;stroke-width:.6}
+.keyboard .kb-panel .kb-screen-text{font:700 8px var(--font-mono);letter-spacing:.18em;fill:#3BD5FA}
+.kb-panel .kb-btn{fill:#334155}
+.kb-panel .kb-btn.lit{fill:url(#kb-grad)}
+.keyboard .kb-panel .kb-label{font:700 4.5px var(--font-ui);letter-spacing:.08em;fill:#64748B}
+/* Luz de ligado: vermelha, com um halo pulsando devagar. */
+.kb-panel .kb-led{fill:#EF4444}
+.kb-panel .kb-led-glow{fill:#EF4444;opacity:.55;filter:blur(1.5px);animation:kb-led 2.4s ease-in-out infinite}
+@keyframes kb-led{50%{opacity:.25}}
 .keyboard rect{transition:fill var(--t-fast)}
 /* Cores fixas de piano nos dois temas. */
 .keyboard .w{fill:#FFFFFF;stroke:#CBD5E1}
@@ -396,20 +427,28 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .keyboard.scale text.tonic{font-family:var(--font-display);font-size:11px;font-weight:700}
 .keyboard.scale text.tonic.sm{font-size:9px}
 /* Teclado + caixa com a última nota tocada; em tela estreita a caixa desce para baixo do teclado. */
-.kb-row{display:flex;gap:28px;align-items:stretch;flex-wrap:wrap}
+.kb-row{display:flex;gap:28px;align-items:center;flex-wrap:wrap;container-type:inline-size}
 .kb-row .keyboard{flex:1 1 420px;min-width:0}
-.key-box{flex:0 0 150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:20px 18px;border-radius:var(--r-lg);background:var(--surface-2);text-align:center}
-/* Título fixo no topo; nota e grau centralizados no espaço que sobra (margens automáticas dos dois lados). */
-.key-box-h{margin-bottom:auto;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
-.key-box-note{font-family:var(--font-display);font-size:2.6rem;line-height:1.1;color:var(--ink)}
-.key-box-sub{font-size:.82rem;font-weight:700;color:var(--ok-vivid)}
+/* Quadrada e da altura do teclado (no celular vira uma faixa). O SVG do teclado é 338×132 com 8px de moldura,
+   então com o lado L do quadrado (e 28px de gap) o teclado tem (100cqw - 28px - L - 16px) × 132/338 + 16px de
+   altura; igualando a L: L = (100cqw - 44px) × 0,2808 + 11,5px. O limite de 259,7px acompanha o teclado no tamanho
+   máximo (640px). As fontes de dentro crescem com o quadrado. */
+.key-box{flex:0 0 auto;width:min(calc((100cqw - 44px) * .2808 + 11.5px), 259.7px);aspect-ratio:1;container-type:size;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:16px 14px;border-radius:var(--r-lg);background:var(--surface-2);text-align:center}
+/* Título fixo no topo, como um cabeçalho separado por uma linha de ponta a ponta; nota e grau centralizados no
+   espaço que sobra (margens automáticas dos dois lados). Fonte dos títulos, em caixa normal. */
+.key-box-h{align-self:stretch;margin:-2px -14px auto;padding:0 14px 10px;border-bottom:1px solid var(--line-strong);font-family:var(--font-display);font-size:max(.95rem, 8.5cqw);font-weight:700;letter-spacing:-.01em;color:var(--muted)}
+.key-box-note{font-family:var(--font-display);font-weight:700;font-size:32cqw;line-height:1.1;color:var(--ink)}
+.key-box-sub{font-size:max(.82rem, 7.5cqw);font-weight:700;color:var(--ok-vivid)}
 .key-box.out .key-box-sub{color:var(--bad)}
 /* Função harmônica fixa no rodapé do quadro; ocupa o lugar mesmo vazia, para nota e grau não pularem. */
 .key-box-fn{margin-top:auto;min-height:18px;line-height:16px}
-.key-box:not(.pop) .key-box-sub{color:var(--muted)}
+.key-box-fn.fn{font-size:max(.68rem, 6cqw);line-height:1.4}
+/* Antes da primeira tecla, o grau dá lugar à dica "toque uma tecla", mais leve. */
+.key-box:not(.pop) .key-box-sub{color:var(--muted);font-weight:400}
 .key-box.pop .key-box-note{animation:key-pop .25s var(--ease-out)}
 @keyframes key-pop{from{transform:scale(.85);opacity:.4}}
-@media (max-width:640px){ .key-box{flex:1 1 100%;flex-direction:row;justify-content:flex-start;gap:12px} .key-box-note{font-size:1.8rem} .key-box-h,.key-box-fn{margin:0} }
+@media (max-width:640px){ .key-box{flex:1 1 100%;width:auto;aspect-ratio:auto;container-type:normal;flex-direction:row;justify-content:flex-start;gap:12px;padding:16px 18px}
+  .key-box-note{font-size:1.8rem} .key-box-h{font-size:.95rem} .key-box-sub{font-size:.82rem} .key-box-fn.fn{font-size:.68rem} .key-box-h,.key-box-fn{margin:0} .key-box-h{align-self:center;padding:0 12px 0 0;border-bottom:0;border-right:1px solid var(--line-strong)} }
 /* Tecla tocando: as pretas num âmbar mais escuro, para não virarem um bloco só com as brancas ao arrastar. */
 /* A tecla acesa vence o hover e os destaques da escala (como o .hit do teclado de prática). */
 .keyboard .w.on{fill:#F59E0B!important;stroke:#F59E0B!important;opacity:1!important}
@@ -439,7 +478,7 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .chord-card{min-width:0;container-type:inline-size}
 .chord-card .name{font-family:var(--font-display);font-weight:700;font-size:min(1.5rem,calc(100cqi / (var(--len,4) * .64)));line-height:1.1;white-space:nowrap}
 .chord-card .tones{font-size:.8rem;color:var(--muted)}
-.fn{font-size:.68rem;font-weight:700;padding:1px 7px;border-radius:var(--r-full)}
+.fn{font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:var(--r-full)}
 .fn.T{background:var(--ok-soft);color:var(--ok)} .fn.SD{background:var(--sd-soft);color:var(--sd-ink)} .fn.D{background:var(--bad-soft);color:var(--bad)}
 .fn-legend{margin-top:18px;padding-top:16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
 .fn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}

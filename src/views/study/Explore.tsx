@@ -111,6 +111,12 @@ export function Explore(){
           options={Object.keys(SCALES).map(id => ({value: id, label: t("scale." + id)}))}/></label>
         <InstrumentSelect/>
         <TimbreSelect/>
+        {!strings && <div className="field inst-field"><span>{t("study.octaveLabel")}</span><div className="oct-step" role="group" aria-label={t("study.octave")}>
+          {octBtn(-1)}
+          <span className="oct-val"><span className="oct-txt"><b key={oct} id="st-oct" className={octDir.current && "slide-" + octDir.current}>C{kbOct} – B{kbOct + 1}</b></span>
+            <span className="oct-dots" aria-hidden="true">{Array.from({length: OCT_MAX * 2 + 1}, (_, i) => <i key={i} className={i - OCT_MAX === oct ? "on" : ""}/>)}</span></span>
+          {octBtn(1)}
+        </div></div>}
         <label className="switch lead" style={{marginLeft: "auto"}}>{t("study.sevenths")}<input type="checkbox" id="st-7" checked={st.sevenths} disabled={!field.length && !st.sevenths} onChange={e => setStudy({sevenths: e.target.checked})}/></label>
       </div>
     </div>
@@ -118,12 +124,6 @@ export function Explore(){
       <div className="scale-head">
         <div><h2>{t("study.scaleOf", {root, scale: t("scale." + st.scaleId).toLowerCase()})}</h2><p className="sub">{t(sc.minor ? "study.relMajor" : "study.relMinor", {key: relKey})}</p></div>
         <div className="scale-actions">
-          {!strings && <div className="oct-step" role="group" aria-label={t("study.octave")} title={t("study.octave")}>
-            {octBtn(-1)}
-            <span className="oct-val"><span className="oct-txt"><b key={oct} id="st-oct" className={octDir.current && "slide-" + octDir.current}>C{kbOct} – B{kbOct + 1}</b></span>
-              <span className="oct-dots" aria-hidden="true">{Array.from({length: OCT_MAX * 2 + 1}, (_, i) => <i key={i} className={i - OCT_MAX === oct ? "on" : ""}/>)}</span></span>
-            {octBtn(1)}
-          </div>}
           <button className="btn primary sm" id="st-play" onClick={playScale}><Icon name="play" sm/> {t("study.play")}</button>
         </div>
       </div>

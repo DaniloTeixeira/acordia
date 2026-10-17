@@ -71,6 +71,32 @@ export function pianoSVG(midis: number[], rootPc: number){
 }
 
 const WHITE = [0,2,4,5,7,9,11];
+
+// Painel decorativo de teclado acima das teclas (y negativo, as teclas não mudam de lugar): rodas de
+// pitch bend e modulação, knobs, uma telinha com o nome do app, botões e o feltro no gradiente do logo.
+const PANEL = 34;
+function keyboardPanel(w: number){
+  const knob = (cx: number, a: number) => {
+    const r = 6.5, rad = (a - 90) * Math.PI / 180;
+    return `<circle class="knob" cx="${cx}" cy="-17" r="${r}"/><line class="knob-tick" x1="${cx}" y1="-17" x2="${(cx + Math.cos(rad) * (r - 1.5)).toFixed(2)}" y2="${(-17 + Math.sin(rad) * (r - 1.5)).toFixed(2)}"/>`;
+  };
+  // A fenda termina antes da faixa em gradiente, deixando um respiro entre as rodas e as teclas.
+  const wheel = (x: number, mid: number) => `<rect class="wheel-slot" x="${x}" y="-30" width="8" height="21" rx="2.5"/><rect class="wheel" x="${x + 1.5}" y="${mid - 4}" width="5" height="8" rx="1.5"/>`;
+  const sx = w / 2 - 46, bx = w - 66;
+  const buttons = [0,1,2,3].map(i => `<rect class="kb-btn${i === 0 ? " lit" : ""}" x="${bx + i * 15}" y="-22" width="11" height="7" rx="2"/>`).join("");
+  return `<g class="kb-panel" aria-hidden="true">
+    <defs><linearGradient id="kb-grad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3BD5FA"/><stop offset=".55" stop-color="#4C82F5"/><stop offset="1" stop-color="#9A5CF8"/></linearGradient></defs>
+    ${wheel(6, -19.5)}${wheel(17, -15)}
+    ${knob(40, -120)}${knob(58, 30)}${knob(76, 100)}
+    <rect class="kb-screen" x="${sx}" y="-29" width="92" height="20" rx="3"/>
+    <text class="kb-screen-text" x="${w / 2}" y="-15.5" text-anchor="middle">ACORDIA</text>
+    <circle class="kb-led-glow" cx="${sx - 12}" cy="-19" r="4.5"/><circle class="kb-led" cx="${sx - 12}" cy="-19" r="2"/>
+    <text class="kb-label" x="${sx - 12}" y="-9" text-anchor="middle">ON</text>
+    ${buttons}
+    <text class="kb-label" x="${bx}" y="-27">MODE</text>
+    <rect x="0" y="-4" width="${w}" height="3" rx="1.5" fill="url(#kb-grad)"/>
+  </g>`;
+}
 // Teclado de 2 oitavas do explorador. Os nomes ficam escondidos (aparecem no toque, na caixa ao lado),
 // para associar posição e som; só a tônica tem uma marca fixa: um "T" com o gradiente do logo.
 export function scaleKeyboardSVG(startMidi: number, rootPc: number, notesByPc: Record<number, string>){
@@ -87,7 +113,7 @@ export function scaleKeyboardSVG(startMidi: number, rootPc: number, notesByPc: R
       blacks += `<rect class="b${cls}" data-midi="${midi}" x="${x - BW/2}" y="0" width="${BW}" height="${BH}" rx="2"/>` + (root ? `<text class="tonic sm" x="${x}" y="${BH-5}" text-anchor="middle" fill="url(#tonic-grad)">T</text>` : "");
     }
   }
-  return `<svg class="keyboard scale" viewBox="-1 -1 ${x + 2} ${H + 2}" role="img" aria-label="${esc(t("study.keyboardAria"))}"><defs><linearGradient id="tonic-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3BD5FA"/><stop offset=".5" stop-color="#4C82F5"/><stop offset="1" stop-color="#9A5CF8"/></linearGradient></defs>${whites}${blacks}</svg>`;
+  return `<svg class="keyboard scale has-panel" viewBox="-1 ${-PANEL - 1} ${x + 2} ${H + PANEL + 2}" role="img" aria-label="${esc(t("study.keyboardAria"))}">${keyboardPanel(x)}<defs><linearGradient id="tonic-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3BD5FA"/><stop offset=".5" stop-color="#4C82F5"/><stop offset="1" stop-color="#9A5CF8"/></linearGradient></defs>${whites}${blacks}</svg>`;
 }
 
 // Teclado dos exercícios: cobre de lo a hi (em oitavas inteiras), com espaço para o número do dedo.
@@ -99,7 +125,7 @@ export function practiceKeyboardSVG(lo: number, hi: number){
     if(WHITE.includes(pc)){ whites += `<rect class="w" data-midi="${m}" x="${x + 0.5}" y="0.5" width="${W - 1}" height="${H - 1}" rx="3"/>${pc === 0 ? `<text class="oct" x="${x + W/2}" y="${H - 6}">C${Math.floor(m / 12) - 1}</text>` : ""}<text class="fing" data-f="${m}" x="${x + W/2}" y="${H - 22}"></text>`; x += W; }
     else blacks += `<rect class="b" data-midi="${m}" x="${x - BW/2}" y="0" width="${BW}" height="${BH}" rx="2"/><text class="fing light" data-f="${m}" x="${x}" y="${BH - 10}"></text>`;
   }
-  return `<svg class="keyboard practice" viewBox="-1 -1 ${x + 2} ${H + 2}" role="img" aria-label="${esc(t("study.keyboardAria"))}">${whites}${blacks}</svg>`;
+  return `<svg class="keyboard practice has-panel" viewBox="-1 ${-PANEL - 1} ${x + 2} ${H + PANEL + 2}" role="img" aria-label="${esc(t("study.keyboardAria"))}">${keyboardPanel(x)}${whites}${blacks}</svg>`;
 }
 
 // Grau e função de um acorde no tom (quando é diatônico).
