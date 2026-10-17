@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { noteName } from "../lib/core";
 import { INSTRUMENTS, isInstrument, parseChord, voicings } from "../lib/instruments";
 import { chordInKey, diagramSVG, fretboardSVG, pianoSVG, voicingMidis, type Marks } from "../lib/svg";
-import { playChord } from "../lib/audio";
+import { playChord, noteOn } from "../lib/audio";
 import { t, degLabel } from "../lib/i18n";
 import { useData, type DialogProps } from "../state";
 import { Dialog, DialogHead } from "../ui/Dialog";
@@ -41,7 +41,14 @@ export function ChordDialog({symbol, songKey: key}: DialogProps["chord"]){
   const last = useRef("");
   useEffect(() => { const k = symbol + inst + idx; if(k !== last.current){ last.current = k; play(); } });
   const fnName: Record<string, string> = {T:t("study.fnT"), SD:t("study.fnSD"), D:t("study.fnD")};
-  const onBoard = (e: React.PointerEvent) => { const el = (e.target as Element).closest?.("[data-midi]") as HTMLElement | null; if(el) playChord([+el.dataset.midi!], {base:0, dur:1}); };
+  // A nota soa enquanto a tecla está apertada; solta quando o dedo sai, onde quer que seja.
+  const onBoard = (e: React.PointerEvent) => {
+    const el = (e.target as Element).closest?.("[data-midi]") as HTMLElement | null; if(!el) return;
+    const release = noteOn(+el.dataset.midi!); if(!release) return;
+    el.classList.add("down");
+    const up = (ev: PointerEvent) => { if(ev.pointerId !== e.pointerId) return; release(); el.classList.remove("down"); removeEventListener("pointerup", up); removeEventListener("pointercancel", up); };
+    addEventListener("pointerup", up); addEventListener("pointercancel", up);
+  };
   return <Dialog name="chord" id="dlg-chord" className="chord-dlg" labelledBy="chord-h">
     <form method="dialog" className="dlg">
       <DialogHead id="chord-h" title={symbol} closeLabel={t("common.close")}/>

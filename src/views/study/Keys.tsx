@@ -28,7 +28,7 @@ const hasMidi = "requestMIDIAccess" in navigator;
 
 // ---------- teclado MIDI (Chrome/Edge) ----------
 let midiAccess: MIDIAccess | null = null, midiName = "";
-const midiListeners = new Set<() => void>(), noteListeners = new Set<(n: number) => void>();
+const midiListeners = new Set<() => void>(), noteListeners = new Set<(n: number, on: boolean) => void>();
 async function connectMIDI(){
   if(midiAccess || !hasMidi) return;
   try{
@@ -37,7 +37,8 @@ async function connectMIDI(){
       midiName = "";
       midiAccess!.inputs.forEach(inp => {
         midiName = midiName || inp.name || "MIDI";
-        inp.onmidimessage = e => { const d = e.data; if(!d) return; const [s, n, v] = d; if((s & 0xf0) === 0x90 && v > 0) noteListeners.forEach(f => f(n)); };
+        inp.onmidimessage = e => { const d = e.data; if(!d) return; const [s, n, v] = d, k = s & 0xf0;
+          if(k === 0x90 || k === 0x80) noteListeners.forEach(f => f(n, k === 0x90 && v > 0)); };
       });
       midiListeners.forEach(f => f());
     };
@@ -159,8 +160,12 @@ function Practice({ex}: {ex: KeyExercise}){
     saveBest(acc);
     reset({mode:"wait", accuracy: acc, errors: c.errors, secs: Math.round((performance.now() - c.start) / 1000)});
   }
+  // Notas soando enquanto a tecla (na tela ou no MIDI) está apertada.
+  const holding = useRef(new Map<number, () => void>());
+  function noteOff(m: number){ rect(m)?.classList.remove("down"); const r = holding.current.get(m); if(r){ r(); holding.current.delete(m); } }
   function noteOn(m: number, src: "midi" | "screen" | "queued"){
-    if((live.current.sound || src === "screen") && src !== "queued") audio.playChord([m], {base:0, dur:0.9, strum:0});
+    if(src !== "queued") rect(m)?.classList.add("down");
+    if((live.current.sound || src === "screen") && src !== "queued"){ holding.current.get(m)?.(); const r = audio.noteOn(m); if(r) holding.current.set(m, r); }
     const c = cur.current;
     if(!c){ flashKey(m, "hit"); return; }
     if(c.mode !== "wait"){ if(c.mode === "timed") c.played.push({midi:m, t: clock()}); flashKey(m, "hit"); return; }
@@ -187,6 +192,9 @@ function Practice({ex}: {ex: KeyExercise}){
     }, CONFIRM_MS);
   }
   const noteRef = useRef(noteOn); noteRef.current = noteOn;
+  // Tecla da tela segurada: guarda qual nota cada dedo/ponteiro está tocando.
+  const pointers = useRef(new Map<number, number>());
+  const pointerUp = (e: React.PointerEvent) => { const m = pointers.current.get(e.pointerId); if(m !== undefined){ pointers.current.delete(e.pointerId); noteOff(m); } };
 
   // ---------- ouvir (demonstração) e no tempo (com MIDI) ----------
   async function startTimed(demo: boolean){
@@ -226,8 +234,9 @@ function Practice({ex}: {ex: KeyExercise}){
 
   useEffect(() => {
     showStep(0, false);
-    const f = (n: number) => noteRef.current(n, "midi"); noteListeners.add(f);
-    return () => { noteListeners.delete(f); clearInterval(tick.current); const c = cur.current; if(c && c.mode !== "wait") clearTimeout(c.timer); cur.current = null; };
+    const f = (n: number, on: boolean) => { if(on) noteRef.current(n, "midi"); else noteOff(n); }; noteListeners.add(f);
+    const hold = holding.current;
+    return () => { noteListeners.delete(f); hold.forEach(r => r()); hold.clear(); clearInterval(tick.current); const c = cur.current; if(c && c.mode !== "wait") clearTimeout(c.timer); cur.current = null; };
   }, []);
 
   const keyboard = useMemo(() => practiceKeyboardSVG(built.lo, built.hi), [built]);
@@ -255,7 +264,8 @@ function Practice({ex}: {ex: KeyExercise}){
       {!built.fingering && <p className="note">{t("keys.noFingering")}</p>}
       <div className="k-prompt" id="k-prompt" aria-live="polite" hidden ref={prompt}/>
       <div className="board-wrap k-board" dangerouslySetInnerHTML={{__html: keyboard}}
-        onPointerDown={e => { const k = (e.target as Element).closest?.("[data-midi]") as HTMLElement | null; if(k){ e.preventDefault(); noteOn(+k.dataset.midi!, "screen"); } }}/>
+        onPointerDown={e => { const k = (e.target as Element).closest?.("[data-midi]") as HTMLElement | null; if(k){ e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); pointerUp(e); pointers.current.set(e.pointerId, +k.dataset.midi!); noteOn(+k.dataset.midi!, "screen"); } }}
+        onPointerUp={pointerUp} onPointerCancel={pointerUp}/>
       <div className="kgrid-head"><h3>{t("keys.gridTitle")}</h3><p className="sub">{t(built.fingering ? "keys.gridHint" : "keys.gridHintNoFing")}</p></div>
       <div className="kgrid-wrap"><div className="kgrid">
         <div className="kstep klabels" aria-hidden="true"><span className="kbeat">{t("keys.beat")}</span><span className="kc lbl rh">{t("keys.rh")}</span><span className="kc lbl lh">{t("keys.lh")}</span></div>
