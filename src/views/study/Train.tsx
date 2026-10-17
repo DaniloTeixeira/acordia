@@ -1,7 +1,7 @@
 // Treino: rodadas de 10 perguntas (graus, notas, relativas, ouvido e do próprio repertório).
 import { useEffect, useRef, useState } from "react";
 import { makeQuestion, makeRepertoireQuestion, QUIZ_KINDS, NOTE_GRID, CHORD_QUALITIES, cadence, type Question } from "../../lib/core";
-import { playChord, playNotesAt, playProgression, audioNow } from "../../lib/audio";
+import { playChord, playNotesAt, playProgression, audioNow, cue } from "../../lib/audio";
 import { t } from "../../lib/i18n";
 import * as store from "../../lib/store";
 import { useUI, toast } from "../../state";
@@ -15,12 +15,16 @@ const KINDS = ["misto", ...QUIZ_KINDS, "repertorio"];
 const QUAL_LABEL: Record<string, string> = {"":"train.qM", "m":"train.qm", "°":"train.qd", "+":"train.qa"};
 const kindLabel = (k: string) => k === "misto" ? [t("train.mixed"), t("train.mixedD")] : [t("train." + k), t("train." + k + "D")];
 
+// Os sons do treino ficam em volta do Dó central: a nota mais grave entre Fá#3 e Fá4. Mais agudo fica difícil
+// distinguir as notas; mais grave embola e distorce em alto-falante pequeno.
+const baseFor = (pcs: number[]) => Math.min(...pcs) >= 6 ? 48 : 60;
 // Som da pergunta: o acorde, ou (grau de ouvido) a cadência no tom e depois a nota.
 function playQ(q: Question, noteOnly = false){
-  if(!q.ear){ if(q.play) playChord(q.play); return; }
+  if(!q.ear){ if(q.play) playChord(q.play, {base: baseFor(q.play)}); return; }
   const at = audioNow(); if(at === null) return toast(t("study.noAudio"));
-  const tonic = 60 + q.ear.tonic - (q.ear.tonic > 6 ? 12 : 0);
-  const end = noteOnly ? at + 0.05 : (playProgression(cadence(q.ear.minor).map(c => c.map(x => tonic + x)), at + 0.05) ?? at) + 0.35;
+  const tonic = baseFor([q.ear.tonic]) + q.ear.tonic;
+  // Cadência sem pressa (0,75 s por acorde) e uma pausa antes da nota, para o tom assentar.
+  const end = noteOnly ? at + 0.05 : (playProgression(cadence(q.ear.minor).map(c => c.map(x => tonic + x)), at + 0.05, 0.75) ?? at) + 0.45;
   playNotesAt([tonic + q.ear.note], end, 1.3);
 }
 
@@ -53,7 +57,8 @@ export function Train({active}: {active: boolean}){
   const answer = (value: string) => {
     if(quiz.answered) return;
     const ok = value === quiz.q.answer;
-    if(ok && quiz.q.play && quiz.q.kind !== "ouvido") playChord(quiz.q.play);
+    // No acerto que toca o acorde, o próprio acorde é o retorno; nos outros, o som de acerto ou erro.
+    if(ok && quiz.q.play && quiz.q.kind !== "ouvido") playChord(quiz.q.play, {base: baseFor(quiz.q.play)}); else cue(ok ? "ok" : "bad");
     setPhase({kind: "quiz", quiz: {...quiz, answered: true, picked: value, ok, right: quiz.right + (ok ? 1 : 0), streak: ok ? quiz.streak + 1 : 0, bump: ok ? quiz.bump + 1 : quiz.bump}});
   };
   const advance = () => {
@@ -128,9 +133,8 @@ function QuizView({quiz, full, active, answer, advance, quit, setPick}: {quiz: Q
       options={CHORD_QUALITIES.map(x => ({v: x, label: t(QUAL_LABEL[x])}))}/>
       <button className={"btn primary" + (quiz.answered ? (quiz.ok ? " right-btn" : " wrong-btn") : "")} id="tr-confirm" disabled={!quiz.root || quiz.answered}
         onClick={() => answer(quiz.root! + quiz.qual)}>{quiz.root ? t("train.confirmChord", {chord: quiz.root + quiz.qual}) : t("train.confirm")}</button></div></>;
-  const done = quiz.i + (quiz.answered ? 1 : 0);
+  const done = quiz.i + (quiz.answered ? 1 : 0), misses = done - quiz.right;
   return <>
-    <button className="btn ghost sm back" id="tr-quit" onClick={quit}><Icon name="back" sm/> {t("train.change")}</button>
     <div className="quiz card">
       <div className="quiz-top"><span>{t("train.question", {n: quiz.i + 1, total: ROUND})}</span><div className="progress"><span style={{width: done / ROUND * 100 + "%"}}/></div>
         <span key={quiz.bump} className={"streak" + (quiz.bump ? " bump" : "")} title={t("train.streak")}><Icon name="flame" sm/> {quiz.streak}</span></div>
@@ -138,9 +142,19 @@ function QuizView({quiz, full, active, answer, advance, quit, setPick}: {quiz: Q
       {(q.kind === "ouvido" || q.ear) && <div className="study-row"><button className="btn soft sm" id="tr-listen" onClick={() => playQ(q)}><Icon name="sound" sm/> {t("train.listen")}</button>
         {q.ear && <button className="btn ghost sm" id="tr-note" onClick={() => playQ(q, true)}>{t("train.noteOnly")}</button>}</div>}
       {answers}
-      <p className={"feedback" + (quiz.answered ? (quiz.ok ? " ok" : " bad") : "")} aria-live="polite">{quiz.answered ? (quiz.ok ? t("train.right") : t("train.wrong", {answer: q.answer})) : ""}</p>
-      <div className="study-row" style={{justifyContent: "flex-end"}}><button className="btn primary" id="tr-next" ref={nextBtn} hidden={!quiz.answered} onClick={advance}>{quiz.i + 1 >= ROUND ? t("train.finish") : t("train.next")}</button></div>
+      {/* As opções já mostram o acerto e o erro (e a resposta certa) pela cor, então o texto só aparece ao montar o
+          acorde, onde a resposta certa não aparece em outro lugar; nos outros casos fica só para leitores de tela. */}
+      <div className="study-row tr-foot">
+        {/* Placar da rodada à esquerda do botão; o número que muda dá um pulo (a key troca e a animação roda). */}
+        <div className="tr-score" role="group" aria-label={t("train.score")}>
+          <span className="ok"><b key={"r" + quiz.right} className={quiz.answered && quiz.ok ? "bump" : ""}>{quiz.right}</b><small>{t("train.hits")}</small></span>
+          <span className="bad"><b key={"w" + misses} className={quiz.answered && !quiz.ok ? "bump" : ""}>{misses}</b><small>{t("train.misses")}</small></span>
+        </div>
+        <p className={"feedback" + (quiz.answered ? (quiz.ok ? " ok" : " bad") : "") + (building ? "" : " sr-only")} aria-live="polite">{quiz.answered ? (quiz.ok ? t("train.right") : t("train.wrong", {answer: q.answer})) : ""}</p>
+        <button className="btn primary" id="tr-next" ref={nextBtn} disabled={!quiz.answered} onClick={advance}>{quiz.i + 1 >= ROUND ? t("train.finish") : t("train.next")}</button></div>
     </div>
+    {/* Trocar de treino fica embaixo do card, longe dos botões de resposta. */}
+    <button className="btn ghost sm back tr-quit" id="tr-quit" onClick={quit}><Icon name="back" sm/> {t("train.change")}</button>
   </>;
 }
 

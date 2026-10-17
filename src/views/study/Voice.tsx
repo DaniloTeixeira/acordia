@@ -74,7 +74,8 @@ function Sing({openEarTraining}: {openEarTraining: () => void}){
   const playTonality = (full: boolean) => {
     const g = game.current; if(!g) return;
     const chords = cadence(g.minor).map(c => c.map(x => g.tonic + x));
-    playAndMute(at => audio.playProgression(full ? chords : chords.slice(-1), at, full ? 0.6 : 0.9));
+    // Um pouco mais devagar que a cadência padrão (0,7 s por acorde), para dar tempo de assentar o tom antes de cantar.
+    playAndMute(at => audio.playProgression(full ? chords : chords.slice(-1), at, full ? 0.7 : 1));
   };
   const nextNote = (first: boolean) => {
     const g = game.current!;
@@ -155,18 +156,21 @@ function Sing({openEarTraining}: {openEarTraining: () => void}){
         <div className="quiz-top"><span>{t("train.question", {n: phase.i + 1, total: ROUND})}</span><div className="progress"><span style={{width: done / ROUND * 100 + "%"}}/></div>
           <span className="chip accent">{t("voice.inKey", {key: phase.key})}</span></div>
         <p className="prompt">{t("voice.singThe", {ord: ordinal(phase.n), n: phase.n})} <small className="voice-note">({g ? noteLabel(g, phase.n) : ""})</small></p>
-        <div className="voice-meter" aria-live="polite" ref={meter}>
+        <div className="voice-meter" ref={meter}>
           <div className="tuner-meter"><div className="tuner-scale">{[-50,-25,0,25,50].map(v => <span key={v} style={{left: (50 + v * 0.9) + "%"}}>{v > 0 ? "+" + v : v}</span>)}</div>
             <div className="voice-zone" style={{left: (50 - TOLERANCE[st.level] * 0.9) + "%", width: TOLERANCE[st.level] * 1.8 + "%"}}/><div className="tuner-needle" id="vs-needle" ref={needle}/></div>
           <div className="voice-hold"><span id="vs-hold" ref={hold}/></div>
-          <p className="tuner-cents" id="vs-status" ref={status}>{t("voice.listening")}</p>
+        </div>
+        {/* Estado do microfone à esquerda e o resultado da nota à direita, na mesma linha. */}
+        <div className="voice-line">
+          <p className="tuner-cents" id="vs-status" ref={status} aria-live="polite">{t("voice.listening")}</p>
+          <p className={"feedback" + (fb ? (fb.ok ? " ok" : " bad") : "")} aria-live="polite">{fb ? fb.text : ""}</p>
         </div>
         <div className="study-row">
           <button className="btn soft sm" id="vs-key-again" onClick={() => playTonality(true)}><Icon name="sound" sm/> {t("voice.keyAgain")}</button>
           <button className="btn ghost sm" id="vs-hint" onClick={() => { const g2 = game.current; if(!g2) return; g2.helped = true; playAndMute(at => { audio.playNotesAt([g2.tonic + degreeStep(g2, g2.n)], at, 1.2); return at + 1.2; }); }}>{t("voice.hearNote")}</button>
           <button className="btn ghost sm" id="vs-skip" style={{marginLeft: "auto"}} onClick={() => finishNote(false)}>{t("voice.skip")}</button>
         </div>
-        <p className={"feedback" + (fb ? (fb.ok ? " ok" : " bad") : "")} aria-live="polite">{fb ? fb.text : ""}</p>
       </div>
     </>;
   }
@@ -256,7 +260,8 @@ function VoiceRange(){
           return <div key={which} className={"voice-step" + (on ? " measuring" : "")} data-step={which}>
             <span className="lbl">{t(which === "low" ? "voice.lowest" : "voice.highest")}</span>
             <b className="voice-val">{val ? midiName(val) : "—"}</b>
-            <span className="voice-live" hidden={!on}>{on ? measuring.live : ""}</span>
+            {/* Sempre no lugar (só invisível fora da medição), para o card não crescer quando a nota ao vivo aparece. */}
+            <span className={"voice-live" + (on ? "" : " idle")} aria-hidden={!on}>{on ? measuring.live : ""}</span>
             <div className="voice-step-actions">
               <button className="btn soft sm" data-measure={which} onClick={() => {
                 const was = measuring && measuring.which;
