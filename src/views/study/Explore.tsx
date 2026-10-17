@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { SCALES, noteName, spellScale, scaleDegrees, harmonicField, relativeKey, rootFor, type FieldChord, type ScaleId } from "../../lib/core";
 import { INSTRUMENTS, isInstrument, voicings } from "../../lib/instruments";
 import { fretboardSVG, diagramSVG, scaleKeyboardSVG, type Marks } from "../../lib/svg";
-import { playChord, playSequence, noteOn } from "../../lib/audio";
+import { playSequence, noteOn } from "../../lib/audio";
 import { t, degLabel } from "../../lib/i18n";
 import { toast, openDialog } from "../../state";
 import { Icon } from "../../ui/Icon";
@@ -77,8 +77,19 @@ export function Explore(){
   // Teclas clicáveis: a nota soa enquanto a tecla está apertada; arrastando, troca para as notas por onde passa.
   const drag = useRef<{down: boolean; last: Element | null; release?: (() => void) | null}>({down: false, last: null});
   const lift = () => { drag.current.release?.(); drag.current.last?.classList.remove("down"); drag.current = {down: false, last: null}; };
+  // Botões das notas da escala: soam como a tecla, enquanto estão apertados, e a tecla correspondente aparece
+  // apertada no teclado. Pelo teclado do computador (Enter/Espaço), soam como um toque curto.
+  const chip = useRef<{release: (() => void) | null; midi: number}>({release: null, midi: 0});
+  const chipKeys = (midi: number, on: boolean) => root_.current?.querySelectorAll(`.keyboard [data-midi="${midi}"]`).forEach(k => k.classList.toggle("down", on));
+  const chipUp = () => { const c = chip.current; if(c.release){ c.release(); c.release = null; chipKeys(c.midi, false); } };
+  const chipDown = (midi: number) => {
+    chipUp();
+    const r = noteOn(midi); if(!r) return toast(t("study.noAudio"));
+    chip.current = {release: r, midi}; chipKeys(midi, true); showKey(midi);
+    if(strings) flash([midi], "in-scale");
+  };
   // Saindo da tela com a tecla ainda apertada, a nota é solta.
-  useEffect(() => () => { drag.current.release?.(); }, []);
+  useEffect(() => () => { drag.current.release?.(); chip.current.release?.(); }, []);
   const press = (el: Element | null) => {
     const key = el && el.closest ? el.closest("[data-midi]") as (HTMLElement & SVGGraphicsElement) | null : null;
     if(!key || key === drag.current.last) return;
@@ -117,7 +128,8 @@ export function Explore(){
         </div>
       </div>
       <div className="scale-notes">{names.concat(names[0]).map((n, i) => <button key={i} className="note-chip" data-i={i}
-        onClick={() => { const iv = seq[i]; playChord([iv], {base}); flash([base + iv]); showKey(base + iv); }}><b>{n}</b><small>{degLabel(degs[i % names.length])}</small></button>)}</div>
+        onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); chipDown(base + seq[i]); }} onPointerUp={chipUp} onPointerCancel={chipUp}
+        onClick={e => { if(e.detail === 0){ chipDown(base + seq[i]); setTimeout(chipUp, 350); } }}><b>{n}</b><small>{degLabel(degs[i % names.length])}</small></button>)}</div>
       <div className="board-wrap"
         onPointerDown={e => { lift(); drag.current.down = true; e.currentTarget.setPointerCapture(e.pointerId); press(e.target as Element); e.preventDefault(); }}
         onPointerMove={e => { if(drag.current.down) press(document.elementFromPoint(e.clientX, e.clientY)); }}
