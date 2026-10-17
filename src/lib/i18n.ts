@@ -223,6 +223,9 @@ const pt: Dict = {
   "study.root":"Tônica",
   "study.scale":"Escala",
   "study.sevenths":"Tétrades (com sétima)",
+  "study.octave":"Oitava do teclado",
+  "study.octaveDown":"Uma oitava abaixo",
+  "study.octaveUp":"Uma oitava acima",
   "study.scaleOf":"Escala de {root} {scale}",
   "study.play":"Tocar escala",
   "study.relMinor":"Relativa menor: {key}",
@@ -644,7 +647,9 @@ const pt: Dict = {
   "tip.export":"Salva um arquivo com todas as suas músicas, repertórios e medleys.",
   "tip.import":"Carrega um backup exportado antes, deste ou de outro aparelho.",
   "tip.volume":"Volume dos sons do app. Role o mouse aqui para ajustar.",
+  "tip.volume.touch":"Volume dos sons do app. Toque para ajustar.",
   "tip.tap":"Toque aqui (ou aperte T) umas 4 vezes no ritmo da música e o metrônomo descobre o BPM.",
+  "tip.tap.touch":"Toque aqui umas 4 vezes no ritmo da música e o metrônomo descobre o BPM.",
   "tip.youPlay":"Escolha a mão que você vai tocar; o app toca a outra."
 };
 
@@ -868,6 +873,9 @@ const en: Dict = {
   "study.root":"Root",
   "study.scale":"Scale",
   "study.sevenths":"Seventh chords",
+  "study.octave":"Keyboard octave",
+  "study.octaveDown":"One octave down",
+  "study.octaveUp":"One octave up",
   "study.scaleOf":"{root} {scale} scale",
   "study.play":"Play scale",
   "study.relMinor":"Relative minor: {key}",
@@ -1289,7 +1297,9 @@ const en: Dict = {
   "tip.export":"Saves a file with all your songs, setlists and medleys.",
   "tip.import":"Loads a backup you exported before, from this or another device.",
   "tip.volume":"Volume of the app's sounds. Scroll here to adjust.",
+  "tip.volume.touch":"Volume of the app's sounds. Tap to adjust.",
   "tip.tap":"Tap here (or press T) about 4 times along with the song and the metronome finds the BPM.",
+  "tip.tap.touch":"Tap here about 4 times along with the song and the metronome finds the BPM.",
   "tip.youPlay":"Pick the hand you'll play; the app plays the other one."
 };
 
@@ -1513,6 +1523,9 @@ const es: Dict = {
   "study.root":"Tónica",
   "study.scale":"Escala",
   "study.sevenths":"Cuatríadas (con séptima)",
+  "study.octave":"Octava del teclado",
+  "study.octaveDown":"Una octava abajo",
+  "study.octaveUp":"Una octava arriba",
   "study.scaleOf":"Escala de {root} {scale}",
   "study.play":"Tocar escala",
   "study.relMinor":"Relativa menor: {key}",
@@ -1934,7 +1947,9 @@ const es: Dict = {
   "tip.export":"Guarda un archivo con todas tus canciones, repertorios y medleys.",
   "tip.import":"Carga una copia exportada antes, de este u otro dispositivo.",
   "tip.volume":"Volumen de los sonidos de la app. Desplaza la rueda aquí para ajustar.",
+  "tip.volume.touch":"Volumen de los sonidos de la app. Toca para ajustar.",
   "tip.tap":"Toca aquí (o pulsa T) unas 4 veces al ritmo de la canción y el metrónomo descubre el BPM.",
+  "tip.tap.touch":"Toca aquí unas 4 veces al ritmo de la canción y el metrónomo descubre el BPM.",
   "tip.youPlay":"Elige la mano que vas a tocar; la app toca la otra."
 };
 

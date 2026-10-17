@@ -7,7 +7,7 @@ import { setLang, detectLang, t, getLang } from "./lib/i18n";
 import { decodeMedley } from "./lib/share";
 import { setTimbre } from "./lib/audio";
 import { clearMeasureCache } from "./lib/util";
-import { useUI, toast, openDialog, VIEWS, type View } from "./state";
+import { useUI, toast, openDialog, VIEWS, viewFromHash, viewUrl, type View } from "./state";
 import { current } from "./repertoire";
 import { initMetro } from "./metro";
 import { initTooltips } from "./ui/tooltips";
@@ -19,8 +19,11 @@ const m = current();
 // Com uma música só, ou com alguma ainda vazia, os itens já abrem para editar.
 if(m.items.length === 1 || m.items.some(i => i.type !== "medley" && !(store.data.songs.get(i.songId) || {text: ""}).text.trim()))
   useUI.setState({expanded: new Set(m.items.map(i => i.id))});
-const view = store.data.settings.view as View;
-useUI.setState({lang: getLang(), view: VIEWS.includes(view) ? view : "medley"});
+// A página do endereço vence a última aberta; o endereço passa a mostrar a página aberta.
+const saved = store.data.settings.view as View;
+const view = viewFromHash() ?? (VIEWS.includes(saved) ? saved : "medley");
+useUI.setState({lang: getLang(), view});
+if(!/^#m=/.test(location.hash)) history.replaceState(null, "", viewUrl(view));
 applyTheme(theme());
 applyVolume();
 // Um timbre salvo que não existe mais (ex.: o antigo "Teclado") volta ao Piano.
@@ -43,7 +46,7 @@ addEventListener("pagehide", () => store.flush());
 async function checkIncoming(){
   const mt = /^#m=(.+)$/.exec(location.hash); if(!mt) return;
   const med = await decodeMedley(mt[1]);
-  history.replaceState(null, "", location.pathname + location.search);
+  history.replaceState(null, "", viewUrl(useUI.getState().view));
   if(!med) return toast(t("incoming.bad"));
   openDialog("incoming", {med});
 }

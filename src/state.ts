@@ -75,8 +75,23 @@ export function confirmDialog(p: {title: string; message: string; confirm?: stri
 // Aplica a mudança dentro de uma transição animada (o React desenha na hora, com flushSync).
 export function animate(run: () => void, kind: VtKind = "fade"){ return vt(() => flushSync(run), kind); }
 
-export function go(v: string, {instant = false} = {}){
+// Cada página tem seu endereço (#library, #study, #tools; o repertório fica sem hash), para o voltar
+// do navegador e do mouse trocar de tela. Os links de repertório (#m=...) não são páginas.
+export function viewFromHash(): View | null {
+  const h = location.hash.slice(1);
+  return (VIEWS as string[]).includes(h) ? h as View : null;
+}
+export function viewUrl(view: View){ return location.pathname + location.search + (view === "medley" ? "" : "#" + view); }
+addEventListener("popstate", () => {
+  const v = viewFromHash() ?? (location.hash ? null : "medley");
+  if(v && v !== useUI.getState().view) go(v, {push: false});
+});
+
+export function go(v: string, {instant = false, push = true} = {}){
   const view = (VIEWS as string[]).includes(v) ? v as View : "medley";
+  // Já na página: só volta ao topo, sem transição (ela fazia a tela piscar).
+  if(view === useUI.getState().view){ window.scrollTo({top: 0, behavior: "smooth"}); return null; }
+  if(push) history.pushState(null, "", viewUrl(view));
   store.setSetting("view", view);
   const run = () => { useUI.setState({view}); window.scrollTo({top: 0}); };
   if(instant){ run(); return null; }

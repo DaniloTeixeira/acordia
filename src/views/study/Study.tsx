@@ -11,11 +11,14 @@ import { Voice } from "./Voice";
 import { useState } from "react";
 import type { ScaleId, Level } from "../../lib/core";
 
-export interface StudyState { tab: "explore" | "train" | "hands" | "voice"; rootPc: number; scaleId: ScaleId; sevenths: boolean; kind: string; level: Level; mode: "choice" | "full"; handsMode: "rhythm" | "keys" }
-const DEFAULTS: StudyState = {tab:"explore", rootPc:0, scaleId:"maior", sevenths:false, kind:"misto", level:"facil", mode:"choice", handsMode:"rhythm"};
+export interface StudyState { tab: "explore" | "train" | "hands" | "voice"; rootPc: number; scaleId: ScaleId; sevenths: boolean; octave: number; kind: string; level: Level; mode: "choice" | "full"; handsMode: "rhythm" | "keys" }
+// Quantas oitavas o teclado do Explorar desce ou sobe a partir da posição padrão (C1 a B7 nos extremos).
+export const OCT_MAX = 2;
+const DEFAULTS: StudyState = {tab:"explore", rootPc:0, scaleId:"maior", sevenths:false, octave:0, kind:"misto", level:"facil", mode:"choice", handsMode:"rhythm"};
 export function studyState(): StudyState {
   const s = Object.assign({}, DEFAULTS, store.data.settings.study || {}) as StudyState;
   if(!["explore", "train", "hands", "voice"].includes(s.tab)) s.tab = "explore";
+  s.octave = Math.max(-OCT_MAX, Math.min(OCT_MAX, Math.round(+s.octave) || 0));
   return s;
 }
 export function setStudy(p: Partial<StudyState>){ store.setSetting("study", Object.assign(studyState(), p)); }

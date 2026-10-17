@@ -124,8 +124,8 @@ export function Library(){
       <div><h1 id="lib-h">{t("lib.title")}</h1><p className="sub" id="lib-sub">{t("lib.sub", {songs: songsN(all.length), medleys: medleysN(setlists.length)})}</p></div>
       <div className="actions">
         <button className="btn primary" id="lib-new" onClick={() => openDialog("song", {song: null})}><Icon name="plus"/><span>{t("lib.new")}</span></button>
-        <button className="btn ghost" id="lib-export" data-tip-key="tip.export" onClick={exportLibrary}><Icon name="export"/><span className="label-lg">{t("lib.export")}</span></button>
-        <label className="btn ghost" tabIndex={0} id="lib-import-btn" data-tip-key="tip.import"
+        <button className="btn ghost" id="lib-export" data-tip-key="tip.export" aria-label={t("lib.export")} onClick={exportLibrary}><Icon name="export"/><span className="label-lg">{t("lib.export")}</span></button>
+        <label className="btn ghost" tabIndex={0} id="lib-import-btn" data-tip-key="tip.import" role="button" aria-label={t("lib.import")}
           onKeyDown={e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); e.currentTarget.querySelector("input")?.click(); } }}>
           <Icon name="import"/><span className="label-lg">{t("lib.import")}</span>
           <input type="file" id="lib-import" accept="application/json,.json" hidden onChange={e => { const f = e.target.files?.[0]; e.target.value = ""; if(f) importLibrary(f); }}/></label>

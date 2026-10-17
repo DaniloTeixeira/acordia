@@ -109,8 +109,8 @@ export function Repertoire(){
         <p className="sub" id="medley-sub">{sub}</p>
       </div>
       <div className="actions">
-        <button className="btn ghost" id="btn-new-medley" data-tip-key="tip.new" onClick={newMedley}><Icon name="plus"/><span className="label-lg">{t("medley.new")}</span></button>
-        <button className="btn ghost" id="btn-share" data-tip-key="tip.share" onClick={() => shareMedley(m)}><Icon name="share"/><span className="label-lg">{t("medley.share")}</span></button>
+        <button className="btn ghost" id="btn-new-medley" data-tip-key="tip.new" aria-label={t("medley.new")} onClick={newMedley}><Icon name="plus"/><span className="label-lg">{t("medley.new")}</span></button>
+        <button className="btn ghost" id="btn-share" data-tip-key="tip.share" aria-label={t("medley.share")} onClick={() => shareMedley(m)}><Icon name="share"/><span className="label-lg">{t("medley.share")}</span></button>
         <button className="btn primary" id="btn-stage" data-tip-key="tip.stage" onClick={() => useUI.setState({stageOpen: true})}><Icon name="stage"/><span>{t("medley.stage")}</span></button>
       </div>
     </div>

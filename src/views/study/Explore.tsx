@@ -1,16 +1,16 @@
 // Explorador: escala no teclado ou no braço, campo harmônico com funções e a legenda das funções.
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SCALES, noteName, spellScale, scaleDegrees, harmonicField, relativeKey, rootFor, type FieldChord, type ScaleId } from "../../lib/core";
 import { INSTRUMENTS, isInstrument, voicings } from "../../lib/instruments";
 import { fretboardSVG, diagramSVG, scaleKeyboardSVG, type Marks } from "../../lib/svg";
-import { playChord, playSequence } from "../../lib/audio";
+import { playChord, playSequence, noteOn } from "../../lib/audio";
 import { t, degLabel } from "../../lib/i18n";
 import { toast, openDialog } from "../../state";
 import { Icon } from "../../ui/Icon";
 import { Select } from "../../ui/Select";
 import { InstrumentSelect, TimbreSelect } from "../InstrumentSelect";
 import { instrument } from "../Repertoire";
-import { studyState, setStudy } from "./Study";
+import { studyState, setStudy, OCT_MAX } from "./Study";
 
 function FnLegend({field, fnName}: {field: FieldChord[]; fnName: Record<string, string>}){
   const by = (f: string) => field.filter(c => c.fn === f);
@@ -38,7 +38,15 @@ export function Explore(){
   const keyLabel = root + (sc.minor ? "m" : "");
   const mini = (c: FieldChord) => { if(!strings || I.arpeggio) return ""; const v = voicings(c.name, inst, 1)[0]; return v ? diagramSVG(v, inst, {small:true}) : ""; };
   // A escala fecha com a tônica uma oitava acima, nos chips e na reprodução.
-  const base = (st.rootPc < 5 ? 60 : 48) + st.rootPc, seq = sc.iv.concat(12);
+  // No teclado dá para oitavar: teclas, escala, chips e campo harmônico sobem ou descem juntos.
+  const oct = strings ? 0 : st.octave;
+  const base = (st.rootPc < 5 ? 60 : 48) + st.rootPc + oct * 12, seq = sc.iv.concat(12);
+  const kbOct = (base - st.rootPc) / 12 - 1;
+  // A faixa de notas desliza para o lado da seta apertada (entra pela direita ao subir, pela esquerda ao descer).
+  const prevOct = useRef(oct), octDir = useRef<"up" | "dn" | "">("");
+  if(prevOct.current !== oct){ octDir.current = oct > prevOct.current ? "up" : "dn"; prevOct.current = oct; }
+  const octBtn = (d: -1 | 1) => <button className={"oct-btn " + (d < 0 ? "dn" : "up")} data-oct={d} aria-label={t(d < 0 ? "study.octaveDown" : "study.octaveUp")}
+    disabled={d < 0 ? oct <= -OCT_MAX : oct >= OCT_MAX} onClick={() => setStudy({octave: oct + d})}><Icon name="chev" sm/></button>;
   const flash = (midis: number[], cls = "on") => midis.forEach(m => root_.current?.querySelectorAll(`[data-midi="${m}"]`).forEach(k => { k.classList.add(cls); setTimeout(()=>k.classList.remove(cls), 450); }));
   // Caixa ao lado do teclado: sempre a última nota tocada, com o grau na escala (ou "fora da escala")
   // e a função harmônica do grau (só nas escalas que têm T/SD/D).
@@ -66,14 +74,19 @@ export function Explore(){
     k._mark = g;
     setTimeout(() => { g.remove(); if(k._mark === g) k._mark = null; }, 700);
   };
-  // Teclas clicáveis; segurando e arrastando, toca as notas por onde passa.
-  const drag = useRef<{down: boolean; last: Element | null}>({down: false, last: null});
+  // Teclas clicáveis: a nota soa enquanto a tecla está apertada; arrastando, troca para as notas por onde passa.
+  const drag = useRef<{down: boolean; last: Element | null; release?: (() => void) | null}>({down: false, last: null});
+  const lift = () => { drag.current.release?.(); drag.current.last?.classList.remove("down"); drag.current = {down: false, last: null}; };
+  // Saindo da tela com a tecla ainda apertada, a nota é solta.
+  useEffect(() => () => { drag.current.release?.(); }, []);
   const press = (el: Element | null) => {
     const key = el && el.closest ? el.closest("[data-midi]") as (HTMLElement & SVGGraphicsElement) | null : null;
     if(!key || key === drag.current.last) return;
-    drag.current.last = key;
+    drag.current.last?.classList.remove("down");
+    drag.current.last = key; key.classList.add("down");
     const midi = +key.dataset.midi!;
-    if(!playChord([0], {base: midi, dur: 1.2})) return toast(t("study.noAudio"));
+    drag.current.release?.();
+    if(!(drag.current.release = noteOn(midi))) return toast(t("study.noAudio"));
     if(key.ownerSVGElement && key.ownerSVGElement.classList.contains("keyboard")){ markKey(key, (midi % 12) in byPc); showKey(midi); }
     else flash([midi], "in-scale");
   };
@@ -93,14 +106,22 @@ export function Explore(){
     <div className="card scale-card">
       <div className="scale-head">
         <div><h2>{t("study.scaleOf", {root, scale: t("scale." + st.scaleId).toLowerCase()})}</h2><p className="sub">{t(sc.minor ? "study.relMajor" : "study.relMinor", {key: relKey})}</p></div>
-        <button className="btn primary sm" id="st-play" onClick={playScale}><Icon name="play" sm/> {t("study.play")}</button>
+        <div className="scale-actions">
+          {!strings && <div className="oct-step" role="group" aria-label={t("study.octave")} title={t("study.octave")}>
+            {octBtn(-1)}
+            <span className="oct-val"><span className="oct-txt"><b key={oct} id="st-oct" className={octDir.current && "slide-" + octDir.current}>C{kbOct} – B{kbOct + 1}</b></span>
+              <span className="oct-dots" aria-hidden="true">{Array.from({length: OCT_MAX * 2 + 1}, (_, i) => <i key={i} className={i - OCT_MAX === oct ? "on" : ""}/>)}</span></span>
+            {octBtn(1)}
+          </div>}
+          <button className="btn primary sm" id="st-play" onClick={playScale}><Icon name="play" sm/> {t("study.play")}</button>
+        </div>
       </div>
       <div className="scale-notes">{names.concat(names[0]).map((n, i) => <button key={i} className="note-chip" data-i={i}
         onClick={() => { const iv = seq[i]; playChord([iv], {base}); flash([base + iv]); showKey(base + iv); }}><b>{n}</b><small>{degLabel(degs[i % names.length])}</small></button>)}</div>
       <div className="board-wrap"
-        onPointerDown={e => { drag.current = {down: true, last: null}; e.currentTarget.setPointerCapture(e.pointerId); press(e.target as Element); e.preventDefault(); }}
+        onPointerDown={e => { lift(); drag.current.down = true; e.currentTarget.setPointerCapture(e.pointerId); press(e.target as Element); e.preventDefault(); }}
         onPointerMove={e => { if(drag.current.down) press(document.elementFromPoint(e.clientX, e.clientY)); }}
-        onPointerUp={() => { drag.current = {down: false, last: null}; }} onPointerCancel={() => { drag.current = {down: false, last: null}; }}>
+        onPointerUp={lift} onPointerCancel={lift}>
         {strings ? <div style={{display: "contents"}} dangerouslySetInnerHTML={{__html: board}}/>
           : <div className="kb-row"><div style={{display: "contents"}} dangerouslySetInnerHTML={{__html: board}}/>
             <div key={box ? box.n : 0} className={"key-box" + (box && box.out ? " out" : "") + (box ? " pop" : "")} aria-live="polite">

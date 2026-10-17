@@ -1,6 +1,7 @@
 // Estrutura do app: navegação (trilho no computador, barra de abas no celular), páginas, modo
 // palco, janelas, menus de idioma e volume, e avisos.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from "react";
+import { useIndicator } from "./ui/Seg";
 import { t, getLang, LANGS } from "./lib/i18n";
 import * as store from "./lib/store";
 import { setVolume, playChord } from "./lib/audio";
@@ -120,6 +121,13 @@ function useInstall(){
 
 const NAV: [View, string, string][] = [["medley", "music", "nav.medley"], ["library", "library", "nav.library"], ["study", "study", "nav.study"], ["tools", "metro", "nav.tools"]];
 
+// Itens do trilho com o fundo do ativo deslizando entre eles (as variáveis --y e --h posicionam o fundo no CSS).
+function NavList({children}: {children: ReactNode}){
+  const ref = useRef<HTMLDivElement>(null);
+  useIndicator(ref, '[aria-current="page"]', true);
+  return <div className="nav-list" ref={ref}>{children}</div>;
+}
+
 export function App(){
   useData();
   const view = useUI(s => s.view), stageOpen = useUI(s => s.stageOpen);
@@ -140,8 +148,8 @@ export function App(){
     <div className="shell">
       <aside className="rail" aria-label={t("nav.nav")}>
         {brand(true)}
-        {NAV.map(([v, ic, label]) => <button key={v} className="nav-item" data-nav={v} aria-current={current(v)} onClick={() => go(v)}>
-          <Icon name={ic}/><span>{t(label)}</span>{v === "library" && <span className="count" data-count="songs">{songCount || ""}</span>}</button>)}
+        <NavList>{NAV.map(([v, ic, label]) => <button key={v} className="nav-item" data-nav={v} aria-current={current(v)} onClick={() => go(v)}>
+          <Icon name={ic}/><span>{t(label)}</span>{v === "library" && <span className="count" data-count="songs">{songCount || ""}</span>}</button>)}</NavList>
         <div className="rail-foot">
           <button className="nav-item" data-install hidden={!install.show} onClick={install.run}><Icon name="phone"/><span>{t("nav.install")}</span></button>
           <VolumeButton rail/>
@@ -164,7 +172,7 @@ export function App(){
         {view === "tools" && <Tools/>}
       </main>
       <button className="help-fab" id="help-fab" data-tip-key="help.button" aria-label={t("help.button")} onClick={() => openDialog("help", {page: view})}><Icon name="question"/></button>
-      <nav className="tabbar" aria-label={t("nav.nav")}>
+      <nav className="tabbar" aria-label={t("nav.nav")} style={{"--i": NAV.findIndex(([v]) => v === view)} as CSSProperties}>
         {NAV.map(([v, ic, label]) => <button key={v} className="tab" data-nav={v} aria-current={current(v)} onClick={() => go(v)}>
           <span className="pill"><Icon name={ic}/></span><span>{t(label)}</span></button>)}
       </nav>
