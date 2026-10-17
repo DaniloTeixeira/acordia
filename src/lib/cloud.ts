@@ -58,9 +58,13 @@ export async function initAuth(){
   let fromGoogle = false;
   try{ fromGoogle = sessionStorage.getItem(OAUTH) === "google"; sessionStorage.removeItem(OAUTH); }catch(e){ /* sem armazenamento */ }
   if(err) useAuth.setState({error: notAllowed(err) ? "notAllowed" : "error", errorFrom: fromGoogle ? "google" : "link", errorDetail: err.replace(/\+/g, " ")});
+  // Fim da troca do ?code= pela sessão; error quando o link já foi usado ou expirou.
+  const init = await cloud.auth.initialize();
   await refresh();
   // O link de "esqueci minha senha" volta com ?reset=1 (o PKCE não avisa sozinho que é recuperação).
-  if(q.has("reset") && q.has("code") && useAuth.getState().status !== "out") useAuth.setState({recovery: true});
+  // Só vale se o link funcionou: quem já estava logado e abre um link velho segue no app, não fica
+  // preso na tela de senha nova.
+  if(q.has("reset") && q.has("code") && !init.error && useAuth.getState().status !== "out") useAuth.setState({recovery: true});
   // Tira do endereço o ?code=, o ?reset= e os erros da volta, sem mexer no #página.
   if(q.has("code") || q.has("error") || q.has("reset")) history.replaceState(null, "", location.pathname + (h.has("error") ? "" : location.hash));
   else if(h.has("error")) history.replaceState(null, "", location.pathname + location.search);

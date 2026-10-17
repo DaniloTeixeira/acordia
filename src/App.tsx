@@ -179,7 +179,7 @@ export function App(){
         <LangButton/>
         <VolumeButton/>
         <ThemeButton/>
-        {helpable && <button className="icon-btn" data-help-btn data-tip-key="help.button" aria-label={t("help.button")} onClick={() => openDialog("help", {page: view})}><Icon name="question"/></button>}
+        {helpable && <button className="icon-btn" data-help-btn data-tip-key="help.button" aria-label={t("help.button")} onClick={() => openDialog("help", {page: view})}><Icon name="help"/></button>}
         {profileBtn(false)}
       </header>
       <main id="main">

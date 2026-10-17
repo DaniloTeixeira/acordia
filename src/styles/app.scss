@@ -939,11 +939,6 @@ a.btn{text-decoration:none}
 .lang-item [data-lang-name]{flex:1}
 /* guia de uso */
 .help-btn{color:var(--muted)}
-/* No celular, a interrogação do topo ganha um círculo com o gradiente, como o botão flutuante do computador. */
-.topbar [data-help-btn]{position:relative;color:var(--accent)}
-.topbar [data-help-btn] .i{width:16px;height:16px;stroke-width:2.6}
-.topbar [data-help-btn]::before{content:"";position:absolute;inset:7px;border-radius:50%;border:1.5px solid transparent;background:var(--range-grad) border-box;
-  -webkit-mask:linear-gradient(#000 0 0) padding-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) padding-box exclude,linear-gradient(#000 0 0)}
 .help-steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px;line-height:1.5}
 .help-steps li::marker{color:var(--accent);font-weight:700}
 
