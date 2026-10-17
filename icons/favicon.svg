@@ -1,18 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Acordia: barras de som que sobem e formam o A. Com o navegador escuro, o fundo fica claro. -->
-  <style>@media (prefers-color-scheme:dark){.tile{fill:url(#bgl)}.c0{stop-color:#1FB6EE}}</style>
+  <!-- Acordia: barras de som que sobem e formam o A, sem fundo. Com o navegador escuro, o ciano fica mais claro. -->
+  <style>@media (prefers-color-scheme:dark){.c0{stop-color:#3BD5FA}}</style>
   <defs>
     <linearGradient id="g" gradientUnits="userSpaceOnUse" x1="410" y1="220" x2="800" y2="430">
-      <stop class="c0" offset="0" stop-color="#3BD5FA"/>
+      <stop class="c0" offset="0" stop-color="#1FB6EE"/>
       <stop offset=".48" stop-color="#2F6BF0"/>
       <stop offset="1" stop-color="#7B2FF5"/>
     </linearGradient>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#161D33"/><stop offset="1" stop-color="#0B0F1C"/></linearGradient>
-    <linearGradient id="bgl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E9EEFB"/></linearGradient>
   </defs>
-  <rect class="tile" width="512" height="512" rx="104" fill="url(#bg)"/>
-  <g transform="translate(256 258) scale(1) translate(-615 -313)">
-    <g fill="none" stroke="url(#g)" stroke-width="52" stroke-linecap="round" stroke-linejoin="round">
+  <g transform="translate(256 256) scale(1.2) translate(-615 -313)">
+    <g fill="none" stroke="url(#g)" stroke-width="48" stroke-linecap="round" stroke-linejoin="round">
       <path d="M440 342V458M508 270V446M646 340V383"/>
       <path d="M578 396V214C578 188 598 168 624 168C642 168 656 178 665 194L790 445"/>
     </g>
