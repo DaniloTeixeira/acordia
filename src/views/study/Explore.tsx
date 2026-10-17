@@ -8,6 +8,8 @@ import { t, degLabel } from "../../lib/i18n";
 import { toast, openDialog } from "../../state";
 import { Icon } from "../../ui/Icon";
 import { Select } from "../../ui/Select";
+import { RotateHint } from "../../ui/RotateHint";
+import { useTooWide } from "../../ui/hooks";
 import { InstrumentSelect, TimbreSelect } from "../InstrumentSelect";
 import { instrument } from "../Repertoire";
 import { studyState, setStudy, OCT_MAX } from "./Study";
@@ -26,7 +28,7 @@ function FnLegend({field, fnName}: {field: FieldChord[]; fnName: Record<string, 
 
 export function Explore(){
   const st = studyState();
-  const root_ = useRef<HTMLDivElement>(null);
+  const root_ = useRef<HTMLDivElement>(null), boardRef = useRef<HTMLDivElement>(null);
   const sc = SCALES[st.scaleId], root = rootFor(st.rootPc, st.scaleId);
   const names = spellScale(root, st.scaleId), degs = scaleDegrees(st.scaleId);
   const byPc: Record<number, string> = {}; sc.iv.forEach((iv, i) => byPc[(st.rootPc + iv) % 12] = names[i]);
@@ -107,6 +109,7 @@ export function Explore(){
     else flash([midi], "in-scale");
   };
   const board = strings ? fretboardSVG(inst, marks, I.frets > 12 ? 12 : I.frets) : scaleKeyboardSVG(base, st.rootPc, byPc);
+  const tooWide = useTooWide(boardRef, board);
   return <div ref={root_}>
     <div className="study-controls">
       <div className="study-row">
@@ -136,7 +139,8 @@ export function Explore(){
       <div className="scale-notes">{names.concat(names[0]).map((n, i) => <button key={i} className="note-chip" data-i={i}
         onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); chipDown(base + seq[i]); }} onPointerUp={chipUp} onPointerCancel={chipUp}
         onClick={e => { if(e.detail === 0){ chipDown(base + seq[i]); setTimeout(chipUp, 350); } }}><b>{n}</b><small>{degLabel(degs[i % names.length])}</small></button>)}</div>
-      <div className="board-wrap"
+      <RotateHint show={tooWide} what={strings ? "neck" : "keyboard"}/>
+      <div className="board-wrap" ref={boardRef}
         onPointerDown={e => { lift(); drag.current.down = true; e.currentTarget.setPointerCapture(e.pointerId); press(e.target as Element); e.preventDefault(); }}
         onPointerMove={e => { if(drag.current.down) press(document.elementFromPoint(e.clientX, e.clientY)); }}
         onPointerUp={lift} onPointerCancel={lift}>

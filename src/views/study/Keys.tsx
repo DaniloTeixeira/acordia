@@ -12,6 +12,8 @@ import { Icon } from "../../ui/Icon";
 import { Seg } from "../../ui/Seg";
 import { Select } from "../../ui/Select";
 import { Range } from "../../ui/Range";
+import { RotateHint } from "../../ui/RotateHint";
+import { useTooWide } from "../../ui/hooks";
 import { TimbreSelect } from "../InstrumentSelect";
 import { LevelDots } from "./Rhythm";
 
@@ -82,7 +84,7 @@ function Practice({ex}: {ex: KeyExercise}){
   const [mode, setMode] = useState<Cur["mode"] | null>(null);
   const [status, setStatus] = useState(t(hasMidi ? "keys.tip" : "keys.tipNoMidi"));
   const midi = useMidiName();
-  const root = useRef<HTMLDivElement>(null), prompt = useRef<HTMLDivElement>(null);
+  const root = useRef<HTMLDivElement>(null), prompt = useRef<HTMLDivElement>(null), board = useRef<HTMLDivElement>(null);
   const cur = useRef<Cur | null>(null), tick = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const live = useRef({sound: st.sound}); live.current = {sound: st.sound};
   const setBpm = (v: number) => { v = Math.max(30, Math.min(160, v)); setBpmState(v); setKeys({bpm: {...keysState().bpm, [ex.id]: v}}); };
@@ -114,6 +116,15 @@ function Practice({ex}: {ex: KeyExercise}){
     root.current?.querySelectorAll<HTMLElement>(".kstep").forEach(el => el.classList.toggle("on", +el.dataset.i! === i));
     const on = root.current?.querySelector(`.kstep[data-i="${i}"]`);
     if(on && scroll) on.scrollIntoView({block:"nearest", inline:"center", behavior:"smooth"});
+    // Teclado mais largo que a tela (celular em pé): rola até as notas do passo ficarem no meio.
+    const wrap = board.current, ms = s ? [...(s.rh ? s.rh.midis : []), ...(s.lh ? s.lh.midis : [])] : [];
+    if(wrap && ms.length && wrap.scrollWidth > wrap.clientWidth){
+      const box = wrap.getBoundingClientRect(), rs = ms.map(m => rect(m)?.getBoundingClientRect()).filter((r): r is DOMRect => !!r);
+      if(rs.length){
+        const mid = (Math.min(...rs.map(r => r.left)) + Math.max(...rs.map(r => r.right))) / 2 - box.left + wrap.scrollLeft;
+        wrap.scrollTo({left: mid - wrap.clientWidth / 2, behavior: scroll ? "smooth" : "auto"});
+      }
+    }
   }
   function flashKey(m: number, cls: string, ms = 300){
     const r = rect(m); if(!r) return;
@@ -240,6 +251,7 @@ function Practice({ex}: {ex: KeyExercise}){
   }, []);
 
   const keyboard = useMemo(() => practiceKeyboardSVG(built.lo, built.hi), [built]);
+  const tooWide = useTooWide(board, keyboard);
   const cell = (evt: BuiltExercise["events"][number] | null, h: "rh" | "lh") => evt
     ? <span className={"kc " + h + (st.hands !== "both" && st.hands !== h ? " auto" : "")}><b>{evt.names.join(" ")}</b>{built.fingering && <small>{evt.fingers.join(" ")}</small>}</span>
     : <span className="kc empty"/>;
@@ -263,7 +275,8 @@ function Practice({ex}: {ex: KeyExercise}){
       </div>
       {!built.fingering && <p className="note">{t("keys.noFingering")}</p>}
       <div className="k-prompt" id="k-prompt" aria-live="polite" hidden ref={prompt}/>
-      <div className="board-wrap k-board" dangerouslySetInnerHTML={{__html: keyboard}}
+      <RotateHint show={tooWide} what="keyboard"/>
+      <div className="board-wrap k-board" ref={board} dangerouslySetInnerHTML={{__html: keyboard}}
         onPointerDown={e => { const k = (e.target as Element).closest?.("[data-midi]") as HTMLElement | null; if(k){ e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); pointerUp(e); pointers.current.set(e.pointerId, +k.dataset.midi!); noteOn(+k.dataset.midi!, "screen"); } }}
         onPointerUp={pointerUp} onPointerCancel={pointerUp}/>
       <div className="kgrid-head"><h3>{t("keys.gridTitle")}</h3><p className="sub">{t(built.fingering ? "keys.gridHint" : "keys.gridHintNoFing")}</p></div>

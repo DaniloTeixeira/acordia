@@ -882,7 +882,7 @@ a.btn{text-decoration:none}
 /* exercícios de teclado */
 .k-controls{gap:10px 16px}
 .k-board{background:var(--surface-2);border-radius:var(--r-md);padding:8px}
-.keyboard.practice{min-width:560px;max-width:none;width:100%;cursor:pointer;touch-action:manipulation}
+.keyboard.practice{max-width:none;width:100%;cursor:pointer;touch-action:manipulation}
 .keyboard.practice .w.rh{fill:#2F6BF0} .keyboard.practice .b.rh{fill:#5B8CFF}
 .keyboard.practice .w.lh{fill:var(--lh)} .keyboard.practice .b.lh{fill:#9B5CF8}
 .keyboard.practice .w.next{fill:#E9EEFB} .keyboard.practice .b.next{fill:#475569}
@@ -1102,3 +1102,7 @@ dialog.ear-dlg{width:min(760px,calc(100vw - 24px))}
 .ear-add{display:flex;font-size:.78rem;padding:3px 8px;margin:-2px 0 6px;color:var(--muted);font-family:var(--font-ui)}
 .ear-row.inst .ear-cells{align-items:center}
 .ear-rm{margin-right:4px;flex-shrink:0}
+
+/* ---------- aviso para deitar o celular ---------- */
+.rotate-hint{display:flex;align-items:center;gap:8px;margin:0;font-size:.82rem;color:var(--muted)}
+.rotate-hint .i{flex-shrink:0;color:var(--accent)}

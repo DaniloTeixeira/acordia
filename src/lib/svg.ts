@@ -125,7 +125,9 @@ export function practiceKeyboardSVG(lo: number, hi: number){
     if(WHITE.includes(pc)){ whites += `<rect class="w" data-midi="${m}" x="${x + 0.5}" y="0.5" width="${W - 1}" height="${H - 1}" rx="3"/>${pc === 0 ? `<text class="oct" x="${x + W/2}" y="${H - 6}">C${Math.floor(m / 12) - 1}</text>` : ""}<text class="fing" data-f="${m}" x="${x + W/2}" y="${H - 22}"></text>`; x += W; }
     else blacks += `<rect class="b" data-midi="${m}" x="${x - BW/2}" y="0" width="${BW}" height="${BH}" rx="2"/><text class="fing light" data-f="${m}" x="${x}" y="${BH - 10}"></text>`;
   }
-  return `<svg class="keyboard practice has-panel" viewBox="-1 ${-PANEL - 1} ${x + 2} ${H + PANEL + 2}" role="img" aria-label="${esc(t("study.keyboardAria"))}">${keyboardPanel(x)}${whites}${blacks}</svg>`;
+  // Largura mínima pelo número de teclas (cada branca com pelo menos 22px): até duas oitavas cabem
+  // num celular em pé; mais que isso, o teclado rola e acompanha as notas.
+  return `<svg class="keyboard practice has-panel" style="min-width:${Math.round(x / W * 22)}px" viewBox="-1 ${-PANEL - 1} ${x + 2} ${H + PANEL + 2}" role="img" aria-label="${esc(t("study.keyboardAria"))}">${keyboardPanel(x)}${whites}${blacks}</svg>`;
 }
 
 // Grau e função de um acorde no tom (quando é diatônico).
