@@ -255,6 +255,131 @@ export function harmonicField(root: string, scaleId: string, sevenths = false, s
       pcs: [0,2,4].concat(sevenths ? [6] : []).map(j => iv + at(j))};
   });
 }
+// ---------- montar cifra de ouvido: graus digitados ----------
+// Arábico (1–7) segue a escala do tom e, sem sufixo, vira o acorde do campo harmônico ("2" em C = Dm,
+// "57" = G7, "2M" = D). Romano segue a escala maior como chordToDegree, e a caixa diz a qualidade (ii = menor).
+const MAJOR_STEPS = [0,2,4,5,7,9,11], MINOR_STEPS = [0,2,3,5,7,8,10];
+const DEGREE_RE = /^([b#]?)(VII|VI|IV|V|III|II|I|vii|vi|iv|v|iii|ii|i|[1-7])/;
+function keyScale(k: Key){ return k.minor ? {steps: MINOR_STEPS, names: spellScale(k.root, "menor")} : {steps: MAJOR_STEPS, names: spellScale(k.root, "maior")}; }
+function triadAt(steps: number[], i: number){
+  const at = (j: number) => (steps[(i + j) % 7] - steps[i] + 12) % 12;
+  return at(2) === 4 ? "M" : at(4) === 6 ? "d" : "m";
+}
+function degreeRoot(acc: string, num: string, k: Key){
+  const arabic = /\d/.test(num), n = arabic ? +num : ROMANS.indexOf(num.toUpperCase()), sc = keyScale(k);
+  // Com acidente ("b7", "#4"), o número conta da escala maior, como no costume.
+  const pc = (k.pc + (arabic && !acc ? sc.steps : MAJOR_STEPS)[n - 1] +(acc === "#" ? 1 : acc === "b" ? -1 : 0) + 12) % 12;
+  const i = sc.steps.findIndex(s => (k.pc + s) % 12 === pc);
+  const name = i >= 0 ? sc.names[i] : (acc === "b" ? FLAT_NAMES : acc === "#" ? SHARP_NAMES : prefersFlats(k.root + (k.minor ? "m" : "")) ? FLAT_NAMES : SHARP_NAMES)[pc];
+  return {arabic, name, i: acc ? -1 : i};
+}
+export function degreeToChord(tok: string, key: string): string | null {
+  const k = parseKey(key); if(!k) return null;
+  const [head, bass, extra] = tok.split("/");
+  const m = DEGREE_RE.exec(head); if(!m || extra !== undefined) return null;
+  const r = degreeRoot(m[1], m[2], k), rest = head.slice(m[0].length);
+  const explicit = /^(m(?!aj)|°|º|dim|ø|\+|aug)/.test(rest);
+  let suf = rest;
+  if(r.arabic){
+    const q = r.i >= 0 ? triadAt(keyScale(k).steps, r.i) : "M";
+    if(rest === "M") suf = "";
+    else if(!explicit) suf = q === "m" ? "m" + rest : q === "d" ? (rest[0] === "7" ? "m7(b5)" + rest.slice(1) : "°" + rest) : rest;
+  } else if(m[2] === m[2].toLowerCase() && !explicit) suf = "m" + rest;
+  suf = suf.replace(/^ø/, "m7(b5)");
+  let out = r.name + suf;
+  if(bass !== undefined){
+    const b = DEGREE_RE.exec(bass); if(!b || b[0] !== bass) return null;
+    out += "/" + degreeRoot(b[1], b[2], k).name;
+  }
+  return CHORD_RE.test(out) ? out : null;
+}
+// O contrário, para mostrar como grau o que já está escrito: campo harmônico em arábico, o resto em romano.
+export function chordToEarDegree(ch: string, key: string): string {
+  const k = parseKey(key), m = ch.match(/^([A-G][#b]?)(.*?)(?:\/([A-G][#b]?))?$/);
+  if(!k || !m || NOTES[m[1]] === undefined) return ch;
+  const sc = keyScale(k), idx = (pc: number) => sc.steps.findIndex(s => (k.pc + s) % 12 === pc);
+  const i = idx(NOTES[m[1]]), suf = m[2];
+  const half = /^(m7\(?b5\)?|ø)/.exec(suf), dim = /^(°|º|dim)(?!7)/.exec(suf);
+  const q = half || dim ? "d" : /^m(?!aj)/.test(suf) ? "m" : /^(\+|aug)/.test(suf) ? "a" : "M";
+  if(i < 0 || triadAt(sc.steps, i) !== q) return chordToDegree(ch, key, "roman");
+  const rest = half ? "7" + suf.slice(half[0].length) : dim ? suf.slice(dim[0].length) : q === "m" ? suf.slice(1) : suf;
+  let out = (i + 1) + rest;
+  if(m[3] && NOTES[m[3]] !== undefined){ const bi = idx(NOTES[m[3]]); out += "/" + (bi >= 0 ? bi + 1 : degreeLabel(DEG[(NOTES[m[3]] - k.pc + 12) % 12], false, "roman")); }
+  return out;
+}
+// Um acorde ou grau digitado, já como acorde no tom (null se não for nenhum dos dois).
+export function resolveEarToken(tok: string, key: string): string | null {
+  return CHORD_RE.test(tok) ? tok : degreeToChord(tok, key);
+}
+
+// Cada linha da letra ganha uma fileira de quadradinhos acima; cada quadradinho cobre EAR_CELL colunas.
+export const EAR_CELL = 4;
+// src: a linha de acordes original, devolvida igual enquanto ninguém mexer na fileira (sem regrafar A# como Bb).
+export interface EarRow { cells: string[]; lyric: string | null; src?: string }
+// Texto: linha mantida como está (título, linha vazia, [Refrão]).
+export type EarLine = EarRow | string;
+const isTag = (l: string) => /^\s*\[.*\]\s*$/.test(l) || /^\s*[eEBGDA]\|/.test(l);
+export function earCellCount(lyric: string | null, used = 0){ return Math.max(lyric === null ? 8 : Math.ceil(lyric.length / EAR_CELL) + 2, used + 1, 8); }
+export function chordLineToCells(line: string, lyric: string | null): string[] {
+  const out: string[] = [], re = /\S+/g; let m;
+  while((m = re.exec(line))){ let c = Math.floor(m.index / EAR_CELL); while(out[c]) c++; out[c] = m[0]; }
+  const n = earCellCount(lyric, out.length);
+  return Array.from({length: n}, (_, i) => out[i] || "");
+}
+export function earRows(text: string): EarLine[] {
+  const raw = text.replace(/\r/g, "").split("\n"), out: EarLine[] = [];
+  const ti = raw.findIndex(l => l.trim());
+  for(let j = 0; j < raw.length; j++){
+    const l = raw[j];
+    if(j <= ti || !l.trim() || isTag(l)){ out.push(l); continue; }
+    if(isChordLine(l)){
+      const next = raw[j+1], lyric = next && next.trim() && !isTag(next) && !isChordLine(next) ? next : null;
+      out.push({cells: chordLineToCells(l, lyric), lyric, src: l}); if(lyric !== null) j++;
+    } else out.push({cells: chordLineToCells("", l), lyric: l});
+  }
+  return out;
+}
+const earTokens = (cell: string) => cell.trim().split(/\s+/).filter(Boolean);
+// Um quadradinho: acorde ou grau, inteiro ("Cmaj7(#11)") ou com "(", ")" e "|" de uma passagem colados ("(C", "G)").
+function earTok(tok: string, key: string, fn: (chord: string) => string): string | null {
+  if(/^[()|]+$/.test(tok)) return tok;
+  const c = resolveEarToken(tok, key); if(c) return fn(c);
+  const m = /^([(|]*)(.*?)([)|]*)$/.exec(tok)!, inner = m[2] && resolveEarToken(m[2], key);
+  return inner ? m[1] + fn(inner) + m[3] : null;
+}
+export function earBad(cell: string, key: string){ return earTokens(cell).some(x => earTok(x, key, c => c) === null); }
+export function earCellAs(cell: string, key: string, mode: "cifras" | "graus"){
+  return earTokens(cell).map(x => earTok(x, key, c => mode === "graus" ? chordToEarDegree(c, key) : c) ?? x).join(" ");
+}
+export function cellsToLine(cells: string[], key: string): string {
+  let out = "";
+  cells.forEach((cell, i) => earTokens(cell).forEach(x => {
+    const tok = earTok(x, key, c => c) ?? x;
+    out += " ".repeat(Math.max(i * EAR_CELL, out ? out.length + 1 : 0) - out.length) + tok;
+  }));
+  return out;
+}
+export function earText(lines: EarLine[], key: string): string {
+  const out: string[] = [], chordsOf = (r: EarRow) => r.src ?? cellsToLine(r.cells, key);
+  lines.forEach((l, i) => {
+    if(typeof l === "string"){ out.push(l); return; }
+    const c = chordsOf(l);
+    if(c) out.push(c);
+    if(l.lyric !== null){ out.push(l.lyric); return; }
+    // Linha só de acordes logo antes de uma letra ainda sem acordes: uma linha vazia separa, senão os
+    // acordes passariam a ser os daquela letra.
+    const next = lines[i + 1];
+    if(c && next && typeof next !== "string" && next.lyric !== null && !chordsOf(next).trim()) out.push("");
+  });
+  return out.join("\n");
+}
+// Reescreve os acordes do texto em outro tom (o título e a letra ficam iguais).
+export function transposeText(text: string, shift: number, target: string): string {
+  const s = ((shift % 12) + 12) % 12; if(!s) return text;
+  const lines = text.split("\n"), ti = lines.findIndex(l => l.trim());
+  return lines.map((l, i) => i > ti && !isTag(l) && isChordLine(l) ? lineTranspose(l, s, target) : l).join("\n");
+}
+
 export function relativeKey(key: string): string {
   const k = parseKey(key); if(!k) return "";
   return k.minor ? noteName(k.pc + 3, k.root) : noteName(k.pc + 9, k.root + "m") + "m";

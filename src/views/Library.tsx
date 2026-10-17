@@ -6,7 +6,7 @@ import * as store from "../lib/store";
 import { saveBlob } from "../lib/pdf";
 import { ago, norm } from "../lib/util";
 import { useData, toast, openDialog, confirmDialog, go } from "../state";
-import { current, isMedley, openMedley, songItems, usage, songKey } from "../repertoire";
+import { current, peekCurrent, isMedley, openMedley, songItems, usage, songKey } from "../repertoire";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
@@ -31,7 +31,7 @@ function deleteSong(s: Song){
   toast(n ? t("lib.songDeletedUsed", {title:s.title, medleys: medleysN(n)}) : t("lib.songDeleted", {title:s.title}));
 }
 function deleteMedley(m: Medley){
-  const wasCurrent = m.id === current().id;
+  const wasCurrent = m.id === peekCurrent()?.id;
   // Um medley excluído sai dos repertórios que o usavam.
   data.medleys.forEach(x => { const before = x.items.length; x.items = x.items.filter(i => !(i.type === "medley" && i.medleyId === m.id)); if(x.items.length !== before) store.saveMedley(x); });
   store.deleteMedley(m.id);
@@ -147,7 +147,7 @@ export function Library(){
 }
 
 function SongCards({all, q, filter, sort}: {all: Song[]; q: string; filter: string; sort: string}){
-  const u = usage(), cur = new Set(current().items.map(i => i.type === "medley" ? "" : i.songId));
+  const u = usage(), cur = new Set((peekCurrent()?.items || []).map(i => i.type === "medley" ? "" : i.songId));
   const rows = all.filter(s => (!q || norm(s.title).includes(q) || norm(s.text).includes(q)) && (filter === "all" || (filter === "letra") === (s.type === "letra")))
     .sort(sort === "recent" ? (a,b)=>(b.updatedAt||0)-(a.updatedAt||0) : (a,b)=>a.title.localeCompare(b.title, locale()));
   if(!rows.length) return all.length ? <EmptyCard icon="search" title={t("lib.noResults")} text={t("lib.noResultsText")}/> : <EmptyCard icon="library" title={t("lib.empty")} text={t("lib.emptyText")}/>;
@@ -171,7 +171,7 @@ function SongCards({all, q, filter, sort}: {all: Song[]; q: string; filter: stri
 }
 
 function MedleyCards({rows: source, blocks, setlists, q}: {rows: Medley[]; blocks: boolean; setlists: Medley[]; q: string}){
-  const curId = current().id;
+  const curId = peekCurrent()?.id;
   const titlesOf = (m: Medley) => songItems(m).map(x => (data.songs.get(x.it.songId) || {title: ""}).title).filter(Boolean);
   const rows = source.filter(m => !q || norm(m.name).includes(q) || titlesOf(m).some(x => norm(x).includes(q))).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
   if(!rows.length) return blocks ? <EmptyCard icon="link" title={t("lib.noMedleyBlocks")} text={t("lib.noMedleyBlocksText")}/> : <EmptyCard icon="list" title={t("lib.noMedleys")}/>;

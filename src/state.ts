@@ -27,6 +27,7 @@ export interface DialogProps {
   player: {url: string; title: string};
   confirm: {title: string; message: string; confirm?: string; resolve: (ok: boolean) => void};
   help: {page: View};
+  ear: {text: string; songKey: string; onApply: (text: string, key: string) => void};
 }
 export type DialogName = keyof DialogProps;
 

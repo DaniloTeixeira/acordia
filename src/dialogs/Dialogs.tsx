@@ -1,11 +1,11 @@
 // Janelas do app. Cada uma aparece quando aberta com openDialog(nome, dados).
 import { useEffect, useRef, useState } from "react";
-import { songTitle, sanitizeUrl, sanitizeItem, parseSong, detectKey } from "../lib/core";
+import { songTitle, sanitizeUrl, sanitizeItem, parseSong, detectKey, keyShift, transposeKey, transposeText } from "../lib/core";
 import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
 import { encodeMedley, type IncomingMedley, type IncomingSong } from "../lib/share";
 import { norm } from "../lib/util";
-import { useUI, toast, go, type DialogProps } from "../state";
+import { useUI, toast, go, openDialog, type DialogProps } from "../state";
 import { current, isMedley, openMedley, eff, medleyPayload } from "../repertoire";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
@@ -14,6 +14,7 @@ import { Select } from "../ui/Select";
 import { keyOptions } from "../views/Repertoire";
 import { ChordDialog } from "./ChordDialog";
 import { PlayerDialog } from "./PlayerDialog";
+import { EarDialog } from "./EarDialog";
 import type { Item, SongType } from "../lib/types";
 
 const { data } = store;
@@ -32,6 +33,7 @@ export function Dialogs(){
     {d.player && <PlayerDialog {...d.player}/>}
     {d.confirm && <ConfirmDialog {...d.confirm}/>}
     {d.help && <HelpDialog {...d.help}/>}
+    {d.ear && <EarDialog {...d.ear}/>}
   </>;
 }
 
@@ -92,14 +94,32 @@ function SongDialog({song: s}: DialogProps["song"]){
   };
   // Com alterações, clicar fora não descarta o texto.
   const dirty = () => { const v = vals.current; return [v.text, v.type, v.key, v.bpm, v.ref].join("\u0000") !== start.current; };
+  const hasChords = (x: string) => parseSong(x).blocks.some(b => b.some(it => it.chord));
+  const ear = () => openDialog("ear", {text, songKey: key, onApply: (nt, k) => {
+    setText(nt);
+    if(hasChords(nt)){ setType(""); if(!key && detectKey(parseSong(nt)) !== k) setKey(k); }
+  }});
+  // Transpor reescreve a cifra no texto; com tom automático, o tom acompanha sozinho.
+  const shiftKey = (d: number) => {
+    if(!hasChords(text)) return toast(t("song.noChords"));
+    const base = key || detectKey(parseSong(text)), to = transposeKey(base, d);
+    setText(transposeText(text, keyShift(base, to), to));
+    if(key) setKey(to);
+  };
+  const shownKey = type === "letra" || !hasChords(text) ? "" : key || detectKey(parseSong(text));
   return <Dialog name="song" id="dlg-song" labelledBy="song-h" onClose={close} dirty={dirty}
     onOpen={d => requestAnimationFrame(() => d.querySelector<HTMLTextAreaElement>("#song-text")?.focus())}>
     <form method="dialog" className="dlg">
       <DialogHead id="song-h" title={t(isNew ? "song.newTitle" : "song.editTitle")} closeLabel={t("common.close")}/>
       <div className="dlg-body">
-        <Seg className="sm" id="song-type" aria={t("song.typeAria")} value={type} onChange={setType} options={[{v: "", label: t("item.withChords")}, {v: "letra", label: t("item.lyricsOnly")}]}/>
+        <div className="type-row"><Seg className="sm" id="song-type" aria={t("song.typeAria")} value={type} onChange={setType} options={[{v: "", label: t("item.withChords")}, {v: "letra", label: t("item.lyricsOnly")}]}/>
+          <button type="button" className="btn soft sm" id="song-ear" data-tip-key="tip.ear" disabled={!songTitle(text)} onClick={ear}><Icon name="music" sm/> {t("ear.open")}</button></div>
         <textarea className="input song-text" id="song-text" spellCheck={false} aria-label={t("song.textAria")} placeholder={t(type === "letra" ? "item.phLyrics" : "item.phChords")} value={text} onChange={e => setText(e.target.value)}/>
         <div className="fields">
+          <div className="field wide" hidden={!shownKey}><span>{t("song.transpose")}</span><span className="tr-ctl">
+            <button type="button" className="icon-btn sm" id="song-tr-down" aria-label={t("song.down")} title={t("song.down")} onClick={() => shiftKey(-1)}>−</button>
+            <b id="song-tr-key">{shownKey}</b>
+            <button type="button" className="icon-btn sm" id="song-tr-up" aria-label={t("song.up")} title={t("song.up")} onClick={() => shiftKey(1)}>+</button></span></div>
           <label className="field" hidden={type === "letra"}><span>{t("song.key")}</span><Select id="song-key" value={key} onChange={setKey} options={keyOptions(t("item.auto"))}/></label>
           <label className="field"><span>{t("item.bpm")}</span><input className="input" id="song-bpm" type="number" inputMode="numeric" min={20} max={300} placeholder="—" value={bpm} onChange={e => setBpm(e.target.value)}/></label>
           <label className="field wide"><span>{t("item.ref")}</span><input className="input" id="song-ref" type="url" inputMode="url" autoComplete="off" placeholder={t("item.refPh")} value={ref} onChange={e => setRef(e.target.value)}/></label>

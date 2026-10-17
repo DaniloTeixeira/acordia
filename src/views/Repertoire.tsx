@@ -1,7 +1,7 @@
 // Página Repertório: o repertório (ou medley) aberto, com a edição das músicas e a folha A4.
 import { useRef } from "react";
 import { flushSync } from "react-dom";
-import { KEYS, MINOR_KEYS, songTitle, sanitizeUrl, youtubeId } from "../lib/core";
+import { KEYS, MINOR_KEYS, songTitle, sanitizeUrl, youtubeId, parseSong, detectKey } from "../lib/core";
 import { suggestCapo } from "../lib/instruments";
 import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
@@ -208,6 +208,13 @@ function ItemCard({m, it, i}: {m: Medley; it: SongItem; i: number}){
     toggleExpanded(it.id);
     if(!open) setTimeout(() => ref.current?.querySelector("textarea")?.focus({preventScroll:true}), 120);
   };
+  // Montar cifra: os acordes entram no texto; com acordes, a música passa a ser "com cifra".
+  const ear = () => openDialog("ear", {text: song.text, songKey: song.key, onApply: (nt, k) => {
+    song.text = nt; song.title = songTitle(nt);
+    const p = parseSong(nt);
+    if(p.blocks.some(b => b.some(x => x.chord))){ song.type = ""; if(!song.key && detectKey(p) !== k) song.key = k; }
+    saveSong();
+  }});
   const capoOpts: Options = [{value: "", label: "—"}, ...Array.from({length: 11}, (_, k) => ({value: String(k + 1), label: String(k + 1)}))];
   return <li ref={ref} className={"item" + (open ? "" : " collapsed")} data-id={it.id}>
     <div className="item-head">
@@ -218,8 +225,9 @@ function ItemCard({m, it, i}: {m: Medley; it: SongItem; i: number}){
       </ItemActions>
     </div>
     <div className="item-body"><div><div className="item-inner">
-      <Seg className="sm" aria={t("item.typeAria")} value={song.type || ""} onChange={v => { song.type = v; saveSong(); }}
+      <div className="type-row"><Seg className="sm" aria={t("item.typeAria")} value={song.type || ""} onChange={v => { song.type = v; saveSong(); }}
         options={[{v: "", label: t("item.withChords")}, {v: "letra", label: t("item.lyricsOnly")}]}/>
+        <button type="button" className="btn soft sm" data-a="ear" data-tip-key="tip.ear" disabled={!song.title} onClick={ear}><Icon name="music" sm/> {t("ear.open")}</button></div>
       <textarea className="input song-text" spellCheck={false} aria-label={t("item.textAria", {n:i+1})} placeholder={t(letra ? "item.phLyrics" : "item.phChords")}
         value={text} onChange={ev => { setText(ev.target.value); song.text = ev.target.value; song.title = songTitle(ev.target.value); saveSong(); }}/>
       <div className="fields">

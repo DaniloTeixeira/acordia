@@ -1,6 +1,6 @@
 // Regras do repertório aberto, fora dos componentes: qual está aberto, músicas na ordem em que
 // tocam (abrindo os medleys), tom/capo efetivos e as músicas prontas para a folha.
-import { KEYS, MINOR_KEYS, parseSong, dedupeBlocks, detectKey, keyShift, parseKey, sanitizeOptions } from "./lib/core";
+import { KEYS, MINOR_KEYS, parseSong, dedupeBlocks, detectKey, keyShift, parseKey, sanitizeOptions, transposeKey } from "./lib/core";
 import { chordLine, type SheetSong } from "./lib/layout";
 import { t } from "./lib/i18n";
 import * as store from "./lib/store";
@@ -12,14 +12,20 @@ export const isMedley = (m: Medley | null | undefined) => !!m && m.kind === "med
 
 // Repertório (ou medley) aberto na página Repertório.
 export function current(): Medley {
-  let m = data.medleys.get(data.settings.currentMedley as string);
-  if(!m){
-    m = [...data.medleys.values()].filter(x => !isMedley(x)).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0] || store.createMedley(t("medley.defaultName"));
+  let m = peekCurrent();
+  if(!m || m.id !== data.settings.currentMedley){
+    m = m || store.createMedley(t("medley.defaultName"));
     store.setSetting("currentMedley", m.id);
   }
   m.kind = isMedley(m) ? "medley" : "setlist";
   m.options = sanitizeOptions(m.options);
   return m;
+}
+// O mesmo repertório que current() abriria, mas sem criar um quando não há nenhum: a Biblioteca só
+// consulta, e criar ali trazia de volta um "Meu repertório" logo depois de excluir o último.
+export function peekCurrent(): Medley | null {
+  return data.medleys.get(data.settings.currentMedley as string)
+    || [...data.medleys.values()].filter(x => !isMedley(x)).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0] || null;
 }
 export function openMedley(id: string, {from = ""} = {}){
   store.setSetting("currentMedley", id);
@@ -116,6 +122,17 @@ export function applyVoiceKey(itemId: string, target: string, singer: string){
   if(a && s){ a.target = target; store.saveSong(s); } else it.target = target;
   it.singer = singer;
   if(owner) store.saveMedley(owner);
+}
+// Meio tom acima ou abaixo no tom de execução (modo palco); com arranjo escolhido, muda o arranjo.
+export function shiftItemKey(itemId: string, d: number){
+  const found = songItems(current()).find(x => x.it.id === itemId); if(!found) return;
+  const it = found.it, s = data.songs.get(it.songId); if(!s || s.type === "letra") return;
+  const key = songKey(s); if(!key) return;
+  let target = transposeKey(eff(s, it).target || key, d); if(target === key) target = "";
+  const a = arrangementOf(s, it);
+  if(a){ a.target = target; store.saveSong(s); return; }
+  it.target = target;
+  const owner = [...data.medleys.values()].find(m => m.items.includes(it)); if(owner) store.saveMedley(owner);
 }
 // Nota mais aguda da melodia no tom original (MIDI), guardada na música.
 export function setSongHigh(songId: string, v: number | undefined){

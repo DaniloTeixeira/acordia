@@ -1075,3 +1075,30 @@ html[data-vt="theme"]::view-transition-old(root){animation:none}
   .pages{gap:0;display:block}
   .paper{box-shadow:none;border-radius:0;max-width:none;width:210mm;height:297mm;break-after:page;animation:none}
 }
+
+/* ---------- montar cifra (quadradinhos acima da letra) ---------- */
+.type-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+dialog.ear-dlg{width:min(760px,calc(100vw - 24px))}
+.ear-hint{margin:0;font-size:.85rem}
+.ear-tools{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.ear-key{width:110px}
+.ear-field{position:sticky;top:-8px;z-index:2;display:flex;gap:6px;overflow-x:auto;padding:8px 0;margin:-4px 0;background:var(--surface)}
+.ear-chip{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:52px;padding:6px 8px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);color:var(--ink);cursor:pointer;font:inherit;flex-shrink:0}
+.ear-chip b{font-size:.75rem;color:var(--muted)}
+.ear-chip span{font-weight:700;color:var(--chord)}
+.ear-chip:hover{background:var(--surface-3)}
+.ear-lines{overflow-x:auto;font:15px/1.35 var(--font-mono);padding-bottom:4px}
+.ear-row{width:max-content;min-width:100%;margin-bottom:8px}
+.ear-cells{display:flex;white-space:nowrap}
+.ear-cell{width:4ch;flex-shrink:0;position:relative;font:700 15px/1.35 var(--font-mono);color:var(--chord);padding:2px 0;border:none;border-radius:0;background:var(--surface-2);
+  box-shadow:inset -1px 0 var(--surface),inset 0 -2px var(--line-strong);outline:none;-webkit-tap-highlight-color:transparent}
+.ear-cell.on{background:var(--surface);z-index:1}
+.ear-cell:focus{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent);z-index:2}
+.ear-cell.bad{background:var(--bad-soft);color:var(--bad);box-shadow:inset 0 -2px var(--bad)}
+.ear-lyric{white-space:pre;padding:2px 0;color:var(--ink)}
+.ear-tag{font-weight:700;color:var(--muted);font-size:.9em;margin:2px 0 6px}
+.ear-gap{height:10px}
+.stage-tr{display:inline-flex;gap:2px;vertical-align:middle;margin-left:6px;font-size:1rem}
+.ear-add{display:flex;font-size:.78rem;padding:3px 8px;margin:-2px 0 6px;color:var(--muted);font-family:var(--font-ui)}
+.ear-row.inst .ear-cells{align-items:center}
+.ear-rm{margin-right:4px;flex-shrink:0}

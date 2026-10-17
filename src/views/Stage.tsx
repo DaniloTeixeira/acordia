@@ -6,7 +6,7 @@ import { t } from "../lib/i18n";
 import * as store from "../lib/store";
 import { reduced } from "../lib/util";
 import { useData, useUI, openDialog } from "../state";
-import { current, sheetSongs } from "../repertoire";
+import { current, sheetSongs, shiftItemKey } from "../repertoire";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { MetronomeUI } from "./Metronome";
@@ -100,7 +100,11 @@ export function Stage(){
           return <div key={si} style={{display: "contents"}}>
             {group && <p className="stage-group"><Icon name="link" sm/> {t("sheet.medleyLabel", {name: s.gname || ""})}</p>}
             <section className="stage-song">
-              <h2>{s.title}{key && !L && <> <small>({key})</small></>}</h2>
+              <h2>{s.title}{key && !L && <> <small>({key})</small>
+                <span className="stage-tr">
+                  <button className="icon-btn sm" aria-label={t("stage.down")} title={t("stage.down")} onClick={e => { e.stopPropagation(); shiftItemKey(s.itemId, -1); }}>−</button>
+                  <button className="icon-btn sm" aria-label={t("stage.up")} title={t("stage.up")} onClick={e => { e.stopPropagation(); shiftItemKey(s.itemId, 1); }}>+</button>
+                </span></>}</h2>
               {(meta || s.ref) && <p className="meta">{meta} {s.ref && <button className="btn soft sm stage-ref" onClick={e => { e.stopPropagation(); openRef(s.ref, s.title); }}><Icon name="play" sm/> {t("ref.listen")}</button>}</p>}
               {s.blocks.map((b, bi) => <div key={bi} className="stage-block">{b.map((it, ii) => <div key={ii} style={{display: "contents"}}>
                 {it.chord !== undefined && it.chord !== null && !L && <p className="stage-line ch"><ChordSpans cl={chordLine(it.chord, s, mode, m.options.degreeStyle)} songKey={key}/></p>}
