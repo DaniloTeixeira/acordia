@@ -23,7 +23,7 @@ if(m && (m.items.length === 1 || m.items.some(i => i.type !== "medley" && !(stor
   useUI.setState({expanded: new Set(m.items.map(i => i.id))});
 // A página do endereço vence a última aberta; o endereço passa a mostrar a página aberta.
 const saved = store.data.settings.view as View;
-const view = viewFromHash() ?? (VIEWS.includes(saved) ? saved : "medley");
+const view = viewFromHash() ?? (VIEWS.includes(saved) ? saved : "home");
 useUI.setState({lang: getLang(), view});
 history.replaceState(null, "", viewUrl(view));
 applyTheme(theme());
@@ -34,13 +34,13 @@ setCues(store.setting("cues", true));
 initMetro();
 // A tela de entrar aparece até a sessão ser confirmada.
 initAuth();
-// Sem sessão (saiu, a sessão expirou ou abriu sem estar logado), o próximo login começa pela página
-// inicial, e não pela última aberta antes de sair.
+// Sem sessão (saiu, a sessão expirou ou abriu sem estar logado), o próximo login começa pelo Início,
+// e não pela última página aberta antes de sair.
 const toHome = ({status}: {status: string}) => {
   if(status !== "out") return;
-  store.setSetting("view", "medley");
-  useUI.setState({view: "medley", stageOpen: false});
-  if(viewFromHash()) history.replaceState(null, "", viewUrl("medley"));
+  store.setSetting("view", "home");
+  useUI.setState({view: "home", stageOpen: false});
+  history.replaceState(null, "", viewUrl("home"));
 };
 useAuth.subscribe(toHome);
 // Músicas e repertórios na nuvem: liga quando a pessoa entra, desliga quando sai.

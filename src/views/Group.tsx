@@ -1,17 +1,17 @@
 // Grupo (equipe de louvor): agenda com calendário do mês, escala de cada evento com confirmação,
 // presença nos ensaios, datas em que cada um não pode, repertórios compartilhados e membros.
 // Os dados vêm de lib/groups (nuvem) e as regras sem rede de lib/calendar.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
 import { useAuth, validEmail, initials } from "../lib/cloud";
 import { encodeMedley, decodeMedley } from "../lib/share";
 import { saveBlob } from "../lib/pdf";
-import { ago } from "../lib/util";
+import { ago, reduced } from "../lib/util";
 import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, attendanceRate, monthLoad, toICS, type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, loadGroups, chooseGroup, createGroup, renameGroup, deleteGroup, addMember, setMemberAdmin, setMemberRole, removeMember,
   shareSetlist, removeSetlist, deleteEvent, respond, checkIn, markAttendance, setUnavailable, personName, amGroupAdmin, type GroupSetlist, type Member } from "../lib/groups";
-import { useData, toast, openDialog, confirmDialog } from "../state";
+import { useUI, useData, toast, openDialog, confirmDialog, go } from "../state";
 import { isMedley, medleyPayload } from "../repertoire";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
@@ -19,11 +19,11 @@ import { Select } from "../ui/Select";
 import { useLock, Spin } from "./Account";
 
 const { data } = store;
-type Tab = "agenda" | "setlists" | "members";
+export type Tab = "agenda" | "setlists" | "members";
 
 // ---------- datas ----------
-const fmt = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(locale(), o);
-const timeOf = (iso: string) => fmt({hour: "2-digit", minute: "2-digit"}).format(new Date(iso));
+export const fmt = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(locale(), o);
+export const timeOf = (iso: string) => fmt({hour: "2-digit", minute: "2-digit"}).format(new Date(iso));
 export const eventTitle = (e: Pick<GEvent, "title" | "kind">) => e.title || t("group.kind." + e.kind);
 const longDay = (d: Date) => fmt({weekday: "long", day: "numeric", month: "long"}).format(d);
 
@@ -50,12 +50,9 @@ function downloadICS(events: GEvent[], name: string){
   saveBlob(new Blob([ics], {type: "text/calendar"}), name.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "").toLowerCase() + ".ics");
 }
 
-export function Group(){
-  useData();
-  const status = useAuth(s => s.status), admin = useAuth(s => s.admin);
-  const g = useGroups();
-  const tab: Tab = (["agenda", "setlists", "members"] as const).find(v => v === data.settings.groupTab) || "agenda";
-  // Ao abrir a página e ao voltar para o app, busca o que mudou.
+// Ao abrir a página e ao voltar para o app, busca o que mudou no grupo.
+export function useGroupRefresh(){
+  const status = useAuth(s => s.status);
   useEffect(() => {
     if(status !== "in") return;
     loadGroups();
@@ -63,8 +60,24 @@ export function Group(){
     document.addEventListener("visibilitychange", wake);
     return () => document.removeEventListener("visibilitychange", wake);
   }, [status]);
+}
+// Abre a página do grupo numa aba (do Início).
+export function openGroup(tab: Tab = "agenda", eventId = ""){
+  store.setSetting("groupTab", tab);
+  useUI.setState({eventFocus: eventId});
+  go("group");
+}
+
+export function Group(){
+  useData();
+  useGroupRefresh();
+  const admin = useAuth(s => s.admin);
+  const g = useGroups();
+  const tab: Tab = (["agenda", "setlists", "members"] as const).find(v => v === data.settings.groupTab) || "agenda";
   const group = g.groups.find(x => x.id === g.gid);
-  const head = (sub: string, actions?: React.ReactNode) => <div className="view-head"><div><h1 id="group-h">{group ? group.name : t("group.title")}</h1><p className="sub">{sub}</p></div>
+  const head = (sub: string, actions?: React.ReactNode) => <div className="view-head"><div>
+    <button className="btn ghost sm back" id="group-back" onClick={() => go("home")}><Icon name="back" sm/><span>{t("nav.home")}</span></button>
+    <h1 id="group-h">{group ? group.name : t("group.title")}</h1><p className="sub">{sub}</p></div>
     {actions && <div className="actions">{actions}</div>}</div>;
   if(!group) return <section className="view" id="view-group" data-view="group" aria-labelledby="group-h">
     {head(t("group.sub"))}
@@ -102,7 +115,9 @@ function NewGroup(){
 function Agenda({canEdit}: {canEdit: boolean}){
   const g = useGroups(), me = useAuth(s => s.email);
   const [month, setMonth] = useState(() => { const d = new Date(); return {y: d.getFullYear(), m: d.getMonth()}; });
-  const [sel, setSel] = useState("");
+  // Vindo do Início com um evento: abre o dia dele.
+  const focus = useUI(s => s.eventFocus);
+  const [sel, setSel] = useState(() => { const e = g.events.find(x => x.id === focus); return e ? eventDay(e) : ""; });
   const [showPast, setShowPast] = useState(false);
   const byDay = useMemo(() => { const m = new Map<string, GEvent[]>(); g.events.forEach(e => { const k = eventDay(e); m.set(k, [...(m.get(k) || []), e]); }); return m; }, [g.events]);
   const myOff = new Set(g.unavail.filter(u => u.email === me).map(u => u.day));
@@ -161,7 +176,7 @@ function MyNextRow({e}: {e: GEvent}){
     <StatusChip status={st}/></li>;
 }
 
-function StatusChip({status}: {status: string}){
+export function StatusChip({status}: {status: string}){
   return <span className={"chip st-" + status}><Icon name={status === "yes" ? "check" : status === "no" ? "x" : "dot"} sm/> {t("group.status." + status)}</span>;
 }
 
@@ -182,8 +197,14 @@ function DayBar({day, off, canEdit, onClear}: {day: string; off: boolean; canEdi
 
 function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
   const g = useGroups(), me = useAuth(s => s.email);
-  const [open, setOpen] = useState(false), [declining, setDeclining] = useState(false), [reason, setReason] = useState(""), [busy, setBusy] = useState("");
-  const lock = useLock();
+  const [open, setOpen] = useState(() => useUI.getState().eventFocus === e.id), [declining, setDeclining] = useState(false), [reason, setReason] = useState(""), [busy, setBusy] = useState("");
+  const lock = useLock(), ref = useRef<HTMLLIElement>(null);
+  // O evento que veio do Início aparece aberto e na tela; depois o pedido é esquecido.
+  useEffect(() => {
+    if(useUI.getState().eventFocus !== e.id) return;
+    requestAnimationFrame(() => ref.current?.scrollIntoView({block: "center", behavior: reduced() ? "auto" : "smooth"}));
+    useUI.setState({eventFocus: ""});
+  }, [e.id]);
   const roster = g.roster.filter(r => r.event_id === e.id), mineRows = roster.filter(r => r.email === me), myStatus = mineRows[0]?.status;
   const set = g.setlists.find(s => s.id === e.setlist_id);
   const d = new Date(e.starts_at), isPast = d.getTime() < Date.now() - 6 * 3600 * 1000;
@@ -194,7 +215,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
     onClick={() => act("yes", () => respond(e.id, myStatus === "yes" ? "pending" : "yes"), myStatus === "yes" ? "group.saved" : "group.confirmed")}>{busy === "yes" ? <Spin/> : <Icon name="check" sm/>} {t("group.confirm")}</button>;
   const no = mineRows.length > 0 && !isPast && <button className={"btn sm" + (myStatus === "no" ? " danger armed" : " ghost")} aria-pressed={myStatus === "no"}
     onClick={() => myStatus === "no" ? act("no", () => respond(e.id, "pending")) : (setDeclining(true), setOpen(true))}><Icon name="x" sm/> {t("group.decline")}</button>;
-  return <li className={"card event " + e.kind + (myStatus === "no" ? " declined" : "")}>
+  return <li ref={ref} className={"card event " + e.kind + (myStatus === "no" ? " declined" : "")}>
     <div className="event-top" onClick={() => setOpen(o => !o)}>
       <span className="date-badge"><small>{fmt({weekday: "short"}).format(d)}</small><b>{d.getDate()}</b><small>{fmt({month: "short"}).format(d)}</small></span>
       <div className="event-what">

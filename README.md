@@ -13,7 +13,7 @@ presença nos ensaios, e repertórios compartilhados.
 Lista completa, tela por tela, para testar e decidir o que fica. Marque `[x]` no que já foi conferido.
 
 ### Em todas as telas
-- [ ] **Navegação** entre Repertório, Biblioteca, Grupo, Estudo e Ferramentas: trilho lateral no computador, barra de
+- [ ] **Navegação** entre Início, Repertório, Biblioteca, Estudo e Ferramentas (o Grupo abre pelo Início): trilho lateral no computador, barra de
       abas no celular. Cada página tem endereço próprio, então o "voltar" do navegador funciona. Tocar de novo na
       página atual volta ao topo.
 - [ ] **Tema** claro ou escuro. Até a primeira escolha, segue o aparelho.
@@ -58,6 +58,17 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
   - funciona sem internet, e as mudanças sobem depois;
   - no primeiro login de um aparelho, o que já estava nele sobe para a conta;
   - se a mesma coisa mudou em dois lugares, vale a mudança mais recente.
+
+### Início
+- [ ] Primeira página depois de entrar: "Olá, nome" e a data de hoje.
+- [ ] **Cartão do grupo**: nome, próximos eventos, repertórios e membros; leva à agenda. Com mais de um grupo,
+      escolhe qual.
+- [ ] **Minhas escalas**: cartões que rolam de lado, com dia, hora, "amanhã"/"em 3 dias", função, quem está
+      escalado, quantos confirmaram, quantos não podem, quantas músicas e a sua resposta. Tocar abre o evento na
+      agenda.
+- [ ] **Precisam de substituto** (só quem lidera): eventos em que alguém disse que não pode.
+- [ ] **Agenda do grupo**: os próximos eventos em que a pessoa não está.
+- [ ] **Continuar de onde parou**: abre o último repertório, ou direto no Palco.
 
 ### Repertório
 - [ ] **Nome editável** e subtítulo com o número de músicas e a transposição.
@@ -137,7 +148,7 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] "Abrir no YouTube". Link que não é do YouTube abre numa aba nova.
 
 ### Grupo
-Os admins do app criam grupos; quem lidera um grupo inclui os membros pelo e-mail (o que
+Abre pelo Início (cartão do grupo ou de uma escala). Os admins do app criam grupos; quem lidera um grupo inclui os membros pelo e-mail (o que
 também libera o acesso ao app para eles).
 - [ ] **Agenda**:
   - calendário do mês com cultos e ensaios, os dias em que a pessoa está escalada e os dias em que não pode;

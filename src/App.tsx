@@ -21,6 +21,7 @@ import { Dialogs, HELP_STEPS, seenHelp } from "./dialogs/Dialogs";
 import { AuthScreen, Avatar, Profile } from "./views/Account";
 import { useAuth } from "./lib/cloud";
 import { Group } from "./views/Group";
+import { Home } from "./views/Home";
 
 const { data } = store;
 const BASE = import.meta.env.BASE_URL;
@@ -130,7 +131,9 @@ function useInstall(){
   return {show, run};
 }
 
-const NAV: [View, string, string][] = [["medley", "music", "nav.medley"], ["library", "library", "nav.library"], ["group", "calendar", "nav.group"], ["study", "study", "nav.study"], ["tools", "metro", "nav.tools"]];
+// O Grupo abre pelo Início (e conta como ele na navegação).
+const NAV: [View, string, string][] = [["home", "home", "nav.home"], ["medley", "music", "nav.medley"], ["library", "library", "nav.library"], ["study", "study", "nav.study"], ["tools", "metro", "nav.tools"]];
+const navOf = (v: View): View => v === "group" ? "home" : v;
 
 // Itens do trilho com o fundo do ativo deslizando entre eles (as variáveis --y e --h posicionam o fundo no CSS).
 function NavList({children}: {children: ReactNode}){
@@ -152,9 +155,9 @@ export function App(){
     const h = setTimeout(() => toast(t("help.first"), {label: t("help.button"), run: () => openDialog("help", {page: view})}), 600);
     return () => clearTimeout(h);
   }, [view]);
-  const brand = (tagline: boolean) => <a className="brand" href="./" onClick={e => { e.preventDefault(); go("medley"); }}>
+  const brand = (tagline: boolean) => <a className="brand" href="./" onClick={e => { e.preventDefault(); go("home"); }}>
     <img className="logo-on-light" src={BASE + "icons/icon.svg"} alt=""/><img className="logo-on-dark" src={BASE + "icons/icon-light.svg"} alt=""/><span><b className="brand-name">Acordia</b>{tagline && <small>{t("app.tagline")}</small>}</span></a>;
-  const current = (v: View) => view === v ? "page" as const : undefined;
+  const current = (v: View) => navOf(view) === v ? "page" as const : undefined;
   const auth = useAuth(s => s.status), recovery = useAuth(s => s.recovery), helpable = view in HELP_STEPS;
   // Nada do app aparece antes de a pessoa entrar e ter acesso (nem antes da senha nova).
   if(auth !== "in" || recovery) return <><div className="auth-corner"><LangButton/><ThemeButton/></div><AuthScreen/><LangPop/><Toasts/></>;
@@ -184,6 +187,7 @@ export function App(){
         {profileBtn(false)}
       </header>
       <main id="main">
+        {view === "home" && <Home/>}
         {view === "medley" && <Repertoire/>}
         {view === "library" && <Library/>}
         {view === "study" && <Study/>}
@@ -192,7 +196,7 @@ export function App(){
         {view === "profile" && <Profile/>}
       </main>
       <button className="help-fab" id="help-fab" hidden={!helpable} data-tip-key="help.button" aria-label={t("help.button")} onClick={() => openDialog("help", {page: view})}><Icon name="question"/></button>
-      <nav className="tabbar" aria-label={t("nav.nav")} style={{"--i": NAV.findIndex(([v]) => v === view), "--n": NAV.length} as CSSProperties}>
+      <nav className="tabbar" aria-label={t("nav.nav")} style={{"--i": NAV.findIndex(([v]) => v === navOf(view)), "--n": NAV.length} as CSSProperties}>
         {NAV.map(([v, ic, label]) => <button key={v} className="tab" data-nav={v} aria-current={current(v)} onClick={() => go(v)}>
           <span className="pill"><Icon name={ic}/></span><span>{t(label)}</span></button>)}
       </nav>

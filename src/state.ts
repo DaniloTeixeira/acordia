@@ -9,9 +9,9 @@ import { vt, type VtKind } from "./lib/util";
 import type { Song, Medley, SongItem } from "./lib/types";
 import type { IncomingMedley } from "./lib/share";
 
-// "profile" não está na barra de abas: abre pela bolinha do perfil.
-export type View = "medley" | "library" | "group" | "study" | "tools" | "profile";
-export const VIEWS: View[] = ["medley", "library", "group", "study", "tools", "profile"];
+// "profile" e "group" não estão na barra de abas: o perfil abre pela bolinha, e o grupo pelo Início.
+export type View = "home" | "medley" | "library" | "group" | "study" | "tools" | "profile";
+export const VIEWS: View[] = ["home", "medley", "library", "group", "study", "tools", "profile"];
 
 export interface ToastAction { label: string; run: () => void }
 export interface Toast { id: number; msg: string; action?: ToastAction; sticky?: boolean; out?: boolean }
@@ -42,10 +42,12 @@ interface UIState {
   stageOpen: boolean;
   // Itens abertos na edição do repertório.
   expanded: Set<string>;
+  // Evento que o Início mandou abrir na agenda do grupo.
+  eventFocus: string;
 }
 
 export const useUI = create<UIState>(() => ({
-  view: "medley", lang: "pt", toasts: [], dialogs: {}, stageOpen: false, expanded: new Set()
+  view: "medley", lang: "pt", toasts: [], dialogs: {}, stageOpen: false, expanded: new Set(), eventFocus: ""
 }));
 
 // Os dados mudaram (qualquer música, repertório ou preferência): redesenha quem usa.
@@ -79,7 +81,7 @@ export function confirmDialog(p: {title: string; message: string; confirm?: stri
 // Aplica a mudança dentro de uma transição animada (o React desenha na hora, com flushSync).
 export function animate(run: () => void, kind: VtKind = "fade"){ return vt(() => flushSync(run), kind); }
 
-// Cada página tem seu endereço (#library, #study, #tools; o repertório fica sem hash), para o voltar
+// Cada página tem seu endereço (#home, #library, #study...; o repertório fica sem hash), para o voltar
 // do navegador e do mouse trocar de tela.
 export function viewFromHash(): View | null {
   const h = location.hash.slice(1);
