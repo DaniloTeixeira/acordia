@@ -115,7 +115,7 @@ function metaLine(s: SheetSong, mode: SheetMode){
 export function layout(songs: SheetSong[], fs: number, k: number, opts: LayoutOpts): {pages: Page[]; tooWide: boolean} {
   const mode = opts.mode, L = mode === "letra", columns = opts.columns === 1 ? 1 : 2, measure = opts.measure || approxMeasure;
   const COLW = colWidth(columns), maxCols = Math.floor(COLW/(CW*fs));
-  const CH = fs*1.05, LY = L ? fs*(1.15+0.25*k) : fs*1.32*k, CO = fs*1.5*k, BG = L ? fs*1.3*k : fs*0.95*k, TH = TITLE_SIZE + 10, SG = 12*k;
+  const CH = fs*1.05, LY = L ? fs*(1.15+0.25*k) : fs*1.32*k, CO = fs*1.5*k, BG = L ? fs*1.3*k : fs*0.95*k, TH = TITLE_SIZE + 13, SG = 12*k;
   const pages: Page[] = [[]]; let page = 0, col = 0, y = M, tooWide = false;
   const usedCols = [0];
   const x = () => M + col*(COLW+GAP);
@@ -158,12 +158,12 @@ export function layout(songs: SheetSong[], fs: number, k: number, opts: LayoutOp
       if(chipOwnLine) y += TITLE_LH;
       const [bg, fg] = moment === t("item.momentPos") ? CHIP_POS : CHIP_LOUVOR;
       // Centrado na altura das maiúsculas do título (base em 0,85 e meio da maiúscula ≈ 0,36 acima dela), o que
-      // deixa uns 3 pt até a linha embaixo do título.
+      // deixa uns 6 pt até a linha embaixo do título.
       const cx = x() + (chipOwnLine ? 0 : lastW() + 8), cy = y + TITLE_SIZE * (0.85 - 0.36) - CHIP_H / 2;
       push({t:"rect",x:cx,y:cy,w:chipW,h:CHIP_H,r:CHIP_H/2,c:bg});
       push({t:"text",x:cx+CHIP_PX,y:cy+CHIP_H/2+CHIP_SIZE*0.35,s:CHIP_SIZE,f:"sans",b:true,c:fg,txt:moment});
     }
-    push({t:"line",x1:x(),x2:x()+COLW,y:y+TITLE_SIZE+3,c:ACCENT,w:0.9});
+    push({t:"line",x1:x(),x2:x()+COLW,y:y+TITLE_SIZE+6,c:ACCENT,w:0.9});
     y += TH;
     metaLines.forEach(txt=>{ push({t:"text",x:x(),y:y+META_SIZE*0.8,s:META_SIZE,f:"sans",b:false,c:MUTED,txt}); y += META_SIZE + 3; });
     blocks.forEach((b, bi)=>{
