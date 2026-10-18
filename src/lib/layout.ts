@@ -83,10 +83,18 @@ function wrapWords(text: string, max: number, fs: number, measure: Measure, font
   if(cur) out.push(cur);
   return out;
 }
-export function lyricsOnly<T extends {blocks: Block[]}>(songs: T[]): T[] {
-  return songs.map(s=>Object.assign({}, s, {blocks: s.blocks
-    .map(b=>b.filter(it=>it.lyric!==undefined).map(it=>({kind:"lyric" as const, lyric: it.lyric!.replace(/_+/g,"").replace(/\s+/g," ").trim()})).filter(it=>it.lyric))
-    .filter(b=>b.length)}));
+export function lyricsOnly<T extends {blocks: Block[]; chorus?: boolean[]}>(songs: T[]): T[] {
+  return songs.map(s=>{
+    const blocks = s.blocks.map(b=>b.filter(it=>it.lyric!==undefined).map(it=>({kind:"lyric" as const, lyric: it.lyric!.replace(/_+/g,"").replace(/\s+/g," ").trim()})).filter(it=>it.lyric));
+    // Blocos só de cifra (intro, interlúdio) saem; a marca de refrão acompanha os que ficam.
+    return Object.assign({}, s, {blocks: blocks.filter(b=>b.length), ...(s.chorus && {chorus: s.chorus.filter((_, i)=>blocks[i].length)})});
+  });
+}
+// Letra das músicas como texto, para colar (WhatsApp, projeção): título, os blocos separados por linha vazia e o
+// refrão com "(Refrão)" em cima; uma linha vazia a mais entre as músicas.
+export function lyricsText(songs: {title: string; blocks: Block[]; chorus?: boolean[]}[]){
+  return lyricsOnly(songs).filter(s => s.blocks.length).map(s => [s.title.toUpperCase(),
+    ...s.blocks.map((b, i) => (s.chorus?.[i] ? "(" + t("sheet.chorus") + ")\n" : "") + b.map(it => it.lyric).join("\n"))].join("\n\n")).join("\n\n\n");
 }
 type KeyedSong = Pick<SheetSong, "key" | "shift" | "target">;
 export function chordText(line: string, s: KeyedSong, mode: SheetMode, style?: DegreeStyle){
