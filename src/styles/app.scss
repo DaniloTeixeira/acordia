@@ -7174,6 +7174,10 @@ dialog.event-dlg {
   flex-direction: column;
   gap: 18px;
 }
+/* Título da seção mais perto do conteúdo (só o gap de 4 px do campo). */
+.member-dlg .field > span:first-child {
+  margin-bottom: 0;
+}
 .member-dlg-next {
   display: flex;
   flex-direction: column;
