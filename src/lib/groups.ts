@@ -8,7 +8,7 @@ import { ROLES_MAX } from "./roles";
 import type { GEvent, RosterRow, AttendanceRow, Unavail, Answer, Presence, EventKind } from "./calendar";
 
 export interface Group { id: string; name: string }
-export interface Member { email: string; is_admin: boolean; role: string; name: string; birthday?: string | null }
+export interface Member { email: string; is_admin: boolean; role: string; name: string; birthday?: string | null; photo?: string }
 export interface GroupSetlist { id: string; group_id: string; source_id: string; name: string; songs: number; code: string; shared_by: string; updated_at: string }
 
 interface GroupState {
@@ -83,8 +83,8 @@ export function loadGroups(gid?: string): Promise<void> {
         if(r.error) throw r.error; if(a.error) throw a.error;
         roster = roster.concat(r.data as RosterRow[]); attendance = attendance.concat(a.data as AttendanceRow[]);
       }
-      const people_ = new Map((people.data as {email: string; name: string; birthday: string | null}[]).map(p => [p.email, p]));
-      const members = (mem.data as Omit<Member, "name">[]).map(m => ({...m, name: people_.get(m.email)?.name || "", birthday: people_.get(m.email)?.birthday || null}));
+      const people_ = new Map((people.data as {email: string; name: string; birthday: string | null; photo?: string}[]).map(p => [p.email, p]));
+      const members = (mem.data as Omit<Member, "name">[]).map(m => ({...m, name: people_.get(m.email)?.name || "", birthday: people_.get(m.email)?.birthday || null, photo: people_.get(m.email)?.photo || ""}));
       useGroups.setState({groups, gid: cur, members, setlists: sets.data as GroupSetlist[], events: evs.data as GEvent[], roster, attendance,
         unavail: un.data as Unavail[], loading: false, error: false, loaded: true});
       saveCache();
@@ -100,6 +100,11 @@ export function chooseGroup(gid: string){ useGroups.setState({gid}); return load
 export function personName(email: string){
   const m = useGroups.getState().members.find(x => x.email === email);
   return m?.name || email.split("@")[0];
+}
+// Foto: a do perfil; a própria pessoa usa a da sessão (aparece mesmo antes de o grupo recarregar).
+export function personPhoto(email: string){
+  const me = useAuth.getState();
+  return useGroups.getState().members.find(x => x.email === email)?.photo || (email === me.email ? me.profile?.photo || "" : "");
 }
 
 // ---------- mudanças ----------
@@ -136,10 +141,6 @@ export const setMemberRole = (gid: string, email: string, role: string) => email
   : run(() => cloud.from("group_members").update({role: role.trim().slice(0, ROLES_MAX)}).eq("group_id", gid).eq("email", email));
 export const removeMember = (gid: string, email: string) => run(() => cloud.from("group_members").delete().eq("group_id", gid).eq("email", email));
 
-// Repertório compartilhado: o código do link (#m=...). Compartilhar de novo o mesmo repertório atualiza.
-export const shareSetlist = (gid: string, sourceId: string, name: string, songs: number, code: string) =>
-  run(() => cloud.from("group_setlists").upsert({group_id: gid, source_id: sourceId, name: name.slice(0, 80), songs, code, shared_by: myEmail(), updated_at: new Date().toISOString()}, {onConflict: "group_id,source_id"}));
-export const removeSetlist = (id: string) => run(() => cloud.from("group_setlists").delete().eq("id", id));
 
 export interface EventInput { kind: EventKind; title: string; starts_at: string; call_at: string | null; place: string; notes: string; setlist_id: string | null }
 export interface RosterInput { email: string; role: string }

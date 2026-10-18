@@ -7,6 +7,7 @@ import { DEFAULT_POLICY, missing, passes, fromError, isPwned, type PwPolicy, typ
 import { reduced, flashSaved } from "../lib/util";
 import { toast, confirmDialog } from "../state";
 import { Icon } from "../ui/Icon";
+import { DateInput } from "../ui/DateInput";
 import { useGroups, loadGroups, setMemberRole } from "../lib/groups";
 import { MemberRoles } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
@@ -273,10 +274,10 @@ const GoogleIcon = () => <svg className="g-logo" viewBox="0 0 48 48" aria-hidden
   <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
   <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>;
 
-// Bolinha com as iniciais (botão do perfil no topo e no trilho).
+// Bolinha com as iniciais (botão do perfil no topo e no trilho; com `person`, a de outra pessoa).
 // Com foto da conta Google, mostra a foto; se ela não carregar (sem internet, link vencido), volta às iniciais.
-export function Avatar({big}: {big?: boolean}){
-  const p = useAuth(s => s.profile);
+export function Avatar({big, person}: {big?: boolean; person?: {name: string; email: string; photo?: string}}){
+  const mine = useAuth(s => s.profile), p = person || mine;
   const [broken, setBroken] = useState("");
   const photo = p?.photo && p.photo !== broken ? p.photo : "";
   return <span className={"avatar" + (big ? " big" : "") + (photo ? " photo" : "")} aria-hidden="true">
@@ -352,9 +353,9 @@ function BirthdayField(){
   const saved = useAuth(s => s.profile?.birthday || "");
   const [v, setV] = useState(saved);
   useEffect(() => setV(saved), [saved]);
-  const save = async (el: HTMLInputElement) => { if(el.value === saved) return; if(await saveBirthday(el.value)) flashSaved(el); else toast(t("profile.saveFail")); };
+  const save = async (nv: string, el: HTMLElement) => { setV(nv); if(nv === saved) return; if(await saveBirthday(nv)) flashSaved(el); else { setV(saved); toast(t("profile.saveFail")); } };
   return <label className="field"><span>{t("profile.birthday")}</span>
-    <input className="input" id="profile-birthday" type="date" max={today()} autoComplete="bday" value={v} onChange={e => setV(e.target.value)} onBlur={e => save(e.currentTarget)}/>
+    <DateInput id="profile-birthday" aria={t("profile.birthday")} max={today()} clearable value={v} onChange={save}/>
     <small className="sub">{t("profile.birthdayHint")}</small></label>;
 }
 
@@ -376,7 +377,7 @@ function PersonEdit({r, onDone}: {r: Allowed; onDone: (saved: boolean) => void})
   return <form className="people-edit" onSubmit={save}>
     <div className="people-add">
       <input className="input" maxLength={80} autoComplete="off" placeholder={t("people.namePh")} aria-label={t("profile.name")} value={name} disabled={lockedName} onChange={e => setName(e.target.value)} autoFocus={!lockedName}/>
-      <input className="input people-birthday" type="date" max={today()} aria-label={t("profile.birthday")} title={t("profile.birthday")} value={birthday} disabled={lockedDate} onChange={e => setBirthday(e.target.value)}/>
+      <DateInput className="people-birthday" aria={t("profile.birthday")} max={today()} clearable value={birthday} disabled={lockedDate} onChange={setBirthday}/>
       <button type="button" className="btn ghost" onClick={() => onDone(false)}>{t("common.cancel")}</button>
       <button className="btn primary" disabled={lockedName && lockedDate} aria-busy={busy}>{busy ? <Spin/> : <Icon name="check" sm/>} {t("common.save")}</button>
     </div>
@@ -416,7 +417,7 @@ function People({me}: {me: string}){
       <div className="people-add">
       <input className="input" id="people-name" maxLength={80} autoComplete="off" placeholder={t("people.namePh")} aria-label={t("profile.name")} value={name} onChange={e => setName(e.target.value)}/>
       <input className="input" id="people-email" type="email" inputMode="email" placeholder={t("people.emailPh")} aria-label={t("auth.email")} value={email} onChange={e => setEmail(e.target.value)}/>
-      <input className="input people-birthday" id="people-birthday" type="date" max={today()} aria-label={t("profile.birthday")} title={t("profile.birthday")} value={birthday} onChange={e => setBirthday(e.target.value)}/>
+      <DateInput className="people-birthday" id="people-birthday" aria={t("profile.birthday")} max={today()} clearable value={birthday} onChange={setBirthday}/>
       <label className="switch lead boxed"><span>{t("profile.admin")}</span><input type="checkbox" id="people-admin" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>
       <button className="btn primary" disabled={!email.trim()} aria-busy={busy}>{busy ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
       </div>
@@ -432,8 +433,10 @@ function People({me}: {me: string}){
           {nm && <span className="people-name"><b>{nm}</b>{r.is_admin && <span className="chip accent">{t("profile.admin")}</span>}</span>}
           <span className={nm ? "sub people-email" : "people-name people-email"}>{r.email}{bd && " · " + fmtBirthday(bd)}{!nm && r.is_admin && <span className="chip accent">{t("profile.admin")}</span>}</span></span></span>
         {r.email === me ? <span className="chip">{t("people.you")}</span> : <span className="people-actions">
+          {/* Admin liga/desliga direto na linha (desabilitado enquanto salva). */}
+          <label className="switch lead boxed people-admin" aria-busy={pending === r.email}><span>{t("profile.admin")}</span>
+            <input type="checkbox" checked={!!r.is_admin} disabled={pending === r.email} aria-label={t("people.adminAria", {email: r.email})} onChange={() => toggleAdmin(r)}/></label>
           <button className="icon-btn sm" aria-label={t("people.edit")} title={t("people.edit")} aria-expanded={editing === r.email} onClick={() => setEditing(editing === r.email ? "" : r.email)}><Icon name="edit" sm/></button>
-          <button className="btn ghost sm" aria-busy={pending === r.email} onClick={() => toggleAdmin(r)}>{pending === r.email && <Spin/>}{t(r.is_admin ? "people.unadmin" : "people.makeAdmin")}</button>
           <button className="icon-btn sm danger" aria-label={t("people.remove")} title={t("people.remove")} onClick={() => remove(r)}><Icon name="trash" sm/></button></span>}
         {editing === r.email && <PersonEdit r={r} onDone={async saved => { setEditing(""); if(saved) await load(); }}/>}
       </li>; })}

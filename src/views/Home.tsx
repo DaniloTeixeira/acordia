@@ -12,7 +12,7 @@ import { Icon } from "../ui/Icon";
 import { Select } from "../ui/Select";
 import { Spin } from "./Account";
 import { sortRoles } from "../lib/roles";
-import { useGroupRefresh, openGroup, eventTitle, StatusChip, fmt, timeOf } from "./Group";
+import { useGroupRefresh, openGroup, eventTitle, StatusChip, fmt, timeOf, PersonAvatar } from "./Group";
 
 // "hoje", "amanhã", "em 3 dias" (no idioma do app).
 function relDay(iso: string){
@@ -86,7 +86,7 @@ function ScaleCard({e}: {e: GEvent}){
       <span className="scale-when"><span>{fmt({weekday: "long"}).format(d)}, {timeOf(e.starts_at)}</span><span>{fmt({day: "numeric", month: "short"}).format(d)}</span></span>
       <b className="scale-title">{eventTitle(e)}</b>
       <span className="sub scale-rel">{relDay(e.starts_at)}{myRows.some(r => r.role) && " · " + sortRoles(myRows.map(r => r.role).filter(Boolean)).join(", ")}</span>
-      <span className="scale-people" aria-hidden="true">{people.slice(0, 7).map(p => <span key={p} className="avatar">{initials({name: personName(p), email: p})}</span>)}
+      <span className="scale-people" aria-hidden="true">{people.slice(0, 7).map(p => <PersonAvatar key={p} email={p}/>)}
         {people.length > 7 && <span className="avatar more">+{people.length - 7}</span>}</span>
       <span className="scale-stats">
         <span title={t("home.stat.people")}><Icon name="users" sm/> {people.length}</span>
@@ -116,7 +116,7 @@ function Birthdays(){
   return <div className="card home-birthdays" id="home-birthdays">
     <h2><Icon name="gift" sm/> {t("home.birthdays")}</h2>
     <ul className="birthday-list">{list.map(p => <li key={p.email} className={p.in === 0 ? "today" : ""}>
-      <span className="avatar" aria-hidden="true">{initials({name: personName(p.email), email: p.email})}</span>
+      <PersonAvatar email={p.email}/>
       <span className="birthday-who"><b>{personName(p.email)}{p.email === me && " " + t("group.you")}</b>
         <span className="sub">{fmt({day: "numeric", month: "long", timeZone: "UTC"}).format(new Date(Date.UTC(2000, p.month - 1, p.day)))}</span></span>
       <span className={"chip" + (p.in === 0 ? " accent" : "")}>{p.in === 0 ? t("home.birthdayToday") : when(p.in)}</span>

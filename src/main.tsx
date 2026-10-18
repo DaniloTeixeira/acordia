@@ -10,6 +10,7 @@ import { useUI, toast, viewFromHash, viewUrl, type View } from "./state";
 import { initMetro } from "./metro";
 import { initAuth, useAuth } from "./lib/cloud";
 import { initSync } from "./lib/sync";
+import { initPublish } from "./publish";
 import { initTooltips } from "./ui/tooltips";
 import { App, applyTheme, applyVolume, theme } from "./App";
 
@@ -39,6 +40,8 @@ const toHome = ({status}: {status: string}) => {
 useAuth.subscribe(toHome);
 // Músicas e repertórios na nuvem: liga quando a pessoa entra, desliga quando sai.
 initSync();
+// Repertórios dos admins do grupo aparecem para a equipe sozinhos.
+initPublish();
 
 // Para testes: ?debug expõe os dados.
 if(new URLSearchParams(location.search).has("debug")) Object.assign(window, {__store: store});

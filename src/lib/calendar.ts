@@ -74,6 +74,29 @@ export function attendanceRate(email: string, events: GEvent[], att: AttendanceR
   return {present, total};
 }
 
+// Regra da equipe: quem falta a 8 ensaios seguidos fica fora dos cultos até participar de 4 ensaios.
+// Conta os ensaios que já aconteceram e tiveram chamada, em ordem; falta justificada não conta nem
+// para a sequência nem para a volta. Os 4 da volta não precisam ser seguidos.
+// streak: faltas seguidas até agora (fora dos cultos, zera); need: ensaios que faltam para voltar.
+export const MISS_LIMIT = 8, COMEBACK = 4;
+export interface Standing { out: boolean; streak: number; need: number; called: number }
+export function rehearsalStanding(email: string, events: GEvent[], att: AttendanceRow[], now = Date.now()): Standing {
+  const past = events.filter(e => e.kind === "rehearsal" && new Date(e.starts_at).getTime() < now)
+    .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  const s: Standing = {out: false, streak: 0, need: 0, called: 0};
+  past.forEach(e => {
+    const rows = att.filter(a => a.event_id === e.id); if(!rows.length) return;
+    const st = rows.find(a => a.email === email)?.status;
+    if(st === "excused") return;
+    s.called++;
+    if(st === "present"){
+      if(s.out){ s.need--; if(!s.need) s.out = false; }
+      s.streak = 0;
+    }else if(!s.out && ++s.streak >= MISS_LIMIT){ s.out = true; s.need = COMEBACK; s.streak = 0; }
+  });
+  return s;
+}
+
 // "Cheguei" vale de 12 h antes a 12 h depois do início (a mesma regra do banco, em check_in).
 export const CHECKIN_MS = 12 * 3600 * 1000;
 export function canCheckIn(e: Pick<GEvent, "kind" | "starts_at">, now = Date.now()){

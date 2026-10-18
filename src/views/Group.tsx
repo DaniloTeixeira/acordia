@@ -4,20 +4,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
-import { useAuth, validEmail, initials } from "../lib/cloud";
-import { encodeMedley, decodeMedley } from "../lib/share";
+import { useAuth, validEmail, listAllowed, type Allowed } from "../lib/cloud";
+import { decodeMedley } from "../lib/share";
 import { saveBlob } from "../lib/pdf";
 import { ago, reduced, flashSaved } from "../lib/util";
 import { splitRoles, joinRoles, toggleRole, sortRoles } from "../lib/roles";
-import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, attendanceRate, monthLoad, toICS, rosterByPerson, type GEvent, type Presence } from "../lib/calendar";
+import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, loadGroups, chooseGroup, createGroup, renameGroup, deleteGroup, addMember, setMemberAdmin, setMemberRole, removeMember,
-  shareSetlist, removeSetlist, deleteEvent, respond, checkIn, markAttendance, setUnavailable, personName, amGroupAdmin, type GroupSetlist, type Member } from "../lib/groups";
+  deleteEvent, respond, checkIn, markAttendance, setUnavailable, personName, personPhoto, amGroupAdmin, type GroupSetlist, type Member } from "../lib/groups";
 import { useUI, useData, toast, openDialog, confirmDialog, go } from "../state";
-import { isMedley, medleyPayload } from "../repertoire";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
-import { useLock, Spin, today } from "./Account";
+import { DateInput } from "../ui/DateInput";
+import { useLock, Spin, today, Avatar } from "./Account";
 
 const { data } = store;
 export type Tab = "agenda" | "setlists" | "members";
@@ -27,6 +27,9 @@ export const fmt = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(lo
 export const timeOf = (iso: string) => fmt({hour: "2-digit", minute: "2-digit"}).format(new Date(iso));
 export const eventTitle = (e: Pick<GEvent, "title" | "kind">) => e.title || t("group.kind." + e.kind);
 const longDay = (d: Date) => fmt({weekday: "long", day: "numeric", month: "long"}).format(d);
+
+// Bolinha de um membro: a foto do perfil (conta Google) ou as iniciais.
+export const PersonAvatar = ({email}: {email: string}) => <Avatar person={{name: personName(email), email, photo: personPhoto(email)}}/>;
 
 // Abre um repertório do grupo como um link recebido (salvar e abrir, ou atualizar a cópia).
 export async function openGroupSetlist(s: GroupSetlist, stage = false){
@@ -93,7 +96,7 @@ export function Group(){
       {canEdit && tab === "agenda" && <button className="btn primary" id="group-new-event" onClick={() => openDialog("event", {id: null, day: dayKey(new Date())})}><Icon name="plus" sm/><span>{t("group.newEvent")}</span></button>}
     </>)}
     <Seg id="group-tabs" className="block" aria={t("group.title")} value={tab} onChange={v => store.setSetting("groupTab", v)}
-      options={[{v: "agenda", label: t("group.agenda")}, {v: "setlists", label: t("group.setlists")}, {v: "members", label: t("group.membersTab")}]}/>
+      options={[{v: "members", label: t("group.membersTab")}, {v: "agenda", label: t("group.agenda")}, {v: "setlists", label: t("group.setlists")}]}/>
     {tab === "agenda" && <Agenda canEdit={canEdit}/>}
     {tab === "setlists" && <Setlists canEdit={canEdit}/>}
     {tab === "members" && <Members canEdit={canEdit}/>}
@@ -195,7 +198,20 @@ function DayBar({day, off, canEdit, onClear}: {day: string; off: boolean; canEdi
   </div>;
 }
 
+// Quadro da data do evento: quadrado com o lado igual à altura do cabeçalho (título, hora e chips).
+// Só com CSS a largura é calculada antes da altura esticar, e o quadro ficava retangular.
+function useSquareBadge(){
+  const what = useRef<HTMLDivElement>(null), badge = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const w = what.current, b = badge.current; if(!w || !b || typeof ResizeObserver !== "function") return;
+    const fit = () => { const h = Math.max(52, Math.round(w.getBoundingClientRect().height)) + "px"; b.style.width = h; b.style.height = h; };
+    const ro = new ResizeObserver(fit); ro.observe(w); fit();
+    return () => ro.disconnect();
+  }, []);
+  return {what, badge};
+}
 function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
+  const sq = useSquareBadge();
   const g = useGroups(), me = useAuth(s => s.email);
   const [open, setOpen] = useState(() => useUI.getState().eventFocus === e.id), [declining, setDeclining] = useState(false), [reason, setReason] = useState(""), [busy, setBusy] = useState("");
   const lock = useLock(), ref = useRef<HTMLLIElement>(null);
@@ -217,12 +233,13 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
     onClick={() => myStatus === "no" ? act("no", () => respond(e.id, "pending")) : (setDeclining(true), setOpen(true))}><Icon name="x" sm/> {t("group.decline")}</button>;
   return <li ref={ref} className={"card event " + e.kind + (myStatus === "no" ? " declined" : "")}>
     <div className="event-top" onClick={() => setOpen(o => !o)}>
-      <span className="date-badge"><small>{fmt({weekday: "short"}).format(d)}</small><b>{d.getDate()}</b><small>{fmt({month: "short"}).format(d)}</small></span>
-      <div className="event-what">
+      <span className="date-badge" ref={sq.badge}><small>{fmt({weekday: "short"}).format(d)}</small><b>{d.getDate()}</b><small>{fmt({month: "short"}).format(d)}</small></span>
+      <div className="event-what" ref={sq.what}>
         <b>{eventTitle(e)}</b>
         <span className="sub">{timeOf(e.starts_at)}{e.call_at && " · " + t("group.callAt", {time: timeOf(e.call_at)})}{e.place && " · " + e.place}</span>
         <span className="event-chips">
-          <span className={"chip kind-" + e.kind}>{t("group.kind." + e.kind)}</span>
+          {/* Sem título, o tipo já é o título: o chip só aparece quando o evento tem nome próprio. */}
+          {e.title && <span className={"chip kind-" + e.kind}>{t("group.kind." + e.kind)}</span>}
           {set && <span className="chip"><Icon name="music" sm/> {set.name}</span>}
           {myStatus && <StatusChip status={myStatus}/>}
           {canEdit && needs.length > 0 && !isPast && <span className="chip st-no">{tn("group.needSub", needs.length)}</span>}
@@ -261,7 +278,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
   </li>;
 }
 
-// Chamada do ensaio (só admins): presente, falta ou justificada para cada membro.
+// Chamada do ensaio (só admins): presente ou falta para cada membro.
 function Attendance({e}: {e: GEvent}){
   const g = useGroups(), [busy, setBusy] = useState("");
   const att = g.attendance.filter(a => a.event_id === e.id);
@@ -273,29 +290,17 @@ function Attendance({e}: {e: GEvent}){
   return <div className="attendance"><h3>{t("group.attendance")} <span className="sub">{t("group.attCount", {n: att.filter(a => a.status === "present").length, total: g.members.length})}</span></h3>
     <ul>{g.members.map(m => { const a = att.find(x => x.email === m.email);
       return <li key={m.email}><span className="roster-who">{busy === m.email && <Spin/>}{personName(m.email)}{a && !a.by_admin && <span className="chip">{t("group.selfCheckIn")}</span>}</span>
-        <Seg aria={t("group.attendance") + ": " + personName(m.email)} value={(a?.status || "") as Presence | ""} onChange={v => mark(m.email, v === a?.status ? "" : v)}
-          options={[{v: "present", label: t("group.att.p"), title: t("group.att.present")}, {v: "absent", label: t("group.att.a"), title: t("group.att.absent")}, {v: "excused", label: t("group.att.e"), title: t("group.att.excused")}]}/></li>; })}</ul>
+        <Seg className="sm" aria={t("group.attendance") + ": " + personName(m.email)} value={(a?.status || "") as Presence | ""} onChange={v => mark(m.email, v === a?.status ? "" : v)}
+          options={[{v: "present", label: t("group.att.present")}, {v: "absent", label: t("group.att.absent")}]}/></li>; })}</ul>
   </div>;
 }
 
 // ---------- repertórios do grupo ----------
+// Os repertórios dos admins entram aqui sozinhos (publish.ts), sempre na versão mais nova.
 function Setlists({canEdit}: {canEdit: boolean}){
-  useData();
   const g = useGroups();
-  const mine = [...data.medleys.values()].filter(m => !isMedley(m) && medleyPayload(m).songs.length).sort((a, b) => a.name.localeCompare(b.name));
-  const [pick, setPick] = useState(""), [busy, setBusy] = useState(""), lock = useLock();
-  const share = () => lock(async () => {
-    const m = data.medleys.get(pick || mine[0]?.id || ""); if(!m) return;
-    const p = medleyPayload(m);
-    setBusy("share");
-    const ok = await shareSetlist(g.gid, p.sourceId, m.name, p.songs.length, await encodeMedley(p)).finally(() => setBusy(""));
-    toast(t(ok ? "group.shared" : "profile.saveFail", {name: m.name}));
-  });
   return <div className="group-setlists">
-    {canEdit && <div className="card share-to-group"><h2>{t("group.shareTitle")}</h2><p className="sub">{t("group.shareSub")}</p>
-      {mine.length ? <div className="people-add"><Select id="group-share-pick" aria={t("group.setlist")} value={pick || mine[0].id} onChange={setPick} options={mine.map(m => ({value: m.id, label: m.name}))}/>
-        <button className="btn primary" aria-busy={busy === "share"} onClick={share}>{busy === "share" ? <Spin/> : <Icon name="share" sm/>} {t("group.share")}</button></div>
-        : <p className="note info">{t("group.shareEmpty")}</p>}</div>}
+    {canEdit && <p className="note info">{t("group.autoShare")}</p>}
     {g.setlists.length ? <ul className="cards">{g.setlists.map(s => <li key={s.id} className="lib-card" onClick={() => openGroupSetlist(s)}>
       <h3>{s.name}</h3>
       <div className="meta"><span className="chip">{tn("song", s.songs)}</span></div>
@@ -303,10 +308,6 @@ function Setlists({canEdit}: {canEdit: boolean}){
       <div className="foot group-set-foot" onClick={ev => ev.stopPropagation()}>
         <button className="btn ghost sm" onClick={() => openGroupSetlist(s)}><Icon name="download" sm/> {t("group.openSetlist")}</button>
         <button className="btn ghost sm" onClick={() => openGroupSetlist(s, true)}><Icon name="stage" sm/> {t("medley.stage")}</button>
-        {canEdit && <button className="icon-btn sm danger" aria-label={t("group.unshare")} title={t("group.unshare")} onClick={async () => {
-          if(!await confirmDialog({title: t("group.unshareTitle"), message: t("group.unshareMsg", {name: s.name}), confirm: t("group.unshare")})) return;
-          toast(t(await removeSetlist(s.id) ? "group.unshared" : "profile.saveFail", {name: s.name}));
-        }}><Icon name="trash" sm/></button>}
       </div>
     </li>)}</ul> : <div className="card empty-state"><Icon name="music"/><strong>{t("group.noSetlists")}</strong><span>{t(canEdit ? "group.noSetlistsAdmin" : "group.noSetlistsSub")}</span></div>}
   </div>;
@@ -318,6 +319,14 @@ function Members({canEdit}: {canEdit: boolean}){
   const [email, setEmail] = useState(""), [name, setName] = useState(""), [birthday, setBirthday] = useState(""), [roles, setRoles] = useState<string[]>([]), [asAdmin, setAsAdmin] = useState(false), [busy, setBusy] = useState(""), lock = useLock();
   const group = g.groups.find(x => x.id === g.gid)!;
   const load = monthLoad(dayKey(new Date()), g.events, g.roster);
+  // Puxar do cadastro (só admins do app leem a lista): quem tem acesso e ainda não está no grupo.
+  const [allowed, setAllowed] = useState<Allowed[]>([]);
+  useEffect(() => { if(canEdit && appAdmin) listAllowed().then(r => r && setAllowed(r)); }, [canEdit, appAdmin, g.members.length]);
+  const outside = allowed.filter(a => !g.members.some(m => m.email === a.email));
+  const pickUser = (v: string) => {
+    const a = outside.find(x => x.email === v); if(!a) return;
+    setEmail(a.email); setName(a.profileName || a.name); setBirthday(a.profileBirthday || a.birthday || "");
+  };
   const add = (ev: React.FormEvent) => { ev.preventDefault(); lock(async () => {
     const v = email.trim().toLowerCase();
     if(!validEmail(v)) return toast(t("auth.badEmail"));
@@ -332,10 +341,12 @@ function Members({canEdit}: {canEdit: boolean}){
       {canEdit && <><p className="sub">{t("group.addSub")}</p>
         <form className="member-add people-add-box" onSubmit={add}>
           <h3 className="people-sub-h">{t("group.addTitle")}</h3>
+          {outside.length > 0 && <Select id="member-pick" className="member-pick" aria={t("group.pickUser")} value={outside.some(a => a.email === email) ? email : ""} onChange={pickUser}
+            options={[{value: "", label: t("group.pickUser")}, ...outside.map(a => ({value: a.email, label: (a.profileName || a.name) ? (a.profileName || a.name) + " · " + a.email : a.email}))]}/>}
           <div className="people-add">
             <input className="input" id="member-name" maxLength={80} autoComplete="off" placeholder={t("people.namePh")} aria-label={t("profile.name")} value={name} onChange={e => setName(e.target.value)}/>
             <input className="input" id="member-email" type="email" inputMode="email" placeholder={t("people.emailPh")} aria-label={t("auth.email")} value={email} onChange={e => setEmail(e.target.value)}/>
-            <input className="input people-birthday" id="member-birthday" type="date" max={today()} aria-label={t("profile.birthday")} title={t("profile.birthday")} value={birthday} onChange={e => setBirthday(e.target.value)}/>
+            <DateInput className="people-birthday" id="member-birthday" aria={t("profile.birthday")} max={today()} clearable value={birthday} onChange={setBirthday}/>
             <label className="switch lead boxed"><span>{t("group.leader")}</span><input type="checkbox" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>
             <button className="btn primary" disabled={!email.trim()} aria-busy={busy === "add"}>{busy === "add" ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
           </div>
@@ -343,22 +354,28 @@ function Members({canEdit}: {canEdit: boolean}){
         </form></>}
       <h3 className="people-sub-h">{t("group.listTitle")} <span className="count-chip">{g.members.length}</span></h3>
       <ul className="people-list members">{g.members.map(m => {
-        const rate = attendanceRate(m.email, g.events, g.attendance), n = load.get(m.email) || 0;
+        const rate = attendanceRate(m.email, g.events, g.attendance), sd = rehearsalStanding(m.email, g.events, g.attendance), n = load.get(m.email) || 0;
+        // Regra dos ensaios no lugar do "% nos ensaios" (a porcentagem fica na dica).
+        const hint = t("group.ruleHint", {max: MISS_LIMIT, back: COMEBACK, p: rate.total ? Math.round(100 * rate.present / rate.total) : 0, present: rate.present, total: rate.total});
+        // Líder: toggle com moldura (como o Admin da lista de usuários), antes do lápis; desabilitado enquanto salva.
+        const leader = canEdit && m.email !== me ? <label className="switch lead boxed people-admin" aria-busy={busy === m.email + "adm"}><span>{t("group.leader")}</span>
+          <input type="checkbox" checked={m.is_admin} disabled={busy === m.email + "adm"} aria-label={t("group.leaderAria", {name: personName(m.email)})}
+            onChange={() => row(m, "adm", () => setMemberAdmin(g.gid, m.email, !m.is_admin))}/></label> : null;
         return <li key={m.email}>
-          <span className="avatar" aria-hidden="true">{initials({name: m.name, email: m.email})}</span>
+          <PersonAvatar email={m.email}/>
           <span className="people-who"><span><b>{personName(m.email)}</b>{m.email === me && " " + t("group.you")}<br/><span className="sub people-email">{m.email}</span></span></span>
           <span className="member-chips">
             {m.is_admin && <span className="chip accent">{t("group.leader")}</span>}
-            {rate.total > 0 && <span className="chip" title={t("group.rateHint")}>{t("group.rate", {p: Math.round(100 * rate.present / rate.total), n: rate.present, total: rate.total})}</span>}
+            {sd.out ? <span className="chip st-no" title={hint}>{tn("group.standOut", sd.need)}</span>
+              : sd.streak > 0 ? <span className={"chip" + (sd.streak >= MISS_LIMIT - 3 ? " st-pending" : "")} title={hint}>{t("group.streak", {n: sd.streak, max: MISS_LIMIT})}</span>
+              : sd.called > 0 && <span className="chip st-yes" title={hint}>{t("group.standOk")}</span>}
             {n > 0 && <span className="chip" title={t("group.loadHint")}>{tn("group.load", n)}</span>}
           </span>
-          <MemberRoles m={m} editable={canEdit || m.email === me} busy={busy === m.email + "role"} onSave={v => row(m, "role", () => setMemberRole(g.gid, m.email, v))}/>
-          {canEdit && m.email !== me && <span className="people-actions">
-            <button className="btn ghost sm" aria-busy={busy === m.email + "adm"} onClick={() => row(m, "adm", () => setMemberAdmin(g.gid, m.email, !m.is_admin))}>{busy === m.email + "adm" && <Spin/>}{t(m.is_admin ? "group.unleader" : "group.makeLeader")}</button>
-            <button className="icon-btn sm danger" aria-label={t("group.removeMember")} title={t("group.removeMember")} onClick={async () => {
+          <MemberRoles m={m} editable={canEdit || m.email === me} busy={busy === m.email + "role"} before={leader} onSave={v => row(m, "role", () => setMemberRole(g.gid, m.email, v))}
+            after={canEdit && m.email !== me && <button className="icon-btn sm danger" aria-label={t("group.removeMember")} title={t("group.removeMember")} onClick={async () => {
               if(await confirmDialog({title: t("group.removeMember"), message: t("group.removeMemberMsg", {email: m.email, group: group.name}), confirm: t("people.remove")}))
                 row(m, "del", () => removeMember(g.gid, m.email), "group.memberRemoved");
-            }}><Icon name="trash" sm/></button></span>}
+            }}><Icon name="trash" sm/></button>}/>
         </li>; })}</ul>
     </div>
     {canEdit && <GroupSettings appAdmin={appAdmin}/>}
@@ -366,7 +383,7 @@ function Members({canEdit}: {canEdit: boolean}){
 }
 
 // Funções para escolher: as mais comuns e as que o grupo já usa.
-const ROLES = ["lead", "voice", "back", "acoustic", "guitar", "bass", "keys", "drums", "perc", "sound", "media"];
+const ROLES = ["sound", "voice", "bass", "drums", "acoustic", "keys"];
 export function roleOptions(){
   const g = useGroups.getState();
   return sortRoles(splitRoles([...ROLES.map(r => t("group.roles." + r)), ...g.members.map(m => m.role), ...g.roster.map(r => r.role)].join(",")));
@@ -389,7 +406,9 @@ function RolePicker({value, onChange}: {value: string[]; onChange: (v: string[])
   </div>;
 }
 // Funções de um membro: os chips, e o lápis para quem pode mudar (quem lidera, ou a própria pessoa).
-export function MemberRoles({m, editable, busy, onSave}: {m: Member; editable: boolean; busy: boolean; onSave: (v: string) => void}){
+// O lápis fica junto dos chips (edita as funções); before e after (o toggle de líder e excluir o membro)
+// ficam num bloco à parte, que na lista de membros vai para a direita.
+export function MemberRoles({m, editable, busy, onSave, before, after}: {m: Member; editable: boolean; busy: boolean; onSave: (v: string) => void; before?: React.ReactNode; after?: React.ReactNode}){
   const [editing, setEditing] = useState<string[] | null>(null);
   const roles = sortRoles(splitRoles(m.role));
   if(editing) return <div className="member-roles editing">
@@ -401,8 +420,9 @@ export function MemberRoles({m, editable, busy, onSave}: {m: Member; editable: b
   </div>;
   return <span className="member-roles">
     {roles.length ? roles.map(r => <span key={r} className="chip">{r}</span>) : editable && <span className="sub">{t("group.noRoles")}</span>}
-    {busy && <Spin/>}
     {editable && <button type="button" className="icon-btn sm" aria-label={t("group.editRoles") + ": " + personName(m.email)} title={t("group.editRoles")} onClick={() => setEditing(roles)}><Icon name="edit" sm/></button>}
+    {busy && <Spin/>}
+    {(before || after) && <span className="member-role-actions">{before}{after}</span>}
   </span>;
 }
 

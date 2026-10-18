@@ -9,7 +9,8 @@ if(!URL || !KEY) throw new Error("Faltam VITE_SUPABASE_URL e VITE_SUPABASE_KEY (
 export const cloud: SupabaseClient = createClient(URL, KEY, {auth: {flowType: "pkce", persistSession: true, detectSessionInUrl: true}});
 
 export type AuthStatus = "loading" | "out" | "denied" | "in";
-// photo: foto da conta Google (vem com o login, não fica no banco); vazia em quem entra com e-mail e senha.
+// photo: foto da conta Google (vem com o login e é copiada para o perfil, para o grupo ver); vazia em
+// quem entra com e-mail e senha.
 export interface Profile { id: string; email: string; name: string; birthday?: string | null; photo?: string }
 // name/birthday: os informados por quem liberou o acesso; profileName/profileBirthday: os do perfil da
 // pessoa (vazios enquanto ela não entrou ou não preencheu). O perfil vale mais.
@@ -44,7 +45,9 @@ async function refresh(){
   // Banco ainda sem a coluna da data de nascimento (antes da migração subir): lê sem ela.
   if(prof.error) prof = await cloud.from("profiles").select("id,email,name").eq("id", session.user.id).maybeSingle();
   const meta = session.user.user_metadata || {}, pic = String(meta.avatar_url || meta.picture || "");
-  const photo = /^https:\/\//.test(pic) ? pic : "";
+  const photo = /^https:\/\//.test(pic) && pic.length <= 1000 ? pic : "";
+  // Guarda a foto no perfil para o grupo ver (se não mudou, o banco só regrava o mesmo valor).
+  if(photo) cloud.from("profiles").update({photo}).eq("id", session.user.id).then(() => {}, () => {});
   useAuth.setState({status: "in", email, admin: a.admin, profile: {...((prof.data as Profile | null) || {id: session.user.id, email, name: ""}), photo}});
 }
 

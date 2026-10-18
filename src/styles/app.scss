@@ -706,6 +706,25 @@ select.input {
   padding-left: 40px;
   border-radius: var(--r-full);
 }
+/* Admin na lista de pessoas: rótulo e chave juntos, sem o espaço da linha de opções. */
+/* Admin na linha da lista: o mesmo toggle com moldura do cadastro, do mesmo tamanho. */
+.switch.people-admin {
+  margin-right: 4px;
+}
+/* Chave menor na linha, na altura dos ícones de editar e excluir. */
+.switch.people-admin input {
+  width: 30px;
+  height: 18px;
+}
+.switch.people-admin input::after {
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+}
+.switch.people-admin input:checked::after {
+  transform: translateX(12px);
+}
 .switch {
   display: flex;
   align-items: center;
@@ -4194,6 +4213,87 @@ dialog.nudge {
   overflow-y: auto;
   max-width: min(340px, calc(100vw - 16px));
 }
+
+/* ---------- campo de data (ui/DateInput) ---------- */
+.date-btn .select-label.placeholder {
+  color: var(--muted);
+}
+.date-btn svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.date-pop {
+  width: 296px;
+  padding: 12px;
+}
+.dp-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.dp-sel {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: 600 0.85rem var(--font-ui);
+  text-transform: capitalize;
+  cursor: pointer;
+}
+.dp-sel:last-of-type {
+  flex: 0 0 76px;
+}
+.dp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.dp-wd {
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  padding: 4px 0;
+}
+.dp-day {
+  aspect-ratio: 1;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--ink);
+  font: 600 0.85rem var(--font-ui);
+  cursor: pointer;
+  transition: background-color var(--t-fast);
+}
+.dp-day:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+.dp-day.today {
+  border-color: var(--accent);
+}
+.dp-day.on {
+  background: var(--accent-grad);
+  color: var(--accent-ink);
+}
+.dp-day:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.dp-day:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 1px;
+}
+.dp-foot {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
 .menu-group {
   font-size: 0.72rem;
   font-weight: 700;
@@ -6110,6 +6210,20 @@ dialog.ear-dlg {
   gap: 12px;
   cursor: pointer;
 }
+/* No card do evento, a data ocupa a altura inteira do cabeçalho (título, hora e chips) e continua quadrada:
+   o lado vem da altura medida do texto ao lado (useSquareBadge); 64px até a medida chegar. */
+.event-top .date-badge {
+  align-self: center;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+}
+.event-top .date-badge b {
+  font-size: 1.5rem;
+}
+.event-top .date-badge small {
+  font-size: 0.72rem;
+}
 .event-what {
   flex: 1;
   min-width: 0;
@@ -6248,6 +6362,19 @@ dialog.ear-dlg {
   gap: 10px;
   flex-wrap: wrap;
 }
+/* Linhas suaves só entre as pessoas da chamada e da escala. */
+.attendance ul,
+.roster {
+  gap: 0;
+}
+.attendance li,
+.roster li {
+  padding: 6px 0;
+}
+.attendance li + li,
+.roster li + li {
+  border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+}
 .attendance .seg button {
   min-width: 38px;
 }
@@ -6341,22 +6468,14 @@ dialog.event-dlg {
   font-size: 0.85rem;
   max-width: 160px;
 }
-.share-to-group {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 16px;
+/* Adicionar membro: escolher alguém do cadastro de usuários preenche o formulário. */
+.member-add .member-pick {
+  width: 100%;
+  margin-bottom: 10px;
 }
-.share-to-group h2 {
-  margin: 0;
-  font-size: 1rem;
-}
-.share-to-group .sub {
-  margin: -6px 0 0;
-}
-.share-to-group .people-add .select-btn {
-  flex: 1;
-  min-width: 200px;
+/* Aviso aos admins: os repertórios deles entram aqui sozinhos. */
+.group-setlists > .note {
+  margin: 0 0 16px;
 }
 
 .lib-card .foot.group-set-foot .btn {
@@ -6708,6 +6827,18 @@ dialog.event-dlg {
 }
 .member-roles .sub {
   font-size: 0.82rem;
+}
+.member-role-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+/* Na lista de membros, a linha das funções ocupa a largura toda: chips e lápis à esquerda, Líder e excluir à direita. */
+.members .member-roles:not(.editing) {
+  flex: 1 1 100%;
+}
+.members .member-role-actions {
+  margin-left: auto;
 }
 .member-roles.editing {
   flex: 1 1 100%;

@@ -4,12 +4,13 @@
 import { useRef, useState } from "react";
 import { t, tn } from "../lib/i18n";
 import { useGroups, saveEvent, personName, type RosterInput } from "../lib/groups";
-import { warningsFor, monthLoad, weekly, dayKey, rosterByPerson, type EventKind, type GEvent } from "../lib/calendar";
+import { warningsFor, rehearsalStanding, monthLoad, weekly, dayKey, rosterByPerson, type EventKind, type GEvent } from "../lib/calendar";
 import { toast, type DialogProps } from "../state";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
+import { DateInput } from "../ui/DateInput";
 import { eventTitle, roleOptions } from "../views/Group";
 import { splitRoles, sortRoles, toggleRole } from "../lib/roles";
 import { Spin } from "../views/Account";
@@ -69,7 +70,7 @@ export function EventDialog({id, day}: DialogProps["event"]){
           options={[{v: "service", label: t("group.kind.service")}, {v: "rehearsal", label: t("group.kind.rehearsal")}]}/>
         <label className="field"><span>{t("group.eventTitle")}</span><input className="input" id="event-title" maxLength={80} placeholder={t(kind === "service" ? "group.titlePhService" : "group.titlePhRehearsal")} value={title} onChange={e => touch(setTitle)(e.target.value)}/></label>
         <div className="event-row">
-          <label className="field"><span>{t("group.date")}</span><input className="input" id="event-date" type="date" required value={date} onChange={e => touch(setDate)(e.target.value)}/></label>
+          <label className="field"><span>{t("group.date")}</span><DateInput id="event-date" aria={t("group.date")} value={date} onChange={v => touch(setDate)(v)}/></label>
           <label className="field"><span>{t("group.time")}</span><input className="input" id="event-time" type="time" required value={time} onChange={e => touch(setTime)(e.target.value)}/></label>
           <label className="field" title={t("group.callHint")}><span>{t("group.call")}</span><input className="input" id="event-call" type="time" value={call} onChange={e => touch(setCall)(e.target.value)}/></label>
         </div>
@@ -83,6 +84,8 @@ export function EventDialog({id, day}: DialogProps["event"]){
         <h3 className="roster-h">{t("group.roster")} <span className="sub">{tn("group.people", roster.filter(r => r.email).length)}</span></h3>
         <ul className="roster-edit">{roster.map((r, i) => {
           const warns = r.email ? warningsFor(r.email, probe, {events: g.events, roster: g.roster, unavail: g.unavail}, eventTitle) : [];
+          // Culto: quem está fora pela regra dos ensaios ganha um aviso (o líder ainda decide).
+          const sd = r.email && kind === "service" ? rehearsalStanding(r.email, g.events, g.attendance) : null;
           const upd = (p: Partial<{email: string; roles: string[]}>) => { dirty.current = true; setRoster(rs => rs.map((x, k) => k === i ? {...x, ...p} : x)); };
           // Quem já está em outra linha não aparece de novo na lista de pessoas.
           const opts = memberOpts.filter(o => !o.value || o.value === r.email || !roster.some(x => x.email === o.value));
@@ -93,6 +96,7 @@ export function EventDialog({id, day}: DialogProps["event"]){
               <button type="button" className="icon-btn sm danger" aria-label={t("group.removeFromRoster")} title={t("group.removeFromRoster")} onClick={() => { dirty.current = true; setRoster(rs => rs.filter((_, k) => k !== i)); }}><Icon name="x" sm/></button>
             </div>
             {r.email && <RoleChips roles={chips} value={r.roles} onChange={roles => upd({roles})}/>}
+            {sd?.out && <p className="roster-warn declined" role="status"><Icon name="x" sm/>{tn("group.warnOut", sd.need)}</p>}
             {warns.map((w, k) => <p key={k} className={"roster-warn " + w.kind} role="status"><Icon name={w.kind === "busy" ? "calendar" : "x"} sm/>
               {w.kind === "unavailable" ? t("group.warnOff") + (w.note ? ": " + w.note : "") : w.kind === "busy" ? t("group.warnBusy", {title: w.title}) : t("group.warnDeclined")}</p>)}
           </li>;

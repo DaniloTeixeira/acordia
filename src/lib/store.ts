@@ -77,14 +77,16 @@ export const persistent = () => !!db;
 
 // Quem quer saber de cada mudança feita aqui (a sincronização com a nuvem põe na fila de envio).
 type Change = (kind: "s" | "m", id: string, op: "put" | "del") => void;
-let onChange: Change | null = null;
-export function watchChanges(fn: Change | null){ onChange = fn; }
+// Quem acompanha as mudanças feitas aqui (a sincronização e a publicação no grupo).
+const changeFns = new Set<Change>();
+export function watchChanges(fn: Change){ changeFns.add(fn); return () => { changeFns.delete(fn); }; }
+const changed: Change = (kind, id, op) => changeFns.forEach(f => f(kind, id, op));
 
 // Salvar atualiza a memória na hora (a interface já mostra) e grava no banco logo depois.
-export function saveSong(s: Song){ s.updatedAt = Date.now(); data.songs.set(s.id, s); later("s:" + s.id, () => write("songs", st=>st.put(s))); touch(); onChange?.("s", s.id, "put"); }
-export function deleteSong(id: string){ cancel("s:" + id); data.songs.delete(id); write("songs", st=>st.delete(id)); touch(); onChange?.("s", id, "del"); }
-export function saveMedley(m: Medley){ m.updatedAt = Date.now(); data.medleys.set(m.id, m); later("m:" + m.id, () => write("medleys", st=>st.put(m))); touch(); onChange?.("m", m.id, "put"); }
-export function deleteMedley(id: string){ cancel("m:" + id); data.medleys.delete(id); write("medleys", st=>st.delete(id)); touch(); onChange?.("m", id, "del"); }
+export function saveSong(s: Song){ s.updatedAt = Date.now(); data.songs.set(s.id, s); later("s:" + s.id, () => write("songs", st=>st.put(s))); touch(); changed("s", s.id, "put"); }
+export function deleteSong(id: string){ cancel("s:" + id); data.songs.delete(id); write("songs", st=>st.delete(id)); touch(); changed("s", id, "del"); }
+export function saveMedley(m: Medley){ m.updatedAt = Date.now(); data.medleys.set(m.id, m); later("m:" + m.id, () => write("medleys", st=>st.put(m))); touch(); changed("m", m.id, "put"); }
+export function deleteMedley(id: string){ cancel("m:" + id); data.medleys.delete(id); write("medleys", st=>st.delete(id)); touch(); changed("m", id, "del"); }
 
 // ---------- o que vem da nuvem ----------
 // Grava a versão de outro aparelho como está (sem mudar a hora nem voltar para a fila de envio).
