@@ -1,7 +1,7 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import { parseSong, DEFAULT_OPTIONS } from "../src/lib/core";
-import { fit, fitSetlist, layout, lyricsOnly, toSVG } from "../src/lib/layout";
+import { fit, fitSetlist, layout, lyricsOnly, lyricsText, sheetText, toSVG } from "../src/lib/layout";
 import { setLang } from "../src/lib/i18n";
 
 setLang("pt");
@@ -112,4 +112,27 @@ test("no repertório, cada música avulsa vai para uma folha e o medley fica jun
   assert.ok(firstTitle(r.pages[3]).startsWith("E"));
   // Um medley sozinho continua igual ao fit normal.
   assert.equal(fitSetlist([med("C"), med("D")], opts()).pages.length, fit([med("C"), med("D")], opts()).pages.length);
+});
+
+test("só letra: o refrão continua no bloco certo quando um bloco só de cifra sai", () => {
+  const s = parseSong("T\n[Intro]\nC  G\n\n[Primeira Parte]\nC\nverso\n\n[Refrão]\nG\nrefrão");
+  assert.deepEqual(s.chorus, [false, false, true]);
+  const [l] = lyricsOnly([s]);
+  assert.deepEqual(l.blocks.map(b => b[0].lyric), ["verso", "refrão"]);
+  assert.deepEqual(l.chorus, [false, true]);
+});
+
+test("lyricsText: título, blocos e (Refrão), sem cifras", () => {
+  setLang("pt");
+  const a = parseSong("Música A\nC\nver_so   um\n\n[Refrão]\nG  D\nrefrão\naqui"), b = parseSong("Música B\nAm\nsó isso");
+  assert.equal(lyricsText([a, b]), "MÚSICA A\n\nverso um\n\n(Refrão)\nrefrão\naqui\n\n\nMÚSICA B\n\nsó isso");
+});
+
+test("sheetText segue o modo: cifras no tom tocado, graus ou só letra", () => {
+  setLang("pt");
+  const p = parseSong("Música\nC    G\nlinha um\n\n[Refrão]\nAm\nrefrão");
+  const s = {...p, key: "C", target: "D", shift: 2};
+  assert.equal(sheetText([s], "cifras"), "MÚSICA  (D)\n\nD    A\nlinha um\n\n(Refrão)\nBm\nrefrão");
+  assert.equal(sheetText([{...s, target: "", shift: 0}], "graus"), "MÚSICA  (C)\n\nI    V\nlinha um\n\n(Refrão)\nvi\nrefrão");
+  assert.equal(sheetText([s], "letra"), "MÚSICA\n\nlinha um\n\n(Refrão)\nrefrão");
 });
