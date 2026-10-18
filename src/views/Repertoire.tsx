@@ -6,14 +6,14 @@ import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
 import { reduced, vt, flashSaved } from "../lib/util";
 import { useUI, useData, toast, openDialog, toggleExpanded, go } from "../state";
-import { current, isMedley, openMedley, songItems, arrangementOf, eff, songKey, lastPlayKey } from "../repertoire";
+import { current, isMedley, openMedley, songItems, arrangementOf, eff, songKey, lastPlayKey, sheetSongs } from "../repertoire";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select, type Options } from "../ui/Select";
 import { useSynced } from "../ui/hooks";
 import { useDragSort } from "../ui/dragSort";
 import { useGroups, loadGroups } from "../lib/groups";
-import { Sheet, SheetPane, copyLyrics } from "./Sheet";
+import { Sheet, SheetPane, copySheet, sheetMode } from "./Sheet";
 import { confirmDeleteMedley, openLibrary } from "./Library";
 import type { Medley, MedleyItem, SongItem, Song, Moment } from "../lib/types";
 
@@ -291,7 +291,7 @@ function ItemCard({m, it, i}: {m: Medley; it: SongItem; i: number}){
       <div className="type-row"><Seg className="sm" aria={t("item.typeAria")} value={song.type || ""} onChange={v => { song.type = v; saveSong(); }}
         options={[{v: "", label: t("item.withChords")}, {v: "letra", label: t("item.lyricsOnly")}]}/>
         <button type="button" className="btn soft sm" data-a="ear" data-tip-key="tip.ear" disabled={!song.title} onClick={ear}><Icon name="music" sm/> {t("ear.open")}</button>
-        <button type="button" className="btn soft sm" data-a="copy-lyrics" disabled={!song.title} onClick={() => copyLyrics([parseSong(song.text, letra)])}><Icon name="copy" sm/> {t("item.copyLyrics")}</button>
+        <button type="button" className="btn soft sm" data-a="copy-lyrics" disabled={!song.title} onClick={() => { const s = sheetSongs(m).find(x => x.itemId === it.id); if(s) copySheet(m, [s]); }}><Icon name="copy" sm/> {t("item.copy." + sheetMode())}</button>
         {!isMedley(m) && <MomentSeg m={m} it={it}/>}</div>
       <textarea className="input song-text" spellCheck={false} aria-label={t("item.textAria", {n:i+1})} placeholder={t(letra ? "item.phLyrics" : "item.phChords")}
         value={text} onChange={ev => { setText(ev.target.value); song.text = ev.target.value; song.title = songTitle(ev.target.value); saveSong(); }}/>

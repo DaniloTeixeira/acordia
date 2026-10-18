@@ -1,7 +1,7 @@
 // Folha A4 do repertório: modo (cifra, graus, letra), opções, PDF/impressão e as páginas.
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { sanitizeOptions } from "../lib/core";
-import { fitSetlist, toSVG, lyricsOnly, lyricsText, type Page, type SheetMode } from "../lib/layout";
+import { fitSetlist, toSVG, lyricsOnly, sheetText, type Page, type SheetMode, type SheetSong } from "../lib/layout";
 import { toPDF, saveBlob } from "../lib/pdf";
 import { t } from "../lib/i18n";
 import * as store from "../lib/store";
@@ -54,18 +54,19 @@ function SheetPickButton({m}: {m: Medley}){
   return <button className={"btn sm " + (on < all ? "soft" : "ghost")} id="btn-sheet-pick" aria-label={t("sheetPick.title")} title={t("sheetPick.title")}
     onClick={() => openDialog("sheetPick", {id: m.id})}><Icon name="list" sm/>{on < all ? on + "/" + all : t("sheetPick.all")}</button>;
 }
-// Copia a letra (sem cifras) para colar no WhatsApp ou na projeção: da folha inteira ou de uma música só.
-export async function copyLyrics(songs: Parameters<typeof lyricsText>[0]){
-  const text = lyricsText(songs);
+// Copia para colar no WhatsApp ou na projeção, no modo da aba ativa (cifras, graus ou só letra): da folha
+// inteira ou de uma música só.
+export async function copySheet(m: Medley, songs: SheetSong[]){
+  const text = sheetText(songs, sheetMode(), m.options.degreeStyle);
   if(!text) return toast(t("sheet.needSong"));
-  try{ await navigator.clipboard.writeText(text); toast(t("sheet.lyricsCopied")); }
+  try{ await navigator.clipboard.writeText(text); toast(t("sheet.copied")); }
   catch{ toast(t("sheet.copyFail")); }
 }
 // As músicas marcadas para a folha, na ordem do repertório.
 function CopyLyricsButton({m}: {m: Medley}){
-  const skip = useUI(s => s.sheetSkip[m.id]);
-  return <button className="icon-btn line" id="btn-copy-lyrics" aria-label={t("sheet.copyLyrics")} title={t("sheet.copyLyrics")}
-    onClick={() => copyLyrics(sheetSongs(m).filter(s => !skip?.includes(s.itemId)))}><Icon name="copy"/></button>;
+  const skip = useUI(s => s.sheetSkip[m.id]), label = t("sheet.copy." + sheetMode());
+  return <button className="icon-btn line" id="btn-copy-lyrics" aria-label={label} title={label}
+    onClick={() => copySheet(m, sheetSongs(m).filter(s => !skip?.includes(s.itemId)))}><Icon name="copy"/></button>;
 }
 export const setSheetSkip = (id: string, skip: string[]) => useUI.setState(s => ({sheetSkip: {...s.sheetSkip, [id]: skip}}));
 

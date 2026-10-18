@@ -107,6 +107,19 @@ export function chordLine(line: string, s: KeyedSong, mode: SheetMode, style?: D
   return {text: mode === "graus" || s.shift ? r.text : line, chords: r.tokens.map(k => ({pos:k.pos, len:k.len, chord: sound(k.src)}))};
 }
 function playKey(s: SheetSong){ return s.target || s.key; }
+// Texto para colar, no modo da aba ativa: só letra (lyricsText) ou, em cifras e graus, o título com o tom e a linha
+// de cifra (ou de graus) em cima da letra, como na folha (já no tom tocado); "(Refrão)" em cima do refrão.
+export function sheetText(songs: SheetSong[], mode: SheetMode, style?: DegreeStyle){
+  if(mode === "letra") return lyricsText(songs);
+  return songs.filter(s => s.blocks.length).map(s => {
+    const k = playKey(s);
+    return [s.title.toUpperCase() + (k ? "  (" + k + ")" : ""), ...s.blocks.map((b, i) => (s.chorus?.[i] ? "(" + t("sheet.chorus") + ")\n" : "") +
+      b.map(it => {
+        const c = it.chord != null ? chordLine(it.chord, s, mode, style).text.replace(/\s+$/, "") : null;
+        return it.kind === "pair" ? c + "\n" + it.lyric : c ?? it.lyric;
+      }).join("\n"))].join("\n\n");
+  }).join("\n\n\n");
+}
 // Dica de transição para a próxima música: só entre músicas emendadas do mesmo medley (entre avulsas há
 // pausa, fala ou pregação). Ex.: "Próxima em Am · acorde de passagem: E7".
 export function transitionLine(s: SheetSong, next: SheetSong | undefined, mode: SheetMode){

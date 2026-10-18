@@ -1,7 +1,7 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import { parseSong, DEFAULT_OPTIONS } from "../src/lib/core";
-import { fit, fitSetlist, layout, lyricsOnly, lyricsText, toSVG } from "../src/lib/layout";
+import { fit, fitSetlist, layout, lyricsOnly, lyricsText, sheetText, toSVG } from "../src/lib/layout";
 import { setLang } from "../src/lib/i18n";
 
 setLang("pt");
@@ -126,4 +126,13 @@ test("lyricsText: título, blocos e (Refrão), sem cifras", () => {
   setLang("pt");
   const a = parseSong("Música A\nC\nver_so   um\n\n[Refrão]\nG  D\nrefrão\naqui"), b = parseSong("Música B\nAm\nsó isso");
   assert.equal(lyricsText([a, b]), "MÚSICA A\n\nverso um\n\n(Refrão)\nrefrão\naqui\n\n\nMÚSICA B\n\nsó isso");
+});
+
+test("sheetText segue o modo: cifras no tom tocado, graus ou só letra", () => {
+  setLang("pt");
+  const p = parseSong("Música\nC    G\nlinha um\n\n[Refrão]\nAm\nrefrão");
+  const s = {...p, key: "C", target: "D", shift: 2};
+  assert.equal(sheetText([s], "cifras"), "MÚSICA  (D)\n\nD    A\nlinha um\n\n(Refrão)\nBm\nrefrão");
+  assert.equal(sheetText([{...s, target: "", shift: 0}], "graus"), "MÚSICA  (C)\n\nI    V\nlinha um\n\n(Refrão)\nvi\nrefrão");
+  assert.equal(sheetText([s], "letra"), "MÚSICA\n\nlinha um\n\n(Refrão)\nrefrão");
 });
