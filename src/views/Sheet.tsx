@@ -50,7 +50,8 @@ function SheetOptions({m}: {m: Medley}){
   const o = m.options;
   const [tg] = useState(() => toggler(() => pop.current, btn => {
     const p = pop.current!, r = btn.getBoundingClientRect(), vw = document.documentElement.clientWidth, w = Math.min(320, vw - 32);
-    p.style.top = Math.min(r.bottom + 8, innerHeight - 20) + "px";
+    const top = Math.min(r.bottom + 8, innerHeight - 20);
+    p.style.top = top + "px"; p.style.setProperty("--pop-top", top + "px");
     p.style.left = Math.max(16, Math.min(r.right - w, vw - w - 16)) + "px";
     p.showPopover();
   }));

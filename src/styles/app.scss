@@ -1814,6 +1814,14 @@ textarea.song-text {
     transform: translateY(-6px) scale(0.98);
   }
 }
+/* No celular os ajustes não cabem abaixo do botão: rolam por dentro até o fim da tela visível.
+   O dvh acompanha a barra do navegador que aparece e some ao rolar, e o overscroll não passa
+   para a página (era o arraste na janelinha que rolava a página e trazia a barra por cima). */
+#sheet-options {
+  max-height: calc(100dvh - var(--pop-top, 0px) - 12px - env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 .popover h3 {
   margin-bottom: 8px;
 }
