@@ -1,20 +1,22 @@
 // Janelas do app. Cada uma aparece quando aberta com openDialog(nome, dados).
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { songTitle, sanitizeUrl, parseSong, detectKey, keyShift, transposeKey, transposeText } from "../lib/core";
 import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
 import { norm } from "../lib/util";
 import { useUI, toast, openDialog, type DialogProps } from "../state";
-import { current, isMedley, lastPlayKey, songItems, libTargets, libTitle, inSetlist, addToSetlist, removeFromSetlist, type LibRef } from "../repertoire";
+import { current, isMedley, lastPlayKey, songItems, sheetSongs, libTargets, libTitle, inSetlist, addToSetlist, removeFromSetlist, type LibRef } from "../repertoire";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
 import { keyOptions } from "../views/Repertoire";
 import { ChordDialog } from "./ChordDialog";
+import { setSheetSkip } from "../views/Sheet";
 import { PlayerDialog } from "./PlayerDialog";
 import { EarDialog } from "./EarDialog";
 import { EventDialog } from "./EventDialog";
+import { PhotoDialog } from "./PhotoDialog";
 import type { SongType } from "../lib/types";
 
 const { data } = store;
@@ -26,6 +28,7 @@ export function Dialogs(){
     {d.picker && <Picker/>}
     {d.song && <SongDialog {...d.song}/>}
     {d.addTo && <AddToDialog {...d.addTo}/>}
+    {d.sheetPick && <SheetPickDialog {...d.sheetPick}/>}
     {d.install && <InstallDialog/>}
     {d.chord && <ChordDialog {...d.chord}/>}
     {d.player && <PlayerDialog {...d.player}/>}
@@ -33,6 +36,7 @@ export function Dialogs(){
     {d.help && <HelpDialog {...d.help}/>}
     {d.ear && <EarDialog {...d.ear}/>}
     {d.event && <EventDialog {...d.event}/>}
+    {d.photo && <PhotoDialog {...d.photo}/>}
   </>;
 }
 
@@ -148,6 +152,31 @@ function AddToDialog(r: LibRef){
         <ul className="pick-list" id="add-to-list">{list.map(m => <li key={m.id}>
           <label><input type="checkbox" checked={inSetlist(m, r)} onChange={e => toggle(m, e.target.checked)}/><span className="t">{m.name}</span></label>
           <span className="chip accent">{tn("song", songItems(m).length)}</span></li>)}</ul></div>
+      <Foot><button className="btn primary" value="ok">{t("common.done")}</button></Foot>
+    </form>
+  </Dialog>;
+}
+
+// ---------- músicas na folha (impressão e PDF) ----------
+// Marcar ou desmarcar cada música; o medley aparece com o nome em cima e as músicas dele. Vale na hora.
+function SheetPickDialog({id}: {id: string}){
+  const m = data.medleys.get(id), skip = useUI(s => s.sheetSkip[id]) || [];
+  if(!m) return null;
+  const list = sheetSongs(m), set = (v: string[]) => setSheetSkip(id, v);
+  const toggle = (itemId: string, on: boolean) => set(on ? skip.filter(x => x !== itemId) : [...skip, itemId]);
+  return <Dialog name="sheetPick" id="dlg-sheet-pick" labelledBy="sheet-pick-h">
+    <form method="dialog" className="dlg">
+      <DialogHead id="sheet-pick-h" title={t("sheetPick.title")} closeLabel={t("common.close")}/>
+      <div className="dlg-body"><p className="sub">{t("sheetPick.sub")}</p>
+        <div className="sheet-pick-quick">
+          <button type="button" className="btn ghost sm" disabled={!skip.length} onClick={() => set([])}>{t("sheetPick.all")}</button>
+          <button type="button" className="btn ghost sm" disabled={skip.length >= list.length} onClick={() => set(list.map(s => s.itemId))}>{t("sheetPick.none")}</button>
+        </div>
+        <ul className="pick-list" id="sheet-pick-list">{list.map((s, i) => <Fragment key={s.itemId}>
+          {s.group && s.group !== list[i - 1]?.group && <li className="pick-h"><Icon name="link" sm/> {s.gname}</li>}
+          <li className={s.group ? "in-medley" : ""}><label><input type="checkbox" checked={!skip.includes(s.itemId)} onChange={e => toggle(s.itemId, e.target.checked)}/>
+            <span className="t">{i + 1}. {s.title}</span></label>{(s.target || s.key) && <span className="chip accent">{s.target || s.key}</span>}</li>
+        </Fragment>)}</ul></div>
       <Foot><button className="btn primary" value="ok">{t("common.done")}</button></Foot>
     </form>
   </Dialog>;

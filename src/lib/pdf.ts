@@ -32,7 +32,9 @@ export async function toPDF(pages: Page[]): Promise<Blob> {
   pages.forEach((ops, pi)=>{
     if(pi) doc.addPage();
     ops.forEach(o=>{
-      if(o.t==="text"){
+      if(o.t==="rect"){
+        doc.setFillColor(...o.c); doc.roundedRect(o.x, o.y, o.w, o.h, o.r, o.r, "F");
+      } else if(o.t==="text"){
         doc.setFont(o.f==="mono" ? "ahmono" : o.f==="lex" ? "lexend" : "ahsans", o.b ? "bold" : "normal"); doc.setFontSize(o.s); doc.setTextColor(...o.c);
         doc.text(o.txt, o.x, o.y);
       } else {

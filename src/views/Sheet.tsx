@@ -35,6 +35,7 @@ export function SheetPane({m, children}: {m: Medley; children: ReactNode}){
       <Seg id="mode-seg" aria={t("sheet.modeAria")} value={mode} onChange={v => store.setSetting("sheetMode", v)}
         options={[{v: "cifras", label: t("sheet.chords"), tip: "tip.cifras"}, {v: "graus", label: t("sheet.degrees"), tip: "tip.graus"}, {v: "letra", label: t("sheet.lyrics"), tip: "tip.letra"}]}/>
       <div className="tools">
+        <SheetPickButton m={m}/>
         <SheetOptions m={m}/>
         <button className="icon-btn" id="btn-print" aria-label={t("sheet.print")} title={t("sheet.print")}
           onClick={() => { if(!lastPages.length) return toast(t("sheet.needSong")); window.print(); }}><Icon name="print"/></button>
@@ -44,6 +45,15 @@ export function SheetPane({m, children}: {m: Medley; children: ReactNode}){
     <div className="sheet-scroll">{children}</div>
   </div>;
 }
+
+// Quais músicas entram na folha: abre a lista para marcar; com alguma de fora, mostra "3/7".
+function SheetPickButton({m}: {m: Medley}){
+  const skip = useUI(s => s.sheetSkip[m.id]) || [], list = sheetSongs(m), all = list.length, on = all - list.filter(s => skip.includes(s.itemId)).length;
+  if(all < 2) return null;
+  return <button className={"btn sm " + (on < all ? "soft" : "ghost")} id="btn-sheet-pick" aria-label={t("sheetPick.title")} title={t("sheetPick.title")}
+    onClick={() => openDialog("sheetPick", {id: m.id})}><Icon name="list" sm/>{on < all ? on + "/" + all : t("sheetPick.all")}</button>;
+}
+export const setSheetSkip = (id: string, skip: string[]) => useUI.setState(s => ({sheetSkip: {...s.sheetSkip, [id]: skip}}));
 
 function SheetOptions({m}: {m: Medley}){
   const pop = useRef<HTMLDivElement>(null);
@@ -88,13 +98,14 @@ function SheetOptions({m}: {m: Medley}){
 // As páginas são recalculadas um pouco depois da última mudança (o ajuste mede o texto várias vezes).
 // A folha mostra sempre o repertório inteiro, na ordem, abra ou feche os cards à esquerda.
 export function Sheet({m}: {m: Medley}){
-  const version = useData(), lang = useUI(s => s.lang);
+  const version = useData(), lang = useUI(s => s.lang), skip = useUI(s => s.sheetSkip[m.id]);
   const mode = sheetMode();
   const [res, setRes] = useState<{pages: Page[]; warn: string | null} | null>(null);
   const first = useRef(true);
   useEffect(() => {
     const run = () => {
-      const all = sheetSongs(m);
+      // Só as marcadas para a folha (impressão e PDF saem iguais à tela).
+      const all = sheetSongs(m).filter(s => !skip?.includes(s.itemId));
       if(!all.length){ lastPages = []; setRes({pages: [], warn: null}); return; }
       const r = fitSetlist(mode === "letra" ? lyricsOnly(all) : all, Object.assign({}, m.options, {mode, measure}));
       lastPages = r.pages; setRes({pages: r.pages, warn: r.warn});
@@ -102,7 +113,8 @@ export function Sheet({m}: {m: Medley}){
     if(first.current){ first.current = false; run(); return; }
     const h = setTimeout(run, 180);
     return () => clearTimeout(h);
-  }, [version, lang, mode, m]);
+  }, [version, lang, mode, m, skip]);
+  const total = sheetSongs(m).length, out = skip ? sheetSongs(m).filter(s => skip.includes(s.itemId)).length : 0;
   // Cada folha é um elemento que fica: ao digitar só o desenho de dentro muda, e a animação de
   // entrada da folha não roda de novo (antes a folha piscava a cada tecla).
   const svgs = useMemo(() => {
@@ -115,6 +127,8 @@ export function Sheet({m}: {m: Medley}){
     if(r) openDialog("chord", {symbol: r.dataset.chord || "", songKey: r.dataset.key || ""});
   };
   return <>
+    {out > 0 && <p className="note info sheet-pick-note">{t("sheetPick.note", {n: total - out, total})}
+      <button type="button" className="link-btn" onClick={() => setSheetSkip(m.id, [])}>{t("sheetPick.showAll")}</button></p>}
     <p className="note" id="sheet-warn" hidden={!res?.warn}>{res?.warn}</p>
     {res && !res.pages.length
       ? <div className="pages" id="pages"><div className="sheet-empty empty-state"><Icon name="file"/><strong>{t("sheet.emptyTitle")}</strong><span>{t("sheet.emptyText")}</span></div></div>

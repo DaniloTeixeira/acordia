@@ -725,8 +725,16 @@ select.input {
 }
 /* Admin na lista de pessoas: rótulo e chave juntos, sem o espaço da linha de opções. */
 /* Admin na linha da lista: o mesmo toggle com moldura do cadastro, do mesmo tamanho. */
-.switch.people-admin {
-  margin-right: 4px;
+/* Admin, editar e excluir com cara de botão: mesma altura (mais baixa que os campos) e cantos redondos. */
+.switch.boxed.people-admin {
+  min-height: 34px;
+  height: 34px;
+  padding: 0 12px 0 10px;
+  border-radius: var(--r-full);
+}
+.people-actions .icon-btn.sm {
+  width: 34px;
+  height: 34px;
 }
 /* Chave menor na linha, na altura dos ícones de editar e excluir. */
 .switch.people-admin input {
@@ -3933,6 +3941,21 @@ a.btn {
   flex-direction: column;
   gap: 2px;
 }
+/* Músicas na folha: atalhos Todas/Nenhuma; as músicas de um medley recuadas abaixo do nome dele. */
+.sheet-pick-quick {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+.pick-list li.in-medley {
+  padding-left: 20px;
+}
+.pick-list .pick-h .i {
+  vertical-align: -2px;
+}
+.sheet-pick-note .link-btn {
+  margin-left: 6px;
+}
 .pick-list .pick-h {
   font-size: 0.75rem;
   font-weight: 700;
@@ -4359,12 +4382,29 @@ dialog.nudge {
 }
 
 /* ---------- campo de data (ui/DateInput) ---------- */
-.date-btn .select-label.placeholder {
+/* A data é digitada no campo; o calendário abre pelo botão dentro dele, à direita. */
+.date-field {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+.date-field .date-input {
+  width: 100%;
+  padding-right: 44px;
+}
+.date-field .date-cal {
+  position: absolute;
+  top: 50%;
+  right: 3px;
+  transform: translateY(-50%);
   color: var(--muted);
 }
-.date-btn svg {
-  flex-shrink: 0;
-  color: var(--muted);
+.date-field .date-cal:active:where(:not(:disabled)) {
+  transform: translateY(-50%) scale(0.92);
+}
+.date-field:has(.date-cal[aria-expanded="true"]) .date-input {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 .date-pop {
   width: 296px;
@@ -4697,6 +4737,22 @@ dialog.unsaved .dlg-foot::before {
   pointer-events: none;
   width: max-content;
   max-width: calc(100vw - 24px);
+}
+/* Popover (ver Toasts.tsx): tira o visual padrão do navegador; left e bottom continuam os de cima (e os do
+   celular, acima da barra de abas). */
+.toasts[popover] {
+  top: auto;
+  right: auto;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  overflow: visible;
+  height: auto;
+}
+.toasts[popover]:not(:popover-open) {
+  display: none;
 }
 @media (max-width: 899px) {
   .toasts {
@@ -5807,6 +5863,290 @@ dialog.ear-dlg {
 .avatar.big.photo img {
   border: 2px solid var(--surface);
 }
+/* Avatar grande do Perfil é um botão: tocar troca a foto; a câmera no canto mostra que dá. */
+.avatar-edit {
+  position: relative;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.avatar-edit:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.avatar-edit .cam {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-sm);
+  transition: background-color 0.15s, transform 0.15s;
+}
+/* Passar o mouse no avatar ou na câmera: só o fundo da câmera muda. No escuro fica bem mais branco; no
+   claro o fundo já é branco, então escurece de leve (como o hover dos ícones). */
+.avatar-edit {
+  --cam-hover: var(--surface-2);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .avatar-edit {
+    --cam-hover: color-mix(in srgb, var(--surface), #fff 30%);
+  }
+}
+:root[data-theme="dark"] .avatar-edit {
+  --cam-hover: color-mix(in srgb, var(--surface), #fff 30%);
+}
+@media (hover: hover) {
+  .avatar-edit:hover .cam {
+    background: var(--cam-hover);
+  }
+}
+.avatar-edit:focus-visible .cam {
+  background: var(--cam-hover);
+}
+.avatar-edit:active .cam {
+  transform: scale(0.94);
+}
+.profile-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+/* Recortar a foto: quadro quadrado do tamanho da janela (no celular, a largura toda), com o círculo do
+   avatar marcado; fora do círculo fica escurecido. A imagem tem largura e altura na mesma escala. */
+.photo-dlg {
+  --dlg-w: 420px;
+}
+.photo-stage {
+  position: relative;
+  width: min(100%, 360px);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+.photo-stage:active {
+  cursor: grabbing;
+}
+.photo-stage:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.photo-stage.loading {
+  display: grid;
+  place-items: center;
+}
+.photo-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.55);
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline-offset: -1px;
+  pointer-events: none;
+}
+/* Foto do grupo: a marcação tem os cantos da marca do grupo (12 px em 56 px, cerca de 21%). */
+.photo-stage.square::after {
+  border-radius: 21%;
+}
+.photo-stage img,
+.photo-pv img {
+  position: absolute;
+  max-width: none;
+  max-height: none;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+.photo-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: min(100%, 360px);
+  margin: 0 auto;
+}
+.photo-zoom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 180px;
+  min-width: 0;
+}
+.photo-zoom input[type="range"] {
+  flex: 1;
+  min-width: 0;
+}
+.photo-previews {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* Fundo da foto: bolinhas com as cores prontas, o gradiente e a cor livre (o seletor do navegador fica
+   invisível por cima da bolinha). A escolhida ganha o anel no gradiente. */
+.photo-bgs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: min(100%, 360px);
+  margin: 0 auto;
+}
+.photo-bgs > .sub {
+  margin-right: 2px;
+}
+.photo-bg {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.45);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.photo-bg.on {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.photo-bg:focus-visible,
+.photo-bg:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.photo-bg.custom .i {
+  color: #fff;
+  filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.8));
+  pointer-events: none;
+}
+.photo-bg.custom input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+/* Prévias com o mesmo anel do avatar: 72 px (Perfil) e 32 px (listas). */
+.photo-pv {
+  display: block;
+  width: 32px;
+  height: 32px;
+  padding: 1px;
+  border-radius: 50%;
+  background: var(--range-grad);
+  flex-shrink: 0;
+}
+.photo-pv.big {
+  width: 72px;
+  height: 72px;
+}
+.photo-pv > span {
+  display: block;
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--surface);
+}
+.photo-pv.big > span {
+  border: 2px solid var(--surface);
+}
+.photo-pv.group {
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 21%;
+  background: var(--surface-2);
+}
+.photo-pv.group.big {
+  width: 56px;
+  height: 56px;
+}
+.photo-pv.group.round {
+  border-radius: 50%;
+}
+/* Só a largura das opções, centrado sobre o quadro (o corpo da janela é flex em coluna e esticaria). */
+.photo-shape {
+  align-self: center;
+  width: max-content;
+  max-width: 100%;
+}
+/* Marca do grupo: a foto, ou as iniciais do nome no gradiente. Mesmo formato em qualquer tamanho. */
+.group-mark {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 21%;
+  background: var(--accent-grad);
+  color: #fff;
+  font: 700 0.72rem var(--font-display);
+}
+.group-mark.round {
+  border-radius: 50%;
+}
+/* Botão da foto do grupo: o foco acompanha o formato da marca. */
+.avatar-edit.group-edit {
+  border-radius: 21%;
+}
+.avatar-edit.group-edit.round {
+  border-radius: 50%;
+}
+.group-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.group-photo-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.group-photo-row .group-mark {
+  width: 56px;
+  height: 56px;
+  font-size: 1.15rem;
+}
+.group-photo-row .photo-shape {
+  width: auto;
+  margin: 0;
+}
+.group-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.group-title > div {
+  min-width: 0;
+}
+.group-title .group-mark {
+  width: 52px;
+  height: 52px;
+  font-size: 1.1rem;
+}
 .profile-grid {
   display: grid;
   gap: 16px;
@@ -5820,13 +6160,62 @@ dialog.ear-dlg {
   flex-direction: column;
   gap: 14px;
 }
-.profile-card > .btn {
-  align-self: flex-start;
-}
 /* Perfil: mais espaço entre um campo e outro; o texto de ajuda fica colado no campo dele, menor e sem
    negrito, para não parecer o título do campo seguinte. */
+/* Lado a lado com a lista de acesso (mais alta), a sobra de altura se divide entre as seções em vez de
+   ficar toda num vão antes do rodapé; sozinho (celular), fica só o espaço normal entre elas. */
 .profile-card {
   gap: 22px;
+  justify-content: space-between;
+}
+/* Página Perfil: cada card ocupa duas linhas da grade e as herda (subgrid). A linha de cima é o topo (foto e
+   nome; título e explicação) e fica com a altura do topo mais alto, então lado a lado os quadros de campos
+   ("Meus dados" e "Adicionar pessoa") começam na mesma altura. O corpo continua em coluna, como antes. */
+.profile-grid > .card {
+  display: grid;
+  grid-row: span 2;
+  grid-template-rows: subgrid;
+  row-gap: 22px;
+}
+.profile-grid .card-top {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.profile-grid .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.profile-grid .profile-card > .card-body {
+  gap: 22px;
+  justify-content: space-between;
+}
+/* Títulos das seções do perfil (funções, frequência, próxima escala) e das listas de pessoas (adicionar,
+   com acesso, membros do grupo): maiores, na cor do texto e com um traço no gradiente da marca, para não se
+   confundirem com o rótulo dos campos (Nome, Celular...). */
+.people-sub-h,
+.profile-roles > span:first-child,
+.profile-att > span:first-child,
+.profile-next > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.people-sub-h::before,
+.profile-roles > span:first-child::before,
+.profile-att > span:first-child::before,
+.profile-next > span:first-child::before {
+  content: "";
+  width: 4px;
+  height: 1.05em;
+  border-radius: 2px;
+  background: var(--accent-grad);
+  flex-shrink: 0;
 }
 .profile-card .field > small.sub {
   margin-top: 2px;
@@ -5836,10 +6225,26 @@ dialog.ear-dlg {
   color: var(--muted);
   opacity: 0.85;
 }
-.profile-card .sync-status {
-  padding-top: 16px;
+/* Aviso de por que o card está sem funções e frequência (grupo não carregou, ou sem grupo). */
+.profile-group-note {
+  margin: 0;
+  font-size: 0.85rem;
+}
+/* No fundo do card, com a mesma altura de uma linha da lista "Com acesso" (10 px em cima e embaixo e
+   65 px no total, como cada linha): lado a lado, a linha de cima cai na altura da linha da última pessoa. */
+.profile-foot {
+  padding: 10px 0;
+  min-height: 65px;
   border-top: 1px solid var(--line);
-  margin-bottom: -10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+.profile-foot .sync-status {
+  margin-left: auto;
+  justify-content: flex-end;
 }
 .profile-who {
   display: flex;
@@ -5856,35 +6261,93 @@ dialog.ear-dlg {
 .profile-who b {
   font-size: 1.1rem;
 }
+/* Campos com o rótulo em cima, alinhados pelo topo (o aviso de e-mail inválido cresce para baixo sem
+   empurrar os vizinhos); o toggle e o botão descem a altura do rótulo para ficar na linha dos campos. */
 .people-add {
+  --label-h: calc(0.8rem * 1.2 + 4px);
   display: flex;
   gap: 10px;
-  align-items: center;
+  align-items: flex-start;
   flex-wrap: wrap;
 }
-.people-add .input {
+.people-add > .field {
   flex: 1;
   min-width: 200px;
 }
-.people-add .people-birthday {
-  flex: 0 1 170px;
+.people-add > .field.birthday,
+.people-add > .field.phone {
+  flex: 1 1 170px;
   min-width: 150px;
+}
+.people-add:has(> .field) > :not(.field) {
+  margin-top: var(--label-h);
+}
+/* Linha sem rótulos (novo grupo): o campo cresce, como antes. */
+.people-add > .input {
+  flex: 1;
+  min-width: 200px;
 }
 .people-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
+/* Toda linha com a mesma altura do rodapé do card do perfil (65 px com borda e espaço: cabe nome e e-mail),
+   para as linhas de baixo dos dois cards baterem lado a lado, tenha a pessoa nome e e-mail ou só o e-mail. */
 .people-list li {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px 0;
+  min-height: 65px;
   border-top: 1px solid var(--line);
   flex-wrap: wrap;
 }
 .people-list li:first-child {
   border-top: none;
+}
+/* Cabeçalho da lista "Com acesso", como o de uma tabela: rótulos pequenos e a linha embaixo. */
+.people-list-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0 8px;
+  border-bottom: 2px solid transparent;
+  border-image: var(--accent-grad) 1;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.people-list-head + .people-list {
+  margin-top: -14px;
+}
+/* O que falta na pessoa (nome, celular): texto apagado e em itálico no lugar, para a linha ter a mesma altura. */
+.people-missing {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--muted);
+  opacity: 0.7;
+}
+.phone-link.people-missing .i {
+  color: var(--muted);
+}
+/* Avatar do card do perfil: maior que o grande padrão (72 px). */
+.profile-who .avatar.big {
+  width: 96px;
+  height: 96px;
+  font-size: 1.9rem;
+}
+/* Avatar da lista "Com acesso": maior, acompanhando as três linhas (nome, e-mail, celular). */
+.people-who .avatar {
+  width: 44px;
+  height: 44px;
+  font-size: 0.9rem;
+}
+/* "Sem celular" não é link: não muda de cor no hover. */
+.phone-link.people-missing:hover {
+  color: var(--muted);
 }
 /* Cadastro num quadro próprio, separado da lista; cada parte com seu título pequeno. */
 .people-add-box {
@@ -5901,22 +6364,26 @@ dialog.ear-dlg {
   align-items: center;
   gap: 8px;
   margin: 6px 0 -4px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
+}
+/* Busca da lista "Com acesso": logo abaixo do título, largura toda. */
+.people-search {
+  margin: 4px 0 8px;
 }
 .people-add-box .people-sub-h {
   margin: 0;
 }
-/* E-mail e o selo Admin juntos à esquerda; "Você" e as ações ficam à direita. */
+/* Quando o card do perfil é o mais alto, a sobra fica entre o cadastro e "Com acesso": a lista desce até o
+   fundo e a última pessoa cai na altura do rodapé do perfil (Sair). */
+.people-card > .people-sub-h,
+.people-card > .card-body > .people-sub-h {
+  margin-top: auto;
+}/* E-mail e o selo Admin juntos à esquerda; "Você" e as ações ficam à direita. */
 .people-who {
   flex: 1 1 220px;
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 .people-actions {
   margin-left: auto;
@@ -5934,7 +6401,7 @@ dialog.ear-dlg {
 .people-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
 .google-btn {
   background: var(--surface);
@@ -6563,6 +7030,17 @@ dialog.ear-dlg {
 .roster li + li {
   border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
 }
+/* Chamada aberta: o prazo e o aviso no WhatsApp para os pendentes. */
+.att-pending {
+  display: flex;
+  align-items: center;
+  gap: 8px 10px;
+  flex-wrap: wrap;
+  margin: 0 0 8px;
+}
+.att-pending .sub {
+  flex: 1 1 200px;
+}
 .attendance .seg button {
   min-width: 38px;
 }
@@ -6722,33 +7200,57 @@ dialog.event-dlg {
   align-items: center;
   gap: 10px;
 }
+/* O cartão todo leva ao grupo (o ::after do botão cobre o cartão); a marca com câmera (admins) fica por cima. */
 .home-group-card {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 14px;
   flex: 1 1 320px;
   max-width: 520px;
-  text-align: left;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
+  min-width: 0;
   background: var(--accent-soft);
   border-color: transparent;
   transition: filter var(--t-fast);
 }
-.home-group-card:hover {
+.home-group-card:has(.home-group-open:hover) {
   filter: brightness(0.97);
 }
-.home-group-mark {
-  display: grid;
-  place-items: center;
+.home-group-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.home-group-open::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+.home-group-open:focus-visible {
+  outline: none;
+}
+.home-group-card:has(.home-group-open:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.home-group-card .avatar-edit {
+  position: relative;
+  z-index: 1;
+}
+.home-group-card .group-mark {
   width: 56px;
   height: 56px;
-  flex-shrink: 0;
-  border-radius: var(--r-md);
-  background: var(--accent-grad);
-  color: #fff;
-  font: 700 1.15rem var(--font-display);
+  font-size: 1.15rem;
 }
 .home-group-what {
   flex: 1;
@@ -6965,7 +7467,7 @@ dialog.event-dlg {
   gap: 8px;
 }
 #group-back {
-  margin: 0 0 6px -8px;
+  margin: 0 0 16px -8px;
 }
 /* Funções do membro: chips com o lápis; editando, os botões de cada função ocupam a linha inteira. */
 .member-add {
@@ -7137,6 +7639,36 @@ dialog.event-dlg {
 .people-name .chip {
   flex-shrink: 0;
 }
+/* Celular nas listas: linha discreta com o ícone, sem sublinhado; no hover/foco ganha a cor de destaque. */
+.phone-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  margin-top: 3px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--t-fast);
+}
+.phone-link .i {
+  width: 14px;
+  height: 14px;
+  color: var(--accent);
+}
+/* Centra pelo desenho dos números (topo dos dígitos até a linha de base), não pela caixa da fonte, que
+   sobra embaixo e deixava o ícone baixo. Sem suporte a text-box, line-height 1 chega perto. */
+.phone-link > span {
+  line-height: 1;
+  text-box: trim-both cap alphabetic;
+}
+.phone-link:hover,
+.phone-link:focus-visible {
+  color: var(--accent);
+}
 
 /* Toque (celular): botões pequenos ganham altura para o dedo, sem mudar o desenho no computador. */
 @media (any-pointer: coarse), (max-width: 599px) {
@@ -7167,4 +7699,78 @@ dialog.event-dlg {
   .link-btn {
     min-height: 36px;
   }
+}
+
+/* Perfil: frequência nos ensaios (número grande, situação e barra) e a próxima escala. */
+.profile-stat {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  font-weight: 400;
+}
+.profile-stat > b {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.profile-stat .meter {
+  flex-basis: 100%;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--line);
+  overflow: hidden;
+}
+.profile-stat .meter > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ok);
+}
+.profile-next-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+  font-weight: 400;
+}
+.profile-next-what {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.profile-next-chips,
+.profile-next-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.profile-next-actions .link-btn {
+  margin-left: auto;
+}
+/* Nome, celular e nascimento lado a lado; quando quebram, os da linha crescem até ocupar a largura toda. */
+.profile-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-start;
+}.profile-pair > .field {
+  flex: 1 1 150px;
+  min-width: 0;
+}
+
+/* Grupo → Membros: painel "fora dos cultos" (número de ensaios para voltar e os botões). */
+.out-edit-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+.out-edit-row .grow {
+  flex: 1;
 }

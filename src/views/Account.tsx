@@ -2,14 +2,16 @@
 // pode entrar para os admins.
 import { useEffect, useRef, useState } from "react";
 import { t, tn, locale } from "../lib/i18n";
-import { useAuth, signIn, signUp, resendConfirmation, pendingConfirm, setPendingConfirm, forgotPassword, setNewPassword, signInWithGoogle, signOut, saveName, saveBirthday, listAllowed, addAllowed, setAllowedInfo, setAllowedAdmin, removeAllowed, validEmail, initials, type Allowed } from "../lib/cloud";
+import { useAuth, savePhone, cleanPhone, signIn, signUp, resendConfirmation, pendingConfirm, setPendingConfirm, forgotPassword, setNewPassword, signInWithGoogle, signOut, saveName, saveBirthday, listAllowed, addAllowed, setAllowedInfo, setAllowedAdmin, removeAllowed, validEmail, initials, ownPhoto, removePhoto, type Allowed } from "../lib/cloud";
 import { DEFAULT_POLICY, missing, passes, fromError, isPwned, type PwPolicy, type PwRule } from "../lib/password";
-import { reduced, flashSaved } from "../lib/util";
-import { toast, confirmDialog } from "../state";
+import { reduced, flashSaved, norm } from "../lib/util";
+import { toast, confirmDialog, openDialog, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { DateInput } from "../ui/DateInput";
-import { useGroups, loadGroups, setMemberRole } from "../lib/groups";
-import { MemberRoles } from "./Group";
+import { useGroups, loadGroups, setMemberRole, respond, outMark } from "../lib/groups";
+import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, fmtPhone } from "../lib/calendar";
+import { sortRoles } from "../lib/roles";
+import { MemberRoles, StatusChip, eventTitle, timeOf, longDay } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
 
 const BASE = import.meta.env.BASE_URL;
@@ -275,13 +277,44 @@ const GoogleIcon = () => <svg className="g-logo" viewBox="0 0 48 48" aria-hidden
   <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>;
 
 // Bolinha com as iniciais (botão do perfil no topo e no trilho; com `person`, a de outra pessoa).
-// Com foto da conta Google, mostra a foto; se ela não carregar (sem internet, link vencido), volta às iniciais.
+// Com foto (a enviada pelo app ou a da conta Google), mostra a foto; se ela não carregar (sem internet, link vencido), volta às iniciais.
+// Celular nas listas de pessoas: linha própria com o ícone, no formato "(11) 91234-5678"; toca para ligar.
+export const PhoneLink = ({phone}: {phone: string}) =>
+  <a className="phone-link" href={"tel:" + phone.replace(/[^\d+]/g, "")}><Icon name="phone" sm/><span>{fmtPhone(phone)}</span></a>;
+
 export function Avatar({big, person}: {big?: boolean; person?: {name: string; email: string; photo?: string}}){
   const mine = useAuth(s => s.profile), p = person || mine;
   const [broken, setBroken] = useState("");
   const photo = p?.photo && p.photo !== broken ? p.photo : "";
   return <span className={"avatar" + (big ? " big" : "") + (photo ? " photo" : "")} aria-hidden="true">
     {photo ? <img src={photo} alt="" referrerPolicy="no-referrer" onError={() => setBroken(photo)}/> : initials(p) || <Icon name="user" sm/>}</span>;
+}
+
+// Escolher a foto (galeria ou câmera do celular) e abrir a janela de recortar: a do perfil ou, com gid, a do
+// grupo. No perfil, funciona para quem entra com e-mail e senha e para quem não tem foto no Google (ou quer
+// outra): aparece na hora, sem sair e entrar de novo.
+export function pickPhoto(gid?: string){
+  const input = document.createElement("input");
+  input.type = "file"; input.accept = "image/*";
+  input.onchange = () => { const f = input.files?.[0]; if(f) openDialog("photo", {src: URL.createObjectURL(f), gid}); };
+  input.click();
+}
+// Avatar grande do Perfil: tocar troca a foto.
+function PhotoButton(){
+  const has = useAuth(s => !!s.profile?.photo), label = t(has ? "photo.change" : "photo.add");
+  return <button type="button" className="avatar-edit" id="profile-photo" aria-label={label} title={label} onClick={() => pickPhoto()}>
+    <Avatar big/><span className="cam"><Icon name="camera" sm/></span></button>;
+}
+function PhotoActions(){
+  const photo = useAuth(s => s.profile?.photo), [busy, setBusy] = useState(false), lock = useLock();
+  const remove = async () => {
+    if(!await confirmDialog({title: t("photo.removeTitle"), message: t("photo.removeMsg"), confirm: t("photo.remove")})) return;
+    lock(async () => { setBusy(true); const ok = await removePhoto().finally(() => setBusy(false)); toast(t(ok ? "photo.removed" : "profile.saveFail")); });
+  };
+  return <span className="profile-photo-actions">
+    <button type="button" className="link-btn" onClick={() => pickPhoto()}>{t(photo ? "photo.change" : "photo.add")}</button>
+    {ownPhoto(photo) && <button type="button" className="link-btn" aria-busy={busy} onClick={remove}>{busy && <Spin/>}{t("photo.remove")}</button>}
+  </span>;
 }
 
 export function Profile(){
@@ -291,15 +324,31 @@ export function Profile(){
   return <section className="view" id="view-profile" data-view="profile" aria-labelledby="profile-h">
     <div className="view-head"><div><h1 id="profile-h">{t("profile.title")}</h1><p className="sub">{email}</p></div></div>
     <div className="profile-grid">
+      {/* Cada card tem o topo (card-top) e o corpo (card-body): lado a lado, os topos dividem a mesma altura
+          (subgrid no CSS) e os quadros de campos dos dois começam na mesma linha. */}
       <div className="card profile-card">
-        <div className="profile-who"><Avatar big/><div><b>{profile?.name || email}</b><span className="sub">{email}</span>{admin && <span className="chip accent">{t("profile.admin")}</span>}</div></div>
+        <div className="card-top"><div className="profile-who"><PhotoButton/><div><b>{profile?.name || email}</b><span className="sub">{email}</span>{admin && <span className="chip accent">{t("profile.admin")}</span>}
+          <PhotoActions/></div></div></div>
+        <div className="card-body">
+        {/* Nome, celular e nascimento num quadro com título, como o "Adicionar pessoa" ao lado; na mesma linha
+            (no celular estreito, quebram). */}
+        <section className="people-add-box" aria-labelledby="profile-data-h">
+        <h3 className="people-sub-h" id="profile-data-h">{t("profile.data")}</h3>
+        <div className="profile-pair">
         <label className="field"><span>{t("profile.name")}</span><input className="input" id="profile-name" maxLength={80} autoComplete="name" value={name}
           onChange={e => setName(e.target.value)} onBlur={async e => { const el = e.currentTarget; if(name.trim() !== (profile?.name || "")){ if(await saveName(name)) flashSaved(el); else toast(t("profile.saveFail")); } }}
           onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}/></label>
+        <PhoneField/>
         <BirthdayField/>
+        </div>
+        </section>
         <MyRoles/>
-        <SyncStatus/>
-        <SignOut/>
+        <MyTeam/>
+        <GroupNote/>
+        {/* Sair à esquerda e o estado da nuvem na mesma linha, à direita, no fundo do card: a linha de cima
+            fica na altura da linha da última pessoa da lista ao lado (mesma altura de linha). */}
+        <div className="profile-foot"><SignOut/><SyncStatus/></div>
+        </div>
       </div>
       {admin && <People me={email}/>}
     </div>
@@ -332,11 +381,64 @@ function SignOut(){
   return <button className="btn ghost" id="profile-out" aria-busy={busy} onClick={leave}>{busy ? <Spin/> : <Icon name="back" sm/>} {t("auth.signOut")}</button>;
 }
 
+// No grupo aberto: a frequência da pessoa nos ensaios (com a regra que tira dos cultos) e o próximo
+// evento em que ela está escalada, com Confirmar e Não posso ali mesmo.
+function MyTeam(){
+  const g = useGroups(), me = useAuth(s => s.email), [busy, setBusy] = useState(""), lock = useLock();
+  const group = g.groups.find(x => x.id === g.gid);
+  if(!group || !g.members.some(x => x.email === me)) return null;
+  const rate = attendanceRate(me, g.events, g.attendance), sd = rehearsalStanding(me, g.events, g.attendance, Date.now(), outMark(g.members.find(x => x.email === me)));
+  const p = rate.total ? Math.round(100 * rate.present / rate.total) : 0;
+  // Um evento que começou há pouco ainda conta como o "próximo" (a pessoa pode estar a caminho).
+  const soon = Date.now() - 3 * 3600 * 1000;
+  const next = g.events.filter(e => new Date(e.starts_at).getTime() > soon && g.roster.some(r => r.event_id === e.id && r.email === me))
+    .sort((a, b) => a.starts_at.localeCompare(b.starts_at))[0];
+  const rows = next ? g.roster.filter(r => r.event_id === next.id && r.email === me) : [], st = rows[0]?.status || "pending";
+  const answer = (v: "yes" | "no") => lock(async () => {
+    const to = st === v ? "pending" : v; setBusy(v);
+    const ok = await respond(next!.id, to).finally(() => setBusy(""));
+    toast(t(!ok ? "profile.saveFail" : to === "yes" ? "group.confirmed" : to === "no" ? "group.declined" : "group.saved"));
+  });
+  return <>
+    <div className="field profile-att"><span>{t("profile.attendance")}</span>
+      {rate.total ? <div className="profile-stat">
+        <b>{p}%</b><span className="sub">{t("profile.attCount", {present: rate.present, total: rate.total})}</span>
+        {sd.out ? <span className="chip st-no">{tn("group.standOut", sd.need)}</span>
+          : sd.streak > 0 ? <span className={"chip" + (sd.streak >= MISS_LIMIT - 3 ? " st-pending" : "")}>{t("group.streak", {n: sd.streak, max: MISS_LIMIT})}</span>
+          : <span className="chip st-yes">{t("group.standOk")}</span>}
+        <span className="meter" aria-hidden="true"><i style={{width: p + "%"}}/></span>
+      </div> : <span className="sub">{t("profile.attNone")}</span>}
+      <small className="sub">{t("profile.attRule", {max: MISS_LIMIT, back: COMEBACK})}</small></div>
+    <div className="field profile-next"><span>{t("profile.next")}</span>
+      {next ? <div className="profile-next-box">
+        <div className="profile-next-what"><b>{eventTitle(next)}</b>
+          <span className="sub">{longDay(new Date(next.starts_at))} · {timeOf(next.starts_at)}{next.place && " · " + next.place}</span>
+          <span className="profile-next-chips">{sortRoles(rows.map(r => r.role).filter(Boolean)).map(r => <span key={r} className="chip">{r}</span>)}<StatusChip status={st}/></span></div>
+        <div className="profile-next-actions">
+          <button className={"btn sm" + (st === "yes" ? " primary" : " ghost")} aria-pressed={st === "yes"} aria-busy={busy === "yes"} onClick={() => answer("yes")}>{busy === "yes" ? <Spin/> : <Icon name="check" sm/>} {t("group.confirm")}</button>
+          <button className={"btn sm" + (st === "no" ? " danger armed" : " ghost")} aria-pressed={st === "no"} aria-busy={busy === "no"} onClick={() => answer("no")}>{busy === "no" ? <Spin/> : <Icon name="x" sm/>} {t("group.decline")}</button>
+          <button className="link-btn" onClick={() => go("group")}>{t("profile.seeAgenda")}</button>
+        </div>
+      </div> : <span className="sub">{t("profile.nextNone")} <button className="link-btn" onClick={() => go("group")}>{t("profile.seeAgenda")}</button></span>}
+    </div>
+  </>;
+}
+
+// Sem funções e frequência no card: avisa o porquê (o grupo não carregou, ou a pessoa não está em nenhum),
+// em vez de o card ficar só com os campos.
+function GroupNote(){
+  const g = useGroups(), me = useAuth(s => s.email);
+  if(g.members.some(x => x.email === me)) return null;
+  if(g.error) return <p className="sub profile-group-note">{t("group.loadFail")} <button className="link-btn" onClick={() => loadGroups()}>{t("group.retry")}</button></p>;
+  return g.loaded && !g.loading ? <p className="sub profile-group-note">{t("profile.noGroup")}</p> : null;
+}
+
 // As funções da pessoa no grupo aberto (pode ter várias: tocar e cantar). São as que aparecem ao montar
 // a escala. Quem lidera muda as de todos em Grupo → Membros.
 function MyRoles(){
   const g = useGroups(), me = useAuth(s => s.email), [busy, setBusy] = useState(false);
-  useEffect(() => { if(!useGroups.getState().loaded) loadGroups(); }, []);
+  // Ao abrir o perfil, busca o grupo de novo (a cópia do aparelho pode estar velha ou ter falhado).
+  useEffect(() => { loadGroups(); }, []);
   const group = g.groups.find(x => x.id === g.gid), m = g.members.find(x => x.email === me);
   if(!group || !m) return null;
   const save = async (v: string) => { setBusy(true); const ok = await setMemberRole(g.gid, me, v).finally(() => setBusy(false)); toast(t(ok ? "profile.rolesSaved" : "profile.saveFail")); };
@@ -347,6 +449,17 @@ function MyRoles(){
 
 // Hoje no formato do campo de data ("AAAA-MM-DD"), para não aceitar datas no futuro.
 export const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+
+// Celular no perfil: salva ao sair do campo (o grupo vê, para achar substituto).
+function PhoneField(){
+  const saved = useAuth(s => s.profile?.phone || "");
+  const [v, setV] = useState(saved);
+  useEffect(() => setV(saved), [saved]);
+  return <label className="field"><span>{t("profile.phone")}</span>
+    <input className="input" id="profile-phone" type="tel" inputMode="tel" autoComplete="tel" maxLength={30} placeholder={t("profile.phonePh")} value={v}
+      onChange={e => setV(e.target.value)} onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}
+      onBlur={async e => { const el = e.currentTarget; if(cleanPhone(v) === saved) return; if(await savePhone(v)) flashSaved(el); else { setV(saved); toast(t("profile.saveFail")); } }}/></label>;
+}
 
 // Data de nascimento no perfil: salva ao mudar (o grupo vê só o dia e o mês, na página Início).
 function BirthdayField(){
@@ -362,47 +475,78 @@ function BirthdayField(){
 // Dia e mês de uma data de nascimento ("12 de março"), sem o ano.
 const fmtBirthday = (v: string) => new Intl.DateTimeFormat(locale(), {day: "numeric", month: "long", timeZone: "UTC"}).format(new Date(v + "T00:00:00Z"));
 
-// Nome e data de nascimento de quem já está na lista. O que a pessoa já preencheu no próprio perfil
+// Nome, celular e data de nascimento de quem já está na lista. O que a pessoa já preencheu no próprio perfil
 // aparece travado: só ela muda.
 function PersonEdit({r, onDone}: {r: Allowed; onDone: (saved: boolean) => void}){
   const [name, setName] = useState(r.profileName || r.name), [birthday, setBirthday] = useState(r.profileBirthday || r.birthday || "");
+  const [phone, setPhone] = useState(r.profilePhone || r.phone);
   const [busy, setBusy] = useState(false), lock = useLock();
-  const lockedName = !!r.profileName, lockedDate = !!r.profileBirthday;
+  const lockedName = !!r.profileName, lockedDate = !!r.profileBirthday, lockedPhone = !!r.profilePhone;
   const save = (e: React.FormEvent) => { e.preventDefault(); lock(async () => {
     setBusy(true);
-    const ok = await setAllowedInfo(r.email, lockedName ? r.name : name, lockedDate ? (r.birthday || "") : birthday).finally(() => setBusy(false));
+    const ok = await setAllowedInfo(r.email, lockedName ? r.name : name, lockedDate ? (r.birthday || "") : birthday, lockedPhone ? r.phone : phone).finally(() => setBusy(false));
     toast(t(ok ? "people.infoSaved" : "profile.saveFail", {email: r.email}));
     if(ok) onDone(true);
   }); };
   return <form className="people-edit" onSubmit={save}>
     <div className="people-add">
-      <input className="input" maxLength={80} autoComplete="off" placeholder={t("people.namePh")} aria-label={t("profile.name")} value={name} disabled={lockedName} onChange={e => setName(e.target.value)} autoFocus={!lockedName}/>
-      <DateInput className="people-birthday" aria={t("profile.birthday")} max={today()} clearable value={birthday} disabled={lockedDate} onChange={setBirthday}/>
+      <div className="field"><label htmlFor={"edit-name-" + r.email}>{t("profile.name")}</label>
+        <input className="input" id={"edit-name-" + r.email} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} disabled={lockedName} onChange={e => setName(e.target.value)} autoFocus={!lockedName}/></div>
+      <div className="field phone"><label htmlFor={"edit-phone-" + r.email}>{t("profile.phone")}</label>
+        <input className="input" id={"edit-phone-" + r.email} type="tel" inputMode="tel" autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} disabled={lockedPhone} onChange={e => setPhone(e.target.value)}/></div>
+      <div className="field birthday"><label htmlFor={"edit-birthday-" + r.email}>{t("profile.birthday")}</label>
+        <DateInput className="people-birthday" id={"edit-birthday-" + r.email} max={today()} clearable value={birthday} disabled={lockedDate} onChange={setBirthday}/></div>
       <button type="button" className="btn ghost" onClick={() => onDone(false)}>{t("common.cancel")}</button>
-      <button className="btn primary" disabled={lockedName && lockedDate} aria-busy={busy}>{busy ? <Spin/> : <Icon name="check" sm/>} {t("common.save")}</button>
+      <button className="btn primary" disabled={lockedName && lockedDate && lockedPhone} aria-busy={busy}>{busy ? <Spin/> : <Icon name="check" sm/>} {t("common.save")}</button>
     </div>
-    {(lockedName || lockedDate) && <p className="sub people-edit-hint">{t("people.lockedHint")}</p>}
+    {(lockedName || lockedDate || lockedPhone) && <p className="sub people-edit-hint">{t("people.lockedHint")}</p>}
   </form>;
+}
+
+// Validação do e-mail ao adicionar uma pessoa (como no login): aparece ao sair do campo ou ao tentar
+// adicionar, e some quando fica certo.
+export function useEmailCheck(email: string){
+  const [touched, setTouched] = useState(false);
+  return {bad: touched && !!email.trim() && !validEmail(email), blur: () => setTouched(true), fail: () => setTouched(true), reset: () => setTouched(false)};
+}
+// Nome, e-mail e nascimento de quem está sendo adicionado, cada um com o rótulo em cima.
+export function PersonFields({idp, name, onName, email, onEmail, phone, onPhone, birthday, onBirthday, check}: {idp: string; name: string; onName: (v: string) => void;
+  email: string; onEmail: (v: string) => void; phone: string; onPhone: (v: string) => void; birthday: string; onBirthday: (v: string) => void; check: ReturnType<typeof useEmailCheck>}){
+  return <>
+    <div className="field"><label htmlFor={idp + "-name"}>{t("profile.name")}</label>
+      <input className="input" id={idp + "-name"} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onChange={e => onName(e.target.value)}/></div>
+    <div className="field"><label htmlFor={idp + "-email"}>{t("auth.email")}</label>
+      <input className="input" id={idp + "-email"} type="email" inputMode="email" autoComplete="off" placeholder={t("people.emailPh")} value={email}
+        aria-invalid={check.bad} aria-describedby={check.bad ? idp + "-email-err" : undefined} onBlur={check.blur} onChange={e => onEmail(e.target.value)}/>
+      {check.bad && <span className="field-error" id={idp + "-email-err"}>{t("auth.badEmail")}</span>}</div>
+    <div className="field phone"><label htmlFor={idp + "-phone"}>{t("profile.phone")}</label>
+      <input className="input" id={idp + "-phone"} type="tel" inputMode="tel" autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} onChange={e => onPhone(e.target.value)}/></div>
+    <div className="field birthday"><label htmlFor={idp + "-birthday"}>{t("profile.birthday")}</label>
+      <DateInput className="people-birthday" id={idp + "-birthday"} max={today()} clearable value={birthday} onChange={onBirthday}/></div>
+  </>;
 }
 
 function People({me}: {me: string}){
   const [rows, setRows] = useState<Allowed[] | null>(null);
-  const [email, setEmail] = useState(""), [name, setName] = useState(""), [birthday, setBirthday] = useState(""), [asAdmin, setAsAdmin] = useState(false), [busy, setBusy] = useState(false);
+  const [email, setEmail] = useState(""), [name, setName] = useState(""), [birthday, setBirthday] = useState(""), [phone, setPhone] = useState(""), [asAdmin, setAsAdmin] = useState(false), [busy, setBusy] = useState(false);
   // pending: o e-mail da linha com uma mudança em andamento (os botões dela ficam desabilitados).
   const [pending, setPending] = useState("");
   // editing: o e-mail da linha com o nome e a data abertos para editar.
   const [editing, setEditing] = useState("");
-  const lock = useLock();
+  const lock = useLock(), check = useEmailCheck(email);
+  // Busca na lista "Com acesso": por nome ou e-mail.
+  const [q, setQ] = useState(""), nq = norm(q.trim());
+  const shown = rows && nq ? rows.filter(r => norm(r.profileName || r.name).includes(nq) || norm(r.email).includes(nq)) : rows;
   // Falhou: a lista fica vazia com o aviso e o botão de tentar de novo (antes ficava em "Carregando..." para sempre).
   const [failed, setFailed] = useState(false);
   const load = async () => { setFailed(false); const r = await listAllowed(); if(r) setRows(r); else { setRows(rows => rows || []); setFailed(true); } };
   useEffect(() => { load(); }, []);
   const add = (e: React.FormEvent) => { e.preventDefault(); lock(async () => {
     const v = email.trim().toLowerCase();
-    if(!validEmail(v)) return toast(t("auth.badEmail"));
-    setBusy(true); const ok = await addAllowed(v, asAdmin, name, birthday).finally(() => setBusy(false));
+    if(!validEmail(v)){ check.fail(); document.getElementById("people-email")?.focus(); return; }
+    setBusy(true); const ok = await addAllowed(v, asAdmin, name, birthday, phone).finally(() => setBusy(false));
     if(!ok) return toast(t("profile.saveFail"));
-    toast(t("people.added", {email: v})); setEmail(""); setName(""); setBirthday(""); setAsAdmin(false); await load();
+    toast(t("people.added", {email: v})); setEmail(""); setName(""); setBirthday(""); setPhone(""); setAsAdmin(false); check.reset(); await load();
   }); };
   const onRow = (r: Allowed, fn: () => Promise<unknown>) => lock(async () => { setPending(r.email); try{ await fn(); } finally{ setPending(""); } });
   const toggleAdmin = (r: Allowed) => onRow(r, async () => { if(await setAllowedAdmin(r.email, !r.is_admin)) await load(); else toast(t("profile.saveFail")); });
@@ -411,35 +555,43 @@ function People({me}: {me: string}){
     onRow(r, async () => { if(await removeAllowed(r.email)){ toast(t("people.removed", {email: r.email})); await load(); } else toast(t("profile.saveFail")); });
   };
   return <div className="card people-card">
-    <h2>{t("people.title")}</h2><p className="sub">{t("people.sub")}</p>
-    <form className="people-add-box" onSubmit={add}>
+    <div className="card-top"><h2>{t("people.title")}</h2><p className="sub">{t("people.sub")}</p></div>
+    <div className="card-body">
+    <form className="people-add-box" onSubmit={add} noValidate>
       <h3 className="people-sub-h">{t("people.addTitle")}</h3>
       <div className="people-add">
-      <input className="input" id="people-name" maxLength={80} autoComplete="off" placeholder={t("people.namePh")} aria-label={t("profile.name")} value={name} onChange={e => setName(e.target.value)}/>
-      <input className="input" id="people-email" type="email" inputMode="email" placeholder={t("people.emailPh")} aria-label={t("auth.email")} value={email} onChange={e => setEmail(e.target.value)}/>
-      <DateInput className="people-birthday" id="people-birthday" aria={t("profile.birthday")} max={today()} clearable value={birthday} onChange={setBirthday}/>
+      <PersonFields idp="people" name={name} onName={setName} email={email} onEmail={setEmail} phone={phone} onPhone={setPhone} birthday={birthday} onBirthday={setBirthday} check={check}/>
       <label className="switch lead boxed"><span>{t("profile.admin")}</span><input type="checkbox" id="people-admin" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>
       <button className="btn primary" disabled={!email.trim()} aria-busy={busy}>{busy ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
       </div>
     </form>
-    <h3 className="people-sub-h">{t("people.listTitle")} {rows && rows.length > 0 && <span className="count-chip">{rows.length}</span>}</h3>
+    <h3 className="people-sub-h">{t("people.listTitle")} {rows && rows.length > 0 && <span className="count-chip">{nq && shown ? shown.length + "/" + rows.length : rows.length}</span>}</h3>
+    {rows && rows.length > 0 && <div className="search people-search"><Icon name="search" sm/><input type="search" className="input" id="people-q" placeholder={t("people.searchPh")}
+      aria-label={t("people.searchPh")} value={q} onChange={e => setQ(e.target.value)}/></div>}
+    {/* Cabeçalho da lista, como numa tabela: marca onde as pessoas começam. */}
+    {shown && shown.length > 0 && <div className="people-list-head" aria-hidden="true"><span>{t("people.colPerson")}</span><span>{t("people.colActions")}</span></div>}
     <ul className="people-list" id="people-list">
+      {nq && shown && !shown.length && <li className="sub">{t("lib.noResults")}</li>}
       {failed && <li className="sub">{t("profile.loadFail")} <button type="button" className="link-btn" onClick={load}>{t("common.retry")}</button></li>}
-      {rows === null ? <li className="sub">{t("auth.loading")}</li> : rows.map(r => {
-        const nm = r.profileName || r.name, bd = r.profileBirthday || r.birthday;
+      {shown === null ? <li className="sub">{t("auth.loading")}</li> : shown.map(r => {
+        const nm = r.profileName || r.name, bd = r.profileBirthday || r.birthday, ph = r.profilePhone || r.phone;
         return <li key={r.email}>
         {/* O "Admin" fica logo depois do nome (ou do e-mail, para quem ainda não tem nome). */}
-        <span className="people-who"><span className="people-id">
-          {nm && <span className="people-name"><b>{nm}</b>{r.is_admin && <span className="chip accent">{t("profile.admin")}</span>}</span>}
-          <span className={nm ? "sub people-email" : "people-name people-email"}>{r.email}{bd && " · " + fmtBirthday(bd)}{!nm && r.is_admin && <span className="chip accent">{t("profile.admin")}</span>}</span></span></span>
+        <span className="people-who"><Avatar person={{name: nm, email: r.email, photo: r.profilePhoto}}/><span className="people-id">
+          {/* Sempre as três linhas (nome, e-mail, celular), com um texto apagado no que falta: todas as pessoas
+              ficam com a mesma altura. */}
+          <span className="people-name">{nm ? <b>{nm}</b> : <span className="people-missing">{t("people.noName")}</span>}{r.is_admin && <span className="chip accent">{t("profile.admin")}</span>}</span>
+          <span className="sub people-email">{r.email}{bd && " · " + fmtBirthday(bd)}</span>
+          {ph ? <PhoneLink phone={ph}/> : <span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}</span></span>
         {r.email === me ? <span className="chip">{t("people.you")}</span> : <span className="people-actions">
           {/* Admin liga/desliga direto na linha (desabilitado enquanto salva). */}
           <label className="switch lead boxed people-admin" aria-busy={pending === r.email}><span>{t("profile.admin")}</span>
             <input type="checkbox" checked={!!r.is_admin} disabled={pending === r.email} aria-label={t("people.adminAria", {email: r.email})} onChange={() => toggleAdmin(r)}/></label>
-          <button className="icon-btn sm" aria-label={t("people.edit")} title={t("people.edit")} aria-expanded={editing === r.email} onClick={() => setEditing(editing === r.email ? "" : r.email)}><Icon name="edit" sm/></button>
-          <button className="icon-btn sm danger" aria-label={t("people.remove")} title={t("people.remove")} onClick={() => remove(r)}><Icon name="trash" sm/></button></span>}
+          <button className="icon-btn sm line" aria-label={t("people.edit")} title={t("people.edit")} aria-expanded={editing === r.email} onClick={() => setEditing(editing === r.email ? "" : r.email)}><Icon name="edit" sm/></button>
+          <button className="icon-btn sm line danger" aria-label={t("people.remove")} title={t("people.remove")} onClick={() => remove(r)}><Icon name="trash" sm/></button></span>}
         {editing === r.email && <PersonEdit r={r} onDone={async saved => { setEditing(""); if(saved) await load(); }}/>}
       </li>; })}
     </ul>
+    </div>
   </div>;
 }

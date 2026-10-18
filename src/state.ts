@@ -22,6 +22,8 @@ export interface DialogProps {
   song: {song: Song | null};
   // Pôr ou tirar uma música ou um medley da Biblioteca de cada repertório.
   addTo: LibRef;
+  // Escolher as músicas que entram na folha do repertório (id).
+  sheetPick: {id: string};
   install: Record<string, never>;
   chord: {symbol: string; songKey: string};
   player: {url: string; title: string};
@@ -30,6 +32,8 @@ export interface DialogProps {
   ear: {text: string; songKey: string; onApply: (text: string, key: string) => void};
   // id null: evento novo no dia (AAAA-MM-DD).
   event: {id: string | null; day: string};
+  // Recortar a foto escolhida (src: link local da imagem, URL.createObjectURL): a do perfil ou, com gid, a do grupo.
+  photo: {src: string; gid?: string};
 }
 export type DialogName = keyof DialogProps;
 
@@ -43,10 +47,12 @@ interface UIState {
   expanded: Set<string>;
   // Evento que o Início mandou abrir na agenda do grupo.
   eventFocus: string;
+  // Músicas fora da folha (impressão e PDF), por repertório: os itemId desmarcados. Só nesta sessão.
+  sheetSkip: Record<string, string[]>;
 }
 
 export const useUI = create<UIState>(() => ({
-  view: "medley", lang: "pt", toasts: [], dialogs: {}, stageOpen: false, expanded: new Set(), eventFocus: ""
+  view: "medley", lang: "pt", toasts: [], dialogs: {}, stageOpen: false, expanded: new Set(), eventFocus: "", sheetSkip: {}
 }));
 
 // Os dados mudaram (qualquer música, repertório ou preferência): redesenha quem usa.

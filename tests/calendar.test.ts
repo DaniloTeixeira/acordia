@@ -1,7 +1,7 @@
 // Rode com: npm test
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, rehearsalStanding, canCheckIn, toICS, splitEvents, dayKey, upcomingBirthdays, rosterByPerson, type GEvent, type RosterRow } from "../src/lib/calendar";
+import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, rehearsalStanding, canCheckIn, pendingCheckIn, waNumber, waLink, fmtPhone, toICS, splitEvents, dayKey, upcomingBirthdays, rosterByPerson, type GEvent, type RosterRow } from "../src/lib/calendar";
 
 const ev = (id: string, starts: Date, kind: GEvent["kind"] = "service"): GEvent =>
   ({id, group_id: "g", kind, title: id, starts_at: starts.toISOString(), call_at: null, place: "", notes: "", setlist_id: null});
@@ -72,6 +72,13 @@ test("regra dos ensaios: 8 faltas seguidas tiram dos cultos até 4 presenças", 
   assert.deepEqual(st({3: "present", 6: "excused"}, 12), {out: false, streak: 7, need: 0, called: 11});
   // Ensaio futuro ou sem chamada não conta.
   assert.deepEqual(rehearsalStanding("x", evs, [], now), {out: false, streak: 0, need: 0, called: 0});
+  // Marcado pelo líder (faltas de antes do app): fora desde a marcação; só as presenças depois contam.
+  const mark = (i: number, need: number) => ({since: evs[i].starts_at, need});
+  assert.deepEqual(rehearsalStanding("x", evs.slice(0, 6), att({1: "present", 4: "present"}), now, mark(3, 4)), {out: true, streak: 0, need: 3, called: 6, marked: true});
+  // Marcado depois do último ensaio: fora com tudo por fazer.
+  assert.deepEqual(rehearsalStanding("x", evs.slice(0, 3), att({0: "present"}), now, {since: "2999-01-01T00:00:00Z", need: 2}), {out: true, streak: 0, need: 2, called: 3, marked: true});
+  // Cumpriu os ensaios da volta: em dia, e a marcação deixa de valer.
+  assert.deepEqual(rehearsalStanding("x", evs.slice(0, 5), att({3: "present", 4: "present"}), now, mark(3, 2)), {out: false, streak: 0, need: 0, called: 5});
 });
 
 test("Cheguei: só em ensaio, de 12 h antes a 12 h depois", () => {
@@ -81,6 +88,33 @@ test("Cheguei: só em ensaio, de 12 h antes a 12 h depois", () => {
   assert.ok(canCheckIn(e, at - 11 * 3600e3));
   assert.ok(!canCheckIn(e, at + 13 * 3600e3));
   assert.ok(!canCheckIn({...e, kind: "service"}, at));
+});
+
+test("chamada aberta: pendente até 12 h depois; depois vira falta", () => {
+  const at = new Date(2026, 9, 18, 19).getTime();
+  const e = ev("e", new Date(at), "rehearsal"), other = {event_id: "e", email: "y", status: "present" as const, by_admin: false};
+  // Antes de começar ninguém está pendente; durante a chamada, só quem não marcou.
+  assert.deepEqual(pendingCheckIn(e, ["x", "y"], [other], at - 3600e3), []);
+  assert.deepEqual(pendingCheckIn(e, ["x", "y"], [other], at + 2 * 3600e3), ["x"]);
+  assert.deepEqual(pendingCheckIn(e, ["x", "y"], [other], at + 12 * 3600e3), []);
+  assert.deepEqual(pendingCheckIn({...e, kind: "service"}, ["x"], [], at + 3600e3), []);
+  // Enquanto pendente não conta; com a chamada fechada, conta como falta.
+  assert.deepEqual(attendanceRate("x", [e], [other], at + 11 * 3600e3), {present: 0, total: 0});
+  assert.deepEqual(attendanceRate("x", [e], [other], at + 12 * 3600e3), {present: 0, total: 1});
+  assert.equal(rehearsalStanding("x", [e], [other], at + 11 * 3600e3).called, 0);
+  assert.equal(rehearsalStanding("x", [e], [other], at + 12 * 3600e3).streak, 1);
+});
+
+test("WhatsApp: número com o país e mensagem no link", () => {
+  assert.equal(waNumber("(11) 91234-5678"), "5511912345678");
+  assert.equal(waNumber("011 91234-5678"), "5511912345678");
+  assert.equal(waNumber("(21) 3456-7890"), "552134567890");
+  assert.equal(waNumber("+353 87 123 4567"), "353871234567");
+  assert.equal(waNumber("00351 912 345 678"), "351912345678");
+  assert.equal(waNumber("1234"), "");
+  assert.equal(waNumber(""), "");
+  assert.equal(waLink("Oi & tchau", "(11) 91234-5678"), "https://wa.me/5511912345678?text=Oi%20%26%20tchau");
+  assert.equal(waLink("Oi"), "https://wa.me/?text=Oi");
 });
 
 test("próximos e anteriores", () => {
@@ -121,4 +155,12 @@ test("escala por pessoa: junta as funções de quem toca e canta", () => {
     {email: "a", roles: ["Vocal", "Violão"], status: "yes", reason: ""},
     {email: "b", roles: ["Bateria"], status: "pending", reason: ""},
     {email: "c", roles: [], status: "no", reason: "viagem"}]);
+});
+
+test("celular para mostrar: formato do Brasil, outros como vieram", () => {
+  assert.equal(fmtPhone("11964160074"), "(11) 96416-0074");
+  assert.equal(fmtPhone("+55 11 96416-0074"), "(11) 96416-0074");
+  assert.equal(fmtPhone("011 3456-7890"), "(11) 3456-7890");
+  assert.equal(fmtPhone("+353 87 123 4567"), "+353 87 123 4567");
+  assert.equal(fmtPhone("123"), "123");
 });
