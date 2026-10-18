@@ -6230,11 +6230,8 @@ dialog.ear-dlg {
   margin: 0;
   font-size: 0.85rem;
 }
-/* No fundo do card, com a mesma altura de uma linha da lista "Com acesso" (10 px em cima e embaixo e
-   65 px no total, como cada linha): lado a lado, a linha de cima cai na altura da linha da última pessoa. */
+/* No fundo do card: Sair e o estado da nuvem, sem espaço extra além do do card. */
 .profile-foot {
-  padding: 10px 0;
-  min-height: 65px;
   display: flex;
   align-items: center;
   justify-content: space-between;
