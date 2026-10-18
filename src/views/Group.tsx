@@ -317,7 +317,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
           <button className="btn ghost sm" onClick={() => openGroupSetlist(set, true)}><Icon name="stage" sm/> {t("medley.stage")}</button></>}
         {!isPast && <button className="btn ghost sm" onClick={() => downloadICS([e], eventTitle(e) + "-" + eventDay(e))}><Icon name="calendar" sm/> {t("group.addToCal")}</button>}
         {canEdit && <><button className="btn ghost sm" onClick={() => openDialog("event", {id: e.id, day: eventDay(e)})}><Icon name="edit" sm/> {t("common.edit")}</button>
-          <button className="icon-btn sm danger" aria-label={t("common.delete")} title={t("common.delete")} onClick={async () => {
+          <button className="icon-btn sm danger line" aria-label={t("common.delete")} title={t("common.delete")} onClick={async () => {
             if(await confirmDialog({title: t("group.deleteEventTitle"), message: t("group.deleteEventMsg", {name: eventTitle(e), day: longDay(d)})})) act("del", () => deleteEvent(e.id), "group.eventDeleted");
           }}><Icon name="trash" sm/></button></>}
       </div>
@@ -424,7 +424,7 @@ function Members({canEdit}: {canEdit: boolean}){
             {n > 0 && <span className="chip" title={t("group.loadHint")}>{tn("group.load", n)}</span>}
           </span>
           <MemberRoles m={m} editable={canEdit || m.email === me} busy={busy === m.email + "role"} before={leader} onSave={v => row(m, "role", () => setMemberRole(g.gid, m.email, v))}
-            after={canEdit && m.email !== me && <button className="icon-btn sm danger" aria-label={t("group.removeMember")} title={t("group.removeMember")} onClick={async () => {
+            after={canEdit && m.email !== me && <button className="icon-btn sm danger line" aria-label={t("group.removeMember")} title={t("group.removeMember")} onClick={async () => {
               if(await confirmDialog({title: t("group.removeMember"), message: t("group.removeMemberMsg", {email: m.email, group: group.name}), confirm: t("people.remove")}))
                 row(m, "del", () => removeMember(g.gid, m.email), "group.memberRemoved");
             }}><Icon name="trash" sm/></button>}/>

@@ -598,6 +598,23 @@ textarea::-webkit-scrollbar {
   color: var(--bad);
   background: var(--bad-soft);
 }
+/* Ícone ao lado de botões com contorno (ex.: a lixeira junto do "Editar"): ganha o mesmo contorno para alinhar. */
+.icon-btn.line {
+  border: 1px solid var(--line-strong);
+  transition:
+    background-color var(--t-fast),
+    color var(--t-fast),
+    border-color var(--t-fast),
+    transform var(--t-fast) var(--ease);
+}
+/* Lixeira com contorno: no hover a borda acompanha o vermelho. */
+.icon-btn.line.danger:hover:where(:not(:disabled)) {
+  border-color: color-mix(in srgb, var(--bad) 55%, var(--line-strong));
+}
+/* Junto do toggle com moldura (Líder), segue o canto dele. */
+.member-role-actions .icon-btn.line {
+  border-radius: var(--r-sm);
+}
 @media (max-width: 899px) {
   .btn .label-lg {
     display: none;
@@ -1456,11 +1473,16 @@ main {
 .items.sorting > .item:not(.dragging) {
   transition: transform 0.18s var(--ease-out);
 }
-.item.dragging {
+/* Item sendo arrastado: borda fina em gradiente (como o .btn.busy). */
+.item.dragging,
+.item.dragging:focus-within {
   position: relative;
   z-index: 5;
   box-shadow: var(--shadow-lg);
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  border-color: transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    var(--range-grad) border-box;
 }
 .item.moved {
   animation: pulse 0.5s var(--ease-out);

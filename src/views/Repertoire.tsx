@@ -117,7 +117,7 @@ export function Repertoire(){
         <p className="sub" id="medley-sub">{sub}</p>
       </div>
       <div className="actions">
-        <button className="icon-btn danger" id="btn-del-medley" aria-label={t("common.delete")} title={t("common.delete")} onClick={async () => {
+        <button className="icon-btn danger line" id="btn-del-medley" aria-label={t("common.delete")} title={t("common.delete")} onClick={async () => {
           // Medley volta para o repertório de onde veio; repertório vai para a Biblioteca.
           if(await confirmDeleteMedley(m) && !(isMedley(m) && back)) openLibrary(isMedley(m) ? "medleys" : "setlists");
         }}><Icon name="trash"/></button>
