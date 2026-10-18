@@ -6201,7 +6201,8 @@ dialog.ear-dlg {
 .people-sub-h,
 .profile-roles > span:first-child,
 .profile-att > span:first-child,
-.profile-next > span:first-child {
+.profile-next > span:first-child,
+.member-dlg .field > span:first-child {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -6213,7 +6214,8 @@ dialog.ear-dlg {
 .people-sub-h::before,
 .profile-roles > span:first-child::before,
 .profile-att > span:first-child::before,
-.profile-next > span:first-child::before {
+.profile-next > span:first-child::before,
+.member-dlg .field > span:first-child::before {
   content: "";
   width: 4px;
   height: 1.05em;
