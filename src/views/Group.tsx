@@ -31,7 +31,7 @@ const longDay = (d: Date) => fmt({weekday: "long", day: "numeric", month: "long"
 // Bolinha de um membro: a foto do perfil (conta Google) ou as iniciais.
 export const PersonAvatar = ({email}: {email: string}) => <Avatar person={{name: personName(email), email, photo: personPhoto(email)}}/>;
 
-// Abre um repertório do grupo como um link recebido (salvar e abrir, ou atualizar a cópia).
+// Abre um repertório do grupo como um link recebido (salvar na biblioteca, ou atualizar a cópia).
 export async function openGroupSetlist(s: GroupSetlist, stage = false){
   const med = await decodeMedley(s.code);
   if(!med) return toast(t("incoming.bad"));

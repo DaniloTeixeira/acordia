@@ -164,17 +164,22 @@ function IncomingDialog({med, stage}: {med: IncomingMedley; stage?: boolean}){
       // Os medleys que vieram da versão anterior saem; os novos entram no lugar.
       existing.items.forEach(i => { const b = i.type === "medley" && data.medleys.get(i.medleyId); if(b && b.linkOf === med.sourceId && !blocks.includes(b)) store.deleteMedley(b.id); });
       Object.assign(existing, {name: med.name, items, options: med.options}); store.saveMedley(existing);
-      openMedley(existing.id); go("medley");
-      if(stage) useUI.setState({stageOpen: true});
-      return toast(t("incoming.updated"));
+      return done(existing.id, "incoming.updated");
     }
     const nm = store.createMedley(med.name, items, med.options, med.kind === "medley" ? "medley" : "setlist");
     if(med.sourceId && !existing){ nm.sourceId = med.sourceId; store.saveMedley(nm); }
+    done(nm.id, "incoming.saved");
+  };
+  // Salvar só guarda na biblioteca e a pessoa continua onde estava (o aviso tem "Abrir" para quem quiser ir).
+  // Vindo do "tocar no Palco", aí sim abre o repertório direto no Palco.
+  const show = (id: string) => {
     // Um repertório vazio aberto (ex.: primeiro acesso) não precisa ficar sobrando.
-    const prev = current(); if(prev.id !== nm.id && !prev.items.length) store.deleteMedley(prev.id);
-    openMedley(nm.id); go("medley");
-    if(stage) useUI.setState({stageOpen: true});
-    toast(t("incoming.saved"));
+    const prev = current(); if(prev.id !== id && !prev.items.length) store.deleteMedley(prev.id);
+    openMedley(id); go("medley");
+  };
+  const done = (id: string, msg: string) => {
+    if(stage){ show(id); useUI.setState({stageOpen: true}); return; }
+    toast(t(msg), {label: t("common.open"), run: () => show(id)});
   };
   return <Dialog name="incoming" id="dlg-incoming" labelledBy="incoming-h" onClose={close}>
     <form method="dialog" className="dlg">
