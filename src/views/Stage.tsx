@@ -211,11 +211,11 @@ export function Stage(){
           const trText = m.options.transitions ? transitionLine(s, src[si+1], mode) : "";
           return <div key={si} style={{display: "contents"}}>
             {/* Medley: o nome em cima e uma linha discreta entre as músicas dele. */}
-            {s.group && !k && <p className="stage-group"><Icon name="link" sm/> {t("sheet.medleyLabel", {name: s.gname || ""})}{s.gpos && <span className="chip moment-chip">{s.gpos}</span>}</p>}
+            {s.group && !k && <p className="stage-group"><Icon name="link" sm/> {t("sheet.medleyLabel", {name: s.gname || ""})}{s.gpos && <span className={"chip moment-chip" + (s.gpos === t("item.momentLouvor") ? " louvor" : "")}>{s.gpos}</span>}</p>}
             <section className={"stage-song" + (k ? " medley-next" : "")} data-i={si}>
               {/* Número da música antes do título: o mesmo da lista de músicas do Palco. */}
               <div className="stage-song-head"><h2><span className="stage-num">{si + 1}</span>{s.title}</h2>
-                {s.meta.moment && <span className="chip moment-chip">{s.meta.moment}</span>}
+                {s.meta.moment && <span className={"chip moment-chip" + (s.meta.moment === t("item.momentLouvor") ? " louvor" : "")}>{s.meta.moment}</span>}
                 {s.ref && <button className="stage-ref" onClick={e => { e.stopPropagation(); openRef(s.ref, s.title); }}><Icon name="play" sm/> {t("ref.listen")}</button>}
                 {/* Tom alinhado à esquerda: legenda e o tom atual entre baixar e subir meio tom. */}
                 {key && !L && <div className="stage-key" role="group" aria-label={t("stage.key")}>

@@ -129,8 +129,10 @@ export function Repertoire(){
       options={[{v: "edit", label: t("pane.edit")}, {v: "sheet", label: t("pane.sheet")}]}/>
     <div className="medley-grid" id="medley-grid" data-pane={pane}>
       <div className="pane pane-edit">
+        {/* Dica: no celular logo abaixo das abas Editar | Ver folha; no computador, entre a lista e os botões. */}
+        {m.items.length > 1 && <DragHint at="top"/>}
         <Items m={m}/>
-        {m.items.length > 1 && <DragHint/>}
+        {m.items.length > 1 && <DragHint at="bottom"/>}
         <div className="add-bar">
           <button className="btn soft" id="add-chords" onClick={() => addItem("")}><Icon name="plus"/><span>{t("add.chords")}</span></button>
           <button className="btn soft" id="add-lyrics" onClick={() => addItem("letra")}><Icon name="text"/><span>{t("add.lyrics")}</span></button>
@@ -162,10 +164,10 @@ function reorder(from: number, to: number){
   m.items.splice(to, 0, it); store.saveMedley(m);
   flushSync(() => store.touchNow());
 }
-// Dica de arrastar, sempre visível com 2 itens ou mais.
-function DragHint(){
+// Dica de arrastar, sempre visível com 2 itens ou mais (só uma das duas aparece, conforme a largura).
+function DragHint({at}: {at: "top" | "bottom"}){
   const touch = typeof matchMedia === "function" && matchMedia("(hover: none)").matches;
-  return <p className="drag-hint"><Icon name="grip" sm/><span>{t(touch ? "item.dragHintTouch" : "item.dragHint")}</span></p>;
+  return <p className={"drag-hint " + at}><Icon name="grip" sm/><span>{t(touch ? "item.dragHintTouch" : "item.dragHint")}</span></p>;
 }
 function Items({m}: {m: Medley}){
   const list = useRef<HTMLOListElement>(null);
@@ -177,14 +179,13 @@ function Items({m}: {m: Medley}){
 }
 
 // Alça para mudar a ordem: arrasta pelo número (mouse ou dedo) ou, no teclado, foca e usa ↑ ↓.
-// Com mouse, o número vira ⠿ ao passar sobre o cartão; no toque, o ⠿ fica sempre ao lado do número.
+// Com mouse, o número vira ⠿ ao passar sobre o cartão; no toque, ao segurar (o arraste ativa).
 function DragHandle({id, n}: {id: string; n: number}){
   const key = (e: React.KeyboardEvent) => {
     if(e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
     e.preventDefault(); moveItem(id, e.key === "ArrowUp" ? -1 : 1);
   };
   return <button type="button" className="drag-handle" data-drag data-tip-key="item.drag" aria-label={t("item.dragAria", {n})} onKeyDown={key}>
-    <Icon name="grip" sm className="grip-touch"/>
     <span className="num"><span className="num-n">{n}</span><Icon name="grip" sm className="grip-hover"/></span>
   </button>;
 }
@@ -202,7 +203,8 @@ function MomentSeg({m, it}: {m: Medley; it: SongItem | MedleyItem}){
     onChange={(v: Moment) => { it.moment = v; store.saveMedley(m); }}
     options={[{v: "", label: t("item.momentLouvor")}, {v: "pos", label: t("item.momentPos")}]}/>;
 }
-const momentChip = (it: SongItem | MedleyItem) => it.moment === "pos" ? <span key="mo" className="chip moment-chip">{t("item.momentPos")}</span> : null;
+const momentChip = (it: SongItem | MedleyItem) => it.moment === "pos" ? <span key="mo" className="chip moment-chip">{t("item.momentPos")}</span>
+  : <span key="mo" className="chip moment-chip louvor">{t("item.momentLouvor")}</span>;
 
 function MedleyCard({m, it, i}: {m: Medley; it: MedleyItem; i: number}){
   const md = data.medleys.get(it.medleyId);

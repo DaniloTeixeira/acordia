@@ -84,8 +84,9 @@ export function sheetSongs(m: Medley): SheetEntry[] {
     // Desenhos do capo: a cifra mostra o desenho tocado com capotraste e avisa o tom que soa.
     if(m.options.capoShapes && capo && key){ const real = target || key, k = parseKey(real); if(k){ target = keyName(k, -(+capo)); capo = t("sheet.capoSounds", {n: capo, key: real}); } }
     if(target === key) target = "";
-    // Pós-pregação: no medley vai junto do nome do medley (uma vez só); na música avulsa, na linha de detalhes.
-    const pos = moment === "pos" ? t("item.momentPos") : "";
+    // Momento (Louvor ou Pós-pregação): no medley vai junto do nome do medley (uma vez só); na música avulsa,
+    // na linha de detalhes. Editando um medley sozinho não tem momento (é o do repertório onde ele entra).
+    const pos = isMedley(m) ? "" : t(moment === "pos" ? "item.momentPos" : "item.momentLouvor");
     return Object.assign(p, {key, target, shift: target ? keyShift(key, target) : 0, auto, itemId: it.id, ref: s.ref || "", group,
       gname, gpos: group && !isMedley(m) ? pos : "",
       meta: {bpm: letra ? "" : s.bpm, capo, singer: it.singer, solo: it.solo || "", notes: e.notes, moment: group ? "" : pos}});

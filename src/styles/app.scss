@@ -1388,7 +1388,7 @@ main {
   transform: scale(0.96);
 }
 /* Arrastar pelo número: alça com cursor de mão; o item segurado flutua, os outros deslizam para abrir espaço.
-   Com mouse, o número vira ⠿ ao passar sobre o cartão; no toque, o ⠿ fica sempre ao lado do número. */
+   Com mouse, o número vira ⠿ ao passar sobre o cartão; no toque, ao segurar (o arraste ativa). */
 .drag-handle {
   display: inline-flex;
   align-items: center;
@@ -1414,8 +1414,7 @@ main {
     transform var(--t-fast) var(--ease-out),
     box-shadow var(--t-fast);
 }
-.drag-handle .grip-hover,
-.drag-handle .grip-touch {
+.drag-handle .grip-hover {
   display: none;
   width: 14px;
   height: 14px;
@@ -1444,13 +1443,8 @@ main {
     filter: brightness(1.25);
   }
 }
-@media (hover: none) {
-  .drag-handle .grip-touch {
-    display: block;
-    margin-left: -6px;
-  }
-}
-/* Dica entre a lista e os botões de adicionar (sempre que há 2 itens ou mais). */
+/* Dica de arrastar (sempre que há 2 itens ou mais): no computador entre a lista e os botões de adicionar;
+   no celular (com as abas Editar | Ver folha) acima da lista, logo abaixo das abas. */
 .drag-hint {
   display: flex;
   align-items: center;
@@ -1459,6 +1453,18 @@ main {
   padding-left: 14px;
   font-size: 0.82rem;
   color: var(--muted);
+}
+.drag-hint.top {
+  display: none;
+}
+@media (max-width: 899px) {
+  .drag-hint.top {
+    display: flex;
+    margin: 0 0 10px;
+  }
+  .drag-hint.bottom {
+    display: none;
+  }
 }
 /* Segurar o dedo no cartão começa o arraste: sem menu de "copiar" nem seleção do título no toque. */
 .items > .item > .item-head {
@@ -1484,7 +1490,7 @@ main {
     linear-gradient(var(--surface), var(--surface)) padding-box,
     var(--range-grad) border-box;
 }
-/* E a alça também: o número vira ⠿ no mesmo gradiente da borda, um pouco maior, e o ⠿ do toque ganha cor. */
+/* E a alça também: o número vira ⠿ no mesmo gradiente da borda, um pouco maior. */
 .item:is(.armed, .dragging) > .item-head .drag-handle .num {
   background: var(--range-grad);
   color: var(--accent-ink);
@@ -1496,9 +1502,6 @@ main {
 }
 .item:is(.armed, .dragging) > .item-head .drag-handle .grip-hover {
   display: block;
-}
-.item:is(.armed, .dragging) > .item-head .drag-handle .grip-touch {
-  color: var(--grad-2);
 }
 .item.dragging,
 .item.dragging:focus-within {
@@ -1585,6 +1588,14 @@ main {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
+}
+/* Celular: os botões à direita deixam o título estreito; a linha dos chips avança por baixo deles
+   (lá fica vazio), para o tom e o momento caberem lado a lado. */
+@media (max-width: 599px) {
+  .item-toggle .item-chips {
+    margin-right: -84px;
+    margin-top: 4px;
+  }
 }
 .item-actions {
   display: flex;
@@ -3837,6 +3848,11 @@ a.btn {
 .moment-chip {
   background: var(--warn-soft);
   color: var(--warn);
+}
+/* Louvor em verde, para diferenciar do Pós-pregação (laranja) de relance. */
+.moment-chip.louvor {
+  background: var(--ok-soft);
+  color: var(--ok);
 }
 /* No Palco o chip não herda o tamanho grande nem as maiúsculas do texto em volta. */
 .stage-song-head > .moment-chip,
