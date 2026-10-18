@@ -552,7 +552,7 @@ function People({me}: {me: string}){
   const toggleAdmin = (r: Allowed) => onRow(r, async () => { if(await setAllowedAdmin(r.email, !r.is_admin)) await load(); else toast(t("profile.saveFail")); });
   const remove = async (r: Allowed) => {
     if(!await confirmDialog({title: t("people.removeTitle"), message: t("people.removeMsg", {email: r.email}), confirm: t("people.remove")})) return;
-    onRow(r, async () => { if(await removeAllowed(r.email)){ toast(t("people.removed", {email: r.email})); await load(); } else toast(t("profile.saveFail")); });
+    onRow(r, async () => { if(await removeAllowed(r.email)){ toast(t("people.removed", {email: r.email})); await load(); loadGroups(); } else toast(t("profile.saveFail")); });
   };
   return <div className="card people-card">
     <div className="card-top"><h2>{t("people.title")}</h2><p className="sub">{t("people.sub")}</p></div>
