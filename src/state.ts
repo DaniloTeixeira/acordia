@@ -58,6 +58,7 @@ export function toast(msg: string, action?: ToastAction, {sticky = false} = {}){
   const id = ++toastId;
   useUI.setState(s => ({toasts: [...s.toasts, {id, msg, action, sticky}]}));
   if(!sticky) setTimeout(() => closeToast(id), action ? 6000 : 3200);
+  return id;
 }
 export function closeToast(id: number){
   useUI.setState(s => ({toasts: s.toasts.map(x => x.id === id ? {...x, out: true} : x)}));

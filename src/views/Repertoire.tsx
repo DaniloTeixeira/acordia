@@ -147,12 +147,13 @@ function MedleyName({m}: {m: Medley}){
   const [v, setV] = useSynced(m.name);
   // Salva a cada tecla; ao sair do campo, mostra o "✓ Salvo" do perfil se o nome mudou.
   const before = useRef(m.name);
+  // Campo de várias linhas (sem Enter): no celular, nome comprido quebra em vez de ficar cortado.
   return <div className="field title-field">
-    <input id="medley-name" className="title-input" aria-label={t("medley.nameAria")} maxLength={80} autoComplete="off" value={v}
+    <textarea id="medley-name" className="title-input" rows={1} aria-label={t("medley.nameAria")} maxLength={80} autoComplete="off" value={v}
       onFocus={() => { before.current = m.name; }}
-      onChange={e => { setV(e.target.value); m.name = e.target.value.trim() || t("medley.noName"); store.saveMedley(m); }}
+      onChange={e => { const x = e.target.value.replace(/\s*\n\s*/g, " "); setV(x); m.name = x.trim() || t("medley.noName"); store.saveMedley(m); }}
       onBlur={e => { if(m.name !== before.current) flashSaved(e.currentTarget); }}
-      onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}/></div>;
+      onKeyDown={e => { if(e.key === "Enter"){ e.preventDefault(); e.currentTarget.blur(); } }}/></div>;
 }
 
 // Arrastar o cartão: tira o item do lugar antigo e põe no novo, salvando uma vez só.

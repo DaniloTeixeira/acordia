@@ -1150,7 +1150,11 @@ main {
   flex: 1 1 260px;
 }
 .title-input {
+  display: block;
   width: 100%;
+  resize: none;
+  overflow: hidden;
+  field-sizing: content;
   border: 1px solid transparent;
   background: transparent;
   font-family: var(--font-display);
@@ -1837,6 +1841,20 @@ textarea.song-text {
 }
 .lib-tabs-row > .view-seg {
   flex-shrink: 0;
+}
+/* Celular: as abas ocupam a linha toda (sem rolar para o lado) e a troca cards/linhas desce para a direita. */
+@media (max-width: 599px) {
+  .lib-tabs-row {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .lib-tabs-row > #lib-tabs {
+    flex: 1 1 100%;
+  }
+  #lib-tabs button {
+    flex: 1;
+    padding-inline: 6px;
+  }
 }
 .lib-tabs-row > .view-seg button {
   display: inline-flex;
@@ -3243,7 +3261,7 @@ textarea.song-text {
   background: var(--surface-2);
 }
 dialog.player {
-  width: min(860px, calc(100vw - 24px));
+  --dlg-w: 860px;
 }
 .player-box {
   position: relative;
@@ -3437,7 +3455,7 @@ a.btn {
   max-width: 340px;
 }
 .chord-dlg {
-  width: min(520px, calc(100vw - 24px));
+  --dlg-w: 520px;
 }
 .chord-info {
   display: flex;
@@ -3799,7 +3817,7 @@ a.btn {
   border-top: none;
 }
 .stage-group {
-  font-size: 0.6em;
+  font-size: max(0.6em, 0.78rem);
   font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
@@ -4323,7 +4341,8 @@ dialog {
   background: var(--surface);
   color: var(--ink);
   box-shadow: var(--shadow-lg);
-  width: min(560px, calc(100vw - 24px));
+  /* Cada janela pode pedir outra largura (--dlg-w); no celular todas viram painel de largura total. */
+  width: min(var(--dlg-w, 560px), calc(100vw - 24px));
   max-height: min(86dvh, 760px);
   opacity: 1;
   transform: none;
@@ -4659,7 +4678,7 @@ dialog.unsaved .dlg-foot::before {
   content: ".";
 }
 .stage-song .meta {
-  font-size: 0.62em;
+  font-size: max(0.62em, 0.82rem);
   color: var(--muted);
   margin: 0.6em 0 0;
 }
@@ -4706,7 +4725,7 @@ dialog.unsaved .dlg-foot::before {
   margin-bottom: 0.4em;
 }
 .stage-trans {
-  font-size: 0.62em;
+  font-size: max(0.62em, 0.82rem);
   font-weight: 700;
   color: var(--accent);
   margin: -1em 0 2em;
@@ -5237,7 +5256,7 @@ html[data-vt="move"]::view-transition-new(root) {
   flex-wrap: wrap;
 }
 dialog.ear-dlg {
-  width: min(760px, calc(100vw - 24px));
+  --dlg-w: 760px;
 }
 .ear-hint {
   margin: 0;
@@ -5256,9 +5275,10 @@ dialog.ear-dlg {
   position: sticky;
   top: -8px;
   z-index: 2;
-  display: flex;
+  /* Os acordes do tom quebram em linhas em vez de rolar para o lado (no celular cabem os 7 numa linha). */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
   gap: 6px;
-  overflow-x: auto;
   padding: 8px 0;
   margin: -4px 0;
   background: var(--surface);
@@ -5268,8 +5288,8 @@ dialog.ear-dlg {
   flex-direction: column;
   align-items: center;
   gap: 1px;
-  min-width: 52px;
-  padding: 6px 8px;
+  min-width: 0;
+  padding: 6px 2px;
   border: 1px solid var(--line);
   border-radius: var(--r-sm);
   background: var(--surface-2);
@@ -6407,7 +6427,7 @@ dialog.ear-dlg {
 }
 /* Janela do evento */
 dialog.event-dlg {
-  width: min(640px, calc(100vw - 24px));
+  --dlg-w: 640px;
 }
 .event-row {
   display: grid;
@@ -6956,4 +6976,35 @@ dialog.event-dlg {
 }
 .people-name .chip {
   flex-shrink: 0;
+}
+
+/* Toque (celular): botões pequenos ganham altura para o dedo, sem mudar o desenho no computador. */
+@media (any-pointer: coarse), (max-width: 599px) {
+  .btn.sm {
+    min-height: 40px;
+  }
+  .icon-btn.sm {
+    width: 40px;
+    height: 40px;
+  }
+  .seg button {
+    min-height: 38px;
+  }
+  .seg.sm button {
+    min-height: 34px;
+  }
+  .seg button {
+    min-width: 40px;
+  }
+  .stage-key-btn {
+    height: 36px;
+    min-width: 40px;
+  }
+  .oct-btn {
+    width: 40px;
+    height: 40px;
+  }
+  .link-btn {
+    min-height: 36px;
+  }
 }

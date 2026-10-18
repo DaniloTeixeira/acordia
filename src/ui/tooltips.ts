@@ -82,7 +82,13 @@ export function initTooltips(){
     timer = setTimeout(() => show(el), 450);
   });
   document.addEventListener("mouseout", e => { if(touch) return; if(target && !target.contains(e.relatedTarget as Node)) hide(); else if(!target) clearTimeout(timer); });
-  document.addEventListener("focusin", e => { const el = find(e); if(el && el.matches(":focus-visible")){ hide(); show(el); } });
+  // Foco pelo teclado mostra a dica; no celular (sem teclado em uso), o foco que a janela põe no
+  // primeiro botão ao abrir não deve fazer a dica aparecer sozinha.
+  let keys = false;
+  document.addEventListener("keydown", e => { if(e.key === "Tab" || e.key.startsWith("Arrow")) keys = true; }, true);
+  document.addEventListener("pointerdown", () => { keys = false; }, true);
+  const coarse = matchMedia("(pointer: coarse)");
+  document.addEventListener("focusin", e => { if((touch || coarse.matches) && !keys) return; const el = find(e); if(el && el.matches(":focus-visible")){ hide(); show(el); } });
   document.addEventListener("focusout", hide);
   document.addEventListener("pointerdown", hide, true);
   // Segurar o dedo (~meio segundo) mostra a dica; o toque normal continua fazendo a ação.

@@ -5,7 +5,7 @@ import { useIndicator } from "./ui/Seg";
 import { t, getLang, LANGS } from "./lib/i18n";
 import * as store from "./lib/store";
 import { setVolume, playChord, setCues, cue } from "./lib/audio";
-import { useUI, useData, go, changeLang, toast, openDialog, type View } from "./state";
+import { useUI, useData, go, changeLang, toast, closeToast, openDialog, type View } from "./state";
 import { Icon } from "./ui/Icon";
 import { Toasts } from "./ui/Toasts";
 import { Range } from "./ui/Range";
@@ -125,13 +125,15 @@ export function App(){
   useUI(s => s.lang);
   const install = useInstall();
   const songCount = [...data.songs.values()].filter(s => s.title).length;
-  // Na primeira visita a uma página, um aviso discreto oferece o guia "Como usar".
+  // Na primeira visita a uma página, um aviso discreto oferece o guia "Como usar". Ele é daquela página:
+  // some ao trocar de página ou ao abrir o Palco (no celular, ficaria por cima da cifra).
   useEffect(() => {
-    if(!(view in HELP_STEPS) || ((data.settings.seenHelp || {}) as Record<string, boolean>)[view]) return;
+    if(stageOpen || !(view in HELP_STEPS) || ((data.settings.seenHelp || {}) as Record<string, boolean>)[view]) return;
     seenHelp(view);
-    const h = setTimeout(() => toast(t("help.first"), {label: t("help.button"), run: () => openDialog("help", {page: view})}), 600);
-    return () => clearTimeout(h);
-  }, [view]);
+    let id = 0;
+    const h = setTimeout(() => { id = toast(t("help.first"), {label: t("help.button"), run: () => openDialog("help", {page: view})}); }, 600);
+    return () => { clearTimeout(h); if(id) closeToast(id); };
+  }, [view, stageOpen]);
   const brand = (tagline: boolean) => <a className="brand" href="./" onClick={e => { e.preventDefault(); go("home"); }}>
     <img className="logo-on-light" src={BASE + "icons/icon.svg"} alt=""/><img className="logo-on-dark" src={BASE + "icons/icon-light.svg"} alt=""/><span><b className="brand-name">Acordia</b>{tagline && <small>{t("app.tagline")}</small>}</span></a>;
   const current = (v: View) => navOf(view) === v ? "page" as const : undefined;
