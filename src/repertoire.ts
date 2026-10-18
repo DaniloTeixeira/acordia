@@ -155,3 +155,30 @@ export function setSongHigh(songId: string, v: number | undefined){
   if(v) s.high = v; else delete s.high;
   store.saveSong(s);
 }
+
+// ---------- pôr e tirar da Biblioteca ----------
+// O que a Biblioteca põe num repertório: uma música ou um medley (que entra como bloco).
+export interface LibRef { kind: "song" | "medley"; id: string }
+export const libTitle = (r: LibRef) => (r.kind === "song" ? data.songs.get(r.id)?.title : data.medleys.get(r.id)?.name) || "—";
+// Onde pode entrar: os repertórios ativos, dos mais recentes para os mais antigos (medley não entra em medley,
+// e a Biblioteca só põe em repertório).
+export const libTargets = (): Medley[] =>
+  [...data.medleys.values()].filter(x => !isMedley(x) && !x.disabled).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+const matches = (r: LibRef) => (i: Item) => r.kind === "medley" ? i.type === "medley" && i.medleyId === r.id : i.type !== "medley" && i.songId === r.id;
+export const inSetlist = (m: Medley, r: LibRef) => m.items.some(matches(r));
+// Em quais repertórios ativos já está.
+export const libWhere = (r: LibRef) => libTargets().filter(m => inSetlist(m, r));
+export function addToSetlist(m: Medley, r: LibRef){
+  if(r.kind === "medley") m.items.push(store.newMedleyItem(r.id));
+  else {
+    const it = store.newItem(r.id);
+    // No medley, a música entra no tom da anterior.
+    if(isMedley(m) && data.songs.get(r.id)?.type !== "letra") it.target = lastPlayKey(m);
+    m.items.push(it);
+  }
+  store.saveMedley(m);
+}
+// Tira todas as vezes que aparece no repertório (as músicas de dentro de um medley não contam).
+export function removeFromSetlist(m: Medley, r: LibRef){
+  m.items = m.items.filter(i => !matches(r)(i)); store.saveMedley(m);
+}

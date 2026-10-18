@@ -1,5 +1,6 @@
 // Estado da interface (Zustand): página aberta, idioma, avisos e janelas abertas.
 // Os dados (músicas, repertórios, preferências) ficam em lib/store e avisam por useData().
+import type { LibRef } from "./repertoire";
 import { create } from "zustand";
 import { useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
@@ -19,7 +20,8 @@ export interface Toast { id: number; msg: string; action?: ToastAction; sticky?:
 export interface DialogProps {
   picker: Record<string, never>;
   song: {song: Song | null};
-  // stage: depois de salvar, abre direto no Palco (repertório do grupo).
+  // Pôr ou tirar uma música ou um medley da Biblioteca de cada repertório.
+  addTo: LibRef;
   install: Record<string, never>;
   chord: {symbol: string; songKey: string};
   player: {url: string; title: string};

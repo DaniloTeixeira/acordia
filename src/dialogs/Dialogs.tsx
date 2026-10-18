@@ -5,7 +5,7 @@ import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
 import { norm } from "../lib/util";
 import { useUI, toast, openDialog, type DialogProps } from "../state";
-import { current, isMedley, lastPlayKey } from "../repertoire";
+import { current, isMedley, lastPlayKey, songItems, libTargets, libTitle, inSetlist, addToSetlist, removeFromSetlist, type LibRef } from "../repertoire";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
@@ -25,6 +25,7 @@ export function Dialogs(){
   return <>
     {d.picker && <Picker/>}
     {d.song && <SongDialog {...d.song}/>}
+    {d.addTo && <AddToDialog {...d.addTo}/>}
     {d.install && <InstallDialog/>}
     {d.chord && <ChordDialog {...d.chord}/>}
     {d.player && <PlayerDialog {...d.player}/>}
@@ -43,8 +44,8 @@ function Picker(){
   const [q, setQ] = useState(""), [chosen, setChosen] = useState<Set<string>>(new Set());
   const inMedley = new Set(m.items.map(i => i.type === "medley" ? "m:" + i.medleyId : i.songId));
   const nq = norm(q);
-  const rows = [...data.songs.values()].filter(s=>s.title && (!nq || norm(s.title).includes(nq) || norm(s.text).includes(nq))).sort((a,b)=>a.title.localeCompare(b.title, locale()));
-  const meds = withMedleys ? [...data.medleys.values()].filter(x => isMedley(x) && (!nq || norm(x.name).includes(nq))) : [];
+  const rows = [...data.songs.values()].filter(s=>s.title && !s.disabled && (!nq || norm(s.title).includes(nq) || norm(s.text).includes(nq))).sort((a,b)=>a.title.localeCompare(b.title, locale()));
+  const meds = withMedleys ? [...data.medleys.values()].filter(x => isMedley(x) && !x.disabled && (!nq || norm(x.name).includes(nq))) : [];
   const toggle = (v: string, on: boolean) => setChosen(c => { const n = new Set(c); if(on) n.add(v); else n.delete(v); return n; });
   const row = (value: string, title: string, chips: React.ReactNode) => <li key={value}>
     <label><input type="checkbox" value={value} checked={chosen.has(value)} onChange={e => toggle(value, e.target.checked)}/><span className="t">{title}</span></label>
@@ -130,6 +131,24 @@ function SongDialog({song: s}: DialogProps["song"]){
         </div>
       </div>
       <Foot><button className="btn ghost" value="cancel">{t("common.cancel")}</button><button className="btn primary" value="ok">{t("common.save")}</button></Foot>
+    </form>
+  </Dialog>;
+}
+
+// ---------- pôr ou tirar dos repertórios (Biblioteca) ----------
+// Cada repertório com uma caixa: marcar põe, desmarcar tira. Vale na hora, sem botão de salvar.
+function AddToDialog(r: LibRef){
+  const [, redraw] = useState(0);
+  const list = libTargets();
+  const toggle = (m: (typeof list)[number], on: boolean) => { if(on) addToSetlist(m, r); else removeFromSetlist(m, r); redraw(n => n + 1); };
+  return <Dialog name="addTo" id="dlg-add-to" labelledBy="add-to-h">
+    <form method="dialog" className="dlg">
+      <DialogHead id="add-to-h" title={t("addTo.title")} closeLabel={t("common.close")}/>
+      <div className="dlg-body"><p className="sub">{t("addTo.sub", {name: libTitle(r)})}</p>
+        <ul className="pick-list" id="add-to-list">{list.map(m => <li key={m.id}>
+          <label><input type="checkbox" checked={inSetlist(m, r)} onChange={e => toggle(m, e.target.checked)}/><span className="t">{m.name}</span></label>
+          <span className="chip accent">{tn("song", songItems(m).length)}</span></li>)}</ul></div>
+      <Foot><button className="btn primary" value="ok">{t("common.done")}</button></Foot>
     </form>
   </Dialog>;
 }

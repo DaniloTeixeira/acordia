@@ -1952,6 +1952,15 @@ textarea.song-text {
 .lib-card:hover {
   box-shadow: var(--shadow-md);
 }
+// Desativado: continua na lista, apagado (os botões seguem legíveis para reativar).
+.lib-card.off {
+  background: transparent;
+  border-style: dashed;
+  box-shadow: none;
+  :is(h3, .excerpt, .meta .chip:not(.off-chip)) {
+    opacity: 0.55;
+  }
+}
 @keyframes card-in {
   from {
     opacity: 0;
@@ -2005,6 +2014,31 @@ textarea.song-text {
 }
 .lib-card .foot .btn {
   margin-right: auto;
+}
+/* "No repertório atual" é um botão (tira, ou abre a lista de repertórios) com cara de chip. */
+.lib-card .foot .chip-btn {
+  margin-right: auto;
+  min-width: 0;
+  max-width: 60%;
+  border: none;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  min-height: 34px;
+}
+/* O nome do repertório no botão corta com reticências. */
+.lib-card .foot .chip-btn > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Colorido (gradiente): o hover mantém a cor e só escurece um pouco. */
+.lib-card .foot .chip-btn:hover {
+  filter: brightness(0.92);
+}
+/* Dois botões de texto (medley: Adicionar e Abrir) ficam juntos à esquerda; o último empurra os ícones. */
+.lib-card .foot :is(.btn, .chip.current):has(+ .btn) {
+  margin-right: 4px;
 }
 .lib-card .when {
   font-size: 0.75rem;

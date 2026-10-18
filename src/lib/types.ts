@@ -8,6 +8,8 @@ export interface Song {
   ref?: string; arrangements?: Arrangement[]; createdAt?: number; updatedAt?: number;
   // Nota mais aguda da melodia (MIDI), para sugerir o tom pela extensão de quem canta.
   high?: number;
+  // Desativada: fica na Biblioteca, mas não aparece para adicionar.
+  disabled?: boolean;
 }
 // Música validada vinda de fora (link compartilhado, arquivo importado).
 export interface SongEntry {
@@ -32,6 +34,8 @@ export interface Options {
 export interface Medley {
   id: string; kind: "setlist" | "medley"; name: string; items: Item[]; options: Options;
   createdAt?: number; updatedAt?: number; sourceId?: string; linkOf?: string;
+  // Desativado: fica na Biblioteca, mas não aparece para adicionar nem como destino.
+  disabled?: boolean;
 }
 
 export type Settings = Record<string, unknown>;
