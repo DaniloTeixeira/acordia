@@ -12,6 +12,8 @@ const INK: RGB = [17,17,17], CHORD: RGB = [176,32,26], ACCENT: RGB = [31,78,121]
 // Chip do momento ao lado do título: Louvor em verde, Pós-pregação em laranja (cores claras, boas para imprimir).
 const CHIP_SIZE = 9.5, CHIP_PX = 6, CHIP_H = CHIP_SIZE + 4;
 const CHIP_LOUVOR: [RGB, RGB] = [[220,252,231], [21,110,52]], CHIP_POS: [RGB, RGB] = [[255,237,213], [176,72,8]];
+// Refrão: fundo azul bem claro (aparece na impressão sem gastar tinta) com o rótulo na cor dos títulos.
+const CHORUS_BG: RGB = [234,241,251], CHORUS_PAD = 5, CHORUS_LBL = META_SIZE + 5;
 
 export type Font = "mono" | "sans" | "lex";
 export type Measure = (text: string, fs: number, font: Font) => number;
@@ -30,6 +32,8 @@ export interface SheetSong {
   title: string; blocks: Block[]; key: string; target: string; shift: number;
   // gpos: "Pós-pregação" quando o medley inteiro é pós-pregação (a folha põe junto do nome do medley).
   meta?: SongMeta; group?: string; gname?: string; gpos?: string;
+  // chorus[i]: o bloco i é refrão (fundo claro e o rótulo REFRÃO em cima, para achar rápido).
+  chorus?: boolean[];
 }
 export interface LayoutOpts extends Partial<Options> { mode: SheetMode; measure?: Measure }
 
@@ -167,8 +171,15 @@ export function layout(songs: SheetSong[], fs: number, k: number, opts: LayoutOp
     y += TH;
     metaLines.forEach(txt=>{ push({t:"text",x:x(),y:y+META_SIZE*0.8,s:META_SIZE,f:"sans",b:false,c:MUTED,txt}); y += META_SIZE + 3; });
     blocks.forEach((b, bi)=>{
-      const h = b.reduce((h,it)=>h+itemH(it),0) + (bi?BG:0);
+      const ch = !!s.chorus?.[bi], body = b.reduce((h,it)=>h+itemH(it),0) + (ch ? CHORUS_LBL : 0);
+      const h = body + (bi?BG:0);
       if(y + h > bottom && y > M + TH) nextCol(); else if(bi) y += BG;
+      if(ch){
+        // O fundo vem antes do texto (fica atrás); não passa do fim da coluna se o bloco for mais alto que ela.
+        push({t:"rect",x:x()-CHORUS_PAD,y:y-CHORUS_PAD+1,w:COLW+CHORUS_PAD*2,h:Math.min(body, bottom - y)+CHORUS_PAD*2-2,r:4,c:CHORUS_BG});
+        push({t:"text",x:x(),y:y+META_SIZE*0.8,s:META_SIZE,f:"sans",b:true,c:ACCENT,txt:t("sheet.chorus").toUpperCase()});
+        y += CHORUS_LBL;
+      }
       b.forEach(it=>{
         if(y + itemH(it) > bottom) nextCol();
         if(it.chord!==undefined && it.chord!==null){

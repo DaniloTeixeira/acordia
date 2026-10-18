@@ -43,7 +43,8 @@ export function keyShift(from: string, to: string): number {
 // ---------- parsing ----------
 export interface LineItem { kind: "pair" | "chord" | "lyric"; chord?: string; lyric?: string }
 export type Block = LineItem[];
-export interface ParsedSong { title: string; blocks: Block[] }
+// chorus[i]: o bloco i é refrão (marcado com [Refrão] no texto ou, sem marcação, o bloco de letra que se repete).
+export interface ParsedSong { title: string; blocks: Block[]; chorus: boolean[] }
 
 export function isChordLine(line: string): boolean {
   const toks = line.split(/\s+/).map(x=>x.replace(/[()|]/g,"")).filter(Boolean);
@@ -56,15 +57,22 @@ function normInterlude(line: string){
   const toks = line.replace(/[()|]/g," ").split(/\s+/).filter(Boolean);
   return /^\s*\(/.test(line) ? "( " + toks.join("  ") + " )" : null;
 }
+// Marcação de refrão: [Refrão], [Refrão 2x], [Coro], [Chorus], [Estribillo] (não [Pré-refrão]).
+const CHORUS_TAG = /^\s*\[\s*(refr[ãa]o|coro|chorus|estribillo)(?![\p{L}])[^\]]*\]\s*$/iu;
 export function parseSong(text: string, plain?: boolean): ParsedSong {
   const raw = text.replace(/\r/g,"").split("\n");
   let i = 0; while(i<raw.length && !raw[i].trim()) i++;
   const title = (raw[i]||"").trim(); i++;
-  const lines = raw.slice(i).filter(l=>!/^\s*\[.*\]\s*$/.test(l) && !/^\s*[eEBGDA]\|/.test(l)).map(cleanLine);
-  const blocks: Block[] = []; let cur: Block = [];
+  // As marcações [Parte] saem da letra, mas fecham o bloco e dizem se o próximo é refrão.
+  const lines = raw.slice(i).filter(l=>!/^\s*[eEBGDA]\|/.test(l)).map(cleanLine);
+  const blocks: Block[] = [], chorus: boolean[] = [];
+  let cur: Block = [], tagged = false, nextChorus = false, curChorus = false;
+  const close = () => { if(cur.length){ blocks.push(cur); chorus.push(curChorus); cur = []; } };
   for(let j=0;j<lines.length;j++){
     const l = lines[j];
-    if(!l.trim()){ if(cur.length){blocks.push(cur);cur=[];} continue; }
+    if(/^\s*\[.*\]\s*$/.test(l)){ close(); nextChorus = CHORUS_TAG.test(l); tagged ||= nextChorus; continue; }
+    if(!l.trim()){ close(); continue; }
+    if(!cur.length){ curChorus = nextChorus; nextChorus = false; }
     // Só a letra: as linhas de cifra saem e a letra perde os "_" e os espaços de alinhar com os acordes.
     if(plain){ if(!isChordLine(l)){ const t = l.replace(/_+/g,"").replace(/\s+/g," ").trim(); if(t) cur.push({kind:"lyric",lyric:t}); } continue; }
     if(isChordLine(l)){
@@ -74,16 +82,25 @@ export function parseSong(text: string, plain?: boolean): ParsedSong {
       else cur.push({kind:"chord",chord:interlude||l});
     } else cur.push({kind:"lyric",lyric:l});
   }
-  if(cur.length) blocks.push(cur);
-  return {title, blocks};
+  close();
+  if(!tagged) markRepeated(blocks, chorus);
+  return {title, blocks, chorus};
 }
-export function dedupeBlocks<T extends {blocks: Block[]}>(songs: T[]): T[] {
+// Sem [Refrão] no texto: o bloco de letra (2 linhas ou mais) que aparece de novo é o refrão.
+const lyricKey = (b: Block) => b.map(it => (it.lyric || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "")).filter(Boolean);
+function markRepeated(blocks: Block[], chorus: boolean[]){
+  const keys = blocks.map(b => { const k = lyricKey(b); return k.length >= 2 ? k.join("/") : ""; }), count = new Map<string, number>();
+  keys.forEach(k => { if(k) count.set(k, (count.get(k) || 0) + 1); });
+  keys.forEach((k, i) => { if(k && count.get(k)! > 1) chorus[i] = true; });
+}
+export function dedupeBlocks<T extends {blocks: Block[]; chorus?: boolean[]}>(songs: T[]): T[] {
   return songs.map(s=>{
-    const seen = new Set<string>();
-    return Object.assign({}, s, {blocks:s.blocks.filter(b=>{
+    const seen = new Set<string>(), keep = s.blocks.map(b=>{
       const k = b.map(it=>(it.chord||"").replace(/\s+/g," ").trim()+"|"+(it.lyric||"").toLowerCase().replace(/[^\p{L}\p{N}]+/gu,"")).join("/");
       if(seen.has(k)) return false; seen.add(k); return true;
-    })});
+    });
+    // O refrão acompanha os blocos que ficam.
+    return Object.assign({}, s, {blocks: s.blocks.filter((_, i) => keep[i]), ...(s.chorus && {chorus: s.chorus.filter((_, i) => keep[i])})});
   });
 }
 export function songTitle(text: string | null | undefined): string { return ((text||"").split("\n").find(l=>l.trim())||"").trim(); }
