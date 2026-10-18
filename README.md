@@ -226,12 +226,26 @@ npm run preview    # serve o _site, para testar o modo offline e a instalação
 O login e a nuvem usam o [Supabase](https://supabase.com). O app só funciona com login: sem as chaves, o build
 para com um aviso.
 
+- **Dois projetos:** `acordia` é a produção (o site e quem usa o app); `acordia-dev` é para desenvolver e
+  testar. Rodando local, o app usa sempre o dev.
 - **Chaves:** `VITE_SUPABASE_URL` e `VITE_SUPABASE_KEY` (a chave *publishable*/anon, que pode ficar no site).
-  Para rodar local, ficam num `.env.local`, que não vai para o Git. No GitHub, ficam nas variáveis do
-  repositório `SUPABASE_URL` e `SUPABASE_KEY`, que o deploy usa no build.
+  Para rodar local, ficam num `.env.local` com as chaves do **dev**, que não vai para o Git. No GitHub, ficam
+  nas variáveis do repositório `SUPABASE_URL` e `SUPABASE_KEY` com as chaves da **produção**, que o deploy
+  usa no build.
 - **Banco:** as tabelas e as regras de acesso ficam em [supabase/migrations/](supabase/migrations/). Com a
-  integração do Supabase com o GitHub ("Deploy to production"), cada push na `main` aplica as migrações novas.
-  O primeiro admin entra uma vez à mão, com [supabase/primeiro-admin.sql](supabase/primeiro-admin.sql).
+  integração do Supabase com o GitHub ("Deploy to production", ligada só na produção), cada merge na `main`
+  aplica as migrações novas. No dev, aplique antes com `npx supabase db push` (CLI ligada ao dev com
+  `npx supabase link --project-ref <ref do dev>`). O primeiro admin entra uma vez à mão, com
+  [supabase/primeiro-admin.sql](supabase/primeiro-admin.sql).
+- **Migração nova** (o app instalado no celular continua na versão antiga por um tempo, usando o banco já
+  migrado):
+  - só acrescentar: tabela, coluna com valor padrão, função, regra de acesso;
+  - apagar ou renomear coluna, ou mudar o que uma função devolve, só num PR seguinte, quando a versão que
+    usa o novo já estiver no ar;
+  - escrever para poder rodar de novo (`if not exists`, `create or replace`, `drop ... if exists`);
+  - nunca editar uma migração que já foi para a `main`: corrigir com outra.
+- **Sem `supabase/config.toml` no repositório:** a integração com o GitHub aplicaria esse arquivo na produção
+  (login, URLs). As configurações do painel ficam só no painel.
 - **No painel do Supabase:**
   - Email ligado com "Confirm email", mínimo de 8 caracteres e exigência de minúscula, maiúscula, número e
     símbolo;
@@ -252,8 +266,21 @@ nuvem e a agenda do grupo (calendário, avisos da escala, frequência, repetiç�
 
 ## Publicar
 
-Cada push na `main` roda o GitHub Actions ([.github/workflows/deploy.yml](.github/workflows/deploy.yml)):
-testes, `npm run build` e deploy no GitHub Pages. O build lista todos os arquivos no service worker
+A `main` é o que está no ar e é protegida: nada entra sem PR e sem o CI passar.
+
+1. Branch a partir da `main`: `feat/<assunto>` (novidade) ou `fix/<assunto>` (correção).
+2. Testar local (com o banco dev) e, se tiver migração nova, `npx supabase db push` no dev.
+3. Push e PR para a `main`. O CI ([.github/workflows/deploy.yml](.github/workflows/deploy.yml)) roda
+   typecheck, testes, build e aplica todas as migrações num Supabase vazio.
+4. Com tudo verde, **Squash and merge**. O merge publica no GitHub Pages, aplica as migrações na produção e
+   marca a versão com uma tag `vAAAA.MM.DD-N`.
+
+**Voltar uma versão:** Actions > Testar e publicar > Run workflow, com a tag no campo "versao" (ex.:
+`v2026.10.18-1`). Publica de novo aquele código em uns 2 minutos. O banco não volta: se o problema for uma
+migração, corrigir com uma migração nova. Depois, corrigir na `main` por PR (o próximo merge publica a `main`
+de novo).
+
+Em cada deploy, o CI roda typecheck, testes, `npm run build` e publica no GitHub Pages. O build lista todos os arquivos no service worker
 ([src/sw.ts](src/sw.ts)), que guarda o app inteiro na instalação; quem já instalou recebe a versão nova no
 próximo carregamento e vê o aviso **Nova versão disponível**.
 
