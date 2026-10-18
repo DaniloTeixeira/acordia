@@ -6387,6 +6387,25 @@ dialog.ear-dlg {
 .attendance .seg button {
   min-width: 38px;
 }
+/* Chamada: só a opção escolhida ganha cor (Presente em verde, Falta em laranja); a outra fica neutra. */
+.attendance .seg::before {
+  transition:
+    transform var(--t) var(--ease-out),
+    width var(--t) var(--ease-out),
+    background-color var(--t-fast);
+}
+.attendance .seg:has([data-v="present"][aria-pressed="true"])::before {
+  background: var(--ok-soft);
+}
+.attendance .seg:has([data-v="absent"][aria-pressed="true"])::before {
+  background: var(--warn-soft);
+}
+.attendance .seg [data-v="present"][aria-pressed="true"] {
+  color: var(--ok);
+}
+.attendance .seg [data-v="absent"][aria-pressed="true"] {
+  color: var(--warn);
+}
 /* Janela do evento */
 dialog.event-dlg {
   width: min(640px, calc(100vw - 24px));
