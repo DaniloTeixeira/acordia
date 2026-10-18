@@ -37,7 +37,7 @@ export function SheetPane({m, children}: {m: Medley; children: ReactNode}){
       <div className="tools">
         <SheetPickButton m={m}/>
         <SheetOptions m={m}/>
-        <button className="icon-btn" id="btn-print" aria-label={t("sheet.print")} title={t("sheet.print")}
+        <button className="icon-btn line" id="btn-print" aria-label={t("sheet.print")} title={t("sheet.print")}
           onClick={() => { if(!lastPages.length) return toast(t("sheet.needSong")); window.print(); }}><Icon name="print"/></button>
         <button className="btn primary sm" id="btn-pdf" data-tip-key="tip.pdf" disabled={busy} onClick={download}><Icon name="download" sm/>PDF</button>
       </div>
@@ -71,7 +71,7 @@ function SheetOptions({m}: {m: Medley}){
   const sw = (k: "dedupe" | "showKey" | "transitions" | "capoShapes", label: string, tip?: string) =>
     <label className="switch lead boxed" data-tip-key={tip}><span>{label}</span><input type="checkbox" data-opt={k} checked={!!o[k]} onChange={e => change(k, e.target.checked)}/></label>;
   return <>
-    <button className="icon-btn" id="btn-options" aria-label={t("sheet.options")} title={t("sheet.options")} onPointerDown={tg.onPointerDown} onClick={tg.onClick}><Icon name="sliders"/></button>
+    <button className="icon-btn line" id="btn-options" aria-label={t("sheet.options")} title={t("sheet.options")} onPointerDown={tg.onPointerDown} onClick={tg.onClick}><Icon name="sliders"/></button>
     <div id="sheet-options" className="popover" popover="auto" ref={pop}>
       <h3>{t("sheet.options")}</h3>
       {sw("dedupe", t("opt.dedupe"), "tip.dedupe")}

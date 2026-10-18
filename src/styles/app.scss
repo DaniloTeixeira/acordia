@@ -611,10 +611,6 @@ textarea::-webkit-scrollbar {
 .icon-btn.line.danger:hover:where(:not(:disabled)) {
   border-color: color-mix(in srgb, var(--bad) 55%, var(--line-strong));
 }
-/* Junto do toggle com moldura (Líder), segue o canto dele. */
-.member-role-actions .icon-btn.line {
-  border-radius: var(--r-sm);
-}
 @media (max-width: 899px) {
   .btn .label-lg {
     display: none;
@@ -1742,12 +1738,13 @@ textarea.song-text {
   max-width: 780px;
   margin: 0 auto 14px;
 }
-.sheet-toolbar .tools {
-  margin-left: auto;
-}
+/* Sem margin-left: auto: na mesma linha, o space-between deixa as ferramentas à direita; quando descem para a
+   linha de baixo (celular), ficam à esquerda. */
+/* Ajustes e imprimir com o círculo de contorno (como a lixeira e o + do topo) e 8 px entre todos, como no topo:
+   sem o contorno, o vazio em volta do ícone fazia os espaços parecerem diferentes. */
 .sheet-toolbar .tools {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
 }
 .pages {
@@ -6450,6 +6447,17 @@ dialog.ear-dlg {
 .people-actions {
   margin-left: auto;
 }
+/* Um abaixo do outro (celular), os botões que descem para a linha de baixo ficam à esquerda; na mesma linha, o
+   bloco do nome estica e eles continuam no canto direito. Entre a pessoa e a linha dos botões, um pouco mais de
+   espaço (12 px em vez de 8). */
+@container (max-width: 735.98px) {
+  .people-actions {
+    margin-left: 0;
+  }
+  .people-list li {
+    row-gap: 12px;
+  }
+}
 .people-email {
   min-width: 0;
   overflow: hidden;
@@ -7654,7 +7662,12 @@ dialog.event-dlg {
 .member-role-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+}
+/* Cadeado e lixeira redondos, do tamanho dos da lista "Com acesso". */
+.member-role-actions .icon-btn.sm {
+  width: 34px;
+  height: 34px;
 }
 /* Na lista de membros, a linha das funções ocupa a largura toda: chips e lápis à esquerda, Líder e excluir à direita. */
 .members .member-roles:not(.editing) {
@@ -7662,6 +7675,12 @@ dialog.event-dlg {
 }
 .members .member-role-actions {
   margin-left: auto;
+}
+/* Um abaixo do outro (celular), Líder, cadeado e lixeira descem para a linha de baixo à esquerda. */
+@container (max-width: 735.98px) {
+  .members .member-role-actions {
+    margin-left: 0;
+  }
 }
 .member-roles.editing {
   flex: 1 1 100%;
