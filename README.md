@@ -3,7 +3,8 @@
 **Aprenda. Crie. Toque.** App instalável (PWA) para músicos montarem repertórios com cifras, graus ou só a
 letra, tocarem no palco e estudarem teoria, ritmo e ouvido. Funciona offline, em português, inglês e espanhol.
 Com o login ligado, só entra quem o administrador convidar, e as músicas e repertórios de cada pessoa ficam na
-nuvem, iguais em todos os aparelhos dela.
+nuvem, iguais em todos os aparelhos dela. Equipes (grupos de louvor) têm agenda com escalas, confirmação e
+presença nos ensaios, e repertórios compartilhados.
 
 **Abrir o app:** https://daniloteixeira.github.io/acordia/
 
@@ -12,7 +13,7 @@ nuvem, iguais em todos os aparelhos dela.
 Lista completa, tela por tela, para testar e decidir o que fica. Marque `[x]` no que já foi conferido.
 
 ### Em todas as telas
-- [ ] **Navegação** entre Repertório, Biblioteca, Estudo e Ferramentas: trilho lateral no computador, barra de
+- [ ] **Navegação** entre Repertório, Biblioteca, Grupo (só com login), Estudo e Ferramentas: trilho lateral no computador, barra de
       abas no celular. Cada página tem endereço próprio, então o "voltar" do navegador funciona. Tocar de novo na
       página atual volta ao topo.
 - [ ] **Tema** claro ou escuro. Até a primeira escolha, segue o aparelho.
@@ -141,6 +142,31 @@ Só quando o login está ligado (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] **Velocidade** 0,5×, 0,75× ou 1×.
 - [ ] "Abrir no YouTube". Link que não é do YouTube abre numa aba nova.
 
+### Grupo
+Só com o login ligado. Os admins do app criam grupos; quem lidera um grupo inclui os membros pelo e-mail (o que
+também libera o acesso ao app para eles).
+- [ ] **Agenda**:
+  - calendário do mês com cultos e ensaios, os dias em que a pessoa está escalada e os dias em que não pode;
+  - tocar num dia mostra os eventos dele e a chave **"Não posso neste dia"** (indisponibilidade);
+  - **Suas próximas escalas** no topo, com a função e a resposta;
+  - lista de próximos e anteriores.
+- [ ] **Evento** (só quem lidera cria e edita):
+  - tipo Culto ou Ensaio, título, data, início, **hora de chegada**, local, repertório do grupo e observações;
+  - **repetir** toda semana (2 a 26 vezes);
+  - **escala**: quem toca o quê, com funções sugeridas e "Escalar todos";
+  - avisos ao escalar: marcou que não pode no dia, já está em outro evento no dia ou já recusou; cada pessoa
+    mostra quantas vezes já foi escalada no mês.
+- [ ] **Resposta da escala**: "Confirmar" ou "Não posso" com o motivo; quem lidera vê "precisa de substituto".
+- [ ] **Presença nos ensaios**: "Cheguei" (de 12 h antes a 12 h depois do início) e a chamada de quem lidera
+      (presente, falta, justificada), que vale por cima do "Cheguei".
+- [ ] **Adicionar ao calendário** (.ics): um evento ou todas as suas escalas, com lembrete 1 dia e 2 h antes.
+- [ ] **Repertórios do grupo**: quem lidera compartilha um repertório seu (compartilhar de novo atualiza);
+      todos abrem ("Salvar e abrir" ou "Atualizar") ou vão direto ao **Palco**.
+- [ ] **Membros**: nome, e-mail, função (cada um edita a sua), selo Líder, **frequência nos ensaios** (6 meses)
+      e escalas no mês. Quem lidera inclui, torna líder e tira do grupo; admins do app renomeiam, criam e
+      excluem grupos.
+- [ ] **Sem internet**: mostra a última versão baixada; mudar precisa de internet.
+
 ### Estudo
 - [ ] **Escalas**:
   - escalas: maior, menor natural, harmônica, melódica, pentatônica maior e menor;
@@ -197,6 +223,18 @@ Só quando o login está ligado (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
       **Personalizado** numa grade de 16 casas. O BPM é o mesmo do metrônomo.
 - [ ] **Grooves**: 8 estilos com o BPM típico de cada um (Worship, Pop/rock, Balada, Reggae, Samba, Bossa nova,
       Jazz, Funk).
+- [ ] **Separar faixas** (IA no próprio aparelho):
+  - abre um arquivo de áudio ou vídeo, ou um link direto (Google Drive e Dropbox viram download direto);
+    YouTube e Spotify mostram o aviso de que não dá;
+  - separa **voz, violão/guitarra, piano/teclado, baixo, bateria e outros**;
+  - na primeira vez baixa o modelo (272 MB) e guarda; depois funciona sem internet;
+  - usa a placa de vídeo quando o navegador tem WebGPU; se ela falhar ou travar, recomeça sozinho no
+    processador (cerca de 3 min por minuto de música) e lembra disso nas próximas vezes;
+  - barra de progresso, tempo restante e Cancelar;
+  - mixer: ligar/desligar, volume e solo de cada faixa, misturas prontas (Sem voz, Sem bateria, Só a voz…),
+    tocar com barra de posição;
+  - **baixar** a mistura ou cada faixa em WAV;
+  - músicas de até 12 minutos.
 
 ## Rodar localmente
 
@@ -236,7 +274,8 @@ npm run typecheck  # TypeScript estrito
 Cobrem parser, detecção de acordes e tom, graus, transposição, transições, teoria (escalas, campo
 harmônico, relativas), perguntas do treino, layout das folhas, links de compartilhamento, instrumentos,
 afinador, exercícios das mãos e do teclado, validação de importação, traduções, requisitos de senha, validação
-de e-mail e as regras da sincronização com a nuvem.
+de e-mail, as regras da sincronização com a nuvem, a agenda do grupo (calendário, avisos da escala,
+frequência, repetição, .ics) e as contas da separação de faixas (pedaços, emenda, mistura, WAV, links).
 
 ## Publicar
 
@@ -253,10 +292,11 @@ próximo carregamento e vê o aviso **Nova versão disponível**.
 | [src/main.tsx](src/main.tsx), [src/App.tsx](src/App.tsx) | Início, navegação, menus de idioma/volume/tema, instalação e atualização |
 | [src/state.ts](src/state.ts) | Estado da interface (Zustand): página, idioma, avisos e janelas |
 | [src/repertoire.ts](src/repertoire.ts) | Regras do repertório aberto: medleys, arranjos, músicas da folha |
-| [src/views/](src/views/) | Páginas: Repertório e folha, Biblioteca, Estudo, Ferramentas, Palco |
+| [src/views/](src/views/) | Páginas: Repertório e folha, Biblioteca, Grupo, Estudo, Ferramentas (com Separar faixas), Palco |
 | [src/dialogs/](src/dialogs/) | Janelas: biblioteca, música, compartilhar, link recebido, acorde, vídeo... |
 | [src/ui/](src/ui/) | Peças da interface: lista suspensa, controle segmentado, janela, avisos, dicas |
-| [src/lib/](src/lib/) | Lógica sem interface: cifras e teoria, folhas A4, PDF, IndexedDB, links, áudio, metrônomo, afinador, instrumentos, exercícios, traduções, conta (cloud.ts) e sincronização (sync.ts) |
+| [src/lib/](src/lib/) | Lógica sem interface: cifras e teoria, folhas A4, PDF, IndexedDB, links, áudio, metrônomo, afinador, instrumentos, exercícios, traduções, conta (cloud.ts), sincronização (sync.ts), grupos (groups.ts), regras da agenda (calendar.ts) e contas da separação (stems.ts) |
+| [src/stems.ts](src/stems.ts), [src/stems.worker.ts](src/stems.worker.ts) | Separar faixas: abrir a música, o worker com o modelo de IA (ONNX Runtime Web) e o mixer |
 | [supabase/](supabase/) | Banco na nuvem: tabelas e regras de acesso (migrations) |
 | [src/styles/app.scss](src/styles/app.scss) | Design system: tokens, temas, layouts desktop/celular, animações |
 | [src/sw.ts](src/sw.ts) | Cache offline |
@@ -268,3 +308,6 @@ exporte um backup de vez em quando.
 
 Código sob [MIT](LICENSE). Fontes Atkinson Hyperlegible, Atkinson Hyperlegible Mono e Lexend sob a
 [SIL Open Font License 1.1](fonts/OFL.txt). jsPDF 2.5.1 sob MIT.
+ONNX Runtime Web sob MIT. A separação de faixas usa o HT-Demucs 6s da Meta (MIT), na conversão para ONNX
+[kramp/htdemucs-6s-webgpu-onnx](https://huggingface.co/kramp/htdemucs-6s-webgpu-onnx) (MIT), baixada do
+Hugging Face na primeira vez que alguém usa.

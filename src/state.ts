@@ -10,8 +10,8 @@ import type { Song, Medley, SongItem } from "./lib/types";
 import type { IncomingMedley } from "./lib/share";
 
 // "profile" não está na barra de abas: abre pela bolinha do perfil.
-export type View = "medley" | "library" | "study" | "tools" | "profile";
-export const VIEWS: View[] = ["medley", "library", "study", "tools", "profile"];
+export type View = "medley" | "library" | "group" | "study" | "tools" | "profile";
+export const VIEWS: View[] = ["medley", "library", "group", "study", "tools", "profile"];
 
 export interface ToastAction { label: string; run: () => void }
 export interface Toast { id: number; msg: string; action?: ToastAction; sticky?: boolean; out?: boolean }
@@ -21,7 +21,8 @@ export interface DialogProps {
   picker: Record<string, never>;
   song: {song: Song | null};
   share: {medley: Medley};
-  incoming: {med: IncomingMedley};
+  // stage: depois de salvar, abre direto no Palco (repertório do grupo).
+  incoming: {med: IncomingMedley; stage?: boolean};
   install: Record<string, never>;
   arr: {medley: Medley; song: Song; item: SongItem};
   chord: {symbol: string; songKey: string};
@@ -29,6 +30,8 @@ export interface DialogProps {
   confirm: {title: string; message: string; confirm?: string; resolve: (ok: boolean) => void};
   help: {page: View};
   ear: {text: string; songKey: string; onApply: (text: string, key: string) => void};
+  // id null: evento novo no dia (AAAA-MM-DD).
+  event: {id: string | null; day: string};
 }
 export type DialogName = keyof DialogProps;
 

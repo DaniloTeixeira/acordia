@@ -25,6 +25,10 @@ function staticFiles(): Plugin {
 export default defineConfig({
   base: "/acordia/",
   build: {outDir: OUT, emptyOutDir: true, target: "es2022"},
+  // Separar faixas: o worker importa o ONNX Runtime como módulo, e o .wasm dele vira um arquivo do build
+  // (fica fora da lista offline; o service worker guarda no primeiro uso).
+  worker: {format: "es"},
+  optimizeDeps: {exclude: ["onnxruntime-web"]},
   plugins: [
     react(),
     staticFiles(),

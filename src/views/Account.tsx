@@ -65,7 +65,7 @@ function NotesBg(){
 // (os botões ficam habilitados, só com o indicador). Se a função devolver KEEP, a trava continua
 // fechada: deu certo e a tela vai mudar (entrar no app, ir para o Google). release() reabre.
 const KEEP = Symbol("keep");
-function useLock(){
+export function useLock(){
   const on = useRef(false);
   const lock = async (fn: () => Promise<unknown>) => {
     if(on.current) return;
@@ -86,7 +86,7 @@ function Notices({items, fallback, watch}: {items: React.ReactNode[]; fallback: 
 }
 
 // Girando dentro do botão enquanto espera a resposta (o botão fica desabilitado e marcado aria-busy).
-const Spin = () => <span className="spinner" aria-hidden="true"/>;
+export const Spin = () => <span className="spinner" aria-hidden="true"/>;
 
 // Requisitos da senha: o texto de cada um e a mensagem do que falta (ou da recusa do Supabase).
 const ruleText = (r: PwRule, p: PwPolicy) => t("auth.rule." + r, {n: p.min});

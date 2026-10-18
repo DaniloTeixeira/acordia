@@ -15,6 +15,7 @@ import { keyOptions } from "../views/Repertoire";
 import { ChordDialog } from "./ChordDialog";
 import { PlayerDialog } from "./PlayerDialog";
 import { EarDialog } from "./EarDialog";
+import { EventDialog } from "./EventDialog";
 import type { Item, SongType } from "../lib/types";
 
 const { data } = store;
@@ -34,6 +35,7 @@ export function Dialogs(){
     {d.confirm && <ConfirmDialog {...d.confirm}/>}
     {d.help && <HelpDialog {...d.help}/>}
     {d.ear && <EarDialog {...d.ear}/>}
+    {d.event && <EventDialog {...d.event}/>}
   </>;
 }
 
@@ -164,7 +166,7 @@ function findOrCreateSong(e: IncomingSong){
   if(same && e.ref && !same.ref){ same.ref = e.ref; store.saveSong(same); }
   return same || store.createSong({text:e.text, type:e.type, key:e.key, bpm:e.bpm, ref:e.ref});
 }
-function IncomingDialog({med}: {med: IncomingMedley}){
+function IncomingDialog({med, stage}: {med: IncomingMedley; stage?: boolean}){
   // Já recebeu este repertório antes? Então o link atualiza a cópia em vez de criar outra.
   const existing = med.sourceId ? [...data.medleys.values()].find(x => x.sourceId === med.sourceId && x.kind === med.kind) : undefined;
   const close = (rv: string) => {
@@ -185,6 +187,7 @@ function IncomingDialog({med}: {med: IncomingMedley}){
       existing.items.forEach(i => { const b = i.type === "medley" && data.medleys.get(i.medleyId); if(b && b.linkOf === med.sourceId && !blocks.includes(b)) store.deleteMedley(b.id); });
       Object.assign(existing, {name: med.name, items, options: med.options}); store.saveMedley(existing);
       openMedley(existing.id); go("medley");
+      if(stage) useUI.setState({stageOpen: true});
       return toast(t("incoming.updated"));
     }
     const nm = store.createMedley(med.name, items, med.options, med.kind === "medley" ? "medley" : "setlist");
@@ -192,6 +195,7 @@ function IncomingDialog({med}: {med: IncomingMedley}){
     // Um repertório vazio aberto (ex.: primeiro acesso pelo link) não precisa ficar sobrando.
     const prev = current(); if(prev.id !== nm.id && !prev.items.length) store.deleteMedley(prev.id);
     openMedley(nm.id); go("medley");
+    if(stage) useUI.setState({stageOpen: true});
     toast(t("incoming.saved"));
   };
   return <Dialog name="incoming" id="dlg-incoming" labelledBy="incoming-h" onClose={close}>
@@ -258,7 +262,7 @@ function ConfirmDialog({title, message, confirm, resolve}: DialogProps["confirm"
 }
 
 // ---------- guia "Como usar" de cada página ----------
-export const HELP_STEPS = {medley: 6, library: 4, study: 6, tools: 6} as const;
+export const HELP_STEPS = {medley: 6, library: 4, group: 6, study: 6, tools: 7} as const;
 export function seenHelp(page: string){ const s = Object.assign({}, data.settings.seenHelp || {}) as Record<string, boolean>; if(!s[page]){ s[page] = true; store.setSetting("seenHelp", s); } }
 function HelpDialog({page}: DialogProps["help"]){
   useEffect(() => seenHelp(page), [page]);

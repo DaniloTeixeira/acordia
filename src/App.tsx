@@ -19,7 +19,8 @@ import { Tools } from "./views/Tools";
 import { Stage } from "./views/Stage";
 import { Dialogs, HELP_STEPS, seenHelp } from "./dialogs/Dialogs";
 import { AuthScreen, Avatar, Profile } from "./views/Account";
-import { useAuth } from "./lib/cloud";
+import { useAuth, cloud } from "./lib/cloud";
+import { Group } from "./views/Group";
 
 const { data } = store;
 const BASE = import.meta.env.BASE_URL;
@@ -129,7 +130,9 @@ function useInstall(){
   return {show, run};
 }
 
-const NAV: [View, string, string][] = [["medley", "music", "nav.medley"], ["library", "library", "nav.library"], ["study", "study", "nav.study"], ["tools", "metro", "nav.tools"]];
+// O Grupo (agenda e escalas) só existe com a conta na nuvem.
+const NAV: [View, string, string][] = ([["medley", "music", "nav.medley"], ["library", "library", "nav.library"], ["group", "calendar", "nav.group"], ["study", "study", "nav.study"], ["tools", "metro", "nav.tools"]] as [View, string, string][])
+  .filter(([v]) => v !== "group" || !!cloud);
 
 // Itens do trilho com o fundo do ativo deslizando entre eles (as variáveis --y e --h posicionam o fundo no CSS).
 function NavList({children}: {children: ReactNode}){
@@ -186,11 +189,12 @@ export function App(){
         {view === "medley" && <Repertoire/>}
         {view === "library" && <Library/>}
         {view === "study" && <Study/>}
+        {view === "group" && <Group/>}
         {view === "tools" && <Tools/>}
         {view === "profile" && <Profile/>}
       </main>
       <button className="help-fab" id="help-fab" hidden={!helpable} data-tip-key="help.button" aria-label={t("help.button")} onClick={() => openDialog("help", {page: view})}><Icon name="question"/></button>
-      <nav className="tabbar" aria-label={t("nav.nav")} style={{"--i": NAV.findIndex(([v]) => v === view)} as CSSProperties}>
+      <nav className="tabbar" aria-label={t("nav.nav")} style={{"--i": NAV.findIndex(([v]) => v === view), "--n": NAV.length} as CSSProperties}>
         {NAV.map(([v, ic, label]) => <button key={v} className="tab" data-nav={v} aria-current={current(v)} onClick={() => go(v)}>
           <span className="pill"><Icon name={ic}/></span><span>{t(label)}</span></button>)}
       </nav>

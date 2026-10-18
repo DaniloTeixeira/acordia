@@ -1,6 +1,6 @@
 // Lista suspensa no visual do app. O <select> nativo continua na página (escondido) com o valor,
 // para leitores de tela e testes; a pessoa usa o botão e a lista em popover.
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "./Icon";
 import { placeNear, toggler } from "./popover";
@@ -16,6 +16,10 @@ export function Select({value, options, onChange, id, className = "", aria, styl
 }){
   const btn = useRef<HTMLButtonElement>(null), pop = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  // Dentro de uma janela modal, a lista vai para dentro dela: fora, a janela deixa tudo inerte e a lista
+  // aparecia mas não aceitava clique.
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => { setHost(btn.current?.closest("dialog") || document.body); }, []);
   const all = flat(options), cur = all.find(o => o.value === value) || all[0];
   const show = () => {
     const p = pop.current, b = btn.current; if(!p || !b) return;
@@ -28,7 +32,7 @@ export function Select({value, options, onChange, id, className = "", aria, styl
     const p = pop.current; if(!p) return;
     const onToggle = (e: Event) => { if((e as ToggleEvent).newState === "closed") setOpen(false); };
     p.addEventListener("toggle", onToggle); return () => p.removeEventListener("toggle", onToggle);
-  }, []);
+  }, [host]);
   // Rolar a tela fecha a lista (a rolagem dentro da própria lista não conta).
   useEffect(() => {
     if(!open) return;
@@ -68,11 +72,11 @@ export function Select({value, options, onChange, id, className = "", aria, styl
       onKeyDown={e => { if(e.key === "ArrowDown" || e.key === "ArrowUp"){ e.preventDefault(); show(); } }}>
       <span className="select-label">{cur ? cur.label : ""}</span><Icon name="chev" sm className="chev-down"/>
     </button>
-    {createPortal(<div ref={pop} className="popover menu-pop select-pop" popover="auto" role="listbox" onKeyDown={onKey}
+    {host && createPortal(<div ref={pop} className="popover menu-pop select-pop" popover="auto" role="listbox" onKeyDown={onKey}
 >
       {options.map(o => "group" in o
         ? [<div key={"g:" + o.group} className="menu-group" role="presentation">{o.group}</div>, ...o.options.map(item)]
         : item(o))}
-    </div>, document.body)}
+    </div>, host)}
   </>;
 }

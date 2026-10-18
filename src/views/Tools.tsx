@@ -1,4 +1,4 @@
-// Ferramentas: metrônomo, afinador e pad infinito.
+// Ferramentas: metrônomo, afinador, pad infinito e separar faixas.
 import { useEffect, useRef, useState } from "react";
 import { detectPitch, noteFromFreq, nearestString, midiName } from "../lib/tuner";
 import { INSTRUMENTS, isInstrument } from "../lib/instruments";
@@ -13,22 +13,24 @@ import { MetronomeUI } from "./Metronome";
 import { PadUI } from "./Pad";
 import { pad } from "../pad";
 import { InstrumentSelect } from "./InstrumentSelect";
+import { StemsUI } from "./Stems";
 
 const { data } = store;
 
 export function Tools(){
   useData();
-  const tab = data.settings.toolsTab === "tuner" || data.settings.toolsTab === "pad" ? data.settings.toolsTab : "metro";
+  const tab = (["tuner", "pad", "stems"] as const).find(v => v === data.settings.toolsTab) || "metro";
   // Sair da página (ou trocar de aba) para o metrônomo.
   useEffect(() => () => metro.stop(), []);
   useEffect(() => { if(tab !== "metro") metro.stop(); }, [tab]);
   return <section className="view" id="view-tools" data-view="tools" aria-labelledby="tools-h">
     <div className="view-head"><div><h1 id="tools-h">{t("tools.title")}</h1><p className="sub">{t("tools.sub")}</p></div></div>
     <Seg id="tools-tabs" aria={t("tools.title")} value={tab} onChange={v => store.setSetting("toolsTab", v)}
-      options={[{v: "metro", label: t("tools.metro")}, {v: "tuner", label: t("tools.tuner")}, {v: "pad", label: t("tools.pad")}]}/>
+      options={[{v: "metro", label: t("tools.metro")}, {v: "tuner", label: t("tools.tuner")}, {v: "pad", label: t("tools.pad")}, {v: "stems", label: t("tools.stems")}]}/>
     <div id="tools-metro" hidden={tab !== "metro"}>{tab === "metro" && <MetronomeUI/>}</div>
     <div id="tools-tuner" hidden={tab !== "tuner"}>{tab === "tuner" && <Tuner/>}</div>
     <div id="tools-pad" hidden={tab !== "pad"}>{tab === "pad" && <PadUI/>}</div>
+    <div id="tools-stems" hidden={tab !== "stems"}>{tab === "stems" && <StemsUI/>}</div>
   </section>;
 }
 
