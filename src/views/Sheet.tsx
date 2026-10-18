@@ -54,18 +54,20 @@ function SheetPickButton({m}: {m: Medley}){
   return <button className={"btn sm " + (on < all ? "soft" : "ghost")} id="btn-sheet-pick" aria-label={t("sheetPick.title")} title={t("sheetPick.title")}
     onClick={() => openDialog("sheetPick", {id: m.id})}><Icon name="list" sm/>{on < all ? on + "/" + all : t("sheetPick.all")}</button>;
 }
-// Copia a letra das músicas marcadas para a folha (sem cifras), na ordem do repertório.
+// Copia a letra (sem cifras) para colar no WhatsApp ou na projeção: da folha inteira ou de uma música só.
+export async function copyLyrics(songs: Parameters<typeof lyricsText>[0]){
+  const text = lyricsText(songs);
+  if(!text) return toast(t("sheet.needSong"));
+  try{ await navigator.clipboard.writeText(text); toast(t("sheet.lyricsCopied")); }
+  catch{ toast(t("sheet.copyFail")); }
+}
+// As músicas marcadas para a folha, na ordem do repertório.
 function CopyLyricsButton({m}: {m: Medley}){
   const skip = useUI(s => s.sheetSkip[m.id]);
-  const copy = async () => {
-    const text = lyricsText(sheetSongs(m).filter(s => !skip?.includes(s.itemId)));
-    if(!text) return toast(t("sheet.needSong"));
-    try{ await navigator.clipboard.writeText(text); toast(t("sheet.lyricsCopied")); }
-    catch{ toast(t("sheet.copyFail")); }
-  };
-  return <button className="icon-btn line" id="btn-copy-lyrics" aria-label={t("sheet.copyLyrics")} title={t("sheet.copyLyrics")} onClick={copy}><Icon name="copy"/></button>;
+  return <button className="icon-btn line" id="btn-copy-lyrics" aria-label={t("sheet.copyLyrics")} title={t("sheet.copyLyrics")}
+    onClick={() => copyLyrics(sheetSongs(m).filter(s => !skip?.includes(s.itemId)))}><Icon name="copy"/></button>;
 }
-export const setSheetSkip =(id: string, skip: string[]) => useUI.setState(s => ({sheetSkip: {...s.sheetSkip, [id]: skip}}));
+export const setSheetSkip = (id: string, skip: string[]) => useUI.setState(s => ({sheetSkip: {...s.sheetSkip, [id]: skip}}));
 
 function SheetOptions({m}: {m: Medley}){
   const pop = useRef<HTMLDivElement>(null);
