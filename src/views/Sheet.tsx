@@ -119,8 +119,9 @@ export function Sheet({m}: {m: Medley}){
       ? <div className="pages" id="pages"><div className="sheet-empty empty-state"><Icon name="file"/><strong>{t("sheet.emptyTitle")}</strong><span>{t("sheet.emptyText")}</span></div></div>
       : <div className="pages" id="pages" onClick={onClick}>
           {svgs.map((svg, i) => <Fragment key={i}>
-          <div className="paper" dangerouslySetInnerHTML={{__html: svg}}/>
+          {/* Número acima da folha, como cabeçalho: ao rolar, aparece antes do conteúdo. */}
           {svgs.length > 1 && <p className="page-label">{t("sheet.page", {n:i+1, total:svgs.length})}</p>}
+          <div className="paper" dangerouslySetInnerHTML={{__html: svg}}/>
         </Fragment>)}</div>}
   </>;
 }
