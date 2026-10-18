@@ -1740,9 +1740,11 @@ textarea.song-text {
 }
 /* Sem margin-left: auto: na mesma linha, o space-between deixa as ferramentas à direita; quando descem para a
    linha de baixo (celular), ficam à esquerda. */
+/* Ajustes e imprimir com o círculo de contorno (como a lixeira e o + do topo) e 8 px entre todos, como no topo:
+   sem o contorno, o vazio em volta do ícone fazia os espaços parecerem diferentes. */
 .sheet-toolbar .tools {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
 }
 .pages {
