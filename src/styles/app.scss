@@ -6174,6 +6174,9 @@ dialog.ear-dlg {
    Só nos cards com topo e corpo: os do grupo têm mais filhos, e a subgrid de 2 linhas os empilharia. */
 .profile-grid > .card:has(> .card-top) {
   display: grid;
+  /* Coluna que encolhe até a largura do card: sem isso, linhas longas (e-mail · aniversário) alargam o
+     conteúdo além do card no celular. */
+  grid-template-columns: minmax(0, 1fr);
   grid-row: span 2;
   grid-template-rows: subgrid;
   row-gap: 22px;
