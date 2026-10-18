@@ -10,7 +10,7 @@ import { clearMeasureCache } from "./lib/util";
 import { useUI, toast, openDialog, VIEWS, viewFromHash, viewUrl, type View } from "./state";
 import { peekCurrent } from "./repertoire";
 import { initMetro } from "./metro";
-import { initAuth } from "./lib/cloud";
+import { initAuth, useAuth } from "./lib/cloud";
 import { initSync } from "./lib/sync";
 import { initTooltips } from "./ui/tooltips";
 import { App, applyTheme, applyVolume, theme } from "./App";
@@ -35,6 +35,15 @@ setCues(store.setting("cues", true));
 initMetro();
 // Com login configurado, a tela de entrar aparece até a sessão ser confirmada.
 initAuth();
+// Sem sessão (saiu, a sessão expirou ou abriu sem estar logado), o próximo login começa pela página
+// inicial, e não pela última aberta antes de sair.
+const toHome = ({status}: {status: string}) => {
+  if(status !== "out") return;
+  store.setSetting("view", "medley");
+  useUI.setState({view: "medley", stageOpen: false});
+  if(viewFromHash()) history.replaceState(null, "", viewUrl("medley"));
+};
+useAuth.subscribe(toHome);
 // Músicas e repertórios na nuvem: liga quando a pessoa entra, desliga quando sai.
 initSync();
 
