@@ -7135,6 +7135,60 @@ dialog.event-dlg {
 .members .people-who {
   flex: 1 1 180px;
 }
+/* Tocar na pessoa abre os detalhes: o nome é um botão sem cara de botão. */
+.member-open {
+  cursor: pointer;
+}
+.member-open-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.member-open:hover .member-open-btn {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+/* Janela de detalhes do membro */
+.member-dlg-who {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.member-dlg-who .avatar.big {
+  flex-shrink: 0;
+  width: 75px;
+  height: 75px;
+  font-size: 1.5rem;
+}
+.member-dlg-who .member-chips {
+  margin-top: 4px;
+}
+.member-dlg .dlg-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.member-dlg-next {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.member-dlg-next li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+}
 .member-chips {
   display: flex;
   flex-wrap: wrap;
