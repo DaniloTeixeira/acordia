@@ -8,3 +8,6 @@ src/infinite-pads/
 
 # Chaves do Supabase para rodar local (VITE_SUPABASE_URL e VITE_SUPABASE_KEY).
 *.local
+
+# Estado local da CLI do Supabase (projeto ligado, versões).
+supabase/.temp/
