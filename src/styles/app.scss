@@ -6170,8 +6170,9 @@ dialog.ear-dlg {
 }
 /* Página Perfil: cada card ocupa duas linhas da grade e as herda (subgrid). A linha de cima é o topo (foto e
    nome; título e explicação) e fica com a altura do topo mais alto, então lado a lado os quadros de campos
-   ("Meus dados" e "Adicionar pessoa") começam na mesma altura. O corpo continua em coluna, como antes. */
-.profile-grid > .card {
+   ("Meus dados" e "Adicionar pessoa") começam na mesma altura. O corpo continua em coluna, como antes.
+   Só nos cards com topo e corpo: os do grupo têm mais filhos, e a subgrid de 2 linhas os empilharia. */
+.profile-grid > .card:has(> .card-top) {
   display: grid;
   grid-row: span 2;
   grid-template-rows: subgrid;
