@@ -6170,9 +6170,13 @@ dialog.ear-dlg {
 }
 /* Página Perfil: cada card ocupa duas linhas da grade e as herda (subgrid). A linha de cima é o topo (foto e
    nome; título e explicação) e fica com a altura do topo mais alto, então lado a lado os quadros de campos
-   ("Meus dados" e "Adicionar pessoa") começam na mesma altura. O corpo continua em coluna, como antes. */
-.profile-grid > .card {
+   ("Meus dados" e "Adicionar pessoa") começam na mesma altura. O corpo continua em coluna, como antes.
+   Só nos cards com topo e corpo: os do grupo têm mais filhos, e a subgrid de 2 linhas os empilharia. */
+.profile-grid > .card:has(> .card-top) {
   display: grid;
+  /* Coluna que encolhe até a largura do card: sem isso, linhas longas (e-mail · aniversário) alargam o
+     conteúdo além do card no celular. */
+  grid-template-columns: minmax(0, 1fr);
   grid-row: span 2;
   grid-template-rows: subgrid;
   row-gap: 22px;
@@ -6338,6 +6342,7 @@ dialog.ear-dlg {
 }
 /* Avatar da lista "Com acesso": a altura das três linhas (nome, e-mail, celular), cerca de 60 px. */
 .people-who .avatar {
+  flex-shrink: 0;
   width: 60px;
   height: 60px;
   font-size: 1.15rem;
@@ -7126,13 +7131,7 @@ dialog.event-dlg {
   gap: 8px;
   flex-wrap: wrap;
 }
-/* Membros */
-.members li .avatar {
-  width: 34px;
-  height: 34px;
-  flex-shrink: 0;
-  font-size: 0.78rem;
-}
+/* Membros (a foto tem o tamanho da lista "Com acesso", em .people-who .avatar) */
 .members .people-who {
   flex: 1 1 180px;
 }

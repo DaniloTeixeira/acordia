@@ -473,7 +473,7 @@ function BirthdayField(){
 }
 
 // Dia e mês de uma data de nascimento ("12 de março"), sem o ano.
-const fmtBirthday = (v: string) => new Intl.DateTimeFormat(locale(), {day: "numeric", month: "long", timeZone: "UTC"}).format(new Date(v + "T00:00:00Z"));
+export const fmtBirthday = (v: string) => new Intl.DateTimeFormat(locale(), {day: "numeric", month: "long", timeZone: "UTC"}).format(new Date(v + "T00:00:00Z"));
 
 // Nome, celular e data de nascimento de quem já está na lista. O que a pessoa já preencheu no próprio perfil
 // aparece travado: só ela muda.
