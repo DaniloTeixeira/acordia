@@ -7,7 +7,6 @@ import * as store from "./lib/store";
 import { setLang, getLang, t, type Lang } from "./lib/i18n";
 import { vt, type VtKind } from "./lib/util";
 import type { Song } from "./lib/types";
-import type { IncomingMedley } from "./lib/share";
 
 // "profile" e "group" não estão na barra de abas: o perfil abre pela bolinha, e o grupo pelo Início.
 export type View = "home" | "medley" | "library" | "group" | "study" | "tools" | "profile";
@@ -21,7 +20,6 @@ export interface DialogProps {
   picker: Record<string, never>;
   song: {song: Song | null};
   // stage: depois de salvar, abre direto no Palco (repertório do grupo).
-  incoming: {med: IncomingMedley; stage?: boolean};
   install: Record<string, never>;
   chord: {symbol: string; songKey: string};
   player: {url: string; title: string};

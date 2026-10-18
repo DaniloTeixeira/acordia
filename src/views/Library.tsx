@@ -15,7 +15,8 @@ import type { Medley, Song, Item } from "../lib/types";
 const { data } = store;
 const songsN = (n: number) => tn("song", n), medleysN = (n: number) => tn("medley", n);
 type Tab = "songs" | "setlists" | "medleys";
-// Aba com que a Biblioteca abre da próxima vez (o "voltar" do repertório abre nos repertórios).
+// Aba com que a Biblioteca abre da próxima vez: a última escolhida, para o voltar cair onde a pessoa estava
+// (o "voltar" do repertório abre nos repertórios).
 let nextTab: Tab = "songs";
 export function openLibrary(tab: Tab){ nextTab = tab; go("library"); }
 
@@ -56,8 +57,20 @@ function cardClick(run: () => void){
   };
 }
 // "Nome (cópia)", depois "Nome (cópia 2)", "(cópia 3)"...: a cópia de uma cópia não empilha o sufixo.
-function copyName(name: string){
-  const base = name.replace(/\s*\((cópia|copy|copia)(\s+\d+)?\)$/i, "") || name;
+const COPY = /\s*\((cópia|copy|copia)(\s+(\d+))?\)$/i;
+// Nome sem o "(cópia N)" e o número da cópia (0 = o original, 1 = "(cópia)", 2 = "(cópia 2)"...).
+function copyOf(name: string){
+  const m = name.match(COPY);
+  return {base: m ? name.slice(0, m.index) : name, n: m ? +(m[3] || 1) : 0};
+}
+// Na lista por data, cada cópia vem logo depois do original (o grupo fica onde está o mais recente dele).
+function withCopiesAfter(rows: Medley[]){
+  const groups = new Map<string, Medley[]>();
+  rows.forEach(m => { const b = copyOf(m.name).base; groups.set(b, [...(groups.get(b) || []), m]); });
+  return [...groups.values()].flatMap(g => g.sort((a, b) => copyOf(a.name).n - copyOf(b.name).n));
+}
+export function copyName(name: string){
+  const base = copyOf(name).base || name;
   const names = new Set([...data.medleys.values()].map(x => x.name));
   for(let n = 1; ; n++){
     const c = n === 1 ? t("lib.copyName", {name: base}) : t("lib.copyNameN", {name: base, n});
@@ -70,7 +83,8 @@ function EmptyCard({icon, title, text}: {icon: string; title: string; text?: str
 
 export function Library(){
   useData();
-  const [tab, setTab] = useState<Tab>(() => { const t0 = nextTab; nextTab = "songs"; return t0; });
+  const [tab, setTabState] = useState<Tab>(nextTab);
+  const setTab = (v: Tab) => { nextTab = v; setTabState(v); };
   const [sort, setSort] = useState("az");
   const view = data.settings.libView === "rows" ? "rows" : "cards";
   const [query, setQuery] = useState("");
@@ -129,7 +143,7 @@ function SongCards({all, q, sort}: {all: Song[]; q: string; sort: string}){
 function MedleyCards({rows: source, blocks, setlists, q}: {rows: Medley[]; blocks: boolean; setlists: Medley[]; q: string}){
   const curId = peekCurrent()?.id;
   const titlesOf = (m: Medley) => songItems(m).map(x => (data.songs.get(x.it.songId) || {title: ""}).title).filter(Boolean);
-  const rows = source.filter(m => !q || norm(m.name).includes(q) || titlesOf(m).some(x => norm(x).includes(q))).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  const rows = withCopiesAfter(source.filter(m => !q || norm(m.name).includes(q) || titlesOf(m).some(x => norm(x).includes(q))).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)));
   if(!rows.length) return blocks ? <EmptyCard icon="link" title={t("lib.noMedleyBlocks")} text={t("lib.noMedleyBlocksText")}/> : <EmptyCard icon="list" title={t("lib.noMedleys")}/>;
   return <>{rows.map((m, idx) => {
     const titles = titlesOf(m);

@@ -1,12 +1,11 @@
 // Janelas do app. Cada uma aparece quando aberta com openDialog(nome, dados).
 import { useEffect, useRef, useState } from "react";
-import { songTitle, sanitizeUrl, sanitizeItem, parseSong, detectKey, keyShift, transposeKey, transposeText } from "../lib/core";
+import { songTitle, sanitizeUrl, parseSong, detectKey, keyShift, transposeKey, transposeText } from "../lib/core";
 import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
-import type { IncomingMedley, IncomingSong } from "../lib/share";
 import { norm } from "../lib/util";
-import { useUI, toast, go, openDialog, type DialogProps } from "../state";
-import { current, isMedley, openMedley, lastPlayKey } from "../repertoire";
+import { useUI, toast, openDialog, type DialogProps } from "../state";
+import { current, isMedley, lastPlayKey } from "../repertoire";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
@@ -16,7 +15,7 @@ import { ChordDialog } from "./ChordDialog";
 import { PlayerDialog } from "./PlayerDialog";
 import { EarDialog } from "./EarDialog";
 import { EventDialog } from "./EventDialog";
-import type { Item, SongType } from "../lib/types";
+import type { SongType } from "../lib/types";
 
 const { data } = store;
 const songsN = (n: number) => tn("song", n);
@@ -26,7 +25,6 @@ export function Dialogs(){
   return <>
     {d.picker && <Picker/>}
     {d.song && <SongDialog {...d.song}/>}
-    {d.incoming && <IncomingDialog {...d.incoming}/>}
     {d.install && <InstallDialog/>}
     {d.chord && <ChordDialog {...d.chord}/>}
     {d.player && <PlayerDialog {...d.player}/>}
@@ -132,84 +130,6 @@ function SongDialog({song: s}: DialogProps["song"]){
         </div>
       </div>
       <Foot><button className="btn ghost" value="cancel">{t("common.cancel")}</button><button className="btn primary" value="ok">{t("common.save")}</button></Foot>
-    </form>
-  </Dialog>;
-}
-
-// ---------- repertório recebido do grupo ----------
-// Lista do repertório recebido: cada medley vira um item só ("Medley · 4 músicas"), com as músicas dentro.
-function incomingRows(med: IncomingMedley){
-  const rows: ({s: IncomingSong} | {g: number; songs: IncomingSong[]})[] = [];
-  med.songs.forEach(s => {
-    const last = rows[rows.length - 1];
-    if(s.g === undefined) rows.push({s});
-    else if(last && "g" in last && last.g === s.g) last.songs.push(s);
-    else rows.push({g: s.g, songs: [s]});
-  });
-  return rows;
-}
-// Título e tom (o escolhido no repertório ou, sem ele, o da música).
-function IncomingSongLine({s}: {s: IncomingSong}){
-  const k = s.target || s.key;
-  return <span className="incoming-song"><span>{s.title}</span>{k && <span className="chip accent">{k}</span>}</span>;
-}
-function findOrCreateSong(e: IncomingSong){
-  const same = [...data.songs.values()].find(s => norm(s.title) === norm(songTitle(e.text)) && s.text.trim() === e.text.trim());
-  if(same && e.ref && !same.ref){ same.ref = e.ref; store.saveSong(same); }
-  return same || store.createSong({text:e.text, type:e.type, key:e.key, bpm:e.bpm, ref:e.ref});
-}
-function IncomingDialog({med, stage}: {med: IncomingMedley; stage?: boolean}){
-  // Já recebeu este repertório antes? Então atualiza a cópia em vez de criar outra.
-  const existing = med.sourceId ? [...data.medleys.values()].find(x => x.sourceId === med.sourceId && x.kind === med.kind) : undefined;
-  const close = (rv: string) => {
-    if(rv !== "ok" && rv !== "new") return;
-    const update = !!existing && rv === "ok";
-    const blocks = med.groups.map(name => store.createMedley(name, [], med.options, "medley"));
-    const items: Item[] = [], placed = new Set<number>();
-    med.songs.forEach(e => {
-      const songItem = store.newItem(findOrCreateSong(e).id, sanitizeItem(e));
-      if(e.g !== undefined && blocks[e.g]){
-        // No medley o momento é do bloco inteiro (vem repetido em cada música dele).
-        songItem.moment = "";
-        blocks[e.g].items.push(songItem);
-        if(!placed.has(e.g)){ placed.add(e.g); items.push(Object.assign(store.newMedleyItem(blocks[e.g].id), {moment: e.moment || ""})); }
-      } else items.push(songItem);
-    });
-    blocks.forEach(b => { b.linkOf = med.sourceId; store.saveMedley(b); });
-    if(update && existing){
-      // Os medleys que vieram da versão anterior saem; os novos entram no lugar.
-      existing.items.forEach(i => { const b = i.type === "medley" && data.medleys.get(i.medleyId); if(b && b.linkOf === med.sourceId && !blocks.includes(b)) store.deleteMedley(b.id); });
-      Object.assign(existing, {name: med.name, items, options: med.options}); store.saveMedley(existing);
-      return done(existing.id, "incoming.updated");
-    }
-    const nm = store.createMedley(med.name, items, med.options, med.kind === "medley" ? "medley" : "setlist");
-    if(med.sourceId && !existing){ nm.sourceId = med.sourceId; store.saveMedley(nm); }
-    done(nm.id, "incoming.saved");
-  };
-  // Salvar só guarda na biblioteca e a pessoa continua onde estava (o aviso tem "Abrir" para quem quiser ir).
-  // Vindo do "tocar no Palco", aí sim abre o repertório direto no Palco.
-  const show = (id: string) => {
-    // Um repertório vazio aberto (ex.: primeiro acesso) não precisa ficar sobrando.
-    const prev = current(); if(prev.id !== id && !prev.items.length) store.deleteMedley(prev.id);
-    openMedley(id); go("medley");
-  };
-  const done = (id: string, msg: string) => {
-    if(stage){ show(id); useUI.setState({stageOpen: true}); return; }
-    toast(t(msg), {label: t("common.open"), run: () => show(id)});
-  };
-  const rows = incomingRows(med);
-  return <Dialog name="incoming" id="dlg-incoming" labelledBy="incoming-h" onClose={close}>
-    <form method="dialog" className="dlg">
-      <DialogHead id="incoming-h" title={t(existing ? "incoming.updateTitle" : "incoming.title")} closeLabel={t("common.close")}/>
-      {/* Na contagem do topo o medley vale 1, como na lista numerada abaixo. */}
-      <div className="dlg-body"><p id="incoming-desc">{existing ? t("incoming.updateDesc", {name: existing.name, songs: songsN(rows.length)}) : t("incoming.desc", {name: med.name, songs: songsN(rows.length)})}</p>
-        <ol className="steps" id="incoming-list">{rows.map((r, i) => <li key={i}>{"g" in r
-          ? <><span className="incoming-medley"><Icon name="link" sm/> {t("mblock.chip", {songs: songsN(r.songs.length)})}</span>
-            <ul className="incoming-sub">{r.songs.map((s, j) => <li key={j}><IncomingSongLine s={s}/></li>)}</ul></>
-          : <IncomingSongLine s={r.s}/>}</li>)}</ol></div>
-      <Foot><button className="btn ghost" value="cancel">{t("incoming.later")}</button>
-        {existing && <button className="btn ghost" value="new" id="incoming-new">{t("incoming.saveNew")}</button>}
-        <button className="btn primary" value="ok" id="incoming-ok">{t(existing ? "incoming.update" : "incoming.save")}</button></Foot>
     </form>
   </Dialog>;
 }

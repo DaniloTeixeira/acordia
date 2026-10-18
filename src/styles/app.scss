@@ -1798,43 +1798,37 @@ textarea.song-text {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 12px;
 }
-/* Modo linhas: uma linha compacta por item (nome e chips à esquerda, ações à direita), sem o trecho. */
-.cards.rows {
-  grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
-}
-.cards.rows .lib-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: "title foot" "meta foot";
-  align-items: center;
-  gap: 4px 16px;
-  padding: 10px 12px 10px 16px;
-  border-radius: var(--r-md);
-}
-.cards.rows .lib-card h3 {
-  grid-area: title;
-}
-.cards.rows .lib-card .meta {
-  grid-area: meta;
-}
-.cards.rows .lib-card .excerpt {
-  display: none;
-}
-.cards.rows .lib-card .foot {
-  grid-area: foot;
-  margin-top: 0;
-}
-.cards.rows .lib-card .foot .btn {
-  margin-right: 8px;
-}
-@media (max-width: 600px) {
-  .cards.rows .lib-card {
+/* Modo linhas: uma linha compacta por item (nome e chips à esquerda, ações à direita), sem o trecho.
+   Só a partir de 600px: no celular a linha empilhava e ficava igual ao card, então lá é sempre card. */
+@media (min-width: 600px) {
+  .cards.rows {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "title" "meta" "foot";
+    gap: 8px;
+  }
+  .cards.rows .lib-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "title foot" "meta foot";
+    align-items: center;
+    gap: 4px 16px;
+    padding: 10px 12px 10px 16px;
+    border-radius: var(--r-md);
+  }
+  .cards.rows .lib-card h3 {
+    grid-area: title;
+  }
+  .cards.rows .lib-card .meta {
+    grid-area: meta;
+  }
+  .cards.rows .lib-card .excerpt {
+    display: none;
+  }
+  .cards.rows .lib-card .foot {
+    grid-area: foot;
+    margin-top: 0;
   }
   .cards.rows .lib-card .foot .btn {
-    margin-right: auto;
+    margin-right: 8px;
   }
 }
 /* Abas à esquerda e cards | linhas à direita, na mesma linha e na mesma altura (as abas encolhem e rolam
@@ -1851,11 +1845,10 @@ textarea.song-text {
 .lib-tabs-row > .view-seg {
   flex-shrink: 0;
 }
-/* Celular: as abas ocupam a linha toda (sem rolar para o lado) e a troca cards/linhas desce para a direita. */
+/* Celular: as abas ocupam a linha toda (sem rolar para o lado) e a troca cards/linhas some (é sempre card). */
 @media (max-width: 599px) {
-  .lib-tabs-row {
-    flex-wrap: wrap;
-    justify-content: flex-end;
+  .lib-tabs-row > .view-seg {
+    display: none;
   }
   .lib-tabs-row > #lib-tabs {
     flex: 1 1 100%;
@@ -4477,28 +4470,6 @@ dialog.unsaved .dlg-foot::before {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-/* Repertório recebido: título e tom quebram linha juntos; o medley diz quantas músicas tem e lista elas abaixo. */
-.incoming-song {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.incoming-medley {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-}
-.incoming-sub {
-  margin: 6px 0 0;
-  padding-left: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
 }
 @media (max-width: 899px) {
   dialog {

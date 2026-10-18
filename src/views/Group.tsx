@@ -5,7 +5,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
 import { useAuth, validEmail, listAllowed, type Allowed } from "../lib/cloud";
-import { decodeMedley } from "../lib/share";
+import { decodeMedley, type IncomingMedley, type IncomingSong } from "../lib/share";
+import { songTitle, sanitizeItem } from "../lib/core";
+import { norm } from "../lib/util";
+import { current, openMedley } from "../repertoire";
+import type { Item } from "../lib/types";
+import { copyName } from "./Library";
 import { saveBlob } from "../lib/pdf";
 import { ago, reduced, flashSaved } from "../lib/util";
 import { splitRoles, joinRoles, toggleRole, sortRoles } from "../lib/roles";
@@ -31,11 +36,53 @@ const longDay = (d: Date) => fmt({weekday: "long", day: "numeric", month: "long"
 // Bolinha de um membro: a foto do perfil (conta Google) ou as iniciais.
 export const PersonAvatar = ({email}: {email: string}) => <Avatar person={{name: personName(email), email, photo: personPhoto(email)}}/>;
 
-// Abre um repertório do grupo como um link recebido (salvar na biblioteca, ou atualizar a cópia).
+// Abre um repertório do grupo: guarda (ou atualiza) a cópia na biblioteca, sempre na versão publicada, e vai
+// para ela; com stage, direto no Palco.
 export async function openGroupSetlist(s: GroupSetlist, stage = false){
   const med = await decodeMedley(s.code);
   if(!med) return toast(t("incoming.bad"));
-  openDialog("incoming", {med, stage});
+  // Quem publicou já tem o original (é dele que sai a versão do grupo): abre ele, sem criar uma cópia.
+  const own = data.medleys.get(med.sourceId);
+  const id = own && !own.sourceId ? own.id : saveIncoming(med);
+  // Um repertório vazio aberto (ex.: primeiro acesso) não precisa ficar sobrando.
+  const prev = current(); if(prev.id !== id && !prev.items.length) store.deleteMedley(prev.id);
+  openMedley(id); go("medley");
+  if(stage) useUI.setState({stageOpen: true});
+}
+function findOrCreateSong(e: IncomingSong){
+  const same = [...data.songs.values()].find(x => norm(x.title) === norm(songTitle(e.text)) && x.text.trim() === e.text.trim());
+  if(same && e.ref && !same.ref){ same.ref = e.ref; store.saveSong(same); }
+  return same || store.createSong({text:e.text, type:e.type, key:e.key, bpm:e.bpm, ref:e.ref});
+}
+// Já recebeu este repertório antes? Então atualiza a cópia em vez de criar outra.
+function saveIncoming(med: IncomingMedley){
+  const existing = med.sourceId ? [...data.medleys.values()].find(x => x.sourceId === med.sourceId && x.kind === med.kind) : undefined;
+  const blocks = med.groups.map(name => store.createMedley(name, [], med.options, "medley"));
+  const items: Item[] = [], placed = new Set<number>();
+  med.songs.forEach(e => {
+    const songItem = store.newItem(findOrCreateSong(e).id, sanitizeItem(e));
+    if(e.g !== undefined && blocks[e.g]){
+      // No medley o momento é do bloco inteiro (vem repetido em cada música dele).
+      songItem.moment = "";
+      blocks[e.g].items.push(songItem);
+      if(!placed.has(e.g)){ placed.add(e.g); items.push(Object.assign(store.newMedleyItem(blocks[e.g].id), {moment: e.moment || ""})); }
+    } else items.push(songItem);
+  });
+  blocks.forEach(b => { b.linkOf = med.sourceId; store.saveMedley(b); });
+  if(existing){
+    // Os medleys que vieram da versão anterior saem; os novos entram no lugar.
+    existing.items.forEach(i => { const b = i.type === "medley" && data.medleys.get(i.medleyId); if(b && b.linkOf === med.sourceId && !blocks.includes(b)) store.deleteMedley(b.id); });
+    // O nome segue o do líder; se outro da biblioteca já usa esse nome, fica com "(cópia)" (mantém o que já tinha).
+    const clash = [...data.medleys.values()].some(x => x !== existing && x.name === med.name);
+    const name = !clash ? med.name : existing.name !== med.name && existing.name.startsWith(med.name) ? existing.name : copyName(med.name);
+    Object.assign(existing, {name, items, options: med.options}); store.saveMedley(existing);
+    return existing.id;
+  }
+  // Já tem um com esse nome? A cópia nova ganha "(cópia)", para não ficar dois iguais na biblioteca.
+  const name = [...data.medleys.values()].some(x => x.name === med.name) ? copyName(med.name) : med.name;
+  const nm = store.createMedley(name, items, med.options, med.kind === "medley" ? "medley" : "setlist");
+  if(med.sourceId){ nm.sourceId = med.sourceId; store.saveMedley(nm); }
+  return nm.id;
 }
 
 // Baixa o .ics de um ou mais eventos (o celular oferece adicionar ao calendário, com lembretes).
@@ -306,7 +353,7 @@ function Setlists({canEdit}: {canEdit: boolean}){
       <div className="meta"><span className="chip">{tn("song", s.songs)}</span></div>
       <span className="when">{t("group.sharedBy", {name: personName(s.shared_by), when: ago(new Date(s.updated_at).getTime())})}</span>
       <div className="foot group-set-foot" onClick={ev => ev.stopPropagation()}>
-        <button className="btn ghost sm" onClick={() => openGroupSetlist(s)}><Icon name="download" sm/> {t("group.openSetlist")}</button>
+        <button className="btn ghost sm" onClick={() => openGroupSetlist(s)}><Icon name="music" sm/> {t("group.openSetlist")}</button>
         <button className="btn ghost sm" onClick={() => openGroupSetlist(s, true)}><Icon name="stage" sm/> {t("medley.stage")}</button>
       </div>
     </li>)}</ul> : <div className="card empty-state"><Icon name="music"/><strong>{t("group.noSetlists")}</strong><span>{t(canEdit ? "group.noSetlistsAdmin" : "group.noSetlistsSub")}</span></div>}
