@@ -4386,6 +4386,15 @@ dialog:not([open])::backdrop {
   padding: 12px 20px 18px;
   border-top: 1px solid var(--line);
 }
+/* Tentou fechar com alterações: aviso no rodapé, à esquerda dos botões (o texto vem de --unsaved). */
+dialog.unsaved .dlg-foot::before {
+  content: var(--unsaved);
+  margin-right: auto;
+  align-self: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--warn);
+}
 .dlg-body textarea.song-text {
   min-height: 260px;
 }

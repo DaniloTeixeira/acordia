@@ -33,7 +33,10 @@ export function EventDialog({id, day}: DialogProps["event"]){
   // Uma linha por pessoa, com as funções dela neste evento; ao salvar vira uma linha por função.
   const [roster, setRoster] = useState<{email: string; roles: string[]}[]>(() => ev ? rosterByPerson(g.roster.filter(r => r.event_id === ev.id)).map(p => ({email: p.email, roles: p.roles})) : []);
   const [busy, setBusy] = useState(false);
-  const dirty = useRef(false); const touch = <T,>(fn: (v: T) => void) => (v: T) => { dirty.current = true; fn(v); };
+  // Alterado = diferente de quando abriu (voltar ao que era não conta). done: salvou ou cancelou.
+  const snap = () => JSON.stringify([kind, title, date, time, call, place, notes, setlist, weeks, roster]);
+  const start = useRef<string | null>(null); if(start.current === null) start.current = snap();
+  const done = useRef(false), dirty = () => !done.current && snap() !== start.current;
   const form = useRef<HTMLFormElement>(null);
   const starts = date && time ? at(date, time) : null;
   const probe: Pick<GEvent, "id" | "starts_at"> = {id: id || "new", starts_at: (starts || new Date()).toISOString()};
@@ -55,27 +58,27 @@ export function EventDialog({id, day}: DialogProps["event"]){
     const ok = await saveEvent(g.gid, id, input, rows, dates).finally(() => setBusy(false));
     if(!ok) return toast(t("profile.saveFail"));
     toast(n > 1 ? tn("group.eventsCreated", n) : t("group.eventSaved"));
-    dirty.current = false;
+    done.current = true;
     form.current?.closest("dialog")?.close("ok");
   };
-  return <Dialog name="event" id="dlg-event" className="event-dlg" labelledBy="event-h" dirty={() => dirty.current}>
+  return <Dialog name="event" id="dlg-event" className="event-dlg" labelledBy="event-h" dirty={dirty}>
     <form method="dialog" className="dlg" ref={form} onSubmit={e => {
       // O X do cabeçalho (value="cancel") também envia o formulário: esse fecha sem salvar.
-      if((e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") === "cancel"){ dirty.current = false; return; }
+      if((e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") === "cancel"){ done.current = true; return; }
       e.preventDefault(); if(!busy) save();
     }}>
       <DialogHead id="event-h" title={t(id ? "group.editEvent" : "group.newEvent")} closeLabel={t("common.close")}/>
       <div className="dlg-body">
-        <Seg className="block" id="event-kind" aria={t("group.kindLabel")} value={kind} onChange={touch(setKind)}
+        <Seg className="block" id="event-kind" aria={t("group.kindLabel")} value={kind} onChange={setKind}
           options={[{v: "service", label: t("group.kind.service")}, {v: "rehearsal", label: t("group.kind.rehearsal")}]}/>
-        <label className="field"><span>{t("group.eventTitle")}</span><input className="input" id="event-title" maxLength={80} placeholder={t(kind === "service" ? "group.titlePhService" : "group.titlePhRehearsal")} value={title} onChange={e => touch(setTitle)(e.target.value)}/></label>
+        <label className="field"><span>{t("group.eventTitle")}</span><input className="input" id="event-title" maxLength={80} placeholder={t(kind === "service" ? "group.titlePhService" : "group.titlePhRehearsal")} value={title} onChange={e => setTitle(e.target.value)}/></label>
         <div className="event-row">
-          <label className="field"><span>{t("group.date")}</span><DateInput id="event-date" aria={t("group.date")} value={date} onChange={v => touch(setDate)(v)}/></label>
-          <label className="field"><span>{t("group.time")}</span><input className="input" id="event-time" type="time" required value={time} onChange={e => touch(setTime)(e.target.value)}/></label>
-          <label className="field" title={t("group.callHint")}><span>{t("group.call")}</span><input className="input" id="event-call" type="time" value={call} onChange={e => touch(setCall)(e.target.value)}/></label>
+          <label className="field"><span>{t("group.date")}</span><DateInput id="event-date" aria={t("group.date")} value={date} onChange={v => setDate(v)}/></label>
+          <label className="field"><span>{t("group.time")}</span><input className="input" id="event-time" type="time" required value={time} onChange={e => setTime(e.target.value)}/></label>
+          <label className="field" title={t("group.callHint")}><span>{t("group.call")}</span><input className="input" id="event-call" type="time" value={call} onChange={e => setCall(e.target.value)}/></label>
         </div>
-        <label className="field"><span>{t("group.place")}</span><input className="input" id="event-place" maxLength={120} placeholder={t("group.placePh")} value={place} onChange={e => touch(setPlace)(e.target.value)}/></label>
-        <label className="field"><span>{t("group.setlist")}</span><Select id="event-setlist" value={setlist} onChange={touch(setSetlist)}
+        <label className="field"><span>{t("group.place")}</span><input className="input" id="event-place" maxLength={120} placeholder={t("group.placePh")} value={place} onChange={e => setPlace(e.target.value)}/></label>
+        <label className="field"><span>{t("group.setlist")}</span><Select id="event-setlist" value={setlist} onChange={setSetlist}
           options={[{value: "", label: t("group.noSetlist")}, ...g.setlists.map(s => ({value: s.id, label: s.name}))]}/></label>
         {!g.setlists.length && <p className="sub">{t("group.setlistHint")}</p>}
         {!id && <label className="field"><span>{t("group.repeat")}</span><Select id="event-repeat" value={weeks} onChange={setWeeks}
@@ -86,14 +89,14 @@ export function EventDialog({id, day}: DialogProps["event"]){
           const warns = r.email ? warningsFor(r.email, probe, {events: g.events, roster: g.roster, unavail: g.unavail}, eventTitle) : [];
           // Culto: quem está fora pela regra dos ensaios ganha um aviso (o líder ainda decide).
           const sd = r.email && kind === "service" ? rehearsalStanding(r.email, g.events, g.attendance) : null;
-          const upd = (p: Partial<{email: string; roles: string[]}>) => { dirty.current = true; setRoster(rs => rs.map((x, k) => k === i ? {...x, ...p} : x)); };
+          const upd = (p: Partial<{email: string; roles: string[]}>) => { setRoster(rs => rs.map((x, k) => k === i ? {...x, ...p} : x)); };
           // Quem já está em outra linha não aparece de novo na lista de pessoas.
           const opts = memberOpts.filter(o => !o.value || o.value === r.email || !roster.some(x => x.email === o.value));
           const chips = sortRoles(splitRoles([...rolesOf(r.email), ...r.roles].join(",")));
           return <li key={i}>
             <div className="roster-row">
               <Select value={r.email} aria={t("group.person")} onChange={v => upd({email: v, roles: r.email === v ? r.roles : firstRole(v)})} options={opts}/>
-              <button type="button" className="icon-btn sm danger" aria-label={t("group.removeFromRoster")} title={t("group.removeFromRoster")} onClick={() => { dirty.current = true; setRoster(rs => rs.filter((_, k) => k !== i)); }}><Icon name="x" sm/></button>
+              <button type="button" className="icon-btn sm danger" aria-label={t("group.removeFromRoster")} title={t("group.removeFromRoster")} onClick={() => { setRoster(rs => rs.filter((_, k) => k !== i)); }}><Icon name="x" sm/></button>
             </div>
             {r.email && <RoleChips roles={chips} value={r.roles} onChange={roles => upd({roles})}/>}
             {sd?.out && <p className="roster-warn declined" role="status"><Icon name="x" sm/>{tn("group.warnOut", sd.need)}</p>}
@@ -103,12 +106,12 @@ export function EventDialog({id, day}: DialogProps["event"]){
         })}</ul>
         <datalist id="event-roles">{roleOptions().map(r => <option key={r} value={r}/>)}</datalist>
         <div className="roster-add">
-          <button type="button" className="btn ghost sm" id="event-add-person" disabled={!free.length} onClick={() => { dirty.current = true; setRoster(rs => [...rs, {email: "", roles: []}]); }}><Icon name="plus" sm/> {t("group.addPerson")}</button>
-          {free.length > 0 && <button type="button" className="btn ghost sm" onClick={() => { dirty.current = true; setRoster(rs => [...rs.filter(r => r.email), ...free.map(m => ({email: m.email, roles: firstRole(m.email)}))]); }}><Icon name="users" sm/> {t("group.addEveryone")}</button>}
+          <button type="button" className="btn ghost sm" id="event-add-person" disabled={!free.length} onClick={() => { setRoster(rs => [...rs, {email: "", roles: []}]); }}><Icon name="plus" sm/> {t("group.addPerson")}</button>
+          {free.length > 0 && <button type="button" className="btn ghost sm" onClick={() => { setRoster(rs => [...rs.filter(r => r.email), ...free.map(m => ({email: m.email, roles: firstRole(m.email)}))]); }}><Icon name="users" sm/> {t("group.addEveryone")}</button>}
         </div>
-        <label className="field"><span>{t("group.notes")}</span><textarea className="input" id="event-notes" rows={3} maxLength={1000} placeholder={t("group.notesPh")} value={notes} onChange={e => touch(setNotes)(e.target.value)}/></label>
+        <label className="field"><span>{t("group.notes")}</span><textarea className="input" id="event-notes" rows={3} maxLength={1000} placeholder={t("group.notesPh")} value={notes} onChange={e => setNotes(e.target.value)}/></label>
       </div>
-      <div className="dlg-foot"><button type="button" className="btn ghost" onClick={() => { dirty.current = false; form.current?.closest("dialog")?.close("cancel"); }}>{t("common.cancel")}</button>
+      <div className="dlg-foot"><button type="button" className="btn ghost" onClick={() => { done.current = true; form.current?.closest("dialog")?.close("cancel"); }}>{t("common.cancel")}</button>
         <button className="btn primary" id="event-save" aria-busy={busy}>{busy && <Spin/>}{t("common.save")}</button></div>
     </form>
   </Dialog>;
