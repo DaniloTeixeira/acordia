@@ -6448,10 +6448,14 @@ dialog.ear-dlg {
   margin-left: auto;
 }
 /* Um abaixo do outro (celular), os botões que descem para a linha de baixo ficam à esquerda; na mesma linha, o
-   bloco do nome estica e eles continuam no canto direito. */
+   bloco do nome estica e eles continuam no canto direito. Entre a pessoa e a linha dos botões, um pouco mais de
+   espaço (12 px em vez de 8). */
 @container (max-width: 735.98px) {
   .people-actions {
     margin-left: 0;
+  }
+  .people-list li {
+    row-gap: 12px;
   }
 }
 .people-email {
