@@ -8,6 +8,7 @@ import { reduced, flashSaved, norm } from "../lib/util";
 import { toast, confirmDialog, openDialog, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { DateInput } from "../ui/DateInput";
+import { useFold, FoldButton } from "../ui/Fold";
 import { useGroups, loadGroups, setMemberRole, respond, outMark } from "../lib/groups";
 import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, fmtPhone } from "../lib/calendar";
 import { sortRoles } from "../lib/roles";
@@ -321,12 +322,14 @@ export function Profile(){
   const {profile, admin, email} = useAuth();
   const [name, setName] = useState(profile?.name || "");
   useEffect(() => setName(profile?.name || ""), [profile?.name]);
+  const fold = useFold("profile");
   return <section className="view" id="view-profile" data-view="profile" aria-labelledby="profile-h">
     <div className="view-head"><div><h1 id="profile-h">{t("profile.title")}</h1><p className="sub">{email}</p></div></div>
     <div className="profile-grid">
       {/* Cada card tem o topo (card-top) e o corpo (card-body): lado a lado, os topos dividem a mesma altura
           (subgrid no CSS) e os quadros de campos dos dois começam na mesma linha. */}
-      <div className="card profile-card">
+      <div className={"card profile-card" + fold.cls}>
+        <FoldButton folded={fold.folded} onToggle={fold.toggle} title={t("profile.title")}/>
         <div className="card-top"><div className="profile-who"><PhotoButton/><div><span className="people-name"><b>{profile?.name || email}</b>{admin && <span className="chip accent">{t("profile.admin")}</span>}</span><span className="sub">{email}</span>
           <PhotoActions/></div></div></div>
         <div className="card-body">
@@ -527,7 +530,7 @@ export function PersonFields({idp, name, onName, email, onEmail, phone, onPhone,
 }
 
 function People({me}: {me: string}){
-  const [rows, setRows] = useState<Allowed[] | null>(null);
+  const [rows, setRows] = useState<Allowed[] | null>(null), fold = useFold("people");
   const [email, setEmail] = useState(""), [name, setName] = useState(""), [birthday, setBirthday] = useState(""), [phone, setPhone] = useState(""), [asAdmin, setAsAdmin] = useState(false), [busy, setBusy] = useState(false);
   // pending: o e-mail da linha com uma mudança em andamento (os botões dela ficam desabilitados).
   const [pending, setPending] = useState("");
@@ -554,7 +557,8 @@ function People({me}: {me: string}){
     if(!await confirmDialog({title: t("people.removeTitle"), message: t("people.removeMsg", {email: r.email}), confirm: t("people.remove")})) return;
     onRow(r, async () => { if(await removeAllowed(r.email)){ toast(t("people.removed", {email: r.email})); await load(); loadGroups(); } else toast(t("profile.saveFail")); });
   };
-  return <div className="card people-card">
+  return <div className={"card people-card" + fold.cls}>
+    <FoldButton folded={fold.folded} onToggle={fold.toggle} title={t("people.title")}/>
     <div className="card-top"><h2>{t("people.title")}</h2><p className="sub">{t("people.sub")}</p></div>
     <div className="card-body">
     <form className="people-add-box" onSubmit={add} noValidate>

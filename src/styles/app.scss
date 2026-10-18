@@ -6152,6 +6152,35 @@ dialog.ear-dlg {
   gap: 16px;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
   align-items: stretch;
+  container-type: inline-size;
+}
+/* Recolher o card (ui/Fold.tsx): só com os cards um abaixo do outro, ou seja, quando a grade não cabe duas
+   colunas de 360 px (2 × 360 + 16 de gap = 736). Lado a lado, o botão não aparece e todos ficam abertos. */
+.fold-btn {
+  display: none;
+}
+@container (max-width: 735.98px) {
+  .foldable {
+    position: relative;
+  }
+  .foldable > .fold-btn {
+    display: inline-flex;
+    position: absolute;
+    top: 14px;
+    right: 14px;
+  }
+  /* O título e o topo não passam por baixo do botão. */
+  .foldable > h2,
+  .foldable > .card-top {
+    padding-right: 40px;
+  }
+  .folded > .card-body {
+    display: none;
+  }
+  /* Fechado, o card do Perfil (subgrid de 2 linhas) fica só com a linha do topo, sem o vão da segunda. */
+  .profile-grid > .card.foldable.folded {
+    grid-row: span 1;
+  }
 }
 /* Lado a lado, os quadros ficam com a mesma altura (o mais baixo estica até o mais alto). */
 .profile-card,
