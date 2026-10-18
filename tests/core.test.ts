@@ -31,6 +31,26 @@ test("parseSong em modo só letra tira as linhas de cifra e limpa a letra", () =
   assert.deepEqual(s.blocks.map(b => b.map(i => [i.kind, i.lyric])), [[["lyric", "obedecer a Ti"]], [["lyric", "Amo Te Dia"]]]);
 });
 
+test("parseSong marca o refrão pela marcação [Refrão] (e não pelo [Pré-refrão])", () => {
+  const s = C.parseSong("T\n[Primeira Parte]\nC\nverso um\n[Pré-Refrão]\nG\npré\n\n[Refrão 2x]\nC  G\nrefrão um\nrefrão dois\n\n[Coro]\nAm\noutro");
+  assert.deepEqual(s.blocks.map(b => b.map(it => it.lyric).join("/")), ["verso um", "pré", "refrão um/refrão dois", "outro"]);
+  assert.deepEqual(s.chorus, [false, false, true, true]);
+});
+
+test("parseSong sem marcação trata como refrão o bloco de letra que se repete", () => {
+  const s = C.parseSong("T\nC\nverso\nsegue\n\nG\nSanto, santo\né o Senhor\n\nAm\noutro verso\nfim\n\nG\nsanto santo\nÉ o Senhor!\n\nC\nverso");
+  assert.deepEqual(s.chorus, [false, true, false, true, false]);
+  // Com [Refrão] em algum lugar, vale só a marcação.
+  assert.deepEqual(C.parseSong("T\n[Refrão]\nC\nlá\n\nG\nverso a\nverso b\n\nG\nverso a\nverso b").chorus, [true, false, false]);
+});
+
+test("dedupeBlocks mantém o refrão junto dos blocos que ficam", () => {
+  const s = C.parseSong("T\nC\nverso\n\nG\nrefrão a\nrefrão b\n\nAm\nponte\n\nG\nrefrão a\nrefrão b");
+  const d = C.dedupeBlocks([s])[0];
+  assert.equal(d.blocks.length, 3);
+  assert.deepEqual(d.chorus, [false, true, false]);
+});
+
 test("dedupeBlocks remove blocos repetidos", () => {
   const s = C.parseSong("T\nC\nRefrão aqui\n\nG\nVerso\n\nC\nrefrão, aqui!");
   assert.equal(C.dedupeBlocks([s])[0].blocks.length, 2);
