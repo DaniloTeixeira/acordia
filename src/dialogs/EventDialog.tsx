@@ -3,7 +3,7 @@
 // outro evento no dia ou já recusou. Na escala, cada pessoa pode ter mais de uma função (tocar e cantar).
 import { useRef, useState } from "react";
 import { t, tn } from "../lib/i18n";
-import { useGroups, saveEvent, personName, type RosterInput } from "../lib/groups";
+import { useGroups, saveEvent, personName, outMark, type RosterInput } from "../lib/groups";
 import { warningsFor, rehearsalStanding, monthLoad, weekly, dayKey, rosterByPerson, type EventKind, type GEvent } from "../lib/calendar";
 import { toast, type DialogProps } from "../state";
 import { Dialog, DialogHead } from "../ui/Dialog";
@@ -88,7 +88,7 @@ export function EventDialog({id, day}: DialogProps["event"]){
         <ul className="roster-edit">{roster.map((r, i) => {
           const warns = r.email ? warningsFor(r.email, probe, {events: g.events, roster: g.roster, unavail: g.unavail}, eventTitle) : [];
           // Culto: quem está fora pela regra dos ensaios ganha um aviso (o líder ainda decide).
-          const sd = r.email && kind === "service" ? rehearsalStanding(r.email, g.events, g.attendance) : null;
+          const sd = r.email && kind === "service" ? rehearsalStanding(r.email, g.events, g.attendance, Date.now(), outMark(g.members.find(m => m.email === r.email))) : null;
           const upd = (p: Partial<{email: string; roles: string[]}>) => { setRoster(rs => rs.map((x, k) => k === i ? {...x, ...p} : x)); };
           // Quem já está em outra linha não aparece de novo na lista de pessoas.
           const opts = memberOpts.filter(o => !o.value || o.value === r.email || !roster.some(x => x.email === o.value));

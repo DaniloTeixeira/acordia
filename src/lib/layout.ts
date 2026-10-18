@@ -9,13 +9,18 @@ export const PW = 595.28, PH = 841.89, M = 17, GAP = 18, CW = 0.632;
 const TITLE_SIZE = 14, META_SIZE = 8.5, TRANS_SIZE = 9.5, TITLE_LH = TITLE_SIZE + 2, BOLD = 1.08;
 type RGB = [number, number, number];
 const INK: RGB = [17,17,17], CHORD: RGB = [176,32,26], ACCENT: RGB = [31,78,121], MUTED: RGB = [96,104,116], RULE: RGB = [205,205,205];
+// Chip do momento ao lado do título: Louvor em verde, Pós-pregação em laranja (cores claras, boas para imprimir).
+const CHIP_SIZE = 8, CHIP_PX = 5, CHIP_H = CHIP_SIZE + 6;
+const CHIP_LOUVOR: [RGB, RGB] = [[220,252,231], [21,110,52]], CHIP_POS: [RGB, RGB] = [[255,237,213], [176,72,8]];
 
 export type Font = "mono" | "sans" | "lex";
 export type Measure = (text: string, fs: number, font: Font) => number;
 export interface ChordHit { pos: number; len: number; chord: string }
 export interface TextOp { t: "text"; x: number; y: number; s: number; f: Font; b: boolean; c: RGB; txt: string; chords?: ChordHit[]; key?: string }
 export interface LineOp { t: "line"; x1: number; x2: number; y?: number; y1?: number; y2?: number; c: RGB; w: number; v?: boolean }
-export type Op = TextOp | LineOp;
+// Retângulo de cantos redondos preenchido (o fundo do chip de Louvor / Pós-pregação).
+export interface RectOp { t: "rect"; x: number; y: number; w: number; h: number; r: number; c: RGB }
+export type Op = TextOp | LineOp | RectOp;
 export type Page = Op[];
 
 export type SheetMode = "cifras" | "graus" | "letra";
@@ -100,7 +105,6 @@ export function transitionLine(s: SheetSong, next: SheetSong | undefined, mode: 
 }
 function metaLine(s: SheetSong, mode: SheetMode){
   const m = s.meta || {}, parts: string[] = [];
-  if(m.moment) parts.push(m.moment);
   if(mode !== "letra"){ if(m.bpm) parts.push(t("sheet.bpm", {n:m.bpm})); if(m.capo) parts.push(t("sheet.capo", {n:m.capo})); }
   if(m.singer) parts.push(t("sheet.voice", {name:m.singer}));
   if(mode !== "letra" && m.solo) parts.push(t("sheet.solo", {name:m.solo}));
@@ -134,16 +138,29 @@ export function layout(songs: SheetSong[], fs: number, k: number, opts: LayoutOp
     const groupLines = s.group && (si === 0 || songs[si-1].group !== s.group)
       ? wrapWords((t("sheet.medleyLabel", {name: s.gname || ""}) + (s.gpos ? " · " + s.gpos : "")).toUpperCase(), COLW/BOLD, META_SIZE, measure, "sans") : [];
     const keyTag = opts.showKey && !L && playKey(s) ? "  (" + playKey(s) + ")" : "";
-    const titleLines = wrapWords(s.title.toUpperCase() + keyTag, COLW/BOLD, TITLE_SIZE, measure, L ? "lex" : "sans");
+    // Momento como chip logo depois do nome: a última linha do título guarda espaço para ele.
+    const moment = s.meta?.moment || "", chipW = moment ? measure(moment, CHIP_SIZE, "sans") * BOLD + CHIP_PX * 2 : 0;
+    const titleFont: Font = L ? "lex" : "sans", titleText = s.title.toUpperCase() + keyTag;
+    let titleLines = wrapWords(titleText, COLW/BOLD, TITLE_SIZE, measure, titleFont);
+    const lastW = () => measure(titleLines[titleLines.length - 1], TITLE_SIZE, titleFont) * BOLD;
+    const chipOwnLine = !!moment && lastW() + 8 + chipW > COLW;
     const groupH = groupLines.length ? groupLines.length * (META_SIZE + 3) + 2 : 0;
-    const headH = groupH + TH + (titleLines.length - 1) * TITLE_LH + metaLines.length * (META_SIZE + 3);
+    const headH = groupH + TH + (titleLines.length - 1 + (chipOwnLine ? 1 : 0)) * TITLE_LH + metaLines.length * (META_SIZE + 3);
     const firstH = blocks.length ? blocks[0].reduce((h,it)=>h+itemH(it),0) : 0;
     if(si>0) y += SG;
     if(y + headH + firstH > bottom && y > M) nextCol();
     // Primeira música de um medley: rótulo com o nome do medley acima do título.
     groupLines.forEach(txt => { push({t:"text",x:x(),y:y+META_SIZE*0.8,s:META_SIZE,f:"sans",b:true,c:ACCENT,txt}); y += META_SIZE + 3; });
     if(groupLines.length) y += 2;
-    titleLines.forEach((txt, ti) => { if(ti){ y += TITLE_LH; } push({t:"text",x:x(),y:y+TITLE_SIZE*0.85,s:TITLE_SIZE,f:L?"lex":"sans",b:true,c:ACCENT,txt}); });
+    titleLines.forEach((txt, ti) => { if(ti){ y += TITLE_LH; } push({t:"text",x:x(),y:y+TITLE_SIZE*0.85,s:TITLE_SIZE,f:titleFont,b:true,c:ACCENT,txt}); });
+    if(moment){
+      // Na mesma linha do fim do título; se não couber, na linha de baixo, à esquerda.
+      if(chipOwnLine) y += TITLE_LH;
+      const [bg, fg] = moment === t("item.momentPos") ? CHIP_POS : CHIP_LOUVOR;
+      const cx = x() + (chipOwnLine ? 0 : lastW() + 8), cy = y + (TITLE_SIZE - CHIP_H) / 2 + 1;
+      push({t:"rect",x:cx,y:cy,w:chipW,h:CHIP_H,r:CHIP_H/2,c:bg});
+      push({t:"text",x:cx+CHIP_PX,y:cy+CHIP_H/2+CHIP_SIZE*0.35,s:CHIP_SIZE,f:"sans",b:true,c:fg,txt:moment});
+    }
     push({t:"line",x1:x(),x2:x()+COLW,y:y+TITLE_SIZE+3,c:ACCENT,w:0.9});
     y += TH;
     metaLines.forEach(txt=>{ push({t:"text",x:x(),y:y+META_SIZE*0.8,s:META_SIZE,f:"sans",b:false,c:MUTED,txt}); y += META_SIZE + 3; });
@@ -236,7 +253,9 @@ export function toSVG(ops: Page, label?: string){
   let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${PW} ${PH}" role="img" aria-label="${esc(label||"Folha")}">`;
   ops.forEach(o=>{
     const col = `rgb(${o.c.join(",")})`;
-    if(o.t==="text"){
+    if(o.t==="rect"){
+      s += `<rect x="${o.x.toFixed(2)}" y="${o.y.toFixed(2)}" width="${o.w.toFixed(2)}" height="${o.h.toFixed(2)}" rx="${o.r.toFixed(2)}" fill="${col}"/>`;
+    } else if(o.t==="text"){
       const fam = o.f==="mono" ? `AHMono,'Courier New',monospace` : o.f==="lex" ? `Lexend,AHSans,sans-serif` : `AHSans,Helvetica,Arial,sans-serif`;
       s += `<text x="${o.x}" y="${o.y}" font-family="${fam}" font-size="${o.s}" font-weight="${o.b?700:400}" fill="${col}" style="white-space:pre">${esc(o.txt)}</text>`;
       // Áreas clicáveis sobre cada acorde (a fonte é monoespaçada).

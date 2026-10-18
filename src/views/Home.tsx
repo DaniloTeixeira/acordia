@@ -3,7 +3,7 @@
 // lidera), os aniversariantes, a agenda do grupo e um atalho para o último repertório.
 import type { ReactNode } from "react";
 import { t, tn, locale } from "../lib/i18n";
-import { useAuth, initials } from "../lib/cloud";
+import { useAuth } from "../lib/cloud";
 import { dayKey, splitEvents, upcomingBirthdays, type GEvent } from "../lib/calendar";
 import { useGroups, chooseGroup, personName, amGroupAdmin } from "../lib/groups";
 import { useUI, useData, go } from "../state";
@@ -12,7 +12,7 @@ import { Icon } from "../ui/Icon";
 import { Select } from "../ui/Select";
 import { Spin } from "./Account";
 import { sortRoles } from "../lib/roles";
-import { useGroupRefresh, openGroup, eventTitle, StatusChip, fmt, timeOf, PersonAvatar } from "./Group";
+import { useGroupRefresh, openGroup, eventTitle, StatusChip, fmt, timeOf, PersonAvatar, GroupMark, GroupPhotoButton } from "./Group";
 
 // "hoje", "amanhã", "em 3 dias" (no idioma do app).
 function relDay(iso: string){
@@ -24,7 +24,7 @@ function relDay(iso: string){
 export function Home(){
   useData();
   useGroupRefresh();
-  const g = useGroups(), me = useAuth(s => s.email), profile = useAuth(s => s.profile);
+  const g = useGroups(), me = useAuth(s => s.email), profile = useAuth(s => s.profile), admin = useAuth(s => s.admin);
   const group = g.groups.find(x => x.id === g.gid);
   const {upcoming} = splitEvents(g.events);
   const mine = upcoming.filter(e => g.roster.some(r => r.event_id === e.id && r.email === me));
@@ -36,8 +36,9 @@ export function Home(){
       <p className="sub">{fmt({weekday: "long", day: "numeric", month: "long"}).format(new Date())}</p></div></div>
     {group ? <>
       <div className="home-group">
-        <button className="card home-group-card" id="home-group" onClick={() => openGroup("agenda")}>
-          <span className="home-group-mark" aria-hidden="true">{initials({name: group.name, email: ""})}</span>
+        <div className="card home-group-card">
+          {admin ? <GroupPhotoButton group={group}/> : <GroupMark group={group}/>}
+          <button className="home-group-open" id="home-group" onClick={() => openGroup("agenda")}>
           <span className="home-group-what"><b>{group.name}</b>
             <span className="home-group-stats">
               <span title={t("group.agenda")}><Icon name="calendar" sm/> {tn("home.events", upcoming.length)}</span>
@@ -45,7 +46,8 @@ export function Home(){
               <span title={t("group.membersTab")}><Icon name="users" sm/> {g.members.length}</span>
             </span></span>
           <Icon name="chev" sm className="chev-right"/>
-        </button>
+          </button>
+        </div>
         {g.groups.length > 1 && <Select id="home-group-pick" aria={t("group.pick")} value={g.gid} onChange={v => chooseGroup(v)} options={g.groups.map(x => ({value: x.id, label: x.name}))}/>}
       </div>
 

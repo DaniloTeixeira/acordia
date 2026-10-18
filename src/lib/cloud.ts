@@ -9,12 +9,12 @@ if(!URL || !KEY) throw new Error("Faltam VITE_SUPABASE_URL e VITE_SUPABASE_KEY (
 export const cloud: SupabaseClient = createClient(URL, KEY, {auth: {flowType: "pkce", persistSession: true, detectSessionInUrl: true}});
 
 export type AuthStatus = "loading" | "out" | "denied" | "in";
-// photo: foto da conta Google (vem com o login e é copiada para o perfil, para o grupo ver); vazia em
-// quem entra com e-mail e senha.
-export interface Profile { id: string; email: string; name: string; birthday?: string | null; photo?: string }
-// name/birthday: os informados por quem liberou o acesso; profileName/profileBirthday: os do perfil da
-// pessoa (vazios enquanto ela não entrou ou não preencheu). O perfil vale mais.
-export interface Allowed { email: string; is_admin: boolean; name: string; birthday: string | null; profileName: string; profileBirthday: string | null }
+// photo: a foto que a pessoa enviou pelo app (bucket avatars) ou, sem ela, a da conta Google (vem com o
+// login e é copiada para o perfil, para o grupo ver); vazia em quem entra com e-mail e senha e não enviou.
+export interface Profile { id: string; email: string; name: string; birthday?: string | null; photo?: string; phone?: string }
+// name/birthday/phone: os informados por quem liberou o acesso; profileName/profileBirthday/profilePhone: os do
+// perfil da pessoa (vazios enquanto ela não entrou ou não preencheu). O perfil vale mais.
+export interface Allowed { email: string; is_admin: boolean; name: string; birthday: string | null; phone: string; profileName: string; profileBirthday: string | null; profilePhone: string; profilePhoto: string }
 // error: o que deu errado na volta do Google ou de um link do e-mail, para a tela de entrar avisar.
 // recovery: voltou pelo link de "esqueci minha senha"; a tela pede a senha nova antes de abrir o app.
 // errorFrom: de onde veio a volta com erro ("google" ou um link do e-mail); errorDetail: o texto do Supabase.
@@ -41,14 +41,66 @@ async function refresh(){
   if(!error) cacheAccess(email, a);
   if(!a.allowed){ useAuth.setState({status: "denied", email, admin: false, profile: null}); return; }
   setPendingConfirm("");
-  let prof = await cloud.from("profiles").select("id,email,name,birthday").eq("id", session.user.id).maybeSingle();
-  // Banco ainda sem a coluna da data de nascimento (antes da migração subir): lê sem ela.
+  let prof = await cloud.from("profiles").select("id,email,name,birthday,phone,photo").eq("id", session.user.id).maybeSingle();
+  // Banco ainda sem as colunas do celular ou da data de nascimento (antes da migração subir): lê sem elas.
+  if(prof.error) prof = await cloud.from("profiles").select("id,email,name,birthday,photo").eq("id", session.user.id).maybeSingle();
   if(prof.error) prof = await cloud.from("profiles").select("id,email,name").eq("id", session.user.id).maybeSingle();
-  const meta = session.user.user_metadata || {}, pic = String(meta.avatar_url || meta.picture || "");
-  const photo = /^https:\/\//.test(pic) && pic.length <= 1000 ? pic : "";
-  // Guarda a foto no perfil para o grupo ver (se não mudou, o banco só regrava o mesmo valor).
-  if(photo) cloud.from("profiles").update({photo}).eq("id", session.user.id).then(() => {}, () => {});
-  useAuth.setState({status: "in", email, admin: a.admin, profile: {...((prof.data as Profile | null) || {id: session.user.id, email, name: ""}), photo}});
+  const saved = prof.data as Profile | null, google = googlePhoto(session.user.user_metadata);
+  // A foto enviada pelo app vale mais que a do Google; sem ela, guarda a do Google no perfil para o grupo ver.
+  const photo = ownPhoto(saved?.photo) ? saved!.photo! : google;
+  if(google && photo === google && saved?.photo !== google) cloud.from("profiles").update({photo}).eq("id", session.user.id).then(() => {}, () => {});
+  // Perfil sem nome: usa o da conta Google, para a lista de quem pode entrar e o grupo mostrarem quem é.
+  const gName = googleName(session.user.user_metadata), name = saved?.name || gName;
+  if(saved && !saved.name && gName) cloud.from("profiles").update({name}).eq("id", session.user.id).then(() => {}, () => {});
+  useAuth.setState({status: "in", email, admin: a.admin, profile: {...(saved || {id: session.user.id, email, name: ""}), name, photo}});
+}
+
+// ---------- foto do perfil ----------
+const AVATARS = "avatars";
+function googlePhoto(meta: Record<string, unknown> | undefined){
+  const pic = String(meta?.avatar_url || meta?.picture || "");
+  return /^https:\/\//.test(pic) && pic.length <= 1000 ? pic : "";
+}
+function googleName(meta: Record<string, unknown> | undefined){
+  return String(meta?.full_name || meta?.name || "").trim().slice(0, 80);
+}
+// Foto que a pessoa enviou pelo app (link público do bucket), e não a do Google.
+export const ownPhoto = (url?: string) => !!url && url.startsWith(cloud.storage.from(AVATARS).getPublicUrl("").data.publicUrl);
+// Apaga as fotos antigas da pasta, menos a que está em uso (keep).
+export async function cleanPhotos(folder: string, keep = ""){
+  const {data} = await cloud.storage.from(AVATARS).list(folder);
+  const old = (data || []).map(f => folder + "/" + f.name).filter(p => p !== keep);
+  if(old.length) await cloud.storage.from(AVATARS).remove(old);
+}
+// Envia a foto já recortada (quadrada, ver PhotoDialog) para a pasta e grava o link com save(). Cada envio
+// tem um nome novo, para o navegador e o grupo não ficarem com a antiga em cache. Deu certo: apaga as antigas.
+export async function uploadPhoto(folder: string, img: Blob, save: (url: string) => PromiseLike<{error: unknown}>){
+  const path = folder + "/" + Date.now() + ".jpg";
+  const up = await cloud.storage.from(AVATARS).upload(path, img, {contentType: "image/jpeg", cacheControl: "31536000", upsert: false});
+  if(up.error) return "";
+  const url = cloud.storage.from(AVATARS).getPublicUrl(path).data.publicUrl;
+  const {error} = await save(url);
+  if(error){ cloud.storage.from(AVATARS).remove([path]).then(() => {}, () => {}); return ""; }
+  cleanPhotos(folder, path).then(() => {}, () => {});
+  return url;
+}
+// Foto do perfil: a pasta é o id da conta.
+export async function savePhoto(img: Blob){
+  const p = useAuth.getState().profile; if(!p) return false;
+  const photo = await uploadPhoto(p.id, img, url => cloud.from("profiles").update({photo: url}).eq("id", p.id));
+  if(photo) useAuth.setState({profile: {...p, photo}});
+  return !!photo;
+}
+// Tira a foto enviada: volta a do Google (quem entra com Google) ou as iniciais.
+export async function removePhoto(){
+  const p = useAuth.getState().profile; if(!p) return false;
+  const {data: {session}} = await cloud.auth.getSession();
+  const photo = googlePhoto(session?.user.user_metadata);
+  const {error} = await cloud.from("profiles").update({photo}).eq("id", p.id);
+  if(error) return false;
+  useAuth.setState({profile: {...p, photo}});
+  cleanPhotos(p.id).then(() => {}, () => {});
+  return true;
 }
 
 export async function initAuth(){
@@ -154,30 +206,48 @@ export async function saveBirthday(v: string){
   return !error;
 }
 
+// Celular: só dígitos, espaço, +, parênteses e hífen, até 30 caracteres.
+export const cleanPhone = (v: string) => (v || "").replace(/[^\d+()\- ]/g, "").replace(/\s+/g, " ").trim().slice(0, 30);
+export async function savePhone(v: string){
+  const p = useAuth.getState().profile; if(!p) return false;
+  const ph = cleanPhone(v);
+  const {error} = await cloud.from("profiles").update({phone: ph}).eq("id", p.id);
+  if(!error) useAuth.setState({profile: {...p, phone: ph}});
+  return !error;
+}
+
 // ---------- lista de quem pode entrar (só admins) ----------
 export async function listAllowed(): Promise<Allowed[] | null> {
-  let [a, p]: {data: unknown; error: unknown}[] = await Promise.all([cloud.from("allowed_emails").select("email,is_admin,name,birthday").order("email"),
-    cloud.from("profiles").select("email,name,birthday")]);
-  // Banco ainda sem as colunas de nome e data (antes da migração subir): lê sem elas.
+  let [a, p]: {data: unknown; error: unknown}[] = await Promise.all([cloud.from("allowed_emails").select("email,is_admin,name,birthday,phone").order("email"),
+    cloud.from("profiles").select("email,name,birthday,phone,photo")]);
+  // Banco ainda sem as colunas do celular, do nome ou da data (antes da migração subir): lê sem elas.
+  if(p.error) p = await cloud.from("profiles").select("email,name,birthday,phone");
+  if(a.error) a = await cloud.from("allowed_emails").select("email,is_admin,name,birthday").order("email");
+  if(p.error) p = await cloud.from("profiles").select("email,name,birthday");
   if(a.error) a = await cloud.from("allowed_emails").select("email,is_admin").order("email");
   if(p.error) p = await cloud.from("profiles").select("email,name");
   if(a.error || p.error) return null;
-  const prof = new Map((p.data as {email: string; name: string; birthday: string | null}[]).map(x => [x.email, x]));
-  return (a.data as Partial<Allowed>[]).map(r => ({email: r.email!, is_admin: !!r.is_admin, name: r.name || "", birthday: r.birthday || null,
-    profileName: prof.get(r.email!)?.name || "", profileBirthday: prof.get(r.email!)?.birthday || null}));
+  const prof = new Map((p.data as {email: string; name: string; birthday: string | null; phone?: string; photo?: string}[]).map(x => [x.email, x]));
+  return (a.data as Partial<Allowed>[]).map(r => ({email: r.email!, is_admin: !!r.is_admin, name: r.name || "", birthday: r.birthday || null, phone: r.phone || "",
+    profileName: prof.get(r.email!)?.name || "", profileBirthday: prof.get(r.email!)?.birthday || null, profilePhone: prof.get(r.email!)?.phone || "",
+    profilePhoto: prof.get(r.email!)?.photo || ""}));
 }
-// Nome e data vazios não vão juntos, para não apagar o que já estava na lista.
-export async function addAllowed(email: string, admin: boolean, name = "", birthday = ""){
-  const n = name.trim().slice(0, 80), b = validBirthday(birthday);
-  const row = {email: email.trim().toLowerCase(), is_admin: admin};
-  let {error} = await cloud.from("allowed_emails").upsert({...row, ...(n ? {name: n} : {}), ...(b ? {birthday: b} : {})});
-  // Banco ainda sem as colunas de nome e data (antes da migração subir): inclui só o e-mail.
+// Nome, data e celular vazios não vão juntos, para não apagar o que já estava na lista.
+export async function addAllowed(email: string, admin: boolean, name = "", birthday = "", phone = ""){
+  const n = name.trim().slice(0, 80), b = validBirthday(birthday), ph = cleanPhone(phone);
+  const row = {email: email.trim().toLowerCase(), is_admin: admin}, info = {...(n ? {name: n} : {}), ...(b ? {birthday: b} : {})};
+  let {error} = await cloud.from("allowed_emails").upsert({...row, ...info, ...(ph ? {phone: ph} : {})});
+  // Banco ainda sem a coluna do celular, ou sem as de nome e data (antes da migração subir): inclui o que der.
+  if(error && ph) ({error} = await cloud.from("allowed_emails").upsert({...row, ...info}));
   if(error && (n || b)) ({error} = await cloud.from("allowed_emails").upsert(row));
   return !error;
 }
 // Nome e data de quem já está na lista. Chegam ao perfil só se a pessoa ainda não preencheu.
-export async function setAllowedInfo(email: string, name: string, birthday: string){
-  const {error} = await cloud.from("allowed_emails").update({name: name.trim().slice(0, 80), birthday: validBirthday(birthday) || null}).eq("email", email);
+export async function setAllowedInfo(email: string, name: string, birthday: string, phone?: string){
+  const info = {name: name.trim().slice(0, 80), birthday: validBirthday(birthday) || null};
+  let {error} = await cloud.from("allowed_emails").update(phone === undefined ? info : {...info, phone: cleanPhone(phone)}).eq("email", email);
+  // Banco ainda sem a coluna do celular: salva o resto.
+  if(error && phone !== undefined) ({error} = await cloud.from("allowed_emails").update(info).eq("email", email));
   return !error;
 }
 export async function setAllowedAdmin(email: string, admin: boolean){

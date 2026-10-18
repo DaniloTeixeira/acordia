@@ -60,10 +60,14 @@ export function monthLoad(day: string, events: GEvent[], roster: RosterRow[]): M
   return load;
 }
 
-// Frequência nos ensaios que já aconteceram: presente conta, falta não, justificada fica fora da conta.
+// A chamada fecha junto com o "Cheguei" (12 h depois do início). Antes disso, quem não marcou está
+// pendente; depois, conta como falta.
+export const callClosed = (e: Pick<GEvent, "starts_at">, now = Date.now()) => new Date(e.starts_at).getTime() + CHECKIN_MS <= now;
+
+// Frequência nos ensaios com a chamada fechada: presente conta, falta não, justificada fica fora da conta.
 // Sem marcação nenhuma num ensaio que teve chamada, conta como falta; ensaio sem chamada nenhuma não conta.
 export function attendanceRate(email: string, events: GEvent[], att: AttendanceRow[], now = Date.now()): {present: number; total: number} {
-  const past = events.filter(e => e.kind === "rehearsal" && new Date(e.starts_at).getTime() < now);
+  const past = events.filter(e => e.kind === "rehearsal" && callClosed(e, now));
   let present = 0, total = 0;
   past.forEach(e => {
     const rows = att.filter(a => a.event_id === e.id); if(!rows.length) return;
@@ -75,16 +79,22 @@ export function attendanceRate(email: string, events: GEvent[], att: AttendanceR
 }
 
 // Regra da equipe: quem falta a 8 ensaios seguidos fica fora dos cultos até participar de 4 ensaios.
-// Conta os ensaios que já aconteceram e tiveram chamada, em ordem; falta justificada não conta nem
+// Conta os ensaios com a chamada fechada e que tiveram chamada, em ordem; falta justificada não conta nem
 // para a sequência nem para a volta. Os 4 da volta não precisam ser seguidos.
 // streak: faltas seguidas até agora (fora dos cultos, zera); need: ensaios que faltam para voltar.
+// mark: o líder marcou a pessoa fora dos cultos (faltas de antes do app); a partir de "since" ela
+// está fora e precisa de "need" ensaios para voltar, como se tivesse chegado à 8ª falta ali.
 export const MISS_LIMIT = 8, COMEBACK = 4;
-export interface Standing { out: boolean; streak: number; need: number; called: number }
-export function rehearsalStanding(email: string, events: GEvent[], att: AttendanceRow[], now = Date.now()): Standing {
-  const past = events.filter(e => e.kind === "rehearsal" && new Date(e.starts_at).getTime() < now)
+export interface Standing { out: boolean; streak: number; need: number; called: number; marked?: boolean }
+export interface OutMark { since: string; need: number }
+export function rehearsalStanding(email: string, events: GEvent[], att: AttendanceRow[], now = Date.now(), mark?: OutMark | null): Standing {
+  const past = events.filter(e => e.kind === "rehearsal" && callClosed(e, now))
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
   const s: Standing = {out: false, streak: 0, need: 0, called: 0};
+  let pending = !!mark && mark.need > 0;
+  const applyMark = () => { pending = false; s.out = true; s.need = mark!.need; s.streak = 0; s.marked = true; };
   past.forEach(e => {
+    if(pending && e.starts_at >= mark!.since) applyMark();
     const rows = att.filter(a => a.event_id === e.id); if(!rows.length) return;
     const st = rows.find(a => a.email === email)?.status;
     if(st === "excused") return;
@@ -94,6 +104,9 @@ export function rehearsalStanding(email: string, events: GEvent[], att: Attendan
       s.streak = 0;
     }else if(!s.out && ++s.streak >= MISS_LIMIT){ s.out = true; s.need = COMEBACK; s.streak = 0; }
   });
+  if(pending) applyMark();
+  // Já cumpriu a volta: a marcação não vale mais.
+  if(!s.out) delete s.marked;
   return s;
 }
 
@@ -103,6 +116,36 @@ export function canCheckIn(e: Pick<GEvent, "kind" | "starts_at">, now = Date.now
   const at = new Date(e.starts_at).getTime();
   return e.kind === "rehearsal" && now >= at - CHECKIN_MS && now <= at + CHECKIN_MS;
 }
+
+// Quem ainda não tem marcação num ensaio que já começou e está com a chamada aberta: o líder avisa
+// no WhatsApp antes que vire falta.
+export function pendingCheckIn(e: Pick<GEvent, "id" | "kind" | "starts_at">, emails: string[], att: AttendanceRow[], now = Date.now()): string[] {
+  if(e.kind !== "rehearsal" || now < new Date(e.starts_at).getTime() || callClosed(e, now)) return [];
+  const marked = new Set(att.filter(a => a.event_id === e.id).map(a => a.email));
+  return emails.filter(m => !marked.has(m));
+}
+
+// Número para o link do WhatsApp (wa.me): só dígitos, com o código do país. Com "+" ou "00" na frente
+// já vem com o país; sem isso, 10 ou 11 dígitos (DDD + número, com ou sem o 0 da operadora) é do
+// Brasil e ganha o 55. Curto demais para ser celular: sem número.
+export function waNumber(phone: string){
+  const s = (phone || "").trim(), d = s.replace(/\D/g, "");
+  if(d.length < 8) return "";
+  if(s.startsWith("+")) return d;
+  if(d.startsWith("00")) return d.slice(2);
+  const local = d.replace(/^0(?=\d{10,11}$)/, "");
+  return local.length === 10 || local.length === 11 ? "55" + local : d;
+}
+// Celular para mostrar: número do Brasil (com ou sem +55/0) vira "(11) 91234-5678"; outros ficam como foram digitados.
+export function fmtPhone(phone: string){
+  const s = (phone || "").trim(), n = waNumber(s);
+  const br = n.startsWith("55") && (n.length === 12 || n.length === 13) ? n.slice(2) : "";
+  if(!br) return s;
+  return "(" + br.slice(0, 2) + ") " + br.slice(2, -4) + "-" + br.slice(-4);
+}
+// Abre o WhatsApp com a mensagem já escrita: para a pessoa, ou sem número para escolher a conversa
+// (o grupo da equipe, por exemplo).
+export const waLink = (text: string, phone = "") => "https://wa.me/" + waNumber(phone) + "?text=" + encodeURIComponent(text);
 
 // Evento no formato do calendário do celular (.ics), com lembrete um dia antes e duas horas antes.
 // end: sem hora de fim, vale 2 h depois do início.
