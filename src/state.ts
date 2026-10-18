@@ -97,7 +97,6 @@ export function go(v: string, {instant = false, push = true} = {}){
   // Já na página: só volta ao topo, sem transição (ela fazia a tela piscar).
   if(view === useUI.getState().view){ window.scrollTo({top: 0, behavior: "smooth"}); return null; }
   if(push) history.pushState(null, "", viewUrl(view));
-  store.setSetting("view", view);
   const run = () => { useUI.setState({view}); window.scrollTo({top: 0}); };
   if(instant){ run(); return null; }
   return animate(run, "slide");

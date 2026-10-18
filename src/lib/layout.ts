@@ -23,7 +23,8 @@ export interface SongMeta { bpm?: string; capo?: string; singer?: string; solo?:
 // Música pronta para a folha: blocos, tom, tom de execução e deslocamento.
 export interface SheetSong {
   title: string; blocks: Block[]; key: string; target: string; shift: number;
-  meta?: SongMeta; group?: string; gname?: string;
+  // gpos: "Pós-pregação" quando o medley inteiro é pós-pregação (a folha põe junto do nome do medley).
+  meta?: SongMeta; group?: string; gname?: string; gpos?: string;
 }
 export interface LayoutOpts extends Partial<Options> { mode: SheetMode; measure?: Measure }
 
@@ -69,6 +70,14 @@ export function chordLine(line: string, s: KeyedSong, mode: SheetMode, style?: D
   return {text: mode === "graus" || s.shift ? r.text : line, chords: r.tokens.map(k => ({pos:k.pos, len:k.len, chord: sound(k.src)}))};
 }
 function playKey(s: SheetSong){ return s.target || s.key; }
+// Dica de transição para a próxima música: só entre músicas emendadas do mesmo medley (entre avulsas há
+// pausa, fala ou pregação). Ex.: "Próxima em Am · acorde de passagem: E7".
+export function transitionLine(s: SheetSong, next: SheetSong | undefined, mode: SheetMode){
+  if(!next || mode === "letra" || !s.group || s.group !== next.group) return "";
+  const tr = transition(playKey(s), playKey(next));
+  if(!tr || tr.same) return "";
+  return t("sheet.next", {key: playKey(next)}) + (tr.passing ? "  ·  " + t("sheet.passing", {chord: mode === "graus" ? "V7" : tr.passing}) : "");
+}
 function metaLine(s: SheetSong, mode: SheetMode){
   const m = s.meta || {}, parts: string[] = [];
   if(m.moment) parts.push(m.moment);
@@ -103,7 +112,7 @@ export function layout(songs: SheetSong[], fs: number, k: number, opts: LayoutOp
     const metaLines = meta ? wrapWords(meta, COLW, META_SIZE, measure, "sans") : [];
     // Rótulo do medley e título quebram dentro da coluna (em negrito o texto é mais largo que a medida).
     const groupLines = s.group && (si === 0 || songs[si-1].group !== s.group)
-      ? wrapWords(t("sheet.medleyLabel", {name: s.gname || ""}).toUpperCase(), COLW/BOLD, META_SIZE, measure, "sans") : [];
+      ? wrapWords((t("sheet.medleyLabel", {name: s.gname || ""}) + (s.gpos ? " · " + s.gpos : "")).toUpperCase(), COLW/BOLD, META_SIZE, measure, "sans") : [];
     const keyTag = opts.showKey && !L && playKey(s) ? "  (" + playKey(s) + ")" : "";
     const titleLines = wrapWords(s.title.toUpperCase() + keyTag, COLW/BOLD, TITLE_SIZE, measure, L ? "lex" : "sans");
     const groupH = groupLines.length ? groupLines.length * (META_SIZE + 3) + 2 : 0;
@@ -134,11 +143,9 @@ export function layout(songs: SheetSong[], fs: number, k: number, opts: LayoutOp
         }
       });
     });
-    const next = songs[si+1];
-    if(opts.transitions && !L && next){
-      const tr = transition(playKey(s), playKey(next));
-      if(tr && !tr.same){
-        const txt = `→ ${playKey(next)}: ${tr.text}` + (tr.passing ? "  ·  " + t("sheet.passing", {chord: mode==="graus" ? "V7" : tr.passing}) : "");
+    const txt = opts.transitions ? transitionLine(s, songs[si+1], mode) : "";
+    if(txt){
+      {
         const h = TRANS_SIZE + 8;
         if(y + h > bottom) nextCol();
         y += 4;

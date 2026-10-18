@@ -987,6 +987,10 @@ select.input {
   color: var(--muted);
   font-weight: 600;
 }
+/* No item ativo, a contagem (ex.: músicas da Biblioteca) acompanha o nome: branco puro no escuro. */
+.nav-item[aria-current="page"] .count {
+  color: inherit;
+}
 .rail-foot {
   margin-top: auto;
   display: flex;
@@ -1216,6 +1220,11 @@ main {
   background: var(--accent-soft);
   color: var(--accent-soft-ink);
 }
+/* "No repertório atual" / "Aberto": o gradiente dos botões principais marca o que está em uso. */
+.chip.current {
+  background: var(--accent-grad);
+  color: var(--accent-ink);
+}
 .note {
   font-size: 0.88rem;
   padding: 10px 14px;
@@ -1252,6 +1261,23 @@ main {
   }
   .pane-sheet .sheet-toolbar {
     margin-bottom: 12px;
+    flex-shrink: 0;
+  }
+  /* Rolagem própria: a moldura cabe na tela (presa no topo), a barra fica fixa e só as folhas rolam,
+     sem levar a página e a lista da esquerda junto. */
+  .pane-sheet {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 40px);
+  }
+  .sheet-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    /* Folga para a sombra das folhas não ser cortada pela borda da rolagem. */
+    padding: 2px 4px 4px;
+    margin: -2px -4px -4px;
   }
 }
 .seg.pane-toggle {
@@ -1739,6 +1765,63 @@ textarea.song-text {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 12px;
+}
+/* Modo linhas: uma linha compacta por item (nome e chips à esquerda, ações à direita), sem o trecho. */
+.cards.rows {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+.cards.rows .lib-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "title foot" "meta foot";
+  align-items: center;
+  gap: 4px 16px;
+  padding: 10px 12px 10px 16px;
+  border-radius: var(--r-md);
+}
+.cards.rows .lib-card h3 {
+  grid-area: title;
+}
+.cards.rows .lib-card .meta {
+  grid-area: meta;
+}
+.cards.rows .lib-card .excerpt {
+  display: none;
+}
+.cards.rows .lib-card .foot {
+  grid-area: foot;
+  margin-top: 0;
+}
+.cards.rows .lib-card .foot .btn {
+  margin-right: 8px;
+}
+@media (max-width: 600px) {
+  .cards.rows .lib-card {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "title" "meta" "foot";
+  }
+  .cards.rows .lib-card .foot .btn {
+    margin-right: auto;
+  }
+}
+/* Abas à esquerda e cards | linhas à direita, na mesma linha e na mesma altura (as abas encolhem e rolam
+   se faltar espaço). */
+.lib-tabs-row {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 10px;
+}
+.lib-tabs-row > #lib-tabs {
+  min-width: 0;
+}
+.lib-tabs-row > .view-seg {
+  flex-shrink: 0;
+}
+.lib-tabs-row > .view-seg button {
+  display: inline-flex;
+  align-items: center;
 }
 .lib-card {
   cursor: pointer;
@@ -3120,7 +3203,6 @@ textarea.song-text {
 /* Ouvir a referência: botão de tocar no azul do app, preenchido para não parecer ação de remover. */
 /* Ouvir referência: discreto, ícone e texto em cinza com borda suave, à direita do título. */
 .stage-song-head .stage-ref {
-  justify-self: end;
   width: max-content;
   display: inline-flex;
   align-items: center;
@@ -3656,6 +3738,14 @@ a.btn {
 .moment-chip {
   background: var(--warn-soft);
   color: var(--warn);
+}
+/* No Palco o chip não herda o tamanho grande nem as maiúsculas do texto em volta. */
+.stage-song-head > .moment-chip,
+.stage-group > .moment-chip {
+  font-size: 0.78rem;
+  letter-spacing: normal;
+  text-transform: none;
+  align-self: center;
 }
 .medley-songs {
   padding: 0 14px 14px 52px;
@@ -4445,9 +4535,18 @@ dialog:not([open])::backdrop {
 .stage-song {
   margin-bottom: 2.2em;
 }
+/* Número e nome em branco puro (no claro, a letra escura); a cor fica nas divisórias e nos acordes. */
 .stage-song h2 {
   font-size: 1.25em;
-  color: var(--accent);
+  color: var(--nav-active-ink);
+}
+.stage-num {
+  margin-right: 0.45em;
+  color: var(--nav-active-ink);
+  font-variant-numeric: tabular-nums;
+}
+.stage-num::after {
+  content: ".";
 }
 .stage-song .meta {
   font-size: 0.62em;
@@ -4659,8 +4758,7 @@ dialog:not([open])::backdrop {
   background: var(--accent-soft);
   color: var(--accent-soft-ink);
 }
-.stage-now[aria-expanded="true"]:hover,
-.stage-list button.on:hover {
+.stage-now[aria-expanded="true"]:hover {
   filter: brightness(0.95);
 }
 .stage-pos {
@@ -4757,7 +4855,7 @@ dialog:not([open])::backdrop {
   gap: 12px;
   padding: 8px 12px;
   border: none;
-  border-radius: var(--r-md);
+  border-radius: var(--r-sm);
   background: transparent;
   color: var(--ink);
   font: inherit;
@@ -4768,12 +4866,12 @@ dialog:not([open])::backdrop {
 .stage-list button:hover {
   background: var(--surface-2);
 }
+/* Música atual: igual ao item ativo do menu lateral (mesmo fundo, letra e faixa em gradiente à esquerda). */
 .stage-list button.on {
-  background: var(--accent-soft);
-  color: var(--accent-soft-ink);
-  font-weight: 700;
+  background: var(--nav-active);
+  color: var(--nav-active-ink);
+  font-weight: 600;
 }
-/* Música atual: filete com o gradiente na lateral. */
 .stage-list button {
   position: relative;
 }
@@ -4785,12 +4883,7 @@ dialog:not([open])::backdrop {
   bottom: 10px;
   width: 3px;
   border-radius: var(--r-full);
-  background: linear-gradient(
-    180deg,
-    var(--grad-1),
-    var(--grad-2) 55%,
-    var(--grad-3)
-  );
+  background: linear-gradient(180deg, var(--grad-1), var(--grad-2) 55%, var(--grad-3));
 }
 .stage-nav:has(+ .stage-progress) {
   border-bottom: none;
@@ -4813,8 +4906,14 @@ dialog:not([open])::backdrop {
   font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
+/* Número e nome da música atual na mesma cor: branco puro no escuro (no claro, a letra escura do menu). */
 .stage-list button.on .n {
   color: inherit;
+}
+/* O tom da música atual também se destaca: mesma cor, em negrito. */
+.stage-list button.on small {
+  color: inherit;
+  font-weight: 700;
 }
 .stage-list .tt {
   flex: 1;
@@ -4990,6 +5089,12 @@ html[data-vt="move"]::view-transition-new(root) {
     background: none;
     border: 0;
     box-shadow: none;
+    max-height: none;
+  }
+  .sheet-scroll {
+    overflow: visible;
+    padding: 0;
+    margin: 0;
   }
   .pages {
     gap: 0;
@@ -5130,28 +5235,13 @@ dialog.ear-dlg {
 }
 /* Cabeçalho da música no palco: título à esquerda, tom à direita. */
 /* Título e "Ouvir referência" na mesma linha; o tom na linha de baixo, à esquerda. */
+/* Tudo numa linha, colado no nome: número e nome, Pós-pregação, "Ouvir referência" e o tom. Se não
+   couber (celular), o que sobra desce para a linha de baixo, alinhado à esquerda. */
 .stage-song-head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px 16px;
-}
-.stage-song-head .stage-key {
-  grid-column: 1/-1;
-  justify-self: start;
-}
-/* Em tela grande, tudo numa linha: nome da música, "Ouvir referência" e o tom. */
-@media (min-width: 600px) {
-  .stage-song-head {
-    grid-template-columns: minmax(0, max-content) auto auto;
-    justify-content: start;
-  }
-  .stage-song-head .stage-key {
-    grid-column: auto;
-  }
-  .stage-song-head .stage-ref {
-    justify-self: start;
-  }
+  gap: 10px 12px;
 }
 /* O título corta o espaço extra da fonte acima das maiúsculas e abaixo da linha de base, para ficar
    centralizado de verdade com os botões (sem suporte a text-box, a altura de linha menor já ajuda). */
@@ -5189,7 +5279,8 @@ dialog.ear-dlg {
   text-align: center;
   font-family: var(--font-display);
   font-size: 1rem;
-  color: var(--accent);
+  /* Mesmo branco puro do item ativo do menu (no claro, a letra escura). */
+  color: var(--nav-active-ink);
 }
 .stage-key-btn {
   min-width: 36px;
@@ -5212,12 +5303,17 @@ dialog.ear-dlg {
 .stage-key-btn:active {
   transform: scale(0.94);
 }
-/* Músicas seguidas do mesmo medley: linha suave entre elas, com menos espaço. */
+/* Entre músicas (e antes de um medley): divisória em gradiente. */
+.stage-sep {
+  padding-top: 1.6em;
+  border-top: 2px solid;
+  border-image: var(--range-grad) 1;
+}
+/* Músicas seguidas do mesmo medley: linha discreta entre elas, com menos espaço. */
 .stage-song.medley-next {
   margin-top: -1.2em;
   padding-top: 1em;
-  border-top: 1px solid;
-  border-image: var(--range-grad) 1;
+  border-top: 1px solid var(--line);
 }
 .ear-add {
   display: flex;

@@ -41,7 +41,7 @@ export function SheetPane({m, children}: {m: Medley; children: ReactNode}){
         <button className="btn primary sm" id="btn-pdf" data-tip-key="tip.pdf" disabled={busy} onClick={download}><Icon name="download" sm/>PDF</button>
       </div>
     </div>
-    {children}
+    <div className="sheet-scroll">{children}</div>
   </div>;
 }
 

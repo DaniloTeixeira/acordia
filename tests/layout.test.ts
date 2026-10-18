@@ -42,18 +42,21 @@ test("1 coluna não desenha divisória e 2 colunas desenham", () => {
 });
 
 test("tom no título, metadados e transição", () => {
-  const a = song("Primeira", 1, "G"), b = song("Segunda", 1, "A");
+  const a = Object.assign(song("Primeira", 1, "G"), {group: "g"}), b = Object.assign(song("Segunda", 1, "A"), {group: "g"});
   a.meta = {bpm: "72", capo: "2", singer: "Ana", notes: "Só violão"};
   const all = texts(layout([a, b], 12, 1, opts()).pages);
   assert.ok(all.includes("PRIMEIRA  (G)"));
   assert.ok(all.some(x => x.includes("72 bpm") && x.includes("Capo 2") && x.includes("Voz: Ana") && x.includes("Só violão")));
-  assert.ok(all.some(x => x.startsWith("→ A: sobe 1 tom") && x.includes("passagem E7")));
+  assert.ok(all.some(x => x.startsWith("Próxima em A") && x.includes("acorde de passagem: E7")));
   const graus = texts(layout([a, b], 12, 1, opts({mode: "graus"})).pages);
-  assert.ok(graus.some(x => x.includes("passagem V7")));
+  assert.ok(graus.some(x => x.includes("acorde de passagem: V7")));
   assert.ok(graus.includes("I        V"));
   const off = texts(layout([a, b], 12, 1, opts({showKey: false, transitions: false})).pages);
   assert.ok(off.includes("PRIMEIRA"));
-  assert.ok(!off.some(x => x.startsWith("→")));
+  assert.ok(!off.some(x => x.startsWith("Próxima")));
+  // Entre músicas avulsas (fora de medley) não há dica de transição.
+  const loose = texts(layout([song("Um", 1, "G"), song("Dois", 1, "A")], 12, 1, opts()).pages);
+  assert.ok(!loose.some(x => x.startsWith("Próxima")));
 });
 
 test("só letra remove cifras e não mostra tom", () => {

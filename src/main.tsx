@@ -6,7 +6,7 @@ import * as store from "./lib/store";
 import { setLang, detectLang, t, getLang } from "./lib/i18n";
 import { setTimbre, setCues } from "./lib/audio";
 import { clearMeasureCache } from "./lib/util";
-import { useUI, toast, VIEWS, viewFromHash, viewUrl, type View } from "./state";
+import { useUI, toast, viewFromHash, viewUrl, type View } from "./state";
 import { initMetro } from "./metro";
 import { initAuth, useAuth } from "./lib/cloud";
 import { initSync } from "./lib/sync";
@@ -15,9 +15,10 @@ import { App, applyTheme, applyVolume, theme } from "./App";
 
 await store.init(() => toast(t("lib.saveFail")));
 setLang((store.data.settings.lang as string) || detectLang());
-// A página do endereço vence a última aberta; o endereço passa a mostrar a página aberta.
-const saved = store.data.settings.view as View;
-const view = viewFromHash() ?? (VIEWS.includes(saved) ? saved : "home");
+// Abrir o app (de novo, pelo ícone ou pelo endereço) começa sempre no Início. Só recarregar (F5) ou
+// voltar/avançar no navegador mantém a página do endereço (o repertório fica sem hash).
+const nav = (performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined)?.type;
+const view: View = nav === "reload" || nav === "back_forward" ? viewFromHash() ?? (location.hash ? "home" : "medley") : "home";
 useUI.setState({lang: getLang(), view});
 history.replaceState(null, "", viewUrl(view));
 applyTheme(theme());
@@ -32,7 +33,6 @@ initAuth();
 // e não pela última página aberta antes de sair.
 const toHome = ({status}: {status: string}) => {
   if(status !== "out") return;
-  store.setSetting("view", "home");
   useUI.setState({view: "home", stageOpen: false});
   history.replaceState(null, "", viewUrl("home"));
 };

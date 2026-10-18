@@ -72,6 +72,7 @@ export function Library(){
   useData();
   const [tab, setTab] = useState<Tab>(() => { const t0 = nextTab; nextTab = "songs"; return t0; });
   const [sort, setSort] = useState("az");
+  const view = data.settings.libView === "rows" ? "rows" : "cards";
   const [query, setQuery] = useState("");
   const q = norm(useDeferredValue(query));
   const all = [...data.songs.values()].filter(s=>s.title), meds = [...data.medleys.values()];
@@ -83,14 +84,19 @@ export function Library(){
         <button className="btn primary" id="lib-new" onClick={() => openDialog("song", {song: null})}><Icon name="plus"/><span>{t("lib.new")}</span></button>
       </div>
     </div>
-    <Seg id="lib-tabs" aria={t("lib.tabsAria")} value={tab} onChange={setTab} options={[
-      {v: "songs", label: t("lib.songs", {n: all.length})}, {v: "setlists", label: t("lib.setlists", {n: setlists.length})}, {v: "medleys", label: t("lib.mblocks", {n: blocks.length})}]}/>
+    <div className="lib-tabs-row">
+      <Seg id="lib-tabs" aria={t("lib.tabsAria")} value={tab} onChange={setTab} options={[
+        {v: "songs", label: t("lib.songs", {n: all.length})}, {v: "setlists", label: t("lib.setlists", {n: setlists.length})}, {v: "medleys", label: t("lib.mblocks", {n: blocks.length})}]}/>
+      {/* Cards ou linhas: vale para as três abas e fica guardado no aparelho. */}
+      <Seg className="view-seg" id="lib-view" aria={t("lib.viewAria")} value={view} onChange={v => store.setSetting("libView", v)}
+        options={[{v: "cards", label: <Icon name="grid" sm/>, aria: t("lib.viewCards"), tip: "lib.viewCards"}, {v: "rows", label: <Icon name="list" sm/>, aria: t("lib.viewRows"), tip: "lib.viewRows"}]}/>
+    </div>
     <div className="lib-toolbar">
       <div className="search"><Icon name="search" sm/><input type="search" className="input" id="lib-q" placeholder={t("lib.search")} aria-label={t("lib.searchAria")} value={query} onChange={e => setQuery(e.target.value)}/></div>
       {tab === "songs" && <Select id="lib-sort" style={{width: "auto"}} aria={t("lib.sortAria")} value={sort} onChange={setSort}
         options={[{value: "az", label: t("lib.az")}, {value: "recent", label: t("lib.recent")}]}/>}
-    </div>
-    <ul className="cards" id="lib-list">
+</div>
+    <ul className={"cards" + (view === "rows" ? " rows" : "")} id="lib-list">
       {tab === "songs" ? <SongCards all={all} q={q} sort={sort}/> : <MedleyCards rows={tab === "medleys" ? blocks : setlists} blocks={tab === "medleys"} setlists={setlists} q={q}/>}
     </ul>
   </section>;
@@ -111,7 +117,7 @@ function SongCards({all, q, sort}: {all: Song[]; q: string; sort: string}){
         {s.bpm && <span className="chip">{t("sheet.bpm", {n:s.bpm})}</span>}{na > 0 && <span className="chip">{tn("arr.count", na)}</span>}{n > 0 && <span className="chip">{medleysN(n)}</span>}
         <span className="when">{ago(s.updatedAt)}</span></div>
       <p className="excerpt">{excerpt(s)}</p>
-      <div className="foot">{cur.has(s.id) ? <><span className="chip accent"><Icon name="check" sm/> {t("lib.inCurrent")}</span><span style={{marginRight: "auto"}}/></>
+      <div className="foot">{cur.has(s.id) ? <><span className="chip current"><Icon name="check" sm/> {t("lib.inCurrent")}</span><span style={{marginRight: "auto"}}/></>
         : <button className="btn soft sm" data-a="add" onClick={() => addSongToMedley(s.id)}><Icon name="plus" sm/> {t("common.add")}</button>}
         {s.ref && <button className="icon-btn sm ref-btn" data-a="ref" aria-label={t("ref.listen")} title={t("ref.listen")} onClick={() => openRef(s.ref!, s.title)}><Icon name="play" sm/></button>}
         <button className="icon-btn sm" data-a="edit" aria-label={t("common.edit")} title={t("common.edit")} onClick={() => openDialog("song", {song: s})}><Icon name="edit" sm/></button>
@@ -143,8 +149,9 @@ function MedleyCards({rows: source, blocks, setlists, q}: {rows: Medley[]; block
     const open = () => { openMedley(m.id); go("medley"); };
     return <li key={m.id} className="lib-card" style={{animationDelay: Math.min(idx, 12) * 25 + "ms"}} onClick={cardClick(open)}>
       <h3>{m.name}</h3>
-      <div className="meta">{m.id === curId && <span className="chip accent">{t("lib.open")}</span>}
-        {usedIn > 0 && <span className="chip accent owner-chip" data-tip={owners.map(x => x.name).join(" · ")}><Icon name="list" sm/><span>{owners[0].name}</span>{usedIn > 1 && <b>+{usedIn - 1}</b>}</span>}<span className="chip">{songsN(titles.length)}</span>
+      <div className="meta">{/* "Atual": o repertório aberto (onde o Adicionar põe as músicas). No medley não aparece: o chip do repertório já diz onde ele está. */}
+        {!blocks && m.id === curId && <span className="chip current">{t("lib.current")}</span>}
+        {usedIn > 0 && <span className="chip accent owner-chip" data-tip={owners.map(x => x.name).join(" · ")}><Icon name="list" sm/><span>{owners[0].name}</span>{usedIn > 1 && <b>+{usedIn - 1}</b>}</span>}<span className="chip accent">{songsN(titles.length)}</span>
         <span className="when">{ago(m.updatedAt)}</span></div>
       <p className="excerpt">{titles.join(" · ") || t("lib.emptyMedley")}</p>
       <div className="foot"><button className="btn soft sm" data-a="open" onClick={open}>{t("common.open")}</button>

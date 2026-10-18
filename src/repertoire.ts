@@ -87,7 +87,7 @@ export function sheetSongs(m: Medley): SheetEntry[] {
     // Pós-pregação: no medley vai junto do nome do medley (uma vez só); na música avulsa, na linha de detalhes.
     const pos = moment === "pos" ? t("item.momentPos") : "";
     return Object.assign(p, {key, target, shift: target ? keyShift(key, target) : 0, auto, itemId: it.id, ref: s.ref || "", group,
-      gname: group && pos && !isMedley(m) ? gname + " · " + pos : gname,
+      gname, gpos: group && !isMedley(m) ? pos : "",
       meta: {bpm: letra ? "" : s.bpm, capo, singer: it.singer, solo: it.solo || "", notes: e.notes, moment: group ? "" : pos}});
   }).filter((x): x is SheetEntry => !!x);
   if(m.options.dedupe) list = dedupeBlocks(list);

@@ -1,14 +1,14 @@
 // Modo palco: tela cheia para tocar, com letra grande, tela acesa, metrônomo, acordes clicáveis
 // e troca rápida entre as músicas do repertório.
 import { useEffect, useRef, useState } from "react";
-import { transition } from "../lib/core";
-import { lyricsOnly, chordLine, type SheetMode } from "../lib/layout";
+import { lyricsOnly, chordLine, transitionLine, type SheetMode } from "../lib/layout";
 import { t } from "../lib/i18n";
 import * as store from "../lib/store";
 import { reduced, focusPlatform } from "../lib/util";
 import { useData, useUI, openDialog } from "../state";
 import { current, sheetSongs, shiftItemKey } from "../repertoire";
 import { Icon } from "../ui/Icon";
+import { ThemeButton } from "../ui/theme";
 import { Seg } from "../ui/Seg";
 import { MetronomeUI } from "./Metronome";
 import { metro } from "../metro";
@@ -131,6 +131,8 @@ export function Stage(){
       <button className="icon-btn" id="stage-metro" aria-pressed={metroOpen} aria-label={t("metro.title")} title={t("metro.title")} onClick={toggleMetro}><Icon name="metro"/></button>
       <button className="icon-btn" id="stage-smaller" aria-label={t("stage.smaller")} onClick={() => font(-2)}><b>A−</b></button>
       <button className="icon-btn" id="stage-bigger" aria-label={t("stage.bigger")} onClick={() => font(2)}><b>A+</b></button>
+      {/* O Palco cobre o menu: o tema claro/escuro também fica aqui (palco escuro, ensaio de dia). */}
+      <ThemeButton/>
     </div>
     {src.length > 0 && <div className="stage-nav" id="stage-nav">
       <button className="icon-btn" id="stage-prev" aria-label={t("stage.prevSong")} title={t("stage.prevSong")} disabled={cur <= 0} onClick={() => goSong(cur - 1)}><Icon name="back"/></button>
@@ -170,14 +172,16 @@ export function Stage(){
         {!src.length && <div className="empty-state"><strong>{t("stage.empty")}</strong><span>{t("stage.emptyText")}</span></div>}
         {src.map((s, si) => {
           const key = s.target || s.key;
-          const meta = [s.meta.moment, !L && s.meta.bpm && t("sheet.bpm", {n:s.meta.bpm}), !L && s.meta.capo && t("sheet.capo", {n:s.meta.capo}), s.meta.singer && t("sheet.voice", {name:s.meta.singer}), !L && s.meta.solo && t("sheet.solo", {name:s.meta.solo}), s.meta.notes].filter(Boolean).join(" · ");
-          const next = src[si+1], tr = m.options.transitions && !L && next ? transition(key, next.target || next.key) : null;
+          const meta = [!L && s.meta.bpm && t("sheet.bpm", {n:s.meta.bpm}), !L && s.meta.capo && t("sheet.capo", {n:s.meta.capo}), s.meta.singer && t("sheet.voice", {name:s.meta.singer}), !L && s.meta.solo && t("sheet.solo", {name:s.meta.solo}), s.meta.notes].filter(Boolean).join(" · ");
+          const trText = m.options.transitions ? transitionLine(s, src[si+1], mode) : "";
           const group = s.group && (si === 0 || src[si-1].group !== s.group);
           return <div key={si} style={{display: "contents"}}>
-            {group && <p className="stage-group"><Icon name="link" sm/> {t("sheet.medleyLabel", {name: s.gname || ""})}</p>}
-            {/* Entre as músicas de um mesmo medley, uma linha suave. */}
-            <section className={"stage-song" + (si === src.length - 1 ? " last" : "") + (s.group && !group ? " medley-next" : "")}>
-              <div className="stage-song-head"><h2>{s.title}</h2>
+            {/* Divisórias: em gradiente entre músicas (e antes de um medley); discreta entre as músicas de um mesmo medley. */}
+            {group && <p className={"stage-group" + (si ? " stage-sep" : "")}><Icon name="link" sm/> {t("sheet.medleyLabel", {name: s.gname || ""})}{s.gpos && <span className="chip moment-chip">{s.gpos}</span>}</p>}
+            <section className={"stage-song" + (si === src.length - 1 ? " last" : "") + (s.group && !group ? " medley-next" : si && !group ? " stage-sep" : "")}>
+              {/* Número da música antes do título: o mesmo da lista de músicas do Palco. */}
+              <div className="stage-song-head"><h2><span className="stage-num">{si + 1}</span>{s.title}</h2>
+                {s.meta.moment && <span className="chip moment-chip">{s.meta.moment}</span>}
                 {s.ref && <button className="stage-ref" onClick={e => { e.stopPropagation(); openRef(s.ref, s.title); }}><Icon name="play" sm/> {t("ref.listen")}</button>}
                 {/* Tom alinhado à esquerda: legenda e o tom atual entre baixar e subir meio tom. */}
                 {key && !L && <div className="stage-key" role="group" aria-label={t("stage.key")}>
@@ -192,7 +196,7 @@ export function Stage(){
                 {it.lyric !== undefined && <p className="stage-line">{it.lyric}</p>}
               </div>)}</div>)}
             </section>
-            {tr && !tr.same && <p className="stage-trans">→ {next.target || next.key}: {tr.text}{tr.passing ? " · " + t("sheet.passing", {chord: mode === "graus" ? "V7" : tr.passing}) : ""}</p>}
+            {trText && <p className="stage-trans">{trText}</p>}
           </div>;
         })}
       </div>
