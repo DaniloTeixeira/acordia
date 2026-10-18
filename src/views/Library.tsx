@@ -69,6 +69,8 @@ function withCopiesAfter(rows: Medley[]){
   rows.forEach(m => { const b = copyOf(m.name).base; groups.set(b, [...(groups.get(b) || []), m]); });
   return [...groups.values()].flatMap(g => g.sort((a, b) => copyOf(a.name).n - copyOf(b.name).n));
 }
+// Por data de alteração: "recent" do mais novo para o mais antigo, "old" ao contrário.
+const byDate = (sort: string) => (a: {updatedAt?: number}, b: {updatedAt?: number}) => ((b.updatedAt || 0) - (a.updatedAt || 0)) * (sort === "old" ? -1 : 1);
 export function copyName(name: string){
   const base = copyOf(name).base || name;
   const names = new Set([...data.medleys.values()].map(x => x.name));
@@ -85,7 +87,9 @@ export function Library(){
   useData();
   const [tab, setTabState] = useState<Tab>(nextTab);
   const setTab = (v: Tab) => { nextTab = v; setTabState(v); };
-  const [sort, setSort] = useState("az");
+  // Ordem por aba: músicas e medleys de A a Z (procura pelo nome), repertórios pelos mais recentes (o próximo culto).
+  const [sorts, setSorts] = useState<Record<Tab, string>>({songs: "az", setlists: "recent", medleys: "az"});
+  const sort = sorts[tab], setSort = (v: string) => setSorts(x => ({...x, [tab]: v}));
   const view = data.settings.libView === "rows" ? "rows" : "cards";
   const [query, setQuery] = useState("");
   const q = norm(useDeferredValue(query));
@@ -107,11 +111,11 @@ export function Library(){
     </div>
     <div className="lib-toolbar">
       <div className="search"><Icon name="search" sm/><input type="search" className="input" id="lib-q" placeholder={t("lib.search")} aria-label={t("lib.searchAria")} value={query} onChange={e => setQuery(e.target.value)}/></div>
-      {tab === "songs" && <Select id="lib-sort" style={{width: "auto"}} aria={t("lib.sortAria")} value={sort} onChange={setSort}
-        options={[{value: "az", label: t("lib.az")}, {value: "recent", label: t("lib.recent")}]}/>}
+      <Select id="lib-sort" style={{width: "auto"}} aria={t("lib.sortAria")} value={sort} onChange={setSort}
+        options={[{value: "az", label: t("lib.az")}, {value: "recent", label: t("lib.recent")}, {value: "old", label: t("lib.old")}]}/>
 </div>
     <ul className={"cards" + (view === "rows" ? " rows" : "")} id="lib-list">
-      {tab === "songs" ? <SongCards all={all} q={q} sort={sort}/> : <MedleyCards rows={tab === "medleys" ? blocks : setlists} blocks={tab === "medleys"} setlists={setlists} q={q}/>}
+      {tab === "songs" ? <SongCards all={all} q={q} sort={sort}/> : <MedleyCards rows={tab === "medleys" ? blocks : setlists} blocks={tab === "medleys"} setlists={setlists} q={q} sort={sort}/>}
     </ul>
   </section>;
 }
@@ -119,7 +123,7 @@ export function Library(){
 function SongCards({all, q, sort}: {all: Song[]; q: string; sort: string}){
   const u = usage(), cur = new Set((peekCurrent()?.items || []).map(i => i.type === "medley" ? "" : i.songId));
   const rows = all.filter(s => !q || norm(s.title).includes(q) || norm(s.text).includes(q))
-    .sort(sort === "recent" ? (a,b)=>(b.updatedAt||0)-(a.updatedAt||0) : (a,b)=>a.title.localeCompare(b.title, locale()));
+    .sort(sort === "az" ? (a,b)=>a.title.localeCompare(b.title, locale()) : byDate(sort));
   if(!rows.length) return all.length ? <EmptyCard icon="search" title={t("lib.noResults")} text={t("lib.noResultsText")}/> : <EmptyCard icon="library" title={t("lib.empty")} text={t("lib.emptyText")}/>;
   return <>{rows.map((s, idx) => {
     const n = u.get(s.id) || 0, na = (s.arrangements || []).length;
@@ -140,10 +144,10 @@ function SongCards({all, q, sort}: {all: Song[]; q: string; sort: string}){
   })}</>;
 }
 
-function MedleyCards({rows: source, blocks, setlists, q}: {rows: Medley[]; blocks: boolean; setlists: Medley[]; q: string}){
+function MedleyCards({rows: source, blocks, setlists, q, sort}: {rows: Medley[]; blocks: boolean; setlists: Medley[]; q: string; sort: string}){
   const curId = peekCurrent()?.id;
   const titlesOf = (m: Medley) => songItems(m).map(x => (data.songs.get(x.it.songId) || {title: ""}).title).filter(Boolean);
-  const rows = withCopiesAfter(source.filter(m => !q || norm(m.name).includes(q) || titlesOf(m).some(x => norm(x).includes(q))).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)));
+  const rows = withCopiesAfter(source.filter(m => !q || norm(m.name).includes(q) || titlesOf(m).some(x => norm(x).includes(q))).sort(sort === "az" ? (a,b)=>a.name.localeCompare(b.name, locale()) : byDate(sort)));
   if(!rows.length) return blocks ? <EmptyCard icon="link" title={t("lib.noMedleyBlocks")} text={t("lib.noMedleyBlocksText")}/> : <EmptyCard icon="list" title={t("lib.noMedleys")}/>;
   return <>{rows.map((m, idx) => {
     const titles = titlesOf(m);
