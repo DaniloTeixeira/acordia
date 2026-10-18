@@ -4626,6 +4626,7 @@ dialog.unsaved .dlg-foot::before {
   flex: 1;
   overflow-y: auto;
   scroll-behavior: smooth;
+  overflow-x: hidden;
   padding: 24px max(66px, env(safe-area-inset-left)) 40vh;
   outline: none;
 }
@@ -4670,7 +4671,14 @@ dialog.unsaved .dlg-foot::before {
   margin-bottom: 1.4em;
 }
 .stage-block {
-  overflow-x: auto;
+  min-width: 0;
+}
+/* Nada rola para o lado: a cifra quebra na largura (wrapCols) e título/observações quebram as palavras. */
+.stage-song h2,
+.stage-song .meta,
+.stage-group,
+.stage-trans {
+  overflow-wrap: anywhere;
 }
 .stage-line {
   font-family: var(--font-mono);
@@ -4686,7 +4694,7 @@ dialog.unsaved .dlg-foot::before {
 .stage-line:not(.ch) {
   margin-bottom: 0.5em;
 }
-.stage-block > :last-child > .stage-line:last-child {
+.stage-block > :last-child > :last-child > .stage-line:last-child {
   margin-bottom: 0;
 }
 .stage.letra .stage-line {
@@ -5049,9 +5057,6 @@ dialog.unsaved .dlg-foot::before {
     animation: view-in var(--t) var(--ease-out);
   }
 }
-.stage-song.last {
-  min-height: 70dvh;
-}
 .stage-focus {
   padding: 12px max(16px, env(safe-area-inset-left));
   border-bottom: 1px solid var(--line);
@@ -5412,13 +5417,7 @@ dialog.ear-dlg {
 .stage-key-btn:active {
   transform: scale(0.94);
 }
-/* Entre músicas (e antes de um medley): divisória em gradiente. */
-.stage-sep {
-  padding-top: 1.6em;
-  border-top: 2px solid;
-  border-image: var(--range-grad) 1;
-}
-/* Músicas seguidas do mesmo medley: linha discreta entre elas, com menos espaço. */
+/* Músicas seguidas do mesmo medley (na mesma tela): linha discreta entre elas, com menos espaço. */
 .stage-song.medley-next {
   margin-top: -1.2em;
   padding-top: 1em;

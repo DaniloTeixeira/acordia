@@ -48,6 +48,26 @@ function wrapItem(it: LineItem, maxCols: number): LineItem[] {
   if(!b.chord!.trim()) { b.kind = "lyric"; delete b.chord; }
   return [a, ...wrapItem(b, maxCols)];
 }
+// Palco: quebra a cifra (linha de acordes + letra) em pedaços de até `max` colunas, cortando no começo
+// de uma palavra onde as duas linhas têm espaço antes; o acorde segue em cima da sua sílaba.
+// Devolve [início, fim) de cada pedaço. Sem lugar bom, corta a palavra (sem partir um acorde, se der):
+// nunca sobra linha mais larga que a tela.
+export function wrapCols(chord: string, lyric: string, max: number): [number, number][] {
+  const len = Math.max(chord.length, lyric.length), out: [number, number][] = [];
+  const gap = (s: string, c: number) => c >= s.length || s[c-1] === " ";
+  const word = (s: string, c: number) => c < s.length && s[c] !== " ";
+  max = Math.max(1, Math.floor(max));
+  let at = 0;
+  while(len - at > max){
+    let p = -1;
+    for(let c = at + max; c > at + 4; c--) if(gap(chord, c) && gap(lyric, c) && (word(chord, c) || word(lyric, c))){ p = c; break; }
+    if(p < 0) for(let c = at + max; c > at; c--) if(gap(chord, c)){ p = c; break; }
+    if(p < 0) p = at + max;
+    out.push([at, p]); at = p;
+  }
+  out.push([at, len]);
+  return out;
+}
 function wrapWords(text: string, max: number, fs: number, measure: Measure, font: Font){
   const words = text.split(" "), out: string[] = []; let cur = "";
   words.forEach(w=>{ const s = cur ? cur + " " + w : w; if(measure(s, fs, font) <= max || !cur) cur = s; else { out.push(cur); cur = w; } });

@@ -1,7 +1,7 @@
 // Modo palco: tela cheia para tocar, com letra grande, tela acesa, metrônomo, acordes clicáveis
 // e troca rápida entre as músicas do repertório.
-import { useEffect, useRef, useState } from "react";
-import { lyricsOnly, chordLine, transitionLine, type SheetMode } from "../lib/layout";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { lyricsOnly, chordLine, transitionLine, wrapCols, type SheetMode } from "../lib/layout";
 import { t } from "../lib/i18n";
 import * as store from "../lib/store";
 import { reduced, focusPlatform } from "../lib/util";
@@ -20,6 +20,16 @@ const stageFsDefault = () => innerWidth < 500 ? 17 : innerWidth < 700 ? 19 : 24;
 const wide = () => matchMedia("(min-width:1000px)").matches;
 const FOCUS_STEPS = {ios: ["stage.focus.ios1", "stage.focus.ios2", "stage.focus.ios3", "stage.focus.ios4"],
   android: ["stage.focus.android1", "stage.focus.android2", "stage.focus.android3"]};
+
+// Largura de um caractere da fonte monoespaçada da cifra, em frações do tamanho da letra.
+let monoCache = "", monoW = 0.62;
+function monoWidth(el: HTMLElement | null){
+  const fam = el ? getComputedStyle(el).getPropertyValue("--font-mono").trim() : "";
+  if(!fam || fam === monoCache) return monoW;
+  const ctx = document.createElement("canvas").getContext("2d");
+  if(ctx){ ctx.font = "700 100px " + fam; monoW = ctx.measureText("M".repeat(10)).width / 1000; if(document.fonts?.status === "loaded") monoCache = fam; }
+  return monoW;
+}
 
 function ChordSpans({cl, songKey}: {cl: {text: string; chords: {pos: number; len: number; chord: string}[]}; songKey: string}){
   const out: React.ReactNode[] = []; let at = 0;
@@ -42,34 +52,61 @@ export function Stage(){
   const [listOpen, setListOpen] = useState(() => wide() && store.data.settings.stageList !== false);
   const [focusOpen, setFocusOpen] = useState(false);
   const [isFs, setIsFs] = useState(!!document.fullscreenElement);
-  const scroll = useRef<HTMLDivElement>(null);
+  const scroll = useRef<HTMLDivElement>(null), content = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
   const m = current(), L = mode === "letra", list = sheetSongs(m), src = L ? lyricsOnly(list) : list;
   const close = () => useUI.setState({stageOpen: false});
-  const songEls = () => [...(scroll.current?.querySelectorAll<HTMLElement>(".stage-song") || [])];
-  const topOf = (el: HTMLElement) => { const sc = scroll.current!; return el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop; };
-  // Música em cena: a última cujo título já passou do primeiro quarto da tela.
-  const jumping = useRef(0);
-  const track = () => {
-    const sc = scroll.current; if(!sc || Date.now() < jumping.current) return;
-    const line = sc.scrollTop + sc.clientHeight * 0.25;
-    let i = 0; songEls().forEach((el, k) => { if(topOf(el) - 16 <= line) i = k; });
-    setCur(i);
+  // Uma tela por vez: uma música avulsa, ou o medley inteiro (as músicas emendadas ficam juntas).
+  const screen = (i: number): [number, number] => {
+    let a = i, z = i; const g = src[i]?.group;
+    if(g){ while(a > 0 && src[a-1].group === g) a--; while(z < src.length - 1 && src[z+1].group === g) z++; }
+    return [a, z];
   };
+  const [first, last] = screen(Math.min(cur, Math.max(0, src.length - 1)));
+  // Ao trocar de tela, começa do topo; escolhida na lista uma música do meio do medley, rola até ela.
+  const pendingTop = useRef<number | null>(null);
   const goSong = (i: number) => {
-    const els = songEls(), el = els[Math.max(0, Math.min(els.length - 1, i))]; if(!el) return;
-    // Durante a rolagem até lá, o título não passa pelas músicas do meio.
-    jumping.current = Date.now() + 700;
-    scroll.current!.scrollTo({top: topOf(el) - 12, behavior: reduced() ? "auto" : "smooth"});
-    setCur(els.indexOf(el));
+    const n = Math.max(0, Math.min(src.length - 1, i));
+    pendingTop.current = n; setCur(n);
     if(!wide()) setListOpen(false);
   };
-  const curRef = useRef(0); curRef.current = cur;
+  // As setas (e o toque no fim/começo) passam para a tela seguinte/anterior.
+  const step = (dir: number) => goSong(dir > 0 ? last + 1 : screen(first - 1)[0]);
+  const stepRef = useRef(step); stepRef.current = step;
+  useLayoutEffect(() => {
+    const n = pendingTop.current, sc = scroll.current; if(n === null || !sc) return;
+    pendingTop.current = null;
+    const el = sc.querySelector<HTMLElement>(`.stage-song[data-i="${n}"]`);
+    sc.scrollTop = n === first || !el ? 0 : el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 12;
+  });
+  // No medley, a música em cena acompanha a rolagem: a última cujo título passou do primeiro quarto da tela.
+  const track = () => {
+    const sc = scroll.current; if(!sc || last === first) return;
+    const line = sc.getBoundingClientRect().top + sc.clientHeight * 0.25;
+    let i = first; sc.querySelectorAll<HTMLElement>(".stage-song").forEach(el => { if(el.getBoundingClientRect().top - 16 <= line) i = +el.dataset.i!; });
+    if(i !== cur) setCur(i);
+  };
+  // Se o repertório diminuir, a música em cena continua valendo.
+  useEffect(() => { if(cur > 0 && cur >= src.length) setCur(Math.max(0, src.length - 1)); }, [src.length]);
+  // A cifra quebra na largura da tela (sem rolagem para o lado): mede quantas colunas cabem.
+  useEffect(() => {
+    const el = content.current; if(!el) return;
+    const ro = new ResizeObserver(() => setWidth(el.clientWidth)); ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const cols = L || !width ? Infinity : Math.max(12, Math.floor(width / (fs * monoWidth(scroll.current))));
   const toggleList = () => setListOpen(v => { if(wide()) store.setSetting("stageList", !v); return !v; });
   const toggleFs = () => {
     if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
     else document.documentElement.requestFullscreen?.().catch(()=>{});
   };
-  const page = (dir: number) => { const sc = scroll.current!; sc.scrollBy({top: dir * sc.clientHeight * 0.82, behavior: reduced() ? "auto" : "smooth"}); };
+  // Já no fim da música, avançar passa para a próxima; já no começo, voltar passa para a anterior.
+  const page = (dir: number) => {
+    const sc = scroll.current!;
+    if(dir > 0 && sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 4) return stepRef.current(1);
+    if(dir < 0 && sc.scrollTop <= 4) return stepRef.current(-1);
+    sc.scrollBy({top: dir * sc.clientHeight * 0.82, behavior: reduced() ? "auto" : "smooth"});
+  };
   const font = (d: number) => setFs(v => { const n = Math.max(12, Math.min(48, v + d)); store.setSetting("stageFs", n); return n; });
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -90,8 +127,8 @@ export function Stage(){
       else if(e.key === "Escape"){ if(document.querySelector("dialog[open]")) return; e.preventDefault(); close(); }
       else if(e.key === "+" || e.key === "=") font(2);
       else if(e.key === "-") font(-2);
-      else if(e.key === "n" || e.key === "N"){ e.preventDefault(); goSong(curRef.current + 1); }
-      else if(e.key === "p" || e.key === "P"){ e.preventDefault(); goSong(curRef.current - 1); }
+      else if(e.key === "n" || e.key === "N"){ e.preventDefault(); stepRef.current(1); }
+      else if(e.key === "p" || e.key === "P"){ e.preventDefault(); stepRef.current(-1); }
     };
     document.addEventListener("keydown", key);
     return () => {
@@ -104,8 +141,6 @@ export function Stage(){
       document.querySelector<HTMLElement>("#btn-stage")?.focus();
     };
   }, []);
-  // Ao trocar cifra/letra ou o tamanho da letra, as posições mudam.
-  useEffect(track, [mode, fs, src.length]);
   const toggleMetro = () => {
     const open = !metroOpen; setMetroOpen(open);
     if(!open){ metro.stop(); return; }
@@ -135,7 +170,7 @@ export function Stage(){
       <ThemeButton/>
     </div>
     {src.length > 0 && <div className="stage-nav" id="stage-nav">
-      <button className="icon-btn" id="stage-prev" aria-label={t("stage.prevSong")} title={t("stage.prevSong")} disabled={cur <= 0} onClick={() => goSong(cur - 1)}><Icon name="back"/></button>
+      <button className="icon-btn" id="stage-prev" aria-label={t("stage.prevSong")} title={t("stage.prevSong")} disabled={first <= 0} onClick={() => step(-1)}><Icon name="back"/></button>
       <button className="stage-now" id="stage-now" aria-expanded={listOpen} aria-controls="stage-list" onClick={toggleList}>
         {/* Diz o que o botão faz (ver a lista de músicas ou fechar), antes da posição e do nome da música. */}
         <span className="stage-now-cta">{/* Os dois textos ocupam o mesmo lugar e só um aparece: a largura não muda ao abrir/fechar. */}
@@ -143,7 +178,7 @@ export function Stage(){
         <span className="stage-pos">{t("stage.pos", {n: cur + 1, total: src.length})}</span>
         <span className="stage-now-title">{src[cur]?.title}</span>
       </button>
-      <button className="icon-btn" id="stage-next" aria-label={t("stage.nextSong")} title={t("stage.nextSong")} disabled={cur >= src.length - 1} onClick={() => goSong(cur + 1)}><Icon name="back" className="flip"/></button>
+      <button className="icon-btn" id="stage-next" aria-label={t("stage.nextSong")} title={t("stage.nextSong")} disabled={last >= src.length - 1} onClick={() => step(1)}><Icon name="back" className="flip"/></button>
     </div>}
     {/* Quanto do repertório já passou: o gradiente vai se revelando a cada música. */}
     {src.length > 1 && <div className="stage-progress" aria-hidden="true"><span style={{clipPath: `inset(0 ${100 - (cur + 1) / src.length * 100}% 0 0)`}}/></div>}
@@ -168,17 +203,16 @@ export function Stage(){
       </li>)}</ol>
     </nav>}
     <div className="stage-scroll" id="stage-scroll" tabIndex={0} ref={scroll} onClick={onTap} onScroll={track}>
-      <div className="stage-content" id="stage-content" style={{"--stage-fs": fs + "px"} as React.CSSProperties}>
+      <div className="stage-content" id="stage-content" ref={content} style={{"--stage-fs": fs + "px"} as React.CSSProperties}>
         {!src.length && <div className="empty-state"><strong>{t("stage.empty")}</strong><span>{t("stage.emptyText")}</span></div>}
-        {src.map((s, si) => {
-          const key = s.target || s.key;
+        {src.slice(first, last + 1).map((s, k) => {
+          const si = first + k, key = s.target || s.key;
           const meta = [!L && s.meta.bpm && t("sheet.bpm", {n:s.meta.bpm}), !L && s.meta.capo && t("sheet.capo", {n:s.meta.capo}), s.meta.singer && t("sheet.voice", {name:s.meta.singer}), !L && s.meta.solo && t("sheet.solo", {name:s.meta.solo}), s.meta.notes].filter(Boolean).join(" · ");
           const trText = m.options.transitions ? transitionLine(s, src[si+1], mode) : "";
-          const group = s.group && (si === 0 || src[si-1].group !== s.group);
           return <div key={si} style={{display: "contents"}}>
-            {/* Divisórias: em gradiente entre músicas (e antes de um medley); discreta entre as músicas de um mesmo medley. */}
-            {group && <p className={"stage-group" + (si ? " stage-sep" : "")}><Icon name="link" sm/> {t("sheet.medleyLabel", {name: s.gname || ""})}{s.gpos && <span className="chip moment-chip">{s.gpos}</span>}</p>}
-            <section className={"stage-song" + (si === src.length - 1 ? " last" : "") + (s.group && !group ? " medley-next" : si && !group ? " stage-sep" : "")}>
+            {/* Medley: o nome em cima e uma linha discreta entre as músicas dele. */}
+            {s.group && !k && <p className="stage-group"><Icon name="link" sm/> {t("sheet.medleyLabel", {name: s.gname || ""})}{s.gpos && <span className="chip moment-chip">{s.gpos}</span>}</p>}
+            <section className={"stage-song" + (k ? " medley-next" : "")} data-i={si}>
               {/* Número da música antes do título: o mesmo da lista de músicas do Palco. */}
               <div className="stage-song-head"><h2><span className="stage-num">{si + 1}</span>{s.title}</h2>
                 {s.meta.moment && <span className="chip moment-chip">{s.meta.moment}</span>}
@@ -191,10 +225,17 @@ export function Stage(){
                   <button className="stage-key-btn" aria-label={t("stage.up")} title={t("stage.up")} onClick={e => { e.stopPropagation(); shiftItemKey(s.itemId, 1); }}>+½</button>
                 </div>}</div>
               {meta && <p className="meta">{meta}</p>}
-              {s.blocks.map((b, bi) => <div key={bi} className="stage-block">{b.map((it, ii) => <div key={ii} style={{display: "contents"}}>
-                {it.chord !== undefined && it.chord !== null && !L && <p className="stage-line ch"><ChordSpans cl={chordLine(it.chord, s, mode, m.options.degreeStyle)} songKey={key}/></p>}
-                {it.lyric !== undefined && <p className="stage-line">{it.lyric}</p>}
-              </div>)}</div>)}
+              {s.blocks.map((b, bi) => <div key={bi} className="stage-block">{b.map((it, ii) => {
+                const cl = it.chord !== undefined && it.chord !== null && !L ? chordLine(it.chord, s, mode, m.options.degreeStyle) : null;
+                const parts = wrapCols(cl?.text || "", it.lyric || "", cols), one = parts.length === 1;
+                return <div key={ii} style={{display: "contents"}}>{parts.map(([a, z]) => {
+                  const ly = it.lyric?.slice(a, z), ch = cl && {text: cl.text.slice(a, z), chords: cl.chords.filter(c => c.pos >= a && c.pos < z).map(c => ({...c, pos: c.pos - a}))};
+                  return <div key={a} style={{display: "contents"}}>
+                    {ch && (one || ch.text.trim()) && <p className="stage-line ch"><ChordSpans cl={ch} songKey={key}/></p>}
+                    {ly !== undefined && (one || ly.trim()) && <p className="stage-line">{ly}</p>}
+                  </div>;
+                })}</div>;
+              })}</div>)}
             </section>
             {trText && <p className="stage-trans">{trText}</p>}
           </div>;
