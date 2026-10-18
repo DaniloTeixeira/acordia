@@ -10,7 +10,7 @@ const TITLE_SIZE = 14, META_SIZE = 8.5, TRANS_SIZE = 9.5, TITLE_LH = TITLE_SIZE 
 type RGB = [number, number, number];
 const INK: RGB = [17,17,17], CHORD: RGB = [176,32,26], ACCENT: RGB = [31,78,121], MUTED: RGB = [96,104,116], RULE: RGB = [205,205,205];
 // Chip do momento ao lado do título: Louvor em verde, Pós-pregação em laranja (cores claras, boas para imprimir).
-const CHIP_SIZE = 8, CHIP_PX = 5, CHIP_H = CHIP_SIZE + 6;
+const CHIP_SIZE = 8, CHIP_PX = 5, CHIP_H = CHIP_SIZE + 4;
 const CHIP_LOUVOR: [RGB, RGB] = [[220,252,231], [21,110,52]], CHIP_POS: [RGB, RGB] = [[255,237,213], [176,72,8]];
 
 export type Font = "mono" | "sans" | "lex";
@@ -157,7 +157,9 @@ export function layout(songs: SheetSong[], fs: number, k: number, opts: LayoutOp
       // Na mesma linha do fim do título; se não couber, na linha de baixo, à esquerda.
       if(chipOwnLine) y += TITLE_LH;
       const [bg, fg] = moment === t("item.momentPos") ? CHIP_POS : CHIP_LOUVOR;
-      const cx = x() + (chipOwnLine ? 0 : lastW() + 8), cy = y + (TITLE_SIZE - CHIP_H) / 2 + 1;
+      // Centrado na altura das maiúsculas do título (base em 0,85 e meio da maiúscula ≈ 0,36 acima dela), o que
+      // deixa uns 4 pt até a linha embaixo do título.
+      const cx = x() + (chipOwnLine ? 0 : lastW() + 8), cy = y + TITLE_SIZE * (0.85 - 0.36) - CHIP_H / 2;
       push({t:"rect",x:cx,y:cy,w:chipW,h:CHIP_H,r:CHIP_H/2,c:bg});
       push({t:"text",x:cx+CHIP_PX,y:cy+CHIP_H/2+CHIP_SIZE*0.35,s:CHIP_SIZE,f:"sans",b:true,c:fg,txt:moment});
     }
