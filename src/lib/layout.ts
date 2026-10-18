@@ -10,7 +10,7 @@ const TITLE_SIZE = 14, META_SIZE = 8.5, TRANS_SIZE = 9.5, TITLE_LH = TITLE_SIZE 
 type RGB = [number, number, number];
 const INK: RGB = [17,17,17], CHORD: RGB = [176,32,26], ACCENT: RGB = [31,78,121], MUTED: RGB = [96,104,116], RULE: RGB = [205,205,205];
 // Chip do momento ao lado do título: Louvor em verde, Pós-pregação em laranja (cores claras, boas para imprimir).
-const CHIP_SIZE = 8, CHIP_PX = 5, CHIP_H = CHIP_SIZE + 6;
+const CHIP_SIZE = 9.5, CHIP_PX = 6, CHIP_H = CHIP_SIZE + 4;
 const CHIP_LOUVOR: [RGB, RGB] = [[220,252,231], [21,110,52]], CHIP_POS: [RGB, RGB] = [[255,237,213], [176,72,8]];
 
 export type Font = "mono" | "sans" | "lex";
@@ -115,7 +115,7 @@ function metaLine(s: SheetSong, mode: SheetMode){
 export function layout(songs: SheetSong[], fs: number, k: number, opts: LayoutOpts): {pages: Page[]; tooWide: boolean} {
   const mode = opts.mode, L = mode === "letra", columns = opts.columns === 1 ? 1 : 2, measure = opts.measure || approxMeasure;
   const COLW = colWidth(columns), maxCols = Math.floor(COLW/(CW*fs));
-  const CH = fs*1.05, LY = L ? fs*(1.15+0.25*k) : fs*1.32*k, CO = fs*1.5*k, BG = L ? fs*1.3*k : fs*0.95*k, TH = TITLE_SIZE + 10, SG = 12*k;
+  const CH = fs*1.05, LY = L ? fs*(1.15+0.25*k) : fs*1.32*k, CO = fs*1.5*k, BG = L ? fs*1.3*k : fs*0.95*k, TH = TITLE_SIZE + 13, SG = 12*k;
   const pages: Page[] = [[]]; let page = 0, col = 0, y = M, tooWide = false;
   const usedCols = [0];
   const x = () => M + col*(COLW+GAP);
@@ -157,11 +157,13 @@ export function layout(songs: SheetSong[], fs: number, k: number, opts: LayoutOp
       // Na mesma linha do fim do título; se não couber, na linha de baixo, à esquerda.
       if(chipOwnLine) y += TITLE_LH;
       const [bg, fg] = moment === t("item.momentPos") ? CHIP_POS : CHIP_LOUVOR;
-      const cx = x() + (chipOwnLine ? 0 : lastW() + 8), cy = y + (TITLE_SIZE - CHIP_H) / 2 + 1;
+      // Centrado na altura das maiúsculas do título (base em 0,85 e meio da maiúscula ≈ 0,36 acima dela), o que
+      // deixa uns 6 pt até a linha embaixo do título.
+      const cx = x() + (chipOwnLine ? 0 : lastW() + 8), cy = y + TITLE_SIZE * (0.85 - 0.36) - CHIP_H / 2;
       push({t:"rect",x:cx,y:cy,w:chipW,h:CHIP_H,r:CHIP_H/2,c:bg});
       push({t:"text",x:cx+CHIP_PX,y:cy+CHIP_H/2+CHIP_SIZE*0.35,s:CHIP_SIZE,f:"sans",b:true,c:fg,txt:moment});
     }
-    push({t:"line",x1:x(),x2:x()+COLW,y:y+TITLE_SIZE+3,c:ACCENT,w:0.9});
+    push({t:"line",x1:x(),x2:x()+COLW,y:y+TITLE_SIZE+6,c:ACCENT,w:0.9});
     y += TH;
     metaLines.forEach(txt=>{ push({t:"text",x:x(),y:y+META_SIZE*0.8,s:META_SIZE,f:"sans",b:false,c:MUTED,txt}); y += META_SIZE + 3; });
     blocks.forEach((b, bi)=>{
