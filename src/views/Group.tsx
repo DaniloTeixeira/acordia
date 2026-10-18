@@ -21,6 +21,7 @@ import { useUI, useData, toast, openDialog, confirmDialog, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
+import { useFold, FoldHead } from "../ui/Fold";
 import { useLock, Spin, Avatar, PersonFields, useEmailCheck, pickPhoto, PhoneLink, fmtBirthday } from "./Account";
 
 const { data } = store;
@@ -404,10 +405,12 @@ function Members({canEdit}: {canEdit: boolean}){
   }); };
   const row = (m: Member, key: string, fn: () => Promise<boolean>, ok = "group.saved") => lock(async () => { setBusy(m.email + key); const r = await fn().finally(() => setBusy("")); toast(t(r ? ok : "profile.saveFail", {email: m.email})); });
   // outEdit: o e-mail da linha com o painel "fora dos cultos" aberto.
-  const [outEdit, setOutEdit] = useState("");
+  const [outEdit, setOutEdit] = useState(""), fold = useFold("group-members");
   return <div className="profile-grid">
-    <div className="card people-card">
+    <div className={"card people-card" + fold.cls}>
+      <FoldHead folded={fold.folded} onToggle={fold.toggle} title={t("group.membersTab")}/>
       <h2>{t("group.membersTab")}</h2>
+      <div className="card-body">
       {canEdit && <><p className="sub">{t("group.addSub")}</p>
         <form className="member-add people-add-box" onSubmit={add} noValidate>
           <h3 className="people-sub-h">{t("group.addTitle")}</h3>
@@ -463,6 +466,7 @@ function Members({canEdit}: {canEdit: boolean}){
           {outEdit === m.email && <OutEdit m={m} marked={!!sd.marked} need={sd.marked ? sd.need : COMEBACK} busy={busy === m.email + "out"}
             onSave={k => { setOutEdit(""); row(m, "out", () => setMemberOut(g.gid, m.email, k), k ? "group.outSaved" : "group.outCleared"); }} onCancel={() => setOutEdit("")}/>}
         </li>; })}</ul>
+      </div>
     </div>
     {canEdit && <GroupSettings appAdmin={appAdmin}/>}
   </div>;
@@ -571,8 +575,11 @@ function GroupSettings({appAdmin}: {appAdmin: boolean}){
   const g = useGroups(), group = g.groups.find(x => x.id === g.gid)!;
   const [name, setName] = useState(group.name), lock = useLock();
   useEffect(() => setName(group.name), [group.name]);
-  return <div className="card people-card">
+  const fold = useFold("group-settings");
+  return <div className={"card people-card" + fold.cls}>
+    <FoldHead folded={fold.folded} onToggle={fold.toggle} title={t("group.settings")}/>
     <h2>{t("group.settings")}</h2>
+    <div className="card-body">
     {appAdmin && <GroupPhoto/>}
     <label className="field"><span>{t("group.name")}</span><input className="input" id="group-rename" maxLength={80} value={name} onChange={e => setName(e.target.value)}
       onBlur={e => { const el = e.currentTarget; if(name.trim() && name.trim() !== group.name) lock(async () => { if(await renameGroup(g.gid, name)) flashSaved(el); else toast(t("profile.saveFail")); }); }}
@@ -582,5 +589,6 @@ function GroupSettings({appAdmin}: {appAdmin: boolean}){
         if(!await confirmDialog({title: t("group.deleteTitle"), message: t("group.deleteMsg", {name: group.name})})) return;
         lock(async () => toast(t(await deleteGroup(g.gid) ? "group.deleted" : "profile.saveFail", {name: group.name})));
       }}><Icon name="trash" sm/> {t("group.delete")}</button></>}
+    </div>
   </div>;
 }
