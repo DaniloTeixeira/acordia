@@ -32,8 +32,7 @@ export function Home(){
   const name = (profile?.name || me.split("@")[0]).split(" ")[0];
   return <section className="view" id="view-home" data-view="home" aria-labelledby="home-h">
     <div className="view-head"><div><h1 id="home-h">{t("home.hello", {name})}</h1>
-      <p className="sub">{fmt({weekday: "long", day: "numeric", month: "long"}).format(new Date())}</p></div>
-      {g.loading && <div className="actions"><Spin/></div>}</div>
+      <p className="sub">{fmt({weekday: "long", day: "numeric", month: "long"}).format(new Date())}</p></div></div>
     {group ? <>
       <div className="home-group">
         <button className="card home-group-card" id="home-group" onClick={() => openGroup("agenda")}>

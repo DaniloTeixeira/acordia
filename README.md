@@ -167,7 +167,7 @@ também libera o acesso ao app para eles).
 - [ ] **Adicionar ao calendário** (.ics): um evento ou todas as suas escalas, com lembrete 1 dia e 2 h antes.
 - [ ] **Repertórios do grupo**: quem lidera compartilha um repertório seu (compartilhar de novo atualiza);
       todos abrem ("Salvar e abrir" ou "Atualizar") ou vão direto ao **Palco**.
-- [ ] **Membros**: nome, e-mail, função (cada um edita a sua), selo Líder, **frequência nos ensaios** (6 meses)
+- [ ] **Membros**: nome, e-mail, funções (várias, como Vocal e Violão; cada um edita as suas), selo Líder, **frequência nos ensaios** (6 meses)
       e escalas no mês. Quem lidera inclui, torna líder e tira do grupo; admins do app renomeiam, criam e
       excluem grupos.
 - [ ] **Sem internet**: mostra a última versão baixada; mudar precisa de internet.

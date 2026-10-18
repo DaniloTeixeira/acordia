@@ -8,6 +8,7 @@ import { useAuth, validEmail, initials } from "../lib/cloud";
 import { encodeMedley, decodeMedley } from "../lib/share";
 import { saveBlob } from "../lib/pdf";
 import { ago, reduced } from "../lib/util";
+import { splitRoles, joinRoles, toggleRole } from "../lib/roles";
 import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, attendanceRate, monthLoad, toICS, type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, loadGroups, chooseGroup, createGroup, renameGroup, deleteGroup, addMember, setMemberAdmin, setMemberRole, removeMember,
   shareSetlist, removeSetlist, deleteEvent, respond, checkIn, markAttendance, setUnavailable, personName, amGroupAdmin, type GroupSetlist, type Member } from "../lib/groups";
@@ -88,7 +89,6 @@ export function Group(){
   const canEdit = amGroupAdmin();
   return <section className="view" id="view-group" data-view="group" aria-labelledby="group-h">
     {head(tn("group.members", g.members.length) + (g.error ? " · " + t("group.offline") : ""), <>
-      {g.loading && <Spin/>}
       {g.groups.length > 1 && <Select id="group-pick" aria={t("group.pick")} value={g.gid} onChange={v => chooseGroup(v)} options={g.groups.map(x => ({value: x.id, label: x.name}))}/>}
       {canEdit && tab === "agenda" && <button className="btn primary" id="group-new-event" onClick={() => openDialog("event", {id: null, day: dayKey(new Date())})}><Icon name="plus" sm/><span>{t("group.newEvent")}</span></button>}
     </>)}
@@ -315,28 +315,29 @@ function Setlists({canEdit}: {canEdit: boolean}){
 // ---------- membros ----------
 function Members({canEdit}: {canEdit: boolean}){
   const g = useGroups(), me = useAuth(s => s.email), appAdmin = useAuth(s => s.admin);
-  const [email, setEmail] = useState(""), [role, setRole] = useState(""), [asAdmin, setAsAdmin] = useState(false), [busy, setBusy] = useState(""), lock = useLock();
+  const [email, setEmail] = useState(""), [roles, setRoles] = useState<string[]>([]), [asAdmin, setAsAdmin] = useState(false), [busy, setBusy] = useState(""), lock = useLock();
   const group = g.groups.find(x => x.id === g.gid)!;
   const load = monthLoad(dayKey(new Date()), g.events, g.roster);
   const add = (ev: React.FormEvent) => { ev.preventDefault(); lock(async () => {
     const v = email.trim().toLowerCase();
     if(!validEmail(v)) return toast(t("auth.badEmail"));
-    setBusy("add"); const ok = await addMember(g.gid, v, asAdmin, role).finally(() => setBusy(""));
+    setBusy("add"); const ok = await addMember(g.gid, v, asAdmin, joinRoles(roles)).finally(() => setBusy(""));
     if(!ok) return toast(t("profile.saveFail"));
-    toast(t("group.memberAdded", {email: v})); setEmail(""); setRole(""); setAsAdmin(false);
+    toast(t("group.memberAdded", {email: v})); setEmail(""); setRoles([]); setAsAdmin(false);
   }); };
   const row = (m: Member, key: string, fn: () => Promise<boolean>, ok = "group.saved") => lock(async () => { setBusy(m.email + key); const r = await fn().finally(() => setBusy("")); toast(t(r ? ok : "profile.saveFail", {email: m.email})); });
   return <div className="profile-grid">
     <div className="card people-card">
       <h2>{t("group.membersTab")}</h2>
       {canEdit && <><p className="sub">{t("group.addSub")}</p>
-        <form className="people-add" onSubmit={add}>
-          <input className="input" id="member-email" type="email" inputMode="email" placeholder={t("people.emailPh")} aria-label={t("auth.email")} value={email} onChange={e => setEmail(e.target.value)}/>
-          <input className="input role-input" id="member-role" maxLength={40} placeholder={t("group.rolePh")} aria-label={t("group.role")} value={role} onChange={e => setRole(e.target.value)} list="group-roles"/>
-          <label className="switch lead boxed"><span>{t("group.leader")}</span><input type="checkbox" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>
-          <button className="btn primary" disabled={!email.trim()} aria-busy={busy === "add"}>{busy === "add" ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
+        <form className="member-add" onSubmit={add}>
+          <div className="people-add">
+            <input className="input" id="member-email" type="email" inputMode="email" placeholder={t("people.emailPh")} aria-label={t("auth.email")} value={email} onChange={e => setEmail(e.target.value)}/>
+            <label className="switch lead boxed"><span>{t("group.leader")}</span><input type="checkbox" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>
+            <button className="btn primary" disabled={!email.trim()} aria-busy={busy === "add"}>{busy === "add" ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
+          </div>
+          <RolePicker value={roles} onChange={setRoles}/>
         </form></>}
-      <RoleList/>
       <ul className="people-list members">{g.members.map(m => {
         const rate = attendanceRate(m.email, g.events, g.attendance), n = load.get(m.email) || 0;
         return <li key={m.email}>
@@ -347,7 +348,7 @@ function Members({canEdit}: {canEdit: boolean}){
             {rate.total > 0 && <span className="chip" title={t("group.rateHint")}>{t("group.rate", {p: Math.round(100 * rate.present / rate.total), n: rate.present, total: rate.total})}</span>}
             {n > 0 && <span className="chip" title={t("group.loadHint")}>{tn("group.load", n)}</span>}
           </span>
-          {(canEdit || m.email === me) ? <RoleInput m={m} onSave={v => row(m, "role", () => setMemberRole(g.gid, m.email, v))}/> : m.role && <span className="chip">{m.role}</span>}
+          <MemberRoles m={m} editable={canEdit || m.email === me} busy={busy === m.email + "role"} onSave={v => row(m, "role", () => setMemberRole(g.gid, m.email, v))}/>
           {canEdit && m.email !== me && <span className="people-actions">
             <button className="btn ghost sm" aria-busy={busy === m.email + "adm"} onClick={() => row(m, "adm", () => setMemberAdmin(g.gid, m.email, !m.is_admin))}>{busy === m.email + "adm" && <Spin/>}{t(m.is_admin ? "group.unleader" : "group.makeLeader")}</button>
             <button className="icon-btn sm danger" aria-label={t("group.removeMember")} title={t("group.removeMember")} onClick={async () => {
@@ -360,18 +361,45 @@ function Members({canEdit}: {canEdit: boolean}){
   </div>;
 }
 
-// Sugestões de função ao digitar (as que o grupo já usa e as mais comuns).
-const ROLES = ["voice", "lead", "back", "guitar", "acoustic", "bass", "keys", "drums", "perc", "sound", "media"];
-function RoleList(){
-  const g = useGroups();
-  const all = [...new Set([...g.members.map(m => m.role), ...g.roster.map(r => r.role), ...ROLES.map(r => t("group.roles." + r))].filter(Boolean))];
-  return <datalist id="group-roles">{all.map(r => <option key={r} value={r}/>)}</datalist>;
+// Funções para escolher: as mais comuns e as que o grupo já usa.
+const ROLES = ["lead", "voice", "back", "acoustic", "guitar", "bass", "keys", "drums", "perc", "sound", "media"];
+export function roleOptions(){
+  const g = useGroups.getState();
+  return splitRoles([...ROLES.map(r => t("group.roles." + r)), ...g.members.map(m => m.role), ...g.roster.map(r => r.role)].join(","));
 }
-function RoleInput({m, onSave}: {m: Member; onSave: (v: string) => void}){
-  const [v, setV] = useState(m.role);
-  useEffect(() => setV(m.role), [m.role]);
-  return <input className="input role-input sm" maxLength={40} list="group-roles" placeholder={t("group.rolePh")} aria-label={t("group.role") + ": " + personName(m.email)} value={v}
-    onChange={e => setV(e.target.value)} onBlur={() => { if(v.trim() !== m.role) onSave(v); }} onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}/>;
+// Botões para ligar e desligar cada função, e um campo para incluir outra.
+function RolePicker({value, onChange}: {value: string[]; onChange: (v: string[]) => void}){
+  const [other, setOther] = useState("");
+  const has = (r: string) => value.some(x => x.toLocaleLowerCase() === r.toLocaleLowerCase());
+  const opts = splitRoles([...roleOptions(), ...value].join(","));
+  const add = () => { const r = other.trim().replace(/,/g, " "); if(r && !has(r)) onChange([...value, r]); setOther(""); };
+  return <div className="role-picker">
+    <span className="lbl">{t("group.roles")}</span>
+    <div className="role-chips" role="group" aria-label={t("group.roles")}>{opts.map(r =>
+      <button type="button" key={r} className="role-chip" aria-pressed={has(r)} onClick={() => onChange(toggleRole(value, r))}>{has(r) && <Icon name="check" sm/>}{r}</button>)}</div>
+    <div className="role-other">
+      <input className="input sm" maxLength={40} placeholder={t("group.roleOther")} aria-label={t("group.roleOther")} value={other} onChange={e => setOther(e.target.value)}
+        onKeyDown={e => { if(e.key === "Enter"){ e.preventDefault(); add(); } }}/>
+      <button type="button" className="btn ghost sm" disabled={!other.trim()} onClick={add}><Icon name="plus" sm/> {t("common.add")}</button>
+    </div>
+  </div>;
+}
+// Funções de um membro: os chips, e o lápis para quem pode mudar (quem lidera, ou a própria pessoa).
+function MemberRoles({m, editable, busy, onSave}: {m: Member; editable: boolean; busy: boolean; onSave: (v: string) => void}){
+  const [editing, setEditing] = useState<string[] | null>(null);
+  const roles = splitRoles(m.role);
+  if(editing) return <div className="member-roles editing">
+    <RolePicker value={editing} onChange={setEditing}/>
+    <div className="member-roles-foot">
+      <button type="button" className="btn ghost sm" onClick={() => setEditing(null)}>{t("common.cancel")}</button>
+      <button type="button" className="btn primary sm" onClick={() => { const v = joinRoles(editing); setEditing(null); if(v !== m.role) onSave(v); }}>{t("common.save")}</button>
+    </div>
+  </div>;
+  return <span className="member-roles">
+    {roles.length ? roles.map(r => <span key={r} className="chip">{r}</span>) : editable && <span className="sub">{t("group.noRoles")}</span>}
+    {busy && <Spin/>}
+    {editable && <button type="button" className="icon-btn sm" aria-label={t("group.editRoles") + ": " + personName(m.email)} title={t("group.editRoles")} onClick={() => setEditing(roles)}><Icon name="edit" sm/></button>}
+  </span>;
 }
 
 function GroupSettings({appAdmin}: {appAdmin: boolean}){
