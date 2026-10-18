@@ -6342,6 +6342,7 @@ dialog.ear-dlg {
 }
 /* Avatar da lista "Com acesso": a altura das três linhas (nome, e-mail, celular), cerca de 60 px. */
 .people-who .avatar {
+  flex-shrink: 0;
   width: 60px;
   height: 60px;
   font-size: 1.15rem;
@@ -7130,13 +7131,7 @@ dialog.event-dlg {
   gap: 8px;
   flex-wrap: wrap;
 }
-/* Membros */
-.members li .avatar {
-  width: 34px;
-  height: 34px;
-  flex-shrink: 0;
-  font-size: 0.78rem;
-}
+/* Membros (a foto tem o tamanho da lista "Com acesso", em .people-who .avatar) */
 .members .people-who {
   flex: 1 1 180px;
 }

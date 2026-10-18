@@ -21,7 +21,7 @@ import { useUI, useData, toast, openDialog, confirmDialog, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
-import { useLock, Spin, Avatar, PersonFields, useEmailCheck, pickPhoto, PhoneLink } from "./Account";
+import { useLock, Spin, Avatar, PersonFields, useEmailCheck, pickPhoto, PhoneLink, fmtBirthday } from "./Account";
 
 const { data } = store;
 export type Tab = "agenda" | "setlists" | "members";
@@ -421,6 +421,8 @@ function Members({canEdit}: {canEdit: boolean}){
           <RolePicker value={roles} onChange={setRoles}/>
         </form></>}
       <h3 className="people-sub-h">{t("group.listTitle")} <span className="count-chip">{g.members.length}</span></h3>
+      {/* Cabeçalho como o da lista "Com acesso" do Perfil. */}
+      {g.members.length > 0 && <div className="people-list-head" aria-hidden="true"><span>{t("people.colPerson")}</span><span>{t("people.colActions")}</span></div>}
       <ul className="people-list members">{g.members.map(m => {
         const rate = attendanceRate(m.email, g.events, g.attendance), sd = rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m)), n = load.get(m.email) || 0;
         // Regra dos ensaios no lugar do "% nos ensaios" (a porcentagem fica na dica).
@@ -435,8 +437,11 @@ function Members({canEdit}: {canEdit: boolean}){
               row(m, "adm", () => setMemberAdmin(g.gid, m.email, !m.is_admin));
             }}/></label> : null;
         return <li key={m.email}>
-          <PersonAvatar email={m.email}/>
-          <span className="people-who"><span><b>{personName(m.email)}</b>{m.email === me && " " + t("group.you")}<br/><span className="sub people-email">{m.email}</span>{m.phone && <><br/><PhoneLink phone={m.phone}/></>}</span></span>
+          {/* Como na lista "Com acesso": sempre nome, e-mail (com o aniversário) e celular, com o que falta apagado. */}
+          <span className="people-who"><PersonAvatar email={m.email}/><span className="people-id">
+            <span className="people-name">{m.name ? <b>{m.name}</b> : <span className="people-missing">{t("people.noName")}</span>}{m.email === me && " " + t("group.you")}</span>
+            <span className="sub people-email">{m.email}{m.birthday && " · " + fmtBirthday(m.birthday)}</span>
+            {m.phone ? <PhoneLink phone={m.phone}/> : <span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}</span></span>
           <span className="member-chips">
             {m.is_admin && <span className="chip accent">{t("group.leader")}</span>}
             {sd.out ? <span className="chip st-no" title={hint}>{tn("group.standOut", sd.need)}</span>
