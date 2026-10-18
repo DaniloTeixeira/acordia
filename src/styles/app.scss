@@ -1742,9 +1742,8 @@ textarea.song-text {
   max-width: 780px;
   margin: 0 auto 14px;
 }
-.sheet-toolbar .tools {
-  margin-left: auto;
-}
+/* Sem margin-left: auto: na mesma linha, o space-between deixa as ferramentas à direita; quando descem para a
+   linha de baixo (celular), ficam à esquerda. */
 .sheet-toolbar .tools {
   display: flex;
   gap: 6px;
@@ -6449,6 +6448,13 @@ dialog.ear-dlg {
 }
 .people-actions {
   margin-left: auto;
+}
+/* Um abaixo do outro (celular), os botões que descem para a linha de baixo ficam à esquerda; na mesma linha, o
+   bloco do nome estica e eles continuam no canto direito. */
+@container (max-width: 735.98px) {
+  .people-actions {
+    margin-left: 0;
+  }
 }
 .people-email {
   min-width: 0;
