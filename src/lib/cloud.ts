@@ -10,8 +10,10 @@ export const cloud: SupabaseClient = createClient(URL, KEY, {auth: {flowType: "p
 
 export type AuthStatus = "loading" | "out" | "denied" | "in";
 // photo: foto da conta Google (vem com o login, não fica no banco); vazia em quem entra com e-mail e senha.
-export interface Profile { id: string; email: string; name: string; photo?: string }
-export interface Allowed { email: string; is_admin: boolean }
+export interface Profile { id: string; email: string; name: string; birthday?: string | null; photo?: string }
+// name/birthday: os informados por quem liberou o acesso; profileName/profileBirthday: os do perfil da
+// pessoa (vazios enquanto ela não entrou ou não preencheu). O perfil vale mais.
+export interface Allowed { email: string; is_admin: boolean; name: string; birthday: string | null; profileName: string; profileBirthday: string | null }
 // error: o que deu errado na volta do Google ou de um link do e-mail, para a tela de entrar avisar.
 // recovery: voltou pelo link de "esqueci minha senha"; a tela pede a senha nova antes de abrir o app.
 // errorFrom: de onde veio a volta com erro ("google" ou um link do e-mail); errorDetail: o texto do Supabase.
@@ -38,7 +40,9 @@ async function refresh(){
   if(!error) cacheAccess(email, a);
   if(!a.allowed){ useAuth.setState({status: "denied", email, admin: false, profile: null}); return; }
   setPendingConfirm("");
-  const prof = await cloud.from("profiles").select("id,email,name").eq("id", session.user.id).maybeSingle();
+  let prof = await cloud.from("profiles").select("id,email,name,birthday").eq("id", session.user.id).maybeSingle();
+  // Banco ainda sem a coluna da data de nascimento (antes da migração subir): lê sem ela.
+  if(prof.error) prof = await cloud.from("profiles").select("id,email,name").eq("id", session.user.id).maybeSingle();
   const meta = session.user.user_metadata || {}, pic = String(meta.avatar_url || meta.picture || "");
   const photo = /^https:\/\//.test(pic) ? pic : "";
   useAuth.setState({status: "in", email, admin: a.admin, profile: {...((prof.data as Profile | null) || {id: session.user.id, email, name: ""}), photo}});
@@ -133,13 +137,44 @@ export async function saveName(name: string){
   return !error;
 }
 
+// Data de nascimento: "AAAA-MM-DD" válida e no passado, senão vazio.
+export function validBirthday(v: string){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(v || "")) return "";
+  const d = new Date(v + "T00:00:00Z");
+  return !isNaN(+d) && d.toISOString().slice(0, 10) === v && d.getUTCFullYear() >= 1900 && +d <= Date.now() ? v : "";
+}
+export async function saveBirthday(v: string){
+  const p = useAuth.getState().profile; if(!p) return false;
+  const b = validBirthday(v) || null;
+  const {error} = await cloud.from("profiles").update({birthday: b}).eq("id", p.id);
+  if(!error) useAuth.setState({profile: {...p, birthday: b}});
+  return !error;
+}
+
 // ---------- lista de quem pode entrar (só admins) ----------
 export async function listAllowed(): Promise<Allowed[] | null> {
-  const {data, error} = await cloud.from("allowed_emails").select("email,is_admin").order("email");
-  return error ? null : data as Allowed[];
+  let [a, p]: {data: unknown; error: unknown}[] = await Promise.all([cloud.from("allowed_emails").select("email,is_admin,name,birthday").order("email"),
+    cloud.from("profiles").select("email,name,birthday")]);
+  // Banco ainda sem as colunas de nome e data (antes da migração subir): lê sem elas.
+  if(a.error) a = await cloud.from("allowed_emails").select("email,is_admin").order("email");
+  if(p.error) p = await cloud.from("profiles").select("email,name");
+  if(a.error || p.error) return null;
+  const prof = new Map((p.data as {email: string; name: string; birthday: string | null}[]).map(x => [x.email, x]));
+  return (a.data as Partial<Allowed>[]).map(r => ({email: r.email!, is_admin: !!r.is_admin, name: r.name || "", birthday: r.birthday || null,
+    profileName: prof.get(r.email!)?.name || "", profileBirthday: prof.get(r.email!)?.birthday || null}));
 }
-export async function addAllowed(email: string, admin: boolean){
-  const {error} = await cloud.from("allowed_emails").upsert({email: email.trim().toLowerCase(), is_admin: admin});
+// Nome e data vazios não vão juntos, para não apagar o que já estava na lista.
+export async function addAllowed(email: string, admin: boolean, name = "", birthday = ""){
+  const n = name.trim().slice(0, 80), b = validBirthday(birthday);
+  const row = {email: email.trim().toLowerCase(), is_admin: admin};
+  let {error} = await cloud.from("allowed_emails").upsert({...row, ...(n ? {name: n} : {}), ...(b ? {birthday: b} : {})});
+  // Banco ainda sem as colunas de nome e data (antes da migração subir): inclui só o e-mail.
+  if(error && (n || b)) ({error} = await cloud.from("allowed_emails").upsert(row));
+  return !error;
+}
+// Nome e data de quem já está na lista. Chegam ao perfil só se a pessoa ainda não preencheu.
+export async function setAllowedInfo(email: string, name: string, birthday: string){
+  const {error} = await cloud.from("allowed_emails").update({name: name.trim().slice(0, 80), birthday: validBirthday(birthday) || null}).eq("email", email);
   return !error;
 }
 export async function setAllowedAdmin(email: string, admin: boolean){

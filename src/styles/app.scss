@@ -154,6 +154,12 @@ select.input{appearance:none;padding-right:32px;cursor:pointer;
   background-repeat:no-repeat;background-position:right 12px center}
 .field{display:flex;flex-direction:column;gap:4px;font-size:.8rem;font-weight:600;color:var(--muted);min-width:0}
 .field .input{font-size:.9rem;font-weight:400;color:var(--ink)}
+/* Salvou ao sair do campo: borda verde e "✓ Salvo" no canto do rótulo, que somem sozinhos (flashSaved). */
+.field{position:relative}
+.field .input{transition:border-color var(--t) var(--ease),box-shadow var(--t) var(--ease)}
+.field[data-saved] .input:not(:focus){border-color:var(--ok)}
+.field[data-saved]::after{content:"✓ " attr(data-saved);position:absolute;top:0;right:0;font-size:.75rem;font-weight:700;color:var(--ok);pointer-events:none;animation:saved-flash 1.8s var(--ease) forwards}
+@keyframes saved-flash{0%{opacity:0;transform:translateY(2px)}12%,75%{opacity:1;transform:none}100%{opacity:0}}
 .search{position:relative}
 .search .i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
 .search .input{padding-left:40px;border-radius:var(--r-full)}
@@ -299,6 +305,8 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .fields .wide{grid-column:1/-1}
 .fields .half{grid-column:span 1}
+/* No medley: Tom, Solo e BPM na mesma linha, do mesmo tamanho. */
+.fields.med{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media (max-width:420px){ .fields{grid-template-columns:repeat(2,minmax(0,1fr))} }
 .add-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
 .add-bar:has(#add-medley[hidden]){grid-template-columns:repeat(3,1fr)}
@@ -626,9 +634,13 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 #stage-metro[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent-soft-ink)}
 
 /* referência (YouTube) */
-.ref-btn{color:#DC2626}
-.ref-btn:hover{background:color-mix(in srgb,#DC2626 12%,transparent);color:#DC2626}
-.stage-song .meta .stage-ref{margin-left:6px;vertical-align:middle}
+/* Ouvir a referência: botão de tocar no azul do app, preenchido para não parecer ação de remover. */
+.ref-btn{background:var(--accent-soft);color:var(--accent-soft-ink)}
+.ref-btn:hover:where(:not(:disabled)){background:color-mix(in srgb,var(--accent-soft) 82%,var(--accent));color:var(--accent-soft-ink)}
+/* Ouvir referência: discreto, ícone e texto em cinza com borda suave, à direita do título. */
+.stage-song-head .stage-ref{justify-self:end;width:max-content;display:inline-flex;align-items:center;gap:5px;height:34px;padding:0 12px;border:1px solid var(--line);border-radius:var(--r-full);background:none;
+  color:var(--muted);font:600 .78rem var(--font-ui);cursor:pointer;transition:color var(--t-fast),background-color var(--t-fast)}
+.stage-song-head .stage-ref:hover{color:var(--ink);background:var(--surface-2)}
 dialog.player{width:min(860px,calc(100vw - 24px))}
 .player-box{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:var(--r-md);overflow:hidden}
 .player-box iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
@@ -748,7 +760,7 @@ a.btn{text-decoration:none}
 .arr-row .input{flex:1;min-width:0}
 .arr-hint{font-weight:500;color:var(--muted);font-size:.75rem}
 .pick-list .pick-h{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:12px 4px 4px;border-top:none}
-.stage-group{font-size:.6em;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4em;display:flex;align-items:center;gap:6px}
+.stage-group{font-size:.6em;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.7em;display:flex;align-items:center;gap:6px}
 
 /* player: loop A–B e velocidade */
 .player-loading{position:absolute;inset:0;display:grid;place-items:center;color:#cbd5e1;font-size:.9rem}
@@ -879,7 +891,11 @@ dialog:not([open])::backdrop{opacity:0}
 /* Ajuda: botão "?" fixo no canto inferior direito, abre o guia da tela atual. */
 /* right desconta a faixa reservada da barra de rolagem (scrollbar-gutter), para ficar a 32px da borda como o bottom. */
 .help-fab{position:fixed;right:calc(32px - (100vw - 100%));bottom:32px;z-index:15;isolation:isolate;display:grid;place-items:center;width:46px;height:46px;border-radius:50%;border:2px solid transparent;
-  background:linear-gradient(var(--surface),var(--surface)) padding-box,var(--range-grad) border-box;color:var(--accent);box-shadow:var(--shadow-md);cursor:pointer;transition:color var(--t) var(--ease),box-shadow var(--t) var(--ease)}
+  background:color-mix(in srgb,var(--surface) 45%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:var(--ink);box-shadow:var(--shadow-md);cursor:pointer;transition:color var(--t) var(--ease),box-shadow var(--t) var(--ease)}
+/* Fundo translúcido para não esconder o conteúdo atrás; a borda em gradiente é um anel recortado por máscara,
+   já que um fundo gradiente embaixo apareceria através da transparência. */
+.help-fab::after{content:"";position:absolute;inset:-2px;border-radius:50%;padding:2px;background:var(--range-grad);pointer-events:none;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
 /* O preenchimento com o gradiente fica numa camada própria, para poder aparecer com transição. */
 .help-fab::before{content:"";position:absolute;inset:-2px;z-index:-1;border-radius:50%;background:var(--accent-grad);opacity:0;transition:opacity var(--t) var(--ease)}
 .help-fab .i{width:26px;height:26px;stroke-width:2.6;transition:transform var(--t) var(--ease-out)}
@@ -902,31 +918,81 @@ dialog:not([open])::backdrop{opacity:0}
 .stage{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;animation:view-in var(--t) var(--ease-out)}
 .stage-bar{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;border-bottom:1px solid var(--line);background:var(--surface);flex-wrap:wrap}
 .stage-bar .grow{flex:1}
-.stage-scroll{flex:1;overflow-y:auto;scroll-behavior:smooth;padding:24px max(16px,env(safe-area-inset-left)) 40vh;outline:none}
+/* Laterais com espaço para as setas de música anterior/próxima não cobrirem o texto. */
+.stage-scroll{flex:1;overflow-y:auto;scroll-behavior:smooth;padding:24px max(66px,env(safe-area-inset-left)) 40vh;outline:none}
+/* No celular as setas ficam na barra de músicas (abaixo), então a cifra usa a largura toda. */
+@media (max-width:599px){ .stage-scroll{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))} }
 .stage-content{max-width:1100px;margin:0 auto;font-size:var(--stage-fs,22px)}
 .stage-song{margin-bottom:2.2em}
-.stage-song h2{font-size:1.25em;color:var(--accent);margin-bottom:.15em}
-.stage-song .meta{font-size:.62em;color:var(--muted);margin-bottom:.8em}
-.stage-block{margin-bottom:1em}
+.stage-song h2{font-size:1.25em;color:var(--accent)}
+.stage-song .meta{font-size:.62em;color:var(--muted);margin:.6em 0 0}
+/* Mesmo espaço antes da cifra em todas as músicas, tenha ou não a linha de BPM/observações. */
+.stage-song :is(.stage-song-head,.meta)+.stage-block{margin-top:1.3em}
+.stage-block{margin-bottom:1.4em}
 .stage-block{overflow-x:auto}
 .stage-line{font-family:var(--font-mono);white-space:pre;line-height:1.3;margin:0}
 .stage-line.ch{color:var(--chord);font-weight:700}
+/* Respiro entre as frases: a cifra fica colada na letra dela, e cada letra ganha espaço antes da próxima. */
+.stage-line:not(.ch){margin-bottom:.5em}
+.stage-block>:last-child>.stage-line:last-child{margin-bottom:0}
 .stage.letra .stage-line{font-family:Lexend,var(--font-ui);line-height:1.45;white-space:pre-wrap}
+.stage.letra .stage-line:not(.ch){margin-bottom:.4em}
 .stage-trans{font-size:.62em;font-weight:700;color:var(--accent);margin:-1em 0 2em}
 .stage-hint{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 14px);left:50%;transform:translateX(-50%);font-size:.8rem;color:var(--muted);background:var(--surface);padding:6px 14px;border-radius:var(--r-full);box-shadow:var(--shadow-md);
   animation:hint-out 4s var(--ease) forwards;pointer-events:none}
 @keyframes hint-out{0%,70%{opacity:1}100%{opacity:0}}
 /* palco: troca de música, lista do repertório e dicas para tocar sem interrupções */
-.stage-nav{display:flex;align-items:center;gap:6px;padding:6px max(12px,env(safe-area-inset-left));border-bottom:1px solid var(--line);background:var(--surface)}
-.stage-nav .icon-btn{width:48px;height:48px;background:var(--surface-2)}
+/* Faixa de ponta a ponta da tela, sem arredondado: o botão da lista ocupa a largura toda. */
+.stage-nav{display:flex;align-items:center;gap:0;padding:0;border-bottom:1px solid var(--line);background:var(--surface-2);transition:background-color var(--t-fast)}
+.stage-nav:has(#stage-now[aria-expanded="true"]){background:var(--accent-soft)}
+/* Com a lista de músicas aberta, as setas saem para não ficar em cima dela. */
+.stage-nav:has(#stage-now[aria-expanded="true"]) :is(#stage-prev,#stage-next){display:none}
+/* Música anterior e próxima: nos cantos da tela, no meio da altura, fáceis de alcançar com o polegar. */
+.stage-nav #stage-prev,.stage-nav #stage-next{position:absolute;top:50%;z-index:3;width:52px;height:88px;margin-top:-44px;border-radius:var(--r-lg);
+  background:var(--accent);border:none;box-shadow:var(--shadow-md);color:var(--accent-ink)}
+.stage-nav #stage-prev{left:max(6px,env(safe-area-inset-left))}
+.stage-nav #stage-next{right:max(6px,env(safe-area-inset-right))}
+.stage-nav #stage-prev:hover:where(:not(:disabled)),.stage-nav #stage-next:hover:where(:not(:disabled)){background:var(--accent-hover);color:var(--accent-ink)}
+.stage-nav #stage-prev:disabled,.stage-nav #stage-next:disabled{opacity:.2;box-shadow:none}
+.stage-nav #stage-prev .i,.stage-nav #stage-next .i{width:28px;height:28px;stroke-width:2.5}
+/* No celular: setas dentro da barra, ao lado do nome da música, sem cobrir a cifra; "Ver músicas" vira só o ícone. */
+@media (max-width:599px){
+  .stage-nav{padding:4px max(4px,env(safe-area-inset-right)) 4px max(4px,env(safe-area-inset-left))}
+  .stage-nav #stage-prev,.stage-nav #stage-next{position:static;flex-shrink:0;width:44px;height:44px;margin:0;border-radius:var(--r-full);box-shadow:none}
+  .stage-nav #stage-prev .i,.stage-nav #stage-next .i{width:24px;height:24px}
+  .stage-nav:has(#stage-now[aria-expanded="true"]) :is(#stage-prev,#stage-next){display:inline-grid;visibility:hidden}
+  .stage-nav .stage-now{height:44px;gap:8px;padding:0 12px;border-radius:var(--r-full)}
+  .stage-nav .stage-now-cta{gap:2px;padding-right:8px}
+  .stage-now-cta-txt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  /* Barra de cima: ícones numa linha e Cifras/Graus/Letra na linha de baixo, ocupando a largura. */
+  .stage-bar{gap:2px 0}
+  .stage-bar #stage-mode{order:1;flex-basis:100%;display:flex}
+  .stage-bar #stage-mode button{flex:1}
+}
 .stage-nav .i.flip{transform:scaleX(-1)}
-.stage-now{flex:1;min-width:0;height:48px;display:flex;align-items:center;gap:10px;padding:0 14px;border:none;border-radius:var(--r-full);background:var(--surface-2);color:var(--ink);font:inherit;font-weight:700;cursor:pointer;text-align:left;transition:background-color var(--t-fast)}
+.stage-now{flex:1;min-width:0;height:52px;display:flex;align-items:center;gap:10px;padding:0 max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left));border:none;border-radius:0;background:transparent;color:var(--ink);font:inherit;font-weight:700;cursor:pointer;text-align:left;transition:background-color var(--t-fast)}
 .stage-now:hover:not([aria-expanded="true"]){background:var(--surface-3)}
 .stage-now[aria-expanded="true"]{background:var(--accent-soft);color:var(--accent-soft-ink)}
 .stage-now[aria-expanded="true"]:hover,.stage-list button.on:hover{filter:brightness(.95)}
 .stage-pos{flex-shrink:0;font-size:.8rem;color:var(--muted)}
 .stage-now[aria-expanded="true"] .stage-pos{color:inherit}
 .stage-now-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stage-now-title{flex:1;min-width:0}
+/* "Ver músicas": só texto, à esquerda, separado da posição por um traço fino. */
+.stage-now-cta{flex-shrink:0;display:inline-flex;align-items:center;gap:5px;padding-right:12px;border-right:1px solid var(--line-strong);color:var(--accent);font-size:.85rem;font-weight:700}
+.stage-now-cta{line-height:1}
+.stage-now-cta-txt{display:grid}
+.stage-now-cta-txt>span{grid-area:1/1}
+.stage-now-cta-txt>span.off{visibility:hidden}
+.stage-now-chev{display:block;transition:transform var(--t) var(--ease-out)}
+.stage-now[aria-expanded="true"] .stage-now-chev{transform:rotate(180deg)}
+/* A seta segue o movimento da lista: no computador ela abre como painel à esquerda (seta para a
+   direita para abrir, para a esquerda para fechar); em telas menores ela desce por cima (para baixo/cima). */
+@media (min-width:1000px){
+  .stage-now-chev{transform:rotate(-90deg)}
+  .stage-now[aria-expanded="true"] .stage-now-chev{transform:rotate(90deg)}
+}
+.stage-now[aria-expanded="true"] .stage-now-cta{color:inherit}
 .stage-body{flex:1;min-height:0;display:flex;position:relative}
 .stage-body .stage-scroll{min-width:0}
 .stage-list{width:280px;flex-shrink:0;overflow-y:auto;border-right:1px solid var(--line);background:var(--surface);padding:8px}
@@ -934,6 +1000,12 @@ dialog:not([open])::backdrop{opacity:0}
 .stage-list button{width:100%;min-height:52px;display:flex;align-items:center;gap:12px;padding:8px 12px;border:none;border-radius:var(--r-md);background:transparent;color:var(--ink);font:inherit;text-align:left;cursor:pointer;transition:background-color var(--t-fast)}
 .stage-list button:hover{background:var(--surface-2)}
 .stage-list button.on{background:var(--accent-soft);color:var(--accent-soft-ink);font-weight:700}
+/* Música atual: filete com o gradiente na lateral. */
+.stage-list button{position:relative}
+.stage-list button.on::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:var(--r-full);background:linear-gradient(180deg,var(--grad-1),var(--grad-2) 55%,var(--grad-3))}
+.stage-nav:has(+.stage-progress){border-bottom:none}
+.stage-progress{height:3px;background:var(--line);flex-shrink:0}
+.stage-progress span{display:block;height:100%;background:var(--range-grad);transition:clip-path var(--t) var(--ease-out)}
 .stage-list .n{width:24px;flex-shrink:0;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
 .stage-list button.on .n{color:inherit}
 .stage-list .tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -967,13 +1039,19 @@ html[data-vt="theme"]::view-transition-old(root){animation:none}
 /* ---------- impressão: só as folhas ---------- */
 @media print{
   @page{size:A4;margin:0}
-  body{background:#fff}
+  /* A folha A4 tem ~794px de largura, então o layout de celular (até 899px) vale na impressão. As
+     animações de entrada começam transparentes e a impressão pode pegar esse primeiro quadro: em branco. */
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html,body{margin:0;padding:0;background:#fff}
   .rail,.topbar,.tabbar,.help-fab,.view-head,.pane-toggle,.pane-edit,.sheet-toolbar,.note,.page-label,.toasts,#view-library,#view-study{display:none!important}
-  main{margin:0;padding:0}
-  .medley-grid{display:block}
-  .pane-sheet{display:block!important;position:static}
+  .shell{min-height:0}
+  main{margin:0!important;padding:0!important;max-width:none}
+  .view,.medley-grid{display:block;margin:0;padding:0;opacity:1;transform:none}
+  .pane-sheet{display:block!important;position:static;margin:0;padding:0}
   .pages{gap:0;display:block}
-  .paper{box-shadow:none;border-radius:0;max-width:none;width:210mm;height:297mm;break-after:page;animation:none}
+  /* Um pouco menos que 297mm: com a altura exata, um arredondamento cria uma folha a mais em branco. */
+  .paper{box-shadow:none;border-radius:0;max-width:none;width:210mm;height:296.5mm;margin:0;aspect-ratio:auto}
+  .paper ~ .paper{break-before:page}
 }
 
 /* ---------- montar cifra (quadradinhos acima da letra) ---------- */
@@ -998,7 +1076,29 @@ dialog.ear-dlg{width:min(760px,calc(100vw - 24px))}
 .ear-lyric{white-space:pre;padding:2px 0;color:var(--ink)}
 .ear-tag{font-weight:700;color:var(--muted);font-size:.9em;margin:2px 0 6px}
 .ear-gap{height:10px}
-.stage-tr{display:inline-flex;gap:2px;vertical-align:middle;margin-left:6px;font-size:1rem}
+/* Cabeçalho da música no palco: título à esquerda, tom à direita. */
+/* Título e "Ouvir referência" na mesma linha; o tom na linha de baixo, à esquerda. */
+.stage-song-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px 16px}
+.stage-song-head .stage-key{grid-column:1/-1;justify-self:start}
+/* Em tela grande, tudo numa linha: nome da música, "Ouvir referência" e o tom. */
+@media (min-width:600px){
+  .stage-song-head{grid-template-columns:minmax(0,max-content) auto auto;justify-content:start}
+  .stage-song-head .stage-key{grid-column:auto}
+  .stage-song-head .stage-ref{justify-self:start}
+}
+/* O título corta o espaço extra da fonte acima das maiúsculas e abaixo da linha de base, para ficar
+   centralizado de verdade com os botões (sem suporte a text-box, a altura de linha menor já ajuda). */
+.stage-song-head h2{margin:0;min-width:0;line-height:1.15;text-box:trim-both cap alphabetic}
+.stage-song-head .stage-ref,.stage-key{line-height:1}
+/* Mesma cápsula do "Ouvir referência" (borda suave, 34px); só o tom atual ganha destaque. */
+.stage-key{display:inline-flex;align-items:center;gap:2px;height:34px;padding:0 2px;border:1px solid var(--line);border-radius:var(--r-full);font-size:1rem}
+.stage-key-cap{padding:0 4px 0 10px;font-size:.7rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.stage-key-now{min-width:3ch;text-align:center;font-family:var(--font-display);font-size:1rem;color:var(--accent)}
+.stage-key-btn{min-width:36px;height:28px;padding:0 8px;border:none;border-radius:var(--r-full);background:none;color:var(--muted);font:700 .8rem var(--font-ui);cursor:pointer;transition:color var(--t-fast),background-color var(--t-fast)}
+.stage-key-btn:hover{background:var(--surface-2);color:var(--ink)}
+.stage-key-btn:active{transform:scale(.94)}
+/* Músicas seguidas do mesmo medley: linha suave entre elas, com menos espaço. */
+.stage-song.medley-next{margin-top:-1.2em;padding-top:1em;border-top:1px solid;border-image:var(--range-grad) 1}
 .ear-add{display:flex;font-size:.78rem;padding:3px 8px;margin:-2px 0 6px;color:var(--muted);font-family:var(--font-ui)}
 .ear-row.inst .ear-cells{align-items:center}
 .ear-rm{margin-right:4px;flex-shrink:0}
@@ -1032,21 +1132,35 @@ dialog.ear-dlg{width:min(760px,calc(100vw - 24px))}
 .auth-links{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .avatar{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--accent-grad);color:#fff;font:700 .72rem var(--font-ui);flex-shrink:0}
 .avatar.big{width:72px;height:72px;font-size:1.45rem}
+/* No menu lateral o avatar ocupa o mesmo espaço dos ícones (20px), para o item Perfil ter a mesma altura dos outros. */
+.nav-item .avatar{width:24px;height:24px;margin:-2px;font-size:.58rem}
 .avatar{overflow:hidden} .avatar img{box-sizing:border-box;width:100%;height:100%;object-fit:cover;display:block;border-radius:50%}
 /* Foto com anel no gradiente padrão; na grande, uma folga na cor do fundo entre o anel e a foto. */
 .avatar.photo{padding:1px;background:var(--range-grad)}
 .avatar.big.photo{padding:1px} .avatar.big.photo img{border:2px solid var(--surface)}
-.profile-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));align-items:start}
+.profile-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));align-items:stretch}
+/* Lado a lado, os quadros ficam com a mesma altura (o mais baixo estica até o mais alto). */
 .profile-card,.people-card{display:flex;flex-direction:column;gap:14px}
 .profile-card > .btn{align-self:flex-start}
+/* Perfil: mais espaço entre um campo e outro; o texto de ajuda fica colado no campo dele, menor e sem
+   negrito, para não parecer o título do campo seguinte. */
+.profile-card{gap:22px}
+.profile-card .field>small.sub{margin-top:2px;font-size:.76rem;font-weight:400;line-height:1.4;color:var(--muted);opacity:.85}
+.profile-card .sync-status{padding-top:16px;border-top:1px solid var(--line);margin-bottom:-10px}
 .profile-who{display:flex;align-items:center;gap:14px}
 .profile-who > div{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
 .profile-who b{font-size:1.1rem}
 .people-card .sub{margin:-8px 0 0}
 .people-add{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .people-add .input{flex:1;min-width:200px}
+.people-add .people-birthday{flex:0 1 170px;min-width:150px}
 .people-list{list-style:none;margin:0;padding:0}
 .people-list li{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.people-list li:first-child{border-top:none}
+/* Cadastro num quadro próprio, separado da lista; cada parte com seu título pequeno. */
+.people-add-box{display:flex;flex-direction:column;gap:12px;padding:14px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface-2)}
+.people-sub-h{display:flex;align-items:center;gap:8px;margin:6px 0 -4px;font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.people-add-box .people-sub-h{margin:0}
 /* E-mail e o selo Admin juntos à esquerda; "Você" e as ações ficam à direita. */
 .people-who{flex:1 1 220px;min-width:0;display:flex;align-items:center;gap:8px}
 .people-actions{margin-left:auto}
@@ -1172,8 +1286,10 @@ dialog.event-dlg{width:min(640px,calc(100vw - 24px))}
 @media (max-width:520px){ .event-row{grid-template-columns:1fr 1fr} .event-row .field:first-child{grid-column:1 / -1} }
 .roster-h{margin:4px 0 0;font-size:.95rem;display:flex;gap:8px;align-items:baseline}
 .roster-edit{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-.roster-row{display:grid;grid-template-columns:1.3fr 1fr auto;gap:8px;align-items:center}
-@media (max-width:520px){ .roster-row{grid-template-columns:1fr auto} .roster-row .role-input{grid-column:1;grid-row:2} }
+.roster-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+/* Funções da pessoa no evento: botões de marcar, mais de um ao mesmo tempo. */
+.roster-roles{margin-top:6px}
+.roster-roles .role-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .roster-warn{display:flex;align-items:center;gap:6px;margin:4px 0 0;font-size:.8rem;font-weight:600;color:var(--warn)}
 .roster-warn.unavailable,.roster-warn.declined{color:var(--bad)}
 .roster-add{display:flex;gap:8px;flex-wrap:wrap}
@@ -1229,7 +1345,7 @@ dialog.event-dlg{width:min(640px,calc(100vw - 24px))}
 .scale-stats>span:not(.chip){display:inline-flex;align-items:center;gap:4px}
 .scale-stats .ok{color:var(--ok)} .scale-stats .bad{color:var(--bad)}
 .scale-stats .chip{margin-left:auto}
-.home-needs,.home-agenda{display:flex;flex-direction:column;gap:10px}
+.home-needs,.home-agenda,.home-birthdays{display:flex;flex-direction:column;gap:10px}
 .home-needs{border-color:color-mix(in srgb,var(--bad) 35%,var(--line))}
 .home-row{display:flex;align-items:center;gap:12px;width:100%;padding:4px;margin:-4px;border:none;border-radius:var(--r-md);background:none;font:inherit;color:inherit;text-align:left;cursor:pointer;transition:background-color var(--t-fast)}
 .home-row:hover{background:var(--surface-2)}
@@ -1252,3 +1368,20 @@ dialog.event-dlg{width:min(640px,calc(100vw - 24px))}
 .member-roles .sub{font-size:.82rem}
 .member-roles.editing{flex:1 1 100%;flex-direction:column;align-items:stretch;gap:10px;padding:12px;border-radius:var(--r-md);background:var(--surface-2)}
 .member-roles-foot{display:flex;justify-content:flex-end;gap:8px}
+
+/* ---------- aniversariantes (Início) ---------- */
+.people-id{display:flex;flex-direction:column;min-width:0}
+/* Editar nome e data de quem já está na lista: abre embaixo da linha, na largura toda. */
+.people-edit{flex-basis:100%;display:flex;flex-direction:column;gap:6px;padding:4px 0 2px}
+.people-edit-hint{margin:0;font-size:.78rem}
+.home-birthdays h2{display:flex;align-items:center;gap:8px}
+.home-birthdays h2 .i{color:var(--accent)}
+.birthday-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.birthday-list li{display:flex;align-items:center;gap:12px;padding:6px 8px;border-radius:var(--r-md)}
+.birthday-list li.today{background:var(--accent-soft)}
+.birthday-who{flex:1;min-width:0;display:flex;flex-direction:column}
+.birthday-who b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Minhas funções no Perfil: os chips e o lápis na mesma linha, como em Grupo → Membros. */
+.profile-roles .member-roles:not(.editing){gap:6px;font-weight:400}
+.profile-roles .member-roles.editing{font-weight:400}

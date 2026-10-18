@@ -1,17 +1,18 @@
 // Página Repertório: o repertório (ou medley) aberto, com a edição das músicas e a folha A4.
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import { KEYS, MINOR_KEYS, songTitle, sanitizeUrl, youtubeId, parseSong, detectKey } from "../lib/core";
 import { suggestCapo } from "../lib/instruments";
 import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
-import { reduced, vt } from "../lib/util";
+import { reduced, vt, flashSaved } from "../lib/util";
 import { useUI, useData, toast, openDialog, toggleExpanded, go } from "../state";
-import { current, isMedley, openMedley, songItems, arrangementOf, eff, songKey } from "../repertoire";
+import { current, isMedley, openMedley, songItems, arrangementOf, eff, songKey, lastPlayKey } from "../repertoire";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select, type Options } from "../ui/Select";
 import { useSynced } from "../ui/hooks";
+import { useGroups, loadGroups } from "../lib/groups";
 import { Sheet, SheetPane } from "./Sheet";
 import type { Medley, MedleyItem, SongItem, Song } from "../lib/types";
 
@@ -44,7 +45,11 @@ function focusItem(id: string){
 }
 function addItem(type: "" | "letra"){
   const m = current(), s = store.createSong({type});
-  const it = store.newItem(s.id); m.items.push(it); toggleExpanded(it.id, true);
+  const it = store.newItem(s.id);
+  if(isMedley(m) && type !== "letra") it.target = lastPlayKey(m);
+  m.items.push(it);
+  // No medley, só a música nova fica aberta; as anteriores fecham.
+  if(isMedley(m)) useUI.setState({expanded: new Set([it.id])}); else toggleExpanded(it.id, true);
   store.saveMedley(m); setPane("edit");
   focusItem(it.id);
 }
@@ -93,6 +98,8 @@ function removeItem(id: string, li: HTMLElement | null){
 
 export function Repertoire(){
   useData();
+  // Membros do grupo para a lista de quem faz o solo (usa a cópia do aparelho se já houver).
+  useEffect(() => { if(!useGroups.getState().loaded) loadGroups(); }, []);
   const pane = data.settings.pane === "sheet" ? "sheet" : "edit";
   const m = current(), back = data.medleys.get(data.settings.returnTo as string);
   const n = songItems(m).length, off = m.options.transpose || 0;
@@ -175,6 +182,8 @@ function ItemCard({m, it, i}: {m: Medley; it: SongItem; i: number}){
   const song: Song = s;
   const open = useUI(st => st.expanded.has(it.id));
   const ref = useRef<HTMLLIElement>(null);
+  // No medley a música fica mais enxuta: só tom, solo e BPM (sem arranjo, capotraste, quem canta e observações).
+  const med = isMedley(m);
   const letra = song.type === "letra", a = arrangementOf(song, it), e = eff(song, it), arrs = song.arrangements || [];
   const [text, setText] = useSynced(song.text);
   const [bpm, setBpm] = useSynced(song.bpm || "");
@@ -188,7 +197,7 @@ function ItemCard({m, it, i}: {m: Medley; it: SongItem; i: number}){
   // Sugestão de capotraste para quem toca cordas (desenhos fáceis no tom de execução).
   const inst = instrument(), playKey = e.target || key;
   const sug = !letra && playKey ? suggestCapo(playKey, inst) : null;
-  const showHint = !!sug && e.capo !== String(sug.capo);
+  const showHint = !med && !!sug && e.capo !== String(sug.capo);
   const chips: React.ReactNode[] = [];
   if(letra) chips.push(<span key="l" className="chip">{t("item.lyricsOnly")}</span>);
   else {
@@ -198,6 +207,7 @@ function ItemCard({m, it, i}: {m: Medley; it: SongItem; i: number}){
     if(song.bpm) chips.push(<span key="b" className="chip">{t("sheet.bpm", {n:song.bpm})}</span>);
   }
   if(it.singer) chips.push(<span key="s" className="chip">{it.singer}</span>);
+  if(!letra && it.solo) chips.push(<span key="so" className="chip">{t("sheet.solo", {name: it.solo})}</span>);
   const toggle = () => {
     toggleExpanded(it.id);
     if(!open) setTimeout(() => ref.current?.querySelector("textarea")?.focus({preventScroll:true}), 120);
@@ -224,32 +234,48 @@ function ItemCard({m, it, i}: {m: Medley; it: SongItem; i: number}){
         <button type="button" className="btn soft sm" data-a="ear" data-tip-key="tip.ear" disabled={!song.title} onClick={ear}><Icon name="music" sm/> {t("ear.open")}</button></div>
       <textarea className="input song-text" spellCheck={false} aria-label={t("item.textAria", {n:i+1})} placeholder={t(letra ? "item.phLyrics" : "item.phChords")}
         value={text} onChange={ev => { setText(ev.target.value); song.text = ev.target.value; song.title = songTitle(ev.target.value); saveSong(); }}/>
-      <div className="fields">
-        <label className="field wide" hidden={letra}>{t("arr.label")}<span className="arr-row">
+      <div className={"fields" + (med ? " med" : "")}>
+        <label className="field wide" hidden={letra || med}>{t("arr.label")}<span className="arr-row">
           <Select f="arr" value={a ? a.id : ""} options={[{value: "", label: t("arr.none")}, ...arrs.map(x => ({value: x.id, label: x.name}))]}
             onChange={v => { it.arrangementId = v; store.saveMedley(m); }} className="arr-select"/>
           <button type="button" className="btn ghost sm" data-a="arr-save" onClick={() => openDialog("arr", {medley: m, song, item: it})}><Icon name="plus" sm/> {t("arr.save")}</button></span>
           {a && <small className="arr-hint">{t("arr.shared")}</small>}</label>
-        <label className="field" hidden={letra}>{t("item.key")}<Select f="key" value={song.key} options={keyOptions(auto ? t("item.autoKey", {key: auto}) : t("item.auto"))} onChange={v => { song.key = v; saveSong(); }}/></label>
-        <label className="field" hidden={letra}>{t("item.target")}<Select f="target" value={e.target} options={keyOptions(t("item.sameKey"))} onChange={v => setField("target", v)}/></label>
-        <label className="field" hidden={letra}>{t("item.capo")}<Select f="capo" value={e.capo} options={capoOpts} onChange={v => setField("capo", v)}/></label>
+        <label className="field" hidden={letra || med}>{t("item.key")}<Select f="key" value={song.key} options={keyOptions(auto ? t("item.autoKey", {key: auto}) : t("item.auto"))} onChange={v => { song.key = v; saveSong(); }}/></label>
+        {/* No medley há um campo só: o tom em que a música toca (a cifra é transposta para ele). */}
+        <label className="field" hidden={letra}>{t(med ? "item.keyShort" : "item.target")}<Select f="target" value={e.target}
+          options={keyOptions(med ? (key ? t("item.autoKey", {key}) : t("item.auto")) : t("item.sameKey"))} onChange={v => setField("target", v)}/></label>
+        <SoloField hidden={letra} value={it.solo || ""} onChange={v => { it.solo = v; store.saveMedley(m); }}/>
+        <label className="field" hidden={letra || med}>{t("item.capo")}<Select f="capo" value={e.capo} options={capoOpts} onChange={v => setField("capo", v)}/></label>
         <p className="capo-hint wide" data-capo-hint="" hidden={!showHint}>{sug && <>{t("capo.suggest", {inst: t("inst." + inst).toLowerCase(), capo: sug.capo, shape: sug.shapeKey})} <button type="button" className="link-btn" onClick={() => setField("capo", String(sug.capo))}>{t("capo.use")}</button></>}</p>
         <label className="field" hidden={letra}>{t("item.bpm")}<input className="input" data-f="bpm" type="number" inputMode="numeric" min={20} max={300} placeholder="—" value={bpm}
           onChange={ev => { setBpm(ev.target.value); const v = +ev.target.value; song.bpm = v > 0 && v < 400 ? String(Math.round(v)) : ""; saveSong(); }}/></label>
-        <label className="field" style={{gridColumn: "span 2"}}>{t("item.singer")}<input className="input" data-f="singer" maxLength={80} placeholder="—" value={singer}
+        <label className="field" hidden={med}>{t("item.singer")}<input className="input" data-f="singer" maxLength={80} placeholder="—" value={singer}
           onChange={ev => { setSinger(ev.target.value); it.singer = ev.target.value; store.saveMedley(m); }}/></label>
-        <label className="field wide">{t("item.notes")}<input className="input" data-f="notes" maxLength={300} placeholder={t("item.notesPh")} value={notes}
+        <label className="field wide" hidden={med}>{t("item.notes")}<input className="input" data-f="notes" maxLength={300} placeholder={t("item.notesPh")} value={notes}
           onChange={ev => { setNotes(ev.target.value); setField("notes", ev.target.value); }}/></label>
         <label className="field wide">{t("item.ref")}<input className="input" data-f="ref" type="url" inputMode="url" autoComplete="off" placeholder={t("item.refPh")} value={refUrl}
           onChange={ev => setRef(ev.target.value)}
           onBlur={ev => {
             const v = sanitizeUrl(ev.target.value);
             if(ev.target.value.trim() && !v) toast(t("ref.bad"));
+            else if(v !== (song.ref || "")) flashSaved(ev.currentTarget);
             song.ref = v; setRef(v); saveSong();
           }}/></label>
       </div>
     </div></div></div>
   </li>;
+}
+
+// Quem faz o solo: a lista vem dos membros do grupo; sem grupo, escreve o nome. Um nome que não está
+// mais no grupo continua na lista para não sumir.
+function SoloField({hidden, value, onChange}: {hidden: boolean; value: string; onChange: (v: string) => void}){
+  const members = useGroups(s => s.members);
+  const [v, setV] = useSynced(value);
+  const names = [...new Set(members.map(x => x.name || x.email.split("@")[0]))].sort((a, b) => a.localeCompare(b, locale()));
+  if(!names.length) return <label className="field" hidden={hidden}>{t("item.solo")}<input className="input" data-f="solo" maxLength={80} placeholder="—" value={v}
+    onChange={ev => { setV(ev.target.value); onChange(ev.target.value); }}/></label>;
+  if(value && !names.includes(value)) names.push(value);
+  return <label className="field" hidden={hidden}>{t("item.solo")}<Select f="solo" value={value} options={[{value: "", label: "—"}, ...names.map(n => ({value: n, label: n}))]} onChange={onChange}/></label>;
 }
 
 export function openRef(url: string, title: string){

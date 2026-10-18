@@ -1,7 +1,7 @@
 // Rode com: npm test
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, canCheckIn, toICS, splitEvents, dayKey, type GEvent, type RosterRow } from "../src/lib/calendar";
+import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, canCheckIn, toICS, splitEvents, dayKey, upcomingBirthdays, rosterByPerson, type GEvent, type RosterRow } from "../src/lib/calendar";
 
 const ev = (id: string, starts: Date, kind: GEvent["kind"] = "service"): GEvent =>
   ({id, group_id: "g", kind, title: id, starts_at: starts.toISOString(), call_at: null, place: "", notes: "", setlist_id: null});
@@ -78,4 +78,26 @@ test(".ics: formato do calendário, com escape, lembretes e linhas dobradas", ()
   assert.ok(ics.includes("TRIGGER:-P1D") && ics.includes("TRIGGER:-PT2H"));
   for(const line of ics.split("\r\n")) assert.ok(new TextEncoder().encode(line).length <= 75, line);
   assert.ok(ics.endsWith("END:VCALENDAR\r\n"));
+});
+
+test("aniversariantes: próximos 30 dias, do mais perto ao mais longe, virando o ano", () => {
+  const ppl = [{email: "a", birthday: "1990-10-18"}, {email: "b", birthday: "1985-11-05"}, {email: "c", birthday: "2000-12-31"},
+    {email: "d", birthday: null}, {email: "e", birthday: "1999-10-17"}, {email: "f", birthday: "x"}];
+  assert.deepEqual(upcomingBirthdays(ppl, "2026-10-18").map(p => [p.email, p.in]), [["a", 0], ["b", 18]]);
+  assert.deepEqual(upcomingBirthdays(ppl, "2026-12-20").map(p => [p.email, p.in]), [["c", 11]]);
+  assert.equal(upcomingBirthdays([{email: "e", birthday: "1999-10-17"}], "2026-10-18", 400)[0].in, 364);
+});
+
+test("aniversariantes: 29/02 vira 28/02 em ano não bissexto", () => {
+  assert.equal(upcomingBirthdays([{birthday: "2000-02-29"}], "2027-02-20")[0].in, 8);
+  assert.equal(upcomingBirthdays([{birthday: "2000-02-29"}], "2028-02-20")[0].in, 9);
+});
+
+test("escala por pessoa: junta as funções de quem toca e canta", () => {
+  const rows = [{email: "a", role: "Vocal", status: "yes" as const, reason: ""}, {email: "b", role: "Bateria", status: "pending" as const, reason: ""},
+    {email: "a", role: "Violão", status: "yes" as const, reason: ""}, {email: "c", role: "", status: "no" as const, reason: "viagem"}];
+  assert.deepEqual(rosterByPerson(rows), [
+    {email: "a", roles: ["Vocal", "Violão"], status: "yes", reason: ""},
+    {email: "b", roles: ["Bateria"], status: "pending", reason: ""},
+    {email: "c", roles: [], status: "no", reason: "viagem"}]);
 });

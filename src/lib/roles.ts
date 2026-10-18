@@ -21,6 +21,11 @@ export function joinRoles(roles: string[]): string {
   }
   return out;
 }
+// Em ordem alfabética para mostrar ("Baixo, Teclado, Vocal"), sem diferenciar maiúsculas nem acentos.
+// O que fica guardado mantém a ordem em que foram marcadas (a primeira é a sugerida na escala).
+export function sortRoles(roles: string[]): string[] {
+  return [...roles].sort((a, b) => a.localeCompare(b, undefined, {sensitivity: "base"}));
+}
 // Liga ou desliga uma função na lista.
 export function toggleRole(roles: string[], role: string): string[] {
   const k = role.trim().toLocaleLowerCase();

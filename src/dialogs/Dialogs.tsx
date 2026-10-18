@@ -6,7 +6,7 @@ import * as store from "../lib/store";
 import type { IncomingMedley, IncomingSong } from "../lib/share";
 import { norm } from "../lib/util";
 import { useUI, toast, go, openDialog, type DialogProps } from "../state";
-import { current, isMedley, openMedley, eff } from "../repertoire";
+import { current, isMedley, openMedley, eff, lastPlayKey } from "../repertoire";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
@@ -54,7 +54,13 @@ function Picker(){
     {chips}{inMedley.has(value) && <span className="chip accent">{t("picker.inMedley")}</span>}</li>;
   const close = (rv: string) => {
     if(rv !== "ok" || !chosen.size) return;
-    chosen.forEach(v => m.items.push(v.startsWith("m:") ? store.newMedleyItem(v.slice(2)) : store.newItem(v)));
+    chosen.forEach(v => {
+      if(v.startsWith("m:")) return m.items.push(store.newMedleyItem(v.slice(2)));
+      const it = store.newItem(v);
+      // No medley, a música entra no tom da anterior.
+      if(isMedley(m) && data.songs.get(v)?.type !== "letra") it.target = lastPlayKey(m);
+      m.items.push(it);
+    });
     store.saveMedley(m);
     toast(tn("picker.added", chosen.size));
   };

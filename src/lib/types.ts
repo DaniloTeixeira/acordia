@@ -15,8 +15,8 @@ export interface SongEntry {
   ref: string; arrangements: Arrangement[]; updatedAt: number; high?: number;
 }
 
-// O que muda só neste repertório: tom, capo, quem canta, observações e arranjo escolhido.
-export interface ItemFields { target: string; capo: string; singer: string; notes: string; arrangementId: string }
+// O que muda só neste repertório: tom, capo, quem canta, quem faz o solo, observações e arranjo escolhido.
+export interface ItemFields { target: string; capo: string; singer: string; solo?: string; notes: string; arrangementId: string }
 export interface SongItem extends ItemFields { id: string; type: "song"; songId: string }
 export interface MedleyItem { id: string; type: "medley"; medleyId: string }
 export type Item = SongItem | MedleyItem;

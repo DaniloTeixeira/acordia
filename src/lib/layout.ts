@@ -4,8 +4,9 @@ import { lineToDegrees, lineTranspose, transition, mapLineTokens, chordToDegree,
 import { t } from "./i18n";
 import type { Options } from "./types";
 
-export const PW = 595.28, PH = 841.89, M = 32, GAP = 22, CW = 0.632;
-const TITLE_SIZE = 14, META_SIZE = 8.5, TRANS_SIZE = 9.5;
+// Margem pequena (≈6 mm, o que a maioria das impressoras alcança) para aproveitar o A4.
+export const PW = 595.28, PH = 841.89, M = 17, GAP = 18, CW = 0.632;
+const TITLE_SIZE = 14, META_SIZE = 8.5, TRANS_SIZE = 9.5, TITLE_LH = TITLE_SIZE + 2, BOLD = 1.08;
 type RGB = [number, number, number];
 const INK: RGB = [17,17,17], CHORD: RGB = [176,32,26], ACCENT: RGB = [31,78,121], MUTED: RGB = [96,104,116], RULE: RGB = [205,205,205];
 
@@ -18,7 +19,7 @@ export type Op = TextOp | LineOp;
 export type Page = Op[];
 
 export type SheetMode = "cifras" | "graus" | "letra";
-export interface SongMeta { bpm?: string; capo?: string; singer?: string; notes?: string }
+export interface SongMeta { bpm?: string; capo?: string; singer?: string; solo?: string; notes?: string }
 // Música pronta para a folha: blocos, tom, tom de execução e deslocamento.
 export interface SheetSong {
   title: string; blocks: Block[]; key: string; target: string; shift: number;
@@ -72,6 +73,7 @@ function metaLine(s: SheetSong, mode: SheetMode){
   const m = s.meta || {}, parts: string[] = [];
   if(mode !== "letra"){ if(m.bpm) parts.push(t("sheet.bpm", {n:m.bpm})); if(m.capo) parts.push(t("sheet.capo", {n:m.capo})); }
   if(m.singer) parts.push(t("sheet.voice", {name:m.singer}));
+  if(mode !== "letra" && m.solo) parts.push(t("sheet.solo", {name:m.solo}));
   if(m.notes) parts.push(m.notes);
   return parts.join("  ·  ");
 }
@@ -98,17 +100,20 @@ export function layout(songs: SheetSong[], fs: number, k: number, opts: LayoutOp
     if(!L) blocks.forEach(b=>b.forEach(it=>{ if(Math.max((it.chord||"").length,(it.lyric||"").length) > maxCols) tooWide = true; }));
     const meta = metaLine(s, mode);
     const metaLines = meta ? wrapWords(meta, COLW, META_SIZE, measure, "sans") : [];
-    const headH = TH + metaLines.length * (META_SIZE + 3);
+    // Rótulo do medley e título quebram dentro da coluna (em negrito o texto é mais largo que a medida).
+    const groupLines = s.group && (si === 0 || songs[si-1].group !== s.group)
+      ? wrapWords(t("sheet.medleyLabel", {name: s.gname || ""}).toUpperCase(), COLW/BOLD, META_SIZE, measure, "sans") : [];
+    const keyTag = opts.showKey && !L && playKey(s) ? "  (" + playKey(s) + ")" : "";
+    const titleLines = wrapWords(s.title.toUpperCase() + keyTag, COLW/BOLD, TITLE_SIZE, measure, L ? "lex" : "sans");
+    const groupH = groupLines.length ? groupLines.length * (META_SIZE + 3) + 2 : 0;
+    const headH = groupH + TH + (titleLines.length - 1) * TITLE_LH + metaLines.length * (META_SIZE + 3);
     const firstH = blocks.length ? blocks[0].reduce((h,it)=>h+itemH(it),0) : 0;
     if(si>0) y += SG;
     if(y + headH + firstH > bottom && y > M) nextCol();
     // Primeira música de um medley: rótulo com o nome do medley acima do título.
-    if(s.group && (si === 0 || songs[si-1].group !== s.group)){
-      push({t:"text",x:x(),y:y+META_SIZE*0.8,s:META_SIZE,f:"sans",b:true,c:ACCENT,txt:t("sheet.medleyLabel", {name: s.gname || ""}).toUpperCase()});
-      y += META_SIZE + 5;
-    }
-    const keyTag = opts.showKey && !L && playKey(s) ? "  (" + playKey(s) + ")" : "";
-    push({t:"text",x:x(),y:y+TITLE_SIZE*0.85,s:TITLE_SIZE,f:L?"lex":"sans",b:true,c:ACCENT,txt:s.title.toUpperCase() + keyTag});
+    groupLines.forEach(txt => { push({t:"text",x:x(),y:y+META_SIZE*0.8,s:META_SIZE,f:"sans",b:true,c:ACCENT,txt}); y += META_SIZE + 3; });
+    if(groupLines.length) y += 2;
+    titleLines.forEach((txt, ti) => { if(ti){ y += TITLE_LH; } push({t:"text",x:x(),y:y+TITLE_SIZE*0.85,s:TITLE_SIZE,f:L?"lex":"sans",b:true,c:ACCENT,txt}); });
     push({t:"line",x1:x(),x2:x()+COLW,y:y+TITLE_SIZE+3,c:ACCENT,w:0.9});
     y += TH;
     metaLines.forEach(txt=>{ push({t:"text",x:x(),y:y+META_SIZE*0.8,s:META_SIZE,f:"sans",b:false,c:MUTED,txt}); y += META_SIZE + 3; });

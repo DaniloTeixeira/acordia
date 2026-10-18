@@ -1,13 +1,14 @@
 // Conta: tela de entrar (Google ou e-mail e senha), aviso de sem acesso e a página Perfil, com a lista de quem
 // pode entrar para os admins.
 import { useEffect, useRef, useState } from "react";
-import { t, tn } from "../lib/i18n";
-import { useAuth, signIn, signUp, resendConfirmation, pendingConfirm, setPendingConfirm, forgotPassword, setNewPassword, signInWithGoogle, signOut, saveName, listAllowed, addAllowed, setAllowedAdmin, removeAllowed, validEmail, initials, type Allowed } from "../lib/cloud";
+import { t, tn, locale } from "../lib/i18n";
+import { useAuth, signIn, signUp, resendConfirmation, pendingConfirm, setPendingConfirm, forgotPassword, setNewPassword, signInWithGoogle, signOut, saveName, saveBirthday, listAllowed, addAllowed, setAllowedInfo, setAllowedAdmin, removeAllowed, validEmail, initials, type Allowed } from "../lib/cloud";
 import { DEFAULT_POLICY, missing, passes, fromError, isPwned, type PwPolicy, type PwRule } from "../lib/password";
-import { reduced } from "../lib/util";
+import { reduced, flashSaved } from "../lib/util";
 import { toast, confirmDialog } from "../state";
 import { Icon } from "../ui/Icon";
-import { InstrumentSelect } from "./InstrumentSelect";
+import { useGroups, loadGroups, setMemberRole } from "../lib/groups";
+import { MemberRoles } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
 
 const BASE = import.meta.env.BASE_URL;
@@ -292,9 +293,10 @@ export function Profile(){
       <div className="card profile-card">
         <div className="profile-who"><Avatar big/><div><b>{profile?.name || email}</b><span className="sub">{email}</span>{admin && <span className="chip accent">{t("profile.admin")}</span>}</div></div>
         <label className="field"><span>{t("profile.name")}</span><input className="input" id="profile-name" maxLength={80} autoComplete="name" value={name}
-          onChange={e => setName(e.target.value)} onBlur={async () => { if(name.trim() !== (profile?.name || "")) toast(t(await saveName(name) ? "profile.nameSaved" : "profile.saveFail")); }}
+          onChange={e => setName(e.target.value)} onBlur={async e => { const el = e.currentTarget; if(name.trim() !== (profile?.name || "")){ if(await saveName(name)) flashSaved(el); else toast(t("profile.saveFail")); } }}
           onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}/></label>
-        <div className="profile-row"><InstrumentSelect/></div>
+        <BirthdayField/>
+        <MyRoles/>
         <SyncStatus/>
         <SignOut/>
       </div>
@@ -329,20 +331,77 @@ function SignOut(){
   return <button className="btn ghost" id="profile-out" aria-busy={busy} onClick={leave}>{busy ? <Spin/> : <Icon name="back" sm/>} {t("auth.signOut")}</button>;
 }
 
+// As funções da pessoa no grupo aberto (pode ter várias: tocar e cantar). São as que aparecem ao montar
+// a escala. Quem lidera muda as de todos em Grupo → Membros.
+function MyRoles(){
+  const g = useGroups(), me = useAuth(s => s.email), [busy, setBusy] = useState(false);
+  useEffect(() => { if(!useGroups.getState().loaded) loadGroups(); }, []);
+  const group = g.groups.find(x => x.id === g.gid), m = g.members.find(x => x.email === me);
+  if(!group || !m) return null;
+  const save = async (v: string) => { setBusy(true); const ok = await setMemberRole(g.gid, me, v).finally(() => setBusy(false)); toast(t(ok ? "profile.rolesSaved" : "profile.saveFail")); };
+  return <div className="field profile-roles"><span>{t("profile.roles", {group: group.name})}</span>
+    <MemberRoles m={m} editable busy={busy} onSave={save}/>
+    <small className="sub">{t("profile.rolesHint")}</small></div>;
+}
+
+// Hoje no formato do campo de data ("AAAA-MM-DD"), para não aceitar datas no futuro.
+export const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+
+// Data de nascimento no perfil: salva ao mudar (o grupo vê só o dia e o mês, na página Início).
+function BirthdayField(){
+  const saved = useAuth(s => s.profile?.birthday || "");
+  const [v, setV] = useState(saved);
+  useEffect(() => setV(saved), [saved]);
+  const save = async (el: HTMLInputElement) => { if(el.value === saved) return; if(await saveBirthday(el.value)) flashSaved(el); else toast(t("profile.saveFail")); };
+  return <label className="field"><span>{t("profile.birthday")}</span>
+    <input className="input" id="profile-birthday" type="date" max={today()} autoComplete="bday" value={v} onChange={e => setV(e.target.value)} onBlur={e => save(e.currentTarget)}/>
+    <small className="sub">{t("profile.birthdayHint")}</small></label>;
+}
+
+// Dia e mês de uma data de nascimento ("12 de março"), sem o ano.
+const fmtBirthday = (v: string) => new Intl.DateTimeFormat(locale(), {day: "numeric", month: "long", timeZone: "UTC"}).format(new Date(v + "T00:00:00Z"));
+
+// Nome e data de nascimento de quem já está na lista. O que a pessoa já preencheu no próprio perfil
+// aparece travado: só ela muda.
+function PersonEdit({r, onDone}: {r: Allowed; onDone: (saved: boolean) => void}){
+  const [name, setName] = useState(r.profileName || r.name), [birthday, setBirthday] = useState(r.profileBirthday || r.birthday || "");
+  const [busy, setBusy] = useState(false), lock = useLock();
+  const lockedName = !!r.profileName, lockedDate = !!r.profileBirthday;
+  const save = (e: React.FormEvent) => { e.preventDefault(); lock(async () => {
+    setBusy(true);
+    const ok = await setAllowedInfo(r.email, lockedName ? r.name : name, lockedDate ? (r.birthday || "") : birthday).finally(() => setBusy(false));
+    toast(t(ok ? "people.infoSaved" : "profile.saveFail", {email: r.email}));
+    if(ok) onDone(true);
+  }); };
+  return <form className="people-edit" onSubmit={save}>
+    <div className="people-add">
+      <input className="input" maxLength={80} autoComplete="off" placeholder={t("people.namePh")} aria-label={t("profile.name")} value={name} disabled={lockedName} onChange={e => setName(e.target.value)} autoFocus={!lockedName}/>
+      <input className="input people-birthday" type="date" max={today()} aria-label={t("profile.birthday")} title={t("profile.birthday")} value={birthday} disabled={lockedDate} onChange={e => setBirthday(e.target.value)}/>
+      <button type="button" className="btn ghost" onClick={() => onDone(false)}>{t("common.cancel")}</button>
+      <button className="btn primary" disabled={lockedName && lockedDate} aria-busy={busy}>{busy ? <Spin/> : <Icon name="check" sm/>} {t("common.save")}</button>
+    </div>
+    {(lockedName || lockedDate) && <p className="sub people-edit-hint">{t("people.lockedHint")}</p>}
+  </form>;
+}
+
 function People({me}: {me: string}){
   const [rows, setRows] = useState<Allowed[] | null>(null);
-  const [email, setEmail] = useState(""), [asAdmin, setAsAdmin] = useState(false), [busy, setBusy] = useState(false);
+  const [email, setEmail] = useState(""), [name, setName] = useState(""), [birthday, setBirthday] = useState(""), [asAdmin, setAsAdmin] = useState(false), [busy, setBusy] = useState(false);
   // pending: o e-mail da linha com uma mudança em andamento (os botões dela ficam desabilitados).
   const [pending, setPending] = useState("");
+  // editing: o e-mail da linha com o nome e a data abertos para editar.
+  const [editing, setEditing] = useState("");
   const lock = useLock();
-  const load = async () => { const r = await listAllowed(); if(r) setRows(r); else toast(t("profile.loadFail")); };
+  // Falhou: a lista fica vazia com o aviso e o botão de tentar de novo (antes ficava em "Carregando..." para sempre).
+  const [failed, setFailed] = useState(false);
+  const load = async () => { setFailed(false); const r = await listAllowed(); if(r) setRows(r); else { setRows(rows => rows || []); setFailed(true); } };
   useEffect(() => { load(); }, []);
   const add = (e: React.FormEvent) => { e.preventDefault(); lock(async () => {
     const v = email.trim().toLowerCase();
     if(!validEmail(v)) return toast(t("auth.badEmail"));
-    setBusy(true); const ok = await addAllowed(v, asAdmin).finally(() => setBusy(false));
+    setBusy(true); const ok = await addAllowed(v, asAdmin, name, birthday).finally(() => setBusy(false));
     if(!ok) return toast(t("profile.saveFail"));
-    toast(t("people.added", {email: v})); setEmail(""); setAsAdmin(false); await load();
+    toast(t("people.added", {email: v})); setEmail(""); setName(""); setBirthday(""); setAsAdmin(false); await load();
   }); };
   const onRow = (r: Allowed, fn: () => Promise<unknown>) => lock(async () => { setPending(r.email); try{ await fn(); } finally{ setPending(""); } });
   const toggleAdmin = (r: Allowed) => onRow(r, async () => { if(await setAllowedAdmin(r.email, !r.is_admin)) await load(); else toast(t("profile.saveFail")); });
@@ -352,19 +411,30 @@ function People({me}: {me: string}){
   };
   return <div className="card people-card">
     <h2>{t("people.title")}</h2><p className="sub">{t("people.sub")}</p>
-    <form className="people-add" onSubmit={add}>
+    <form className="people-add-box" onSubmit={add}>
+      <h3 className="people-sub-h">{t("people.addTitle")}</h3>
+      <div className="people-add">
+      <input className="input" id="people-name" maxLength={80} autoComplete="off" placeholder={t("people.namePh")} aria-label={t("profile.name")} value={name} onChange={e => setName(e.target.value)}/>
       <input className="input" id="people-email" type="email" inputMode="email" placeholder={t("people.emailPh")} aria-label={t("auth.email")} value={email} onChange={e => setEmail(e.target.value)}/>
+      <input className="input people-birthday" id="people-birthday" type="date" max={today()} aria-label={t("profile.birthday")} title={t("profile.birthday")} value={birthday} onChange={e => setBirthday(e.target.value)}/>
       <label className="switch lead boxed"><span>{t("profile.admin")}</span><input type="checkbox" id="people-admin" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>
       <button className="btn primary" disabled={!email.trim()} aria-busy={busy}>{busy ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
+      </div>
     </form>
+    <h3 className="people-sub-h">{t("people.listTitle")} {rows && rows.length > 0 && <span className="count-chip">{rows.length}</span>}</h3>
     <ul className="people-list" id="people-list">
-      {rows === null ? <li className="sub">{t("auth.loading")}</li> : rows.map(r => <li key={r.email}>
-        <span className="people-who"><span className="people-email">{r.email}</span>
+      {failed && <li className="sub">{t("profile.loadFail")} <button type="button" className="link-btn" onClick={load}>{t("common.retry")}</button></li>}
+      {rows === null ? <li className="sub">{t("auth.loading")}</li> : rows.map(r => {
+        const nm = r.profileName || r.name, bd = r.profileBirthday || r.birthday;
+        return <li key={r.email}>
+        <span className="people-who"><span className="people-id">{nm && <b>{nm}</b>}<span className={nm ? "sub people-email" : "people-email"}>{r.email}{bd && " · " + fmtBirthday(bd)}</span></span>
           {r.is_admin && <span className="chip accent">{t("profile.admin")}</span>}</span>
         {r.email === me ? <span className="chip">{t("people.you")}</span> : <span className="people-actions">
+          <button className="icon-btn sm" aria-label={t("people.edit")} title={t("people.edit")} aria-expanded={editing === r.email} onClick={() => setEditing(editing === r.email ? "" : r.email)}><Icon name="edit" sm/></button>
           <button className="btn ghost sm" aria-busy={pending === r.email} onClick={() => toggleAdmin(r)}>{pending === r.email && <Spin/>}{t(r.is_admin ? "people.unadmin" : "people.makeAdmin")}</button>
           <button className="icon-btn sm danger" aria-label={t("people.remove")} title={t("people.remove")} onClick={() => remove(r)}><Icon name="trash" sm/></button></span>}
-      </li>)}
+        {editing === r.email && <PersonEdit r={r} onDone={async saved => { setEditing(""); if(saved) await load(); }}/>}
+      </li>; })}
     </ul>
   </div>;
 }

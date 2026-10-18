@@ -1,17 +1,17 @@
 // Criar ou editar um evento da agenda do grupo (só quem lidera o grupo): tipo, data, horários, local,
 // repertório, observações, repetição semanal e a escala, com avisos de quem não pode, já está em
-// outro evento no dia ou já recusou.
+// outro evento no dia ou já recusou. Na escala, cada pessoa pode ter mais de uma função (tocar e cantar).
 import { useRef, useState } from "react";
 import { t, tn } from "../lib/i18n";
 import { useGroups, saveEvent, personName, type RosterInput } from "../lib/groups";
-import { warningsFor, monthLoad, weekly, dayKey, type EventKind, type GEvent } from "../lib/calendar";
+import { warningsFor, monthLoad, weekly, dayKey, rosterByPerson, type EventKind, type GEvent } from "../lib/calendar";
 import { toast, type DialogProps } from "../state";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
 import { eventTitle, roleOptions } from "../views/Group";
-import { splitRoles } from "../lib/roles";
+import { splitRoles, sortRoles, toggleRole } from "../lib/roles";
 import { Spin } from "../views/Account";
 
 const hhmm = (iso: string | null) => { if(!iso) return ""; const d = new Date(iso); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
@@ -29,18 +29,19 @@ export function EventDialog({id, day}: DialogProps["event"]){
   const [notes, setNotes] = useState(ev?.notes || "");
   const [setlist, setSetlist] = useState(ev?.setlist_id || "");
   const [weeks, setWeeks] = useState("1");
-  const [roster, setRoster] = useState<RosterInput[]>(() => ev ? g.roster.filter(r => r.event_id === ev.id).map(r => ({email: r.email, role: r.role})) : []);
+  // Uma linha por pessoa, com as funções dela neste evento; ao salvar vira uma linha por função.
+  const [roster, setRoster] = useState<{email: string; roles: string[]}[]>(() => ev ? rosterByPerson(g.roster.filter(r => r.event_id === ev.id)).map(p => ({email: p.email, roles: p.roles})) : []);
   const [busy, setBusy] = useState(false);
   const dirty = useRef(false); const touch = <T,>(fn: (v: T) => void) => (v: T) => { dirty.current = true; fn(v); };
   const form = useRef<HTMLFormElement>(null);
   const starts = date && time ? at(date, time) : null;
   const probe: Pick<GEvent, "id" | "starts_at"> = {id: id || "new", starts_at: (starts || new Date()).toISOString()};
   const load = monthLoad(date || dayKey(new Date()), g.events, g.roster);
-  // Ao escalar, a função sugerida é a primeira da pessoa (quem lidera troca se for outra).
+  // Ao escalar, a função sugerida é a primeira da pessoa; as outras dela aparecem para marcar também.
   const rolesOf = (email: string) => splitRoles(g.members.find(m => m.email === email)?.role || "");
-  const roleOf = (email: string) => rolesOf(email)[0] || "";
+  const firstRole = (email: string) => rolesOf(email).slice(0, 1);
   const memberOpts = [{value: "", label: t("group.pickPerson")}, ...g.members.map(m => ({value: m.email,
-    label: personName(m.email) + (m.role ? " · " + splitRoles(m.role).join(", ") : "") + ((load.get(m.email) || 0) ? " · " + tn("group.load", load.get(m.email)!) : "")}))];
+    label: personName(m.email) + (m.role ? " · " + sortRoles(splitRoles(m.role)).join(", ") : "") + ((load.get(m.email) || 0) ? " · " + tn("group.load", load.get(m.email)!) : "")}))];
   const free = g.members.filter(m => !roster.some(r => r.email === m.email));
   const save = async () => {
     if(!starts) return toast(t("group.needDate"));
@@ -49,7 +50,8 @@ export function EventDialog({id, day}: DialogProps["event"]){
     const input = {kind, title: title.trim().slice(0, 80), starts_at: starts.toISOString(), call_at: callAt ? callAt.toISOString() : null, place: place.trim(), notes: notes.trim(), setlist_id: setlist || null};
     const n = id ? 1 : +weeks;
     const dates = n > 1 ? weekly(starts, n).map((s, i) => ({starts_at: s.toISOString(), call_at: callAt ? new Date(callAt.getFullYear(), callAt.getMonth(), callAt.getDate() + 7 * i, callAt.getHours(), callAt.getMinutes()).toISOString() : null})) : undefined;
-    const ok = await saveEvent(g.gid, id, input, roster, dates).finally(() => setBusy(false));
+    const rows: RosterInput[] = roster.filter(r => r.email).flatMap(r => r.roles.length ? r.roles.map(role => ({email: r.email, role})) : [{email: r.email, role: ""}]);
+    const ok = await saveEvent(g.gid, id, input, rows, dates).finally(() => setBusy(false));
     if(!ok) return toast(t("profile.saveFail"));
     toast(n > 1 ? tn("group.eventsCreated", n) : t("group.eventSaved"));
     dirty.current = false;
@@ -81,21 +83,24 @@ export function EventDialog({id, day}: DialogProps["event"]){
         <h3 className="roster-h">{t("group.roster")} <span className="sub">{tn("group.people", roster.filter(r => r.email).length)}</span></h3>
         <ul className="roster-edit">{roster.map((r, i) => {
           const warns = r.email ? warningsFor(r.email, probe, {events: g.events, roster: g.roster, unavail: g.unavail}, eventTitle) : [];
-          const upd = (p: Partial<RosterInput>) => { dirty.current = true; setRoster(rs => rs.map((x, k) => k === i ? {...x, ...p} : x)); };
+          const upd = (p: Partial<{email: string; roles: string[]}>) => { dirty.current = true; setRoster(rs => rs.map((x, k) => k === i ? {...x, ...p} : x)); };
+          // Quem já está em outra linha não aparece de novo na lista de pessoas.
+          const opts = memberOpts.filter(o => !o.value || o.value === r.email || !roster.some(x => x.email === o.value));
+          const chips = sortRoles(splitRoles([...rolesOf(r.email), ...r.roles].join(",")));
           return <li key={i}>
             <div className="roster-row">
-              <Select value={r.email} aria={t("group.person")} onChange={v => upd({email: v, role: r.role || roleOf(v)})} options={memberOpts}/>
-              <input className="input role-input" list="event-roles" maxLength={40} placeholder={t("group.rolePh")} aria-label={t("group.role")} value={r.role} onChange={e => upd({role: e.target.value})}/>
+              <Select value={r.email} aria={t("group.person")} onChange={v => upd({email: v, roles: r.email === v ? r.roles : firstRole(v)})} options={opts}/>
               <button type="button" className="icon-btn sm danger" aria-label={t("group.removeFromRoster")} title={t("group.removeFromRoster")} onClick={() => { dirty.current = true; setRoster(rs => rs.filter((_, k) => k !== i)); }}><Icon name="x" sm/></button>
             </div>
+            {r.email && <RoleChips roles={chips} value={r.roles} onChange={roles => upd({roles})}/>}
             {warns.map((w, k) => <p key={k} className={"roster-warn " + w.kind} role="status"><Icon name={w.kind === "busy" ? "calendar" : "x"} sm/>
               {w.kind === "unavailable" ? t("group.warnOff") + (w.note ? ": " + w.note : "") : w.kind === "busy" ? t("group.warnBusy", {title: w.title}) : t("group.warnDeclined")}</p>)}
           </li>;
         })}</ul>
         <datalist id="event-roles">{roleOptions().map(r => <option key={r} value={r}/>)}</datalist>
         <div className="roster-add">
-          <button type="button" className="btn ghost sm" id="event-add-person" onClick={() => { dirty.current = true; setRoster(rs => [...rs, {email: "", role: ""}]); }}><Icon name="plus" sm/> {t("group.addPerson")}</button>
-          {free.length > 0 && <button type="button" className="btn ghost sm" onClick={() => { dirty.current = true; setRoster(rs => [...rs.filter(r => r.email), ...free.map(m => ({email: m.email, role: roleOf(m.email)}))]); }}><Icon name="users" sm/> {t("group.addEveryone")}</button>}
+          <button type="button" className="btn ghost sm" id="event-add-person" disabled={!free.length} onClick={() => { dirty.current = true; setRoster(rs => [...rs, {email: "", roles: []}]); }}><Icon name="plus" sm/> {t("group.addPerson")}</button>
+          {free.length > 0 && <button type="button" className="btn ghost sm" onClick={() => { dirty.current = true; setRoster(rs => [...rs.filter(r => r.email), ...free.map(m => ({email: m.email, roles: firstRole(m.email)}))]); }}><Icon name="users" sm/> {t("group.addEveryone")}</button>}
         </div>
         <label className="field"><span>{t("group.notes")}</span><textarea className="input" id="event-notes" rows={3} maxLength={1000} placeholder={t("group.notesPh")} value={notes} onChange={e => touch(setNotes)(e.target.value)}/></label>
       </div>
@@ -103,4 +108,19 @@ export function EventDialog({id, day}: DialogProps["event"]){
         <button className="btn primary" id="event-save" aria-busy={busy}>{busy && <Spin/>}{t("common.save")}</button></div>
     </form>
   </Dialog>;
+}
+
+// Funções da pessoa neste evento: as dela no grupo como botões de marcar (pode marcar mais de uma) e
+// um campo para uma função que ela não tem cadastrada.
+function RoleChips({roles, value, onChange}: {roles: string[]; value: string[]; onChange: (v: string[]) => void}){
+  const [other, setOther] = useState("");
+  const has = (r: string) => value.some(x => x.toLocaleLowerCase() === r.toLocaleLowerCase());
+  const add = () => { const r = other.trim().replace(/,/g, " ").slice(0, 40); if(r && !has(r)) onChange([...value, r]); setOther(""); };
+  return <div className="roster-roles">
+    <div className="role-chips" role="group" aria-label={t("group.roles")}>{roles.map(r =>
+      <button type="button" key={r} className="role-chip" aria-pressed={has(r)} onClick={() => onChange(toggleRole(value, r))}>{has(r) && <Icon name="check" sm/>}{r}</button>)}
+      <input className="input role-input sm" list="event-roles" maxLength={40} placeholder={t("group.roleOther")} aria-label={t("group.roleOther")} value={other}
+        onChange={e => setOther(e.target.value)} onBlur={add} onKeyDown={e => { if(e.key === "Enter"){ e.preventDefault(); add(); } }}/>
+    </div>
+  </div>;
 }

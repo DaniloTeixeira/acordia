@@ -1,16 +1,17 @@
 // Início: o resumo da semana na equipe. O grupo (com o número de eventos, repertórios e membros), as
 // próximas escalas da pessoa com quantos confirmaram, os eventos que precisam de substituto (para quem
-// lidera), a agenda do grupo e um atalho para o último repertório.
+// lidera), os aniversariantes, a agenda do grupo e um atalho para o último repertório.
 import type { ReactNode } from "react";
 import { t, tn, locale } from "../lib/i18n";
 import { useAuth, initials } from "../lib/cloud";
-import { dayKey, splitEvents, type GEvent } from "../lib/calendar";
+import { dayKey, splitEvents, upcomingBirthdays, type GEvent } from "../lib/calendar";
 import { useGroups, chooseGroup, personName, amGroupAdmin } from "../lib/groups";
 import { useUI, useData, go } from "../state";
 import { peekCurrent, openMedley, songItems } from "../repertoire";
 import { Icon } from "../ui/Icon";
 import { Select } from "../ui/Select";
 import { Spin } from "./Account";
+import { sortRoles } from "../lib/roles";
 import { useGroupRefresh, openGroup, eventTitle, StatusChip, fmt, timeOf } from "./Group";
 
 // "hoje", "amanhã", "em 3 dias" (no idioma do app).
@@ -53,6 +54,8 @@ export function Home(){
       {mine.length ? <ul className="home-scroll" id="home-scales">{mine.map(e => <ScaleCard key={e.id} e={e}/>)}</ul>
         : <div className="card empty-state home-empty"><Icon name="calendar"/><span>{t("home.noScales")}</span></div>}
 
+      <Birthdays/>
+
       {needs.length > 0 && <div className="card home-needs">
         <h2>{t("home.needsSub")}</h2>
         <ul className="my-next-list">{needs.map(e => <EventRow key={e.id} e={e} chip={<span className="chip st-no">{tn("group.needSub", g.roster.filter(r => r.event_id === e.id && r.status === "no").length)}</span>}/>)}</ul>
@@ -82,7 +85,7 @@ function ScaleCard({e}: {e: GEvent}){
     <button className={"card scale-card " + e.kind} onClick={() => openGroup("agenda", e.id)}>
       <span className="scale-when"><span>{fmt({weekday: "long"}).format(d)}, {timeOf(e.starts_at)}</span><span>{fmt({day: "numeric", month: "short"}).format(d)}</span></span>
       <b className="scale-title">{eventTitle(e)}</b>
-      <span className="sub scale-rel">{relDay(e.starts_at)}{myRows.some(r => r.role) && " · " + myRows.map(r => r.role).filter(Boolean).join(", ")}</span>
+      <span className="sub scale-rel">{relDay(e.starts_at)}{myRows.some(r => r.role) && " · " + sortRoles(myRows.map(r => r.role).filter(Boolean)).join(", ")}</span>
       <span className="scale-people" aria-hidden="true">{people.slice(0, 7).map(p => <span key={p} className="avatar">{initials({name: personName(p), email: p})}</span>)}
         {people.length > 7 && <span className="avatar more">+{people.length - 7}</span>}</span>
       <span className="scale-stats">
@@ -102,6 +105,23 @@ function EventRow({e, chip}: {e: GEvent; chip: ReactNode}){
     <span className="date-badge"><small>{fmt({weekday: "short"}).format(d)}</small><b>{d.getDate()}</b><small>{fmt({month: "short"}).format(d)}</small></span>
     <span className="my-next-what"><b>{eventTitle(e)}</b><span className="sub">{timeOf(e.starts_at)}{e.place && " · " + e.place}</span></span>
     {chip}</button></li>;
+}
+
+// Aniversariantes do grupo nos próximos 30 dias (só dia e mês; a idade não aparece).
+function Birthdays(){
+  const g = useGroups(), me = useAuth(s => s.email);
+  const list = upcomingBirthdays(g.members, dayKey(new Date()), 30);
+  if(!list.length) return null;
+  const when = (n: number) => new Intl.RelativeTimeFormat(locale(), {numeric: "auto"}).format(n, "day");
+  return <div className="card home-birthdays" id="home-birthdays">
+    <h2><Icon name="gift" sm/> {t("home.birthdays")}</h2>
+    <ul className="birthday-list">{list.map(p => <li key={p.email} className={p.in === 0 ? "today" : ""}>
+      <span className="avatar" aria-hidden="true">{initials({name: personName(p.email), email: p.email})}</span>
+      <span className="birthday-who"><b>{personName(p.email)}{p.email === me && " " + t("group.you")}</b>
+        <span className="sub">{fmt({day: "numeric", month: "long", timeZone: "UTC"}).format(new Date(Date.UTC(2000, p.month - 1, p.day)))}</span></span>
+      <span className={"chip" + (p.in === 0 ? " accent" : "")}>{p.in === 0 ? t("home.birthdayToday") : when(p.in)}</span>
+    </li>)}</ul>
+  </div>;
 }
 
 // Atalho para o último repertório aberto (no app ou direto no Palco).

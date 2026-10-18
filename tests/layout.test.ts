@@ -86,6 +86,15 @@ test("medley: rótulo antes da primeira música do grupo", () => {
   assert.ok(all.indexOf("MEDLEY · ABERTURA") < all.indexOf("UM  (G)"));
 });
 
+test("medley: rótulo e título longos quebram dentro da coluna", () => {
+  const name = "Toda Terra + Sublime + Tu És + Ah, Jesus + Dá-me um Coração";
+  const a = Object.assign(song("Um título de música bem comprido para não caber", 1), {group: "g1", gname: name});
+  const ops = layout([a, song("Dois", 1)], 12, 1, opts({columns: 2})).pages.flat().filter(o => o.t === "text" && o.f === "sans" && o.b);
+  const colW = (595.28 - 2*17 - 18) / 2;
+  assert.ok(ops.filter(o => o.s === 8.5).length > 1, "o rótulo deveria quebrar em mais de uma linha");
+  ops.forEach(o => assert.ok(o.txt.length * o.s * 0.52 * 1.08 <= colW + 0.01, "passou da coluna: " + o.txt));
+});
+
 test("toSVG escapa texto", () => {
   const svg = toSVG([{t:"text", x:0, y:0, s:10, f:"sans", b:false, c:[0,0,0], txt:"<b>&"}], "x");
   assert.ok(svg.includes("&lt;b&gt;&amp;"));

@@ -1,5 +1,5 @@
 // Folha A4 do repertório: modo (cifra, graus, letra), opções, PDF/impressão e as páginas.
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { sanitizeOptions } from "../lib/core";
 import { fit, toSVG, lyricsOnly, type Page, type SheetMode } from "../lib/layout";
 import { toPDF, saveBlob } from "../lib/pdf";
@@ -101,10 +101,12 @@ export function Sheet({m}: {m: Medley}){
     const h = setTimeout(run, 180);
     return () => clearTimeout(h);
   }, [version, lang, mode, m]);
-  const html = useMemo(() => {
-    if(!res || !res.pages.length) return "";
-    const label = t("sheet.label." + mode), total = res.pages.length;
-    return res.pages.map((p, i) => `<div class="paper">${toSVG(p, t("sheet.aria", {label, n:i+1}))}</div>` + (total > 1 ? `<p class="page-label">${t("sheet.page", {n:i+1, total})}</p>` : "")).join("");
+  // Cada folha é um elemento que fica: ao digitar só o desenho de dentro muda, e a animação de
+  // entrada da folha não roda de novo (antes a folha piscava a cada tecla).
+  const svgs = useMemo(() => {
+    if(!res) return [];
+    const label = t("sheet.label." + mode);
+    return res.pages.map((p, i) => toSVG(p, t("sheet.aria", {label, n:i+1})));
   }, [res, mode]);
   const onClick = (e: React.MouseEvent) => {
     const r = (e.target as Element).closest?.("rect.hit") as SVGElement | null;
@@ -114,7 +116,10 @@ export function Sheet({m}: {m: Medley}){
     <p className="note" id="sheet-warn" hidden={!res?.warn}>{res?.warn}</p>
     {res && !res.pages.length
       ? <div className="pages" id="pages"><div className="sheet-empty empty-state"><Icon name="file"/><strong>{t("sheet.emptyTitle")}</strong><span>{t("sheet.emptyText")}</span></div></div>
-      : <div className="pages" id="pages" onClick={onClick} dangerouslySetInnerHTML={{__html: html}}/>}
+      : <div className="pages" id="pages" onClick={onClick}>{svgs.map((svg, i) => <Fragment key={i}>
+          <div className="paper" dangerouslySetInnerHTML={{__html: svg}}/>
+          {svgs.length > 1 && <p className="page-label">{t("sheet.page", {n:i+1, total:svgs.length})}</p>}
+        </Fragment>)}</div>}
   </>;
 }
 export const getLastPages = () => lastPages;

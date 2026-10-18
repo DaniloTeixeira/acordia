@@ -30,8 +30,9 @@ export function peekCurrent(): Medley | null {
 export function openMedley(id: string, {from = ""} = {}){
   store.setSetting("currentMedley", id);
   store.setSetting("returnTo", from);
-  const m = current();
-  useUI.setState({expanded: new Set(m.items.length ? [m.items[m.items.length-1].id] : [])});
+  current();
+  // As músicas abrem todas fechadas.
+  useUI.setState({expanded: new Set()});
 }
 
 export interface PlayItem { it: SongItem; group: string; gname: string }
@@ -56,8 +57,17 @@ export function eff(s: Song, it: SongItem){
 }
 // Tom da música: o escolhido ou o detectado pela cifra.
 export const songKey = (s: Song) => s.key || (s.text.trim() ? detectKey(parseSong(s.text)) : "");
+// Tom em que a última música com cifra do medley toca: a próxima entra nele por padrão.
+export function lastPlayKey(m: Medley){
+  for(let i = m.items.length - 1; i >= 0; i--){
+    const it = m.items[i]; if(it.type === "medley") continue;
+    const s = data.songs.get(it.songId); if(!s || s.type === "letra") continue;
+    const k = eff(s, it).target || songKey(s); if(k) return k;
+  }
+  return "";
+}
 
-export interface SheetEntry extends SheetSong { auto: string; itemId: string; ref: string; meta: {bpm: string; capo: string; singer: string; notes: string} }
+export interface SheetEntry extends SheetSong { auto: string; itemId: string; ref: string; meta: {bpm: string; capo: string; singer: string; solo: string; notes: string} }
 export function sheetSongs(m: Medley): SheetEntry[] {
   let list = songItems(m).map(({it, group, gname}): SheetEntry | null => {
     const s = data.songs.get(it.songId); if(!s || !s.text.trim()) return null;
@@ -74,7 +84,7 @@ export function sheetSongs(m: Medley): SheetEntry[] {
     if(m.options.capoShapes && capo && key){ const real = target || key, k = parseKey(real); if(k){ target = keyName(k, -(+capo)); capo = t("sheet.capoSounds", {n: capo, key: real}); } }
     if(target === key) target = "";
     return Object.assign(p, {key, target, shift: target ? keyShift(key, target) : 0, auto, itemId: it.id, ref: s.ref || "", group, gname,
-      meta: {bpm: letra ? "" : s.bpm, capo, singer: it.singer, notes: e.notes}});
+      meta: {bpm: letra ? "" : s.bpm, capo, singer: it.singer, solo: it.solo || "", notes: e.notes}});
   }).filter((x): x is SheetEntry => !!x);
   if(m.options.dedupe) list = dedupeBlocks(list);
   return list;
@@ -97,8 +107,8 @@ export function medleyPayload(m: Medley){
   const groups: string[] = [], gi = new Map<string, number>();
   const list = songItems(m).map(({it, group, gname}) => {
     const s = data.songs.get(it.songId); if(!s || !s.text.trim()) return null;
-    const e = eff(s, it), o: {text: string; type: string; key: string; bpm: string; ref?: string; target: string; capo: string; singer: string; notes: string; g?: number} =
-      {text:s.text, type:s.type, key:s.key, bpm:s.bpm, ref:s.ref, target:e.target, capo:e.capo, singer:it.singer, notes:e.notes};
+    const e = eff(s, it), o: {text: string; type: string; key: string; bpm: string; ref?: string; target: string; capo: string; singer: string; solo: string; notes: string; g?: number} =
+      {text:s.text, type:s.type, key:s.key, bpm:s.bpm, ref:s.ref, target:e.target, capo:e.capo, singer:it.singer, solo:it.solo || "", notes:e.notes};
     if(group && !isMedley(m)){ if(!gi.has(group)){ gi.set(group, groups.length); groups.push(gname); } o.g = gi.get(group); }
     return o;
   }).filter((x): x is NonNullable<typeof x> => !!x);

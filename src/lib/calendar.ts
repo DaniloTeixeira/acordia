@@ -118,3 +118,34 @@ export function splitEvents(events: GEvent[], now = Date.now()){
   const past = events.filter(e => !upcoming.includes(e)).sort((a, b) => b.starts_at.localeCompare(a.starts_at));
   return {upcoming, past};
 }
+
+// ---------- aniversários ----------
+// Quem faz aniversário de hoje até daqui a `days` dias, do mais próximo ao mais distante. `in` é quantos
+// dias faltam (0 = hoje). Quem nasceu em 29/02 comemora em 28/02 nos anos que não são bissextos.
+export function upcomingBirthdays<T extends {birthday?: string | null}>(people: T[], today: string, days = 30){
+  const [ty, tm, td] = today.split("-").map(Number), t0 = Date.UTC(ty, tm - 1, td);
+  const on = (y: number, m: number, d: number) => {
+    const leap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+    return Date.UTC(y, m - 1, m === 2 && d === 29 && !leap ? 28 : d);
+  };
+  return people.flatMap(p => {
+    const m = /^\d{4}-(\d{2})-(\d{2})$/.exec(p.birthday || ""); if(!m) return [];
+    let at = on(ty, +m[1], +m[2]); if(at < t0) at = on(ty + 1, +m[1], +m[2]);
+    const n = Math.round((at - t0) / 864e5);
+    return n <= days ? [{...p, in: n, day: +m[2], month: +m[1]}] : [];
+  }).sort((a, b) => a.in - b.in);
+}
+
+// ---------- escala por pessoa ----------
+// A escala guarda uma linha por função (a mesma pessoa pode tocar e cantar). Para mostrar, junta as
+// linhas de cada pessoa, na ordem em que aparecem. A resposta é a mesma em todas as linhas da pessoa.
+export interface PersonOnRoster { email: string; roles: string[]; status: Answer; reason: string }
+export function rosterByPerson(rows: Pick<RosterRow, "email" | "role" | "status" | "reason">[]): PersonOnRoster[] {
+  const out = new Map<string, PersonOnRoster>();
+  rows.forEach(r => {
+    const p = out.get(r.email) || {email: r.email, roles: [], status: r.status, reason: r.reason};
+    if(r.role && !p.roles.includes(r.role)) p.roles.push(r.role);
+    out.set(r.email, p);
+  });
+  return [...out.values()];
+}

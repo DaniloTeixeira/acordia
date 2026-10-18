@@ -26,6 +26,16 @@ export function ago(ts?: number){
   return new Date(ts).toLocaleDateString(locale());
 }
 
+// Campo que salva ao sair dele: a borda fica verde e aparece "✓ Salvo" no rótulo por um instante.
+const savedTimers = new WeakMap<Element, ReturnType<typeof setTimeout>>();
+export function flashSaved(input: Element){
+  const f = input.closest(".field"); if(!f) return;
+  clearTimeout(savedTimers.get(f));
+  f.removeAttribute("data-saved"); void (f as HTMLElement).offsetWidth; // reinicia a animação se salvar de novo logo
+  f.setAttribute("data-saved", t("common.saved"));
+  savedTimers.set(f, setTimeout(() => f.removeAttribute("data-saved"), 1800));
+}
+
 // Medida de texto no canvas, com cache: o ajuste da folha mede os mesmos textos dezenas de vezes.
 let mctx: CanvasRenderingContext2D | null = null;
 const mcache = new Map<string, number>();

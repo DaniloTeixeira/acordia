@@ -7,9 +7,9 @@ import * as store from "../lib/store";
 import { useAuth, validEmail, initials } from "../lib/cloud";
 import { encodeMedley, decodeMedley } from "../lib/share";
 import { saveBlob } from "../lib/pdf";
-import { ago, reduced } from "../lib/util";
-import { splitRoles, joinRoles, toggleRole } from "../lib/roles";
-import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, attendanceRate, monthLoad, toICS, type GEvent, type Presence } from "../lib/calendar";
+import { ago, reduced, flashSaved } from "../lib/util";
+import { splitRoles, joinRoles, toggleRole, sortRoles } from "../lib/roles";
+import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, attendanceRate, monthLoad, toICS, rosterByPerson, type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, loadGroups, chooseGroup, createGroup, renameGroup, deleteGroup, addMember, setMemberAdmin, setMemberRole, removeMember,
   shareSetlist, removeSetlist, deleteEvent, respond, checkIn, markAttendance, setUnavailable, personName, amGroupAdmin, type GroupSetlist, type Member } from "../lib/groups";
 import { useUI, useData, toast, openDialog, confirmDialog, go } from "../state";
@@ -17,7 +17,7 @@ import { isMedley, medleyPayload } from "../repertoire";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
-import { useLock, Spin } from "./Account";
+import { useLock, Spin, today } from "./Account";
 
 const { data } = store;
 export type Tab = "agenda" | "setlists" | "members";
@@ -44,7 +44,7 @@ function downloadICS(events: GEvent[], name: string){
     const desc = [gname,
       e.call_at ? t("group.callAt", {time: timeOf(e.call_at)}) : "",
       set ? t("group.setlist") + ": " + set.name : "",
-      roster.length ? roster.map(r => (r.role ? r.role + ": " : "") + personName(r.email)).join("\n") : "",
+      roster.length ? rosterByPerson(roster).map(p => (p.roles.length ? sortRoles(p.roles).join(", ") + ": " : "") + personName(p.email)).join("\n") : "",
       e.notes].filter(Boolean).join("\n\n");
     return {id: e.id, title: eventTitle(e) + (gname ? " · " + gname : ""), start: new Date(e.call_at || e.starts_at), place: e.place, description: desc};
   }));
@@ -172,7 +172,7 @@ function MyNextRow({e}: {e: GEvent}){
   const rows = g.roster.filter(r => r.event_id === e.id && r.email === me), st = rows[0]?.status || "pending";
   const d = new Date(e.starts_at);
   return <li><span className="date-badge"><small>{fmt({weekday: "short"}).format(d)}</small><b>{d.getDate()}</b><small>{fmt({month: "short"}).format(d)}</small></span>
-    <span className="my-next-what"><b>{eventTitle(e)}</b><span className="sub">{timeOf(e.starts_at)} · {rows.map(r => r.role).filter(Boolean).join(", ") || t("group.onRoster")}</span></span>
+    <span className="my-next-what"><b>{eventTitle(e)}</b><span className="sub">{timeOf(e.starts_at)} · {sortRoles(rows.map(r => r.role).filter(Boolean)).join(", ") || t("group.onRoster")}</span></span>
     <StatusChip status={st}/></li>;
 }
 
@@ -242,8 +242,8 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
       <button className="btn danger-solid sm" aria-busy={busy === "no"}>{busy === "no" && <Spin/>}{t("group.sendDecline")}</button>
     </form>}
     {open && <div className="event-more">
-      {roster.length ? <ul className="roster">{roster.map(r => <li key={r.email + r.role} className={"st-" + r.status}>
-        <span className="roster-role">{r.role || "—"}</span><span className="roster-who">{personName(r.email)}{r.email === me && " " + t("group.you")}</span>
+      {roster.length ? <ul className="roster">{rosterByPerson(roster).map(r => <li key={r.email} className={"st-" + r.status}>
+        <span className="roster-role">{sortRoles(r.roles).join(", ") || "—"}</span><span className="roster-who">{personName(r.email)}{r.email === me && " " + t("group.you")}</span>
         <StatusChip status={r.status}/>{r.reason && <span className="roster-reason">“{r.reason}”</span>}</li>)}</ul>
         : <p className="sub">{t("group.noRoster")}</p>}
       {e.notes && <p className="event-notes">{e.notes}</p>}
@@ -315,29 +315,33 @@ function Setlists({canEdit}: {canEdit: boolean}){
 // ---------- membros ----------
 function Members({canEdit}: {canEdit: boolean}){
   const g = useGroups(), me = useAuth(s => s.email), appAdmin = useAuth(s => s.admin);
-  const [email, setEmail] = useState(""), [roles, setRoles] = useState<string[]>([]), [asAdmin, setAsAdmin] = useState(false), [busy, setBusy] = useState(""), lock = useLock();
+  const [email, setEmail] = useState(""), [name, setName] = useState(""), [birthday, setBirthday] = useState(""), [roles, setRoles] = useState<string[]>([]), [asAdmin, setAsAdmin] = useState(false), [busy, setBusy] = useState(""), lock = useLock();
   const group = g.groups.find(x => x.id === g.gid)!;
   const load = monthLoad(dayKey(new Date()), g.events, g.roster);
   const add = (ev: React.FormEvent) => { ev.preventDefault(); lock(async () => {
     const v = email.trim().toLowerCase();
     if(!validEmail(v)) return toast(t("auth.badEmail"));
-    setBusy("add"); const ok = await addMember(g.gid, v, asAdmin, joinRoles(roles)).finally(() => setBusy(""));
+    setBusy("add"); const ok = await addMember(g.gid, v, asAdmin, joinRoles(roles), name, birthday).finally(() => setBusy(""));
     if(!ok) return toast(t("profile.saveFail"));
-    toast(t("group.memberAdded", {email: v})); setEmail(""); setRoles([]); setAsAdmin(false);
+    toast(t("group.memberAdded", {email: v})); setEmail(""); setName(""); setBirthday(""); setRoles([]); setAsAdmin(false);
   }); };
   const row = (m: Member, key: string, fn: () => Promise<boolean>, ok = "group.saved") => lock(async () => { setBusy(m.email + key); const r = await fn().finally(() => setBusy("")); toast(t(r ? ok : "profile.saveFail", {email: m.email})); });
   return <div className="profile-grid">
     <div className="card people-card">
       <h2>{t("group.membersTab")}</h2>
       {canEdit && <><p className="sub">{t("group.addSub")}</p>
-        <form className="member-add" onSubmit={add}>
+        <form className="member-add people-add-box" onSubmit={add}>
+          <h3 className="people-sub-h">{t("group.addTitle")}</h3>
           <div className="people-add">
+            <input className="input" id="member-name" maxLength={80} autoComplete="off" placeholder={t("people.namePh")} aria-label={t("profile.name")} value={name} onChange={e => setName(e.target.value)}/>
             <input className="input" id="member-email" type="email" inputMode="email" placeholder={t("people.emailPh")} aria-label={t("auth.email")} value={email} onChange={e => setEmail(e.target.value)}/>
+            <input className="input people-birthday" id="member-birthday" type="date" max={today()} aria-label={t("profile.birthday")} title={t("profile.birthday")} value={birthday} onChange={e => setBirthday(e.target.value)}/>
             <label className="switch lead boxed"><span>{t("group.leader")}</span><input type="checkbox" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>
             <button className="btn primary" disabled={!email.trim()} aria-busy={busy === "add"}>{busy === "add" ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
           </div>
           <RolePicker value={roles} onChange={setRoles}/>
         </form></>}
+      <h3 className="people-sub-h">{t("group.listTitle")} <span className="count-chip">{g.members.length}</span></h3>
       <ul className="people-list members">{g.members.map(m => {
         const rate = attendanceRate(m.email, g.events, g.attendance), n = load.get(m.email) || 0;
         return <li key={m.email}>
@@ -365,13 +369,13 @@ function Members({canEdit}: {canEdit: boolean}){
 const ROLES = ["lead", "voice", "back", "acoustic", "guitar", "bass", "keys", "drums", "perc", "sound", "media"];
 export function roleOptions(){
   const g = useGroups.getState();
-  return splitRoles([...ROLES.map(r => t("group.roles." + r)), ...g.members.map(m => m.role), ...g.roster.map(r => r.role)].join(","));
+  return sortRoles(splitRoles([...ROLES.map(r => t("group.roles." + r)), ...g.members.map(m => m.role), ...g.roster.map(r => r.role)].join(",")));
 }
 // Botões para ligar e desligar cada função, e um campo para incluir outra.
 function RolePicker({value, onChange}: {value: string[]; onChange: (v: string[]) => void}){
   const [other, setOther] = useState("");
   const has = (r: string) => value.some(x => x.toLocaleLowerCase() === r.toLocaleLowerCase());
-  const opts = splitRoles([...roleOptions(), ...value].join(","));
+  const opts = sortRoles(splitRoles([...roleOptions(), ...value].join(",")));
   const add = () => { const r = other.trim().replace(/,/g, " "); if(r && !has(r)) onChange([...value, r]); setOther(""); };
   return <div className="role-picker">
     <span className="lbl">{t("group.roles")}</span>
@@ -385,9 +389,9 @@ function RolePicker({value, onChange}: {value: string[]; onChange: (v: string[])
   </div>;
 }
 // Funções de um membro: os chips, e o lápis para quem pode mudar (quem lidera, ou a própria pessoa).
-function MemberRoles({m, editable, busy, onSave}: {m: Member; editable: boolean; busy: boolean; onSave: (v: string) => void}){
+export function MemberRoles({m, editable, busy, onSave}: {m: Member; editable: boolean; busy: boolean; onSave: (v: string) => void}){
   const [editing, setEditing] = useState<string[] | null>(null);
-  const roles = splitRoles(m.role);
+  const roles = sortRoles(splitRoles(m.role));
   if(editing) return <div className="member-roles editing">
     <RolePicker value={editing} onChange={setEditing}/>
     <div className="member-roles-foot">
@@ -409,7 +413,7 @@ function GroupSettings({appAdmin}: {appAdmin: boolean}){
   return <div className="card people-card">
     <h2>{t("group.settings")}</h2>
     <label className="field"><span>{t("group.name")}</span><input className="input" id="group-rename" maxLength={80} value={name} onChange={e => setName(e.target.value)}
-      onBlur={() => { if(name.trim() && name.trim() !== group.name) lock(async () => toast(t(await renameGroup(g.gid, name) ? "group.saved" : "profile.saveFail"))); }}
+      onBlur={e => { const el = e.currentTarget; if(name.trim() && name.trim() !== group.name) lock(async () => { if(await renameGroup(g.gid, name)) flashSaved(el); else toast(t("profile.saveFail")); }); }}
       onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}/></label>
     {appAdmin && <><h3>{t("group.newGroup")}</h3><NewGroup/>
       <button className="btn ghost danger" onClick={async () => {

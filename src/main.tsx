@@ -7,7 +7,6 @@ import { setLang, detectLang, t, getLang } from "./lib/i18n";
 import { setTimbre, setCues } from "./lib/audio";
 import { clearMeasureCache } from "./lib/util";
 import { useUI, toast, VIEWS, viewFromHash, viewUrl, type View } from "./state";
-import { peekCurrent } from "./repertoire";
 import { initMetro } from "./metro";
 import { initAuth, useAuth } from "./lib/cloud";
 import { initSync } from "./lib/sync";
@@ -16,11 +15,6 @@ import { App, applyTheme, applyVolume, theme } from "./App";
 
 await store.init(() => toast(t("lib.saveFail")));
 setLang((store.data.settings.lang as string) || detectLang());
-// Sem repertório nenhum, um novo só é criado quando a página Repertório abrir.
-const m = peekCurrent();
-// Com uma música só, ou com alguma ainda vazia, os itens já abrem para editar.
-if(m && (m.items.length === 1 || m.items.some(i => i.type !== "medley" && !(store.data.songs.get(i.songId) || {text: ""}).text.trim())))
-  useUI.setState({expanded: new Set(m.items.map(i => i.id))});
 // A página do endereço vence a última aberta; o endereço passa a mostrar a página aberta.
 const saved = store.data.settings.view as View;
 const view = viewFromHash() ?? (VIEWS.includes(saved) ? saved : "home");

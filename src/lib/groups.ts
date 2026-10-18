@@ -3,11 +3,12 @@
 // (supabase/migrations/20261017180000_grupos.sql). A última leitura fica guardada no aparelho para a
 // agenda abrir sem internet; mudar precisa de internet.
 import { create } from "zustand";
-import { cloud, useAuth } from "./cloud";
+import { cloud, useAuth, validBirthday } from "./cloud";
+import { ROLES_MAX } from "./roles";
 import type { GEvent, RosterRow, AttendanceRow, Unavail, Answer, Presence, EventKind } from "./calendar";
 
 export interface Group { id: string; name: string }
-export interface Member { email: string; is_admin: boolean; role: string; name: string }
+export interface Member { email: string; is_admin: boolean; role: string; name: string; birthday?: string | null }
 export interface GroupSetlist { id: string; group_id: string; source_id: string; name: string; songs: number; code: string; shared_by: string; updated_at: string }
 
 interface GroupState {
@@ -82,8 +83,8 @@ export function loadGroups(gid?: string): Promise<void> {
         if(r.error) throw r.error; if(a.error) throw a.error;
         roster = roster.concat(r.data as RosterRow[]); attendance = attendance.concat(a.data as AttendanceRow[]);
       }
-      const names = new Map((people.data as {email: string; name: string}[]).map(p => [p.email, p.name]));
-      const members = (mem.data as Omit<Member, "name">[]).map(m => ({...m, name: names.get(m.email) || ""}));
+      const people_ = new Map((people.data as {email: string; name: string; birthday: string | null}[]).map(p => [p.email, p]));
+      const members = (mem.data as Omit<Member, "name">[]).map(m => ({...m, name: people_.get(m.email)?.name || "", birthday: people_.get(m.email)?.birthday || null}));
       useGroups.setState({groups, gid: cur, members, setlists: sets.data as GroupSetlist[], events: evs.data as GEvent[], roster, attendance,
         unavail: un.data as Unavail[], loading: false, error: false, loaded: true});
       saveCache();
@@ -123,12 +124,16 @@ export async function deleteGroup(gid: string){
   if(ok){ useGroups.setState({gid: ""}); await loadGroups(); }
   return ok;
 }
-export const addMember = (gid: string, email: string, admin: boolean, role: string) =>
-  run(() => cloud.rpc("add_group_member", {gid, member_email: email.trim().toLowerCase(), admin, member_role: role.trim().slice(0, 40)}));
+export const addMember = (gid: string, email: string, admin: boolean, role: string, name = "", birthday = "") => run(async () => {
+  const base = {gid, member_email: email.trim().toLowerCase(), admin, member_role: role.trim().slice(0, ROLES_MAX)};
+  const r = await cloud.rpc("add_group_member", {...base, member_name: name.trim().slice(0, 80), member_birthday: validBirthday(birthday) || null});
+  // Banco ainda sem a versão com nome e data (antes da migração subir): adiciona sem eles.
+  return r.error ? cloud.rpc("add_group_member", base) : r;
+});
 export const setMemberAdmin = (gid: string, email: string, admin: boolean) => run(() => cloud.from("group_members").update({is_admin: admin}).eq("group_id", gid).eq("email", email));
 export const setMemberRole = (gid: string, email: string, role: string) => email === myEmail() && !amGroupAdmin()
-  ? run(() => cloud.rpc("set_my_role", {gid, member_role: role.trim().slice(0, 40)}))
-  : run(() => cloud.from("group_members").update({role: role.trim().slice(0, 40)}).eq("group_id", gid).eq("email", email));
+  ? run(() => cloud.rpc("set_my_role", {gid, member_role: role.trim().slice(0, ROLES_MAX)}))
+  : run(() => cloud.from("group_members").update({role: role.trim().slice(0, ROLES_MAX)}).eq("group_id", gid).eq("email", email));
 export const removeMember = (gid: string, email: string) => run(() => cloud.from("group_members").delete().eq("group_id", gid).eq("email", email));
 
 // Repertório compartilhado: o código do link (#m=...). Compartilhar de novo o mesmo repertório atualiza.

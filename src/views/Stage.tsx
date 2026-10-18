@@ -15,7 +15,7 @@ import { metro } from "../metro";
 import { openRef } from "./Repertoire";
 import { sheetMode } from "./Sheet";
 
-const stageFsDefault = () => innerWidth < 700 ? 19 : 24;
+const stageFsDefault = () => innerWidth < 500 ? 17 : innerWidth < 700 ? 19 : 24;
 // Tela larga (tablet deitado, computador): a lista de músicas fica ao lado da cifra.
 const wide = () => matchMedia("(min-width:1000px)").matches;
 const FOCUS_STEPS = {ios: ["stage.focus.ios1", "stage.focus.ios2", "stage.focus.ios3", "stage.focus.ios4"],
@@ -134,12 +134,17 @@ export function Stage(){
     </div>
     {src.length > 0 && <div className="stage-nav" id="stage-nav">
       <button className="icon-btn" id="stage-prev" aria-label={t("stage.prevSong")} title={t("stage.prevSong")} disabled={cur <= 0} onClick={() => goSong(cur - 1)}><Icon name="back"/></button>
-      <button className="stage-now" id="stage-now" aria-expanded={listOpen} aria-controls="stage-list" title={t("stage.songs")} onClick={toggleList}>
-        <Icon name="list"/><span className="stage-pos">{t("stage.pos", {n: cur + 1, total: src.length})}</span>
+      <button className="stage-now" id="stage-now" aria-expanded={listOpen} aria-controls="stage-list" onClick={toggleList}>
+        {/* Diz o que o botão faz (ver a lista de músicas ou fechar), antes da posição e do nome da música. */}
+        <span className="stage-now-cta">{/* Os dois textos ocupam o mesmo lugar e só um aparece: a largura não muda ao abrir/fechar. */}
+          <span className="stage-now-cta-txt"><span className={listOpen ? "off" : ""} aria-hidden={listOpen}>{t("stage.listShow")}</span><span className={listOpen ? "" : "off"} aria-hidden={!listOpen}>{t("stage.listHide")}</span></span><Icon name="chev" sm className="stage-now-chev"/></span>
+        <span className="stage-pos">{t("stage.pos", {n: cur + 1, total: src.length})}</span>
         <span className="stage-now-title">{src[cur]?.title}</span>
       </button>
       <button className="icon-btn" id="stage-next" aria-label={t("stage.nextSong")} title={t("stage.nextSong")} disabled={cur >= src.length - 1} onClick={() => goSong(cur + 1)}><Icon name="back" className="flip"/></button>
     </div>}
+    {/* Quanto do repertório já passou: o gradiente vai se revelando a cada música. */}
+    {src.length > 1 && <div className="stage-progress" aria-hidden="true"><span style={{clipPath: `inset(0 ${100 - (cur + 1) / src.length * 100}% 0 0)`}}/></div>}
     <div className="stage-metro" id="stage-metro-panel" hidden={!metroOpen}>{metroOpen && <MetronomeUI compact/>}</div>
     {focusOpen && <div className="stage-focus" id="stage-focus-panel">
       <strong>{t("stage.focusTitle")}</strong>
@@ -165,18 +170,23 @@ export function Stage(){
         {!src.length && <div className="empty-state"><strong>{t("stage.empty")}</strong><span>{t("stage.emptyText")}</span></div>}
         {src.map((s, si) => {
           const key = s.target || s.key;
-          const meta = [!L && s.meta.bpm && t("sheet.bpm", {n:s.meta.bpm}), !L && s.meta.capo && t("sheet.capo", {n:s.meta.capo}), s.meta.singer && t("sheet.voice", {name:s.meta.singer}), s.meta.notes].filter(Boolean).join(" · ");
+          const meta = [!L && s.meta.bpm && t("sheet.bpm", {n:s.meta.bpm}), !L && s.meta.capo && t("sheet.capo", {n:s.meta.capo}), s.meta.singer && t("sheet.voice", {name:s.meta.singer}), !L && s.meta.solo && t("sheet.solo", {name:s.meta.solo}), s.meta.notes].filter(Boolean).join(" · ");
           const next = src[si+1], tr = m.options.transitions && !L && next ? transition(key, next.target || next.key) : null;
           const group = s.group && (si === 0 || src[si-1].group !== s.group);
           return <div key={si} style={{display: "contents"}}>
             {group && <p className="stage-group"><Icon name="link" sm/> {t("sheet.medleyLabel", {name: s.gname || ""})}</p>}
-            <section className={"stage-song" + (si === src.length - 1 ? " last" : "")}>
-              <h2>{s.title}{key && !L && <> <small>({key})</small>
-                <span className="stage-tr">
-                  <button className="icon-btn sm" aria-label={t("stage.down")} title={t("stage.down")} onClick={e => { e.stopPropagation(); shiftItemKey(s.itemId, -1); }}>−</button>
-                  <button className="icon-btn sm" aria-label={t("stage.up")} title={t("stage.up")} onClick={e => { e.stopPropagation(); shiftItemKey(s.itemId, 1); }}>+</button>
-                </span></>}</h2>
-              {(meta || s.ref) && <p className="meta">{meta} {s.ref && <button className="btn soft sm stage-ref" onClick={e => { e.stopPropagation(); openRef(s.ref, s.title); }}><Icon name="play" sm/> {t("ref.listen")}</button>}</p>}
+            {/* Entre as músicas de um mesmo medley, uma linha suave. */}
+            <section className={"stage-song" + (si === src.length - 1 ? " last" : "") + (s.group && !group ? " medley-next" : "")}>
+              <div className="stage-song-head"><h2>{s.title}</h2>
+                {s.ref && <button className="stage-ref" onClick={e => { e.stopPropagation(); openRef(s.ref, s.title); }}><Icon name="play" sm/> {t("ref.listen")}</button>}
+                {/* Tom alinhado à esquerda: legenda e o tom atual entre baixar e subir meio tom. */}
+                {key && !L && <div className="stage-key" role="group" aria-label={t("stage.key")}>
+                  <span className="stage-key-cap">{t("stage.key")}</span>
+                  <button className="stage-key-btn" aria-label={t("stage.down")} title={t("stage.down")} onClick={e => { e.stopPropagation(); shiftItemKey(s.itemId, -1); }}>−½</button>
+                  <b className="stage-key-now">{key}</b>
+                  <button className="stage-key-btn" aria-label={t("stage.up")} title={t("stage.up")} onClick={e => { e.stopPropagation(); shiftItemKey(s.itemId, 1); }}>+½</button>
+                </div>}</div>
+              {meta && <p className="meta">{meta}</p>}
               {s.blocks.map((b, bi) => <div key={bi} className="stage-block">{b.map((it, ii) => <div key={ii} style={{display: "contents"}}>
                 {it.chord !== undefined && it.chord !== null && !L && <p className="stage-line ch"><ChordSpans cl={chordLine(it.chord, s, mode, m.options.degreeStyle)} songKey={key}/></p>}
                 {it.lyric !== undefined && <p className="stage-line">{it.lyric}</p>}

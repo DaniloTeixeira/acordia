@@ -65,7 +65,9 @@ export function parseSong(text: string, plain?: boolean): ParsedSong {
   for(let j=0;j<lines.length;j++){
     const l = lines[j];
     if(!l.trim()){ if(cur.length){blocks.push(cur);cur=[];} continue; }
-    if(!plain && isChordLine(l)){
+    // Só a letra: as linhas de cifra saem e a letra perde os "_" e os espaços de alinhar com os acordes.
+    if(plain){ if(!isChordLine(l)){ const t = l.replace(/_+/g,"").replace(/\s+/g," ").trim(); if(t) cur.push({kind:"lyric",lyric:t}); } continue; }
+    if(isChordLine(l)){
       const next = lines[j+1];
       const interlude = normInterlude(l);
       if(!interlude && next && next.trim() && !isChordLine(next)){ cur.push({kind:"pair",chord:l,lyric:next}); j++; }
@@ -565,7 +567,7 @@ export function sanitizeOptions(o: Raw): Options {
 export function sanitizeItem(it: Raw): ItemFields | null {
   if(!it || typeof it !== "object") return null;
   const capo = Number.isInteger(+it.capo) && +it.capo > 0 && +it.capo < 12 ? String(+it.capo) : "";
-  return {target: validKey(it.target), capo, singer: str(it.singer).slice(0, 80), notes: str(it.notes).slice(0, 300),
+  return {target: validKey(it.target), capo, singer: str(it.singer).slice(0, 80), solo: str(it.solo).slice(0, 80), notes: str(it.notes).slice(0, 300),
     arrangementId: str(it.arrangementId).slice(0, 40)};
 }
 // Arranjos de uma música: versões nomeadas (tom, capo, observações).

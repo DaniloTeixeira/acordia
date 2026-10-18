@@ -26,9 +26,9 @@ test("parseSong separa título, pares cifra/letra e remove marcações", () => {
   assert.equal(s.blocks[2][0].kind, "chord");
 });
 
-test("parseSong em modo só letra não procura acordes", () => {
-  const s = C.parseSong("T\nC G\nletra", true);
-  assert.deepEqual(s.blocks[0].map(i => i.kind), ["lyric", "lyric"]);
+test("parseSong em modo só letra tira as linhas de cifra e limpa a letra", () => {
+  const s = C.parseSong("T\nC G\nobede_cer   a   Ti\n\nAmo Te Dia", true);
+  assert.deepEqual(s.blocks.map(b => b.map(i => [i.kind, i.lyric])), [[["lyric", "obedecer a Ti"]], [["lyric", "Amo Te Dia"]]]);
 });
 
 test("dedupeBlocks remove blocos repetidos", () => {
@@ -237,8 +237,9 @@ test("sanitizeOptions e sanitizeItem", () => {
   assert.deepEqual(C.sanitizeOptions(null), C.DEFAULT_OPTIONS);
   assert.deepEqual(C.sanitizeOptions({columns: 3, maxPages: 9, minFont: 2, degreeStyle: "x", dedupe: "s"}),
     Object.assign({}, C.DEFAULT_OPTIONS, {columns: "auto", maxPages: 2, minFont: 7}));
-  assert.deepEqual(C.sanitizeItem({target: "Q", capo: "14", singer: 5, notes: "ok"}), {target: "", capo: "", singer: "", notes: "ok", arrangementId: ""});
-  assert.deepEqual(C.sanitizeItem({target: "Am", capo: 3, arrangementId: "a1"}), {target: "Am", capo: "3", singer: "", notes: "", arrangementId: "a1"});
+  assert.deepEqual(C.sanitizeItem({target: "Q", capo: "14", singer: 5, notes: "ok"}), {target: "", capo: "", singer: "", solo: "", notes: "ok", arrangementId: ""});
+  assert.deepEqual(C.sanitizeItem({target: "Am", capo: 3, arrangementId: "a1"}), {target: "Am", capo: "3", singer: "", solo: "", notes: "", arrangementId: "a1"});
+  assert.equal(C.sanitizeItem({solo: "x".repeat(90)}).solo.length, 80);
 });
 
 test("arranjos importados são validados", () => {
