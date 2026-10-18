@@ -6156,7 +6156,8 @@ dialog.ear-dlg {
 }
 /* Recolher o card (ui/Fold.tsx): só com os cards um abaixo do outro, ou seja, quando a grade não cabe duas
    colunas de 360 px (2 × 360 + 16 de gap = 736). Lado a lado, o botão não aparece e todos ficam abertos. */
-.fold-btn {
+.fold-btn,
+.fold-title {
   display: none;
 }
 @container (max-width: 735.98px) {
@@ -6174,8 +6175,17 @@ dialog.ear-dlg {
   .foldable > .card-top {
     padding-right: 40px;
   }
-  .folded > .card-body {
+  /* Recolhido: só o título. O topo sem título (foto e nome do Perfil) dá lugar ao .fold-title; no topo com
+     título, some o resto (a explicação). */
+  /* Com .profile-grid > .card na frente, para ganhar de .profile-grid .card-body/.card-top (display: flex). */
+  .profile-grid > .card.folded > .card-body,
+  .profile-grid > .card.folded > .card-top:not(:has(> h2)),
+  .profile-grid > .card.folded > .card-top > :not(h2) {
     display: none;
+  }
+  .profile-grid > .card.folded > .fold-title {
+    display: block;
+    padding-right: 40px;
   }
   /* Fechado, o card do Perfil (subgrid de 2 linhas) fica só com a linha do topo, sem o vão da segunda. */
   .profile-grid > .card.foldable.folded {
