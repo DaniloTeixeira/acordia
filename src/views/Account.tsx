@@ -327,7 +327,7 @@ export function Profile(){
       {/* Cada card tem o topo (card-top) e o corpo (card-body): lado a lado, os topos dividem a mesma altura
           (subgrid no CSS) e os quadros de campos dos dois começam na mesma linha. */}
       <div className="card profile-card">
-        <div className="card-top"><div className="profile-who"><PhotoButton/><div><b>{profile?.name || email}</b><span className="sub">{email}</span>{admin && <span className="chip accent">{t("profile.admin")}</span>}
+        <div className="card-top"><div className="profile-who"><PhotoButton/><div><span className="people-name"><b>{profile?.name || email}</b>{admin && <span className="chip accent">{t("profile.admin")}</span>}</span><span className="sub">{email}</span>
           <PhotoActions/></div></div></div>
         <div className="card-body">
         {/* Nome, celular e nascimento num quadro com título, como o "Adicionar pessoa" ao lado; na mesma linha

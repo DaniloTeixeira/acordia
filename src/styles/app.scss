@@ -6043,7 +6043,7 @@ dialog.ear-dlg {
   opacity: 0;
   cursor: pointer;
 }
-/* Prévias com o mesmo anel do avatar: 72 px (Perfil) e 32 px (listas). */
+/* Prévias com o mesmo anel do avatar: 75 px (Perfil) e 32 px (listas). */
 .photo-pv {
   display: block;
   width: 32px;
@@ -6054,8 +6054,8 @@ dialog.ear-dlg {
   flex-shrink: 0;
 }
 .photo-pv.big {
-  width: 72px;
-  height: 72px;
+  width: 75px;
+  height: 75px;
 }
 .photo-pv > span {
   display: block;
@@ -6235,7 +6235,6 @@ dialog.ear-dlg {
 .profile-foot {
   padding: 10px 0;
   min-height: 65px;
-  border-top: 1px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -6320,8 +6319,9 @@ dialog.ear-dlg {
   text-transform: uppercase;
   color: var(--muted);
 }
+/* Um pequeno respiro entre a linha do cabeçalho e a primeira pessoa (o card separa os itens por 14 px). */
 .people-list-head + .people-list {
-  margin-top: -14px;
+  margin-top: -6px;
 }
 /* O que falta na pessoa (nome, celular): texto apagado e em itálico no lugar, para a linha ter a mesma altura. */
 .people-missing {
@@ -6333,17 +6333,17 @@ dialog.ear-dlg {
 .phone-link.people-missing .i {
   color: var(--muted);
 }
-/* Avatar do card do perfil: maior que o grande padrão (72 px). */
+/* Avatar do card do perfil: a altura do texto ao lado (nome, e-mail e "Trocar foto"), cerca de 75 px. */
 .profile-who .avatar.big {
-  width: 96px;
-  height: 96px;
-  font-size: 1.9rem;
+  width: 75px;
+  height: 75px;
+  font-size: 1.5rem;
 }
-/* Avatar da lista "Com acesso": maior, acompanhando as três linhas (nome, e-mail, celular). */
+/* Avatar da lista "Com acesso": a altura das três linhas (nome, e-mail, celular), cerca de 60 px. */
 .people-who .avatar {
-  width: 44px;
-  height: 44px;
-  font-size: 0.9rem;
+  width: 60px;
+  height: 60px;
+  font-size: 1.15rem;
 }
 /* "Sem celular" não é link: não muda de cor no hover. */
 .phone-link.people-missing:hover {

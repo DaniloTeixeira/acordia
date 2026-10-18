@@ -174,11 +174,11 @@ export function PhotoDialog({src, gid}: DialogProps["photo"]){
               <input type="range" min={MIN_ZOOM} max={MAX_ZOOM} step={.01} value={z} aria-label={t("photo.zoom")} disabled={!img} onChange={e => zoomTo(+e.target.value)}/>
               <button type="button" className="icon-btn sm" aria-label={t("photo.zoomIn")} disabled={z >= MAX_ZOOM} onClick={() => zoomTo(z + .25)}><Icon name="plus" sm/></button>
             </div>
-            {/* Como fica: no perfil (72 px) e nas listas (32 px); a do grupo, no Início (56 px) e no título (32 px). */}
+            {/* Como fica: no perfil (75 px) e nas listas (32 px); a do grupo, no Início (56 px) e no título (32 px). */}
             <div className="photo-previews" aria-hidden="true">
               {gid ? <><span className={"photo-pv group big" + (round ? " round" : "")} style={backCss}>{view(56)}</span>
                 <span className={"photo-pv group" + (round ? " round" : "")} style={backCss}>{view(32)}</span></>
-                : <><span className="photo-pv big"><span style={backCss}>{view(66)}</span></span><span className="photo-pv"><span style={backCss}>{view(30)}</span></span></>}
+                : <><span className="photo-pv big"><span style={backCss}>{view(69)}</span></span><span className="photo-pv"><span style={backCss}>{view(30)}</span></span></>}
             </div>
           </div>
           {/* Fundo: aparece onde a imagem é transparente e em volta dela quando afastada. */}
