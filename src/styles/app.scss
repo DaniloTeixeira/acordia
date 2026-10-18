@@ -3897,12 +3897,18 @@ a.btn {
   color: var(--ok);
 }
 /* No Palco o chip não herda o tamanho grande nem as maiúsculas do texto em volta. */
-.stage-song-head > .moment-chip,
+.stage-song-head h2 > .moment-chip,
 .stage-group > .moment-chip {
   font-size: 0.78rem;
   letter-spacing: normal;
   text-transform: none;
   align-self: center;
+}
+/* Dentro do título: separado do nome e centrado na altura da letra. */
+.stage-song-head h2 > .moment-chip {
+  margin-left: 0.6em;
+  vertical-align: middle;
+  font-weight: 600;
 }
 .medley-songs {
   padding: 0 14px 14px 52px;
@@ -4776,6 +4782,14 @@ dialog.unsaved .dlg-foot::before {
     padding-right: max(16px, env(safe-area-inset-right));
   }
 }
+/* Caber na tela: sem a folga de baixo (ela existe para rolar a última linha até o meio), assim a música
+   usa a altura toda. */
+.stage-scroll.fit {
+  padding-bottom: 16px;
+}
+.stage-scroll.fit .stage-content > :last-child > .stage-song {
+  margin-bottom: 0;
+}
 .stage-content {
   max-width: 1100px;
   margin: 0 auto;
@@ -5143,6 +5157,32 @@ dialog.unsaved .dlg-foot::before {
 }
 .stage-nav:has(+ .stage-progress) {
   border-bottom: none;
+}
+/* Só a cifra: some tudo menos a música (título e linhas); dois botões discretos no canto. */
+.stage.clean :is(.stage-bar, .stage-nav, .stage-progress, .stage-metro, .stage-focus, .stage-list, .stage-hint, .stage-key, .stage-ref) {
+  display: none;
+}
+/* O título não passa por baixo dos dois botões do canto. */
+.stage.clean .stage-song-head h2 {
+  padding-right: 84px;
+}
+.stage-clean-bar {
+  position: absolute;
+  top: calc(6px + env(safe-area-inset-top));
+  right: 10px;
+  z-index: 3;
+  display: flex;
+  gap: 4px;
+  opacity: 0.55;
+  transition: opacity var(--t-fast);
+}
+.stage-clean-bar:hover,
+.stage-clean-bar:focus-within {
+  opacity: 1;
+}
+.stage-clean-bar .icon-btn {
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  border: 1px solid var(--line);
 }
 .stage-progress {
   height: 3px;
