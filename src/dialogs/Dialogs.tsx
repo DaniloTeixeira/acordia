@@ -137,6 +137,22 @@ function SongDialog({song: s}: DialogProps["song"]){
 }
 
 // ---------- repertório recebido do grupo ----------
+// Lista do repertório recebido: cada medley vira um item só ("Medley · 4 músicas"), com as músicas dentro.
+function incomingRows(med: IncomingMedley){
+  const rows: ({s: IncomingSong} | {g: number; songs: IncomingSong[]})[] = [];
+  med.songs.forEach(s => {
+    const last = rows[rows.length - 1];
+    if(s.g === undefined) rows.push({s});
+    else if(last && "g" in last && last.g === s.g) last.songs.push(s);
+    else rows.push({g: s.g, songs: [s]});
+  });
+  return rows;
+}
+// Título e tom (o escolhido no repertório ou, sem ele, o da música).
+function IncomingSongLine({s}: {s: IncomingSong}){
+  const k = s.target || s.key;
+  return <span className="incoming-song"><span>{s.title}</span>{k && <span className="chip accent">{k}</span>}</span>;
+}
 function findOrCreateSong(e: IncomingSong){
   const same = [...data.songs.values()].find(s => norm(s.title) === norm(songTitle(e.text)) && s.text.trim() === e.text.trim());
   if(same && e.ref && !same.ref){ same.ref = e.ref; store.saveSong(same); }
@@ -181,11 +197,16 @@ function IncomingDialog({med, stage}: {med: IncomingMedley; stage?: boolean}){
     if(stage){ show(id); useUI.setState({stageOpen: true}); return; }
     toast(t(msg), {label: t("common.open"), run: () => show(id)});
   };
+  const rows = incomingRows(med);
   return <Dialog name="incoming" id="dlg-incoming" labelledBy="incoming-h" onClose={close}>
     <form method="dialog" className="dlg">
       <DialogHead id="incoming-h" title={t(existing ? "incoming.updateTitle" : "incoming.title")} closeLabel={t("common.close")}/>
-      <div className="dlg-body"><p id="incoming-desc">{existing ? t("incoming.updateDesc", {name: existing.name, songs: songsN(med.songs.length)}) : t("incoming.desc", {name: med.name, songs: songsN(med.songs.length)})}</p>
-        <ol className="steps" id="incoming-list">{med.songs.map((s, i) => <li key={i}>{s.title}{s.target && <> <span className="chip accent">{s.target}</span></>}{s.g !== undefined && <> <span className="chip"><Icon name="link" sm/> {med.groups[s.g]}</span></>}</li>)}</ol></div>
+      {/* Na contagem do topo o medley vale 1, como na lista numerada abaixo. */}
+      <div className="dlg-body"><p id="incoming-desc">{existing ? t("incoming.updateDesc", {name: existing.name, songs: songsN(rows.length)}) : t("incoming.desc", {name: med.name, songs: songsN(rows.length)})}</p>
+        <ol className="steps" id="incoming-list">{rows.map((r, i) => <li key={i}>{"g" in r
+          ? <><span className="incoming-medley"><Icon name="link" sm/> {t("mblock.chip", {songs: songsN(r.songs.length)})}</span>
+            <ul className="incoming-sub">{r.songs.map((s, j) => <li key={j}><IncomingSongLine s={s}/></li>)}</ul></>
+          : <IncomingSongLine s={r.s}/>}</li>)}</ol></div>
       <Foot><button className="btn ghost" value="cancel">{t("incoming.later")}</button>
         {existing && <button className="btn ghost" value="new" id="incoming-new">{t("incoming.saveNew")}</button>}
         <button className="btn primary" value="ok" id="incoming-ok">{t(existing ? "incoming.update" : "incoming.save")}</button></Foot>

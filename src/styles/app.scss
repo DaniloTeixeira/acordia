@@ -4478,6 +4478,28 @@ dialog.unsaved .dlg-foot::before {
   flex-direction: column;
   gap: 8px;
 }
+/* Repertório recebido: título e tom quebram linha juntos; o medley diz quantas músicas tem e lista elas abaixo. */
+.incoming-song {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.incoming-medley {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.incoming-sub {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 @media (max-width: 899px) {
   dialog {
     width: 100vw;
