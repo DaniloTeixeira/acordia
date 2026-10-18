@@ -1,9 +1,9 @@
 # Acordia
 
 **Aprenda. Crie. Toque.** App instalável (PWA) para músicos montarem repertórios com cifras, graus ou só a
-letra, tocarem no palco e estudarem teoria, ritmo e ouvido. Funciona offline, em português, inglês e espanhol.
-Com o login ligado, só entra quem o administrador convidar, e as músicas e repertórios de cada pessoa ficam na
-nuvem, iguais em todos os aparelhos dela. Equipes (grupos de louvor) têm agenda com escalas, confirmação e
+letra, tocarem no palco e estudarem teoria, ouvido e voz. Funciona offline, em português, inglês e espanhol.
+Só entra quem o administrador convidar, e as músicas e repertórios de cada pessoa ficam na nuvem, iguais em todos
+os aparelhos dela. Equipes (grupos de louvor) têm agenda com escalas, confirmação e
 presença nos ensaios, e repertórios compartilhados.
 
 **Abrir o app:** https://daniloteixeira.github.io/acordia/
@@ -13,7 +13,7 @@ presença nos ensaios, e repertórios compartilhados.
 Lista completa, tela por tela, para testar e decidir o que fica. Marque `[x]` no que já foi conferido.
 
 ### Em todas as telas
-- [ ] **Navegação** entre Repertório, Biblioteca, Grupo (só com login), Estudo e Ferramentas: trilho lateral no computador, barra de
+- [ ] **Navegação** entre Repertório, Biblioteca, Grupo, Estudo e Ferramentas: trilho lateral no computador, barra de
       abas no celular. Cada página tem endereço próprio, então o "voltar" do navegador funciona. Tocar de novo na
       página atual volta ao topo.
 - [ ] **Tema** claro ou escuro. Até a primeira escolha, segue o aparelho.
@@ -31,7 +31,7 @@ Lista completa, tela por tela, para testar e decidir o que fica. Marque `[x]` no
 - [ ] **Avisos** com "Desfazer" ou "Ver" quando faz sentido.
 
 ### Entrar, Perfil e nuvem
-Só quando o login está ligado (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
+O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] **Tela de entrar**:
   - visual: notas musicais no fundo, borda animada, idioma e tema no canto;
   - formas de entrar: **Entrar com Google**, ou **e-mail e senha**;
@@ -62,7 +62,7 @@ Só quando o login está ligado (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 ### Repertório
 - [ ] **Nome editável** e subtítulo com o número de músicas e a transposição.
 - [ ] **Novo**: cria outro repertório. O anterior continua na Biblioteca.
-- [ ] **Compartilhar** e **Palco**.
+- [ ] **Palco**.
 - [ ] **Editar / Ver folha**: alterna os painéis no celular; no computador ficam lado a lado.
 - [ ] **Adicionar**: "Música com cifra", "Só a letra", "Da biblioteca" (escolha várias, com busca) e "Medley".
 - [ ] **Cartão de cada música**:
@@ -115,18 +115,12 @@ Só quando o login está ligado (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] Músicas: filtro Todas / Com cifra / Só letra e ordem A–Z ou Recentes.
 - [ ] **Cartão de música**: tom, BPM, arranjos, em quantos repertórios está, trecho da letra e quando foi
       editada; Adicionar ao repertório, ▶, Editar e Excluir.
-- [ ] **Cartão de repertório/medley**: Abrir, **Duplicar** ("(cópia)"), Compartilhar e Excluir.
+- [ ] **Cartão de repertório/medley**: Abrir, **Duplicar** ("(cópia)") e Excluir.
 - [ ] **Janela da música**:
   - tipo e Montar cifra;
   - **Transpor a cifra** (−/+), que reescreve os acordes;
   - tom, BPM e referência;
   - com alterações, clicar fora não descarta o texto.
-- [ ] **Exportar** e **Importar** backup (.json).
-
-### Compartilhar por link
-- [ ] Link com o repertório inteiro (com medleys) compactado no endereço, sem servidor. Botões Copiar e Enviar.
-      Avisa quando o link fica longo.
-- [ ] **Link recebido**: "Salvar e abrir". Se o repertório já existe: "Atualizar" ou "Salvar como novo".
 
 ### Janela do acorde
 - [ ] Grau e função no tom (Tônica, Subdominante, Dominante ou fora do campo) e notas com os graus.
@@ -143,7 +137,7 @@ Só quando o login está ligado (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] "Abrir no YouTube". Link que não é do YouTube abre numa aba nova.
 
 ### Grupo
-Só com o login ligado. Os admins do app criam grupos; quem lidera um grupo inclui os membros pelo e-mail (o que
+Os admins do app criam grupos; quem lidera um grupo inclui os membros pelo e-mail (o que
 também libera o acesso ao app para eles).
 - [ ] **Agenda**:
   - calendário do mês com cultos e ensaios, os dias em que a pessoa está escalada e os dias em que não pode;
@@ -182,19 +176,6 @@ também libera o acesso ao app para eles).
   - respostas em 4 alternativas ou lista completa;
   - sequência de acertos e recorde;
   - atalhos 1–4 / 1–7 e Enter.
-- [ ] **Mãos, Ritmo**:
-  - 10 exercícios de independência das mãos;
-  - BPM por exercício e "Ouvir exemplo";
-  - pads ou teclas F e J;
-  - precisão por mão, adiantado/atrasado e recorde.
-- [ ] **Mãos, Teclado**:
-  - 9 exercícios, em qualquer tom, com dedilhado (nas escalas, só em C, G, D, A e E);
-  - "Você toca" (o app toca a outra mão);
-  - Ouvir exemplo e Praticar (espera a nota certa);
-  - **No tempo** (só com teclado MIDI);
-  - o teclado rola até as notas e sugere deitar o celular quando não cabe.
-- [ ] **Voz, Cante o grau**: o microfone confere a afinação, com 3 níveis de precisão, "Ouvir o tom", "Ouvir a
-      nota", "Pular" e recorde.
 - [ ] **Voz, Minha extensão**:
   - mede a nota mais grave e a mais aguda e diz o tipo de voz;
   - guarda vários cantores;
@@ -215,30 +196,10 @@ também libera o acesso ao app para eles).
   - entrar e sair devagar;
   - troca de tom suave;
   - continua tocando fora da página.
-- [ ] **Drum pads**:
-  - 12 sons: Clap, Chimbal, Pandeirola, Caixa, Tom, Tumb, Impacto, Sub drop, Blop, Perc FX, Swell, Reverse;
-  - volume, ambiência e eco;
-  - entram no tempo.
-- [ ] **Ritmo**: loops de **Caixa**, **Shaker** e **Grave**, cada um com padrões, som e volume, e padrão
-      **Personalizado** numa grade de 16 casas. O BPM é o mesmo do metrônomo.
-- [ ] **Grooves**: 8 estilos com o BPM típico de cada um (Worship, Pop/rock, Balada, Reggae, Samba, Bossa nova,
-      Jazz, Funk).
-- [ ] **Separar faixas** (IA no próprio aparelho):
-  - abre um arquivo de áudio ou vídeo, ou um link direto (Google Drive e Dropbox viram download direto);
-    YouTube e Spotify mostram o aviso de que não dá;
-  - separa **voz, violão/guitarra, piano/teclado, baixo, bateria e outros**;
-  - na primeira vez baixa o modelo (272 MB) e guarda; depois funciona sem internet;
-  - usa a placa de vídeo quando o navegador tem WebGPU; se ela falhar ou travar, recomeça sozinho no
-    processador (cerca de 3 min por minuto de música) e lembra disso nas próximas vezes;
-  - barra de progresso, tempo restante e Cancelar;
-  - mixer: ligar/desligar, volume e solo de cada faixa, misturas prontas (Sem voz, Sem bateria, Só a voz…),
-    tocar com barra de posição;
-  - **baixar** a mistura ou cada faixa em WAV;
-  - músicas de até 12 minutos.
-
 ## Rodar localmente
 
-Feito em React + TypeScript com Vite. Precisa do Node 22 ou mais novo.
+Feito em React + TypeScript com Vite. Precisa do Node 22 ou mais novo e das chaves do Supabase num `.env.local`
+(ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 
 ```bash
 npm install
@@ -249,8 +210,8 @@ npm run preview    # serve o _site, para testar o modo offline e a instalação
 
 ## Conta e nuvem (Supabase)
 
-O login e a nuvem usam o [Supabase](https://supabase.com). Sem as chaves, o app funciona como antes: sem login
-e com tudo salvo só no aparelho.
+O login e a nuvem usam o [Supabase](https://supabase.com). O app só funciona com login: sem as chaves, o build
+para com um aviso.
 
 - **Chaves:** `VITE_SUPABASE_URL` e `VITE_SUPABASE_KEY` (a chave *publishable*/anon, que pode ficar no site).
   Para rodar local, ficam num `.env.local`, que não vai para o Git. No GitHub, ficam nas variáveis do
@@ -272,10 +233,9 @@ npm run typecheck  # TypeScript estrito
 ```
 
 Cobrem parser, detecção de acordes e tom, graus, transposição, transições, teoria (escalas, campo
-harmônico, relativas), perguntas do treino, layout das folhas, links de compartilhamento, instrumentos,
-afinador, exercícios das mãos e do teclado, validação de importação, traduções, requisitos de senha, validação
-de e-mail, as regras da sincronização com a nuvem, a agenda do grupo (calendário, avisos da escala,
-frequência, repetição, .ics) e as contas da separação de faixas (pedaços, emenda, mistura, WAV, links).
+harmônico, relativas), perguntas do treino, layout das folhas, repertórios compactados para o grupo,
+instrumentos, afinador, traduções, requisitos de senha, validação de e-mail, as regras da sincronização com a
+nuvem e a agenda do grupo (calendário, avisos da escala, frequência, repetição, .ics).
 
 ## Publicar
 
@@ -292,22 +252,17 @@ próximo carregamento e vê o aviso **Nova versão disponível**.
 | [src/main.tsx](src/main.tsx), [src/App.tsx](src/App.tsx) | Início, navegação, menus de idioma/volume/tema, instalação e atualização |
 | [src/state.ts](src/state.ts) | Estado da interface (Zustand): página, idioma, avisos e janelas |
 | [src/repertoire.ts](src/repertoire.ts) | Regras do repertório aberto: medleys, arranjos, músicas da folha |
-| [src/views/](src/views/) | Páginas: Repertório e folha, Biblioteca, Grupo, Estudo, Ferramentas (com Separar faixas), Palco |
-| [src/dialogs/](src/dialogs/) | Janelas: biblioteca, música, compartilhar, link recebido, acorde, vídeo... |
+| [src/views/](src/views/) | Páginas: Repertório e folha, Biblioteca, Grupo, Estudo, Ferramentas, Palco |
+| [src/dialogs/](src/dialogs/) | Janelas: biblioteca, música, repertório recebido do grupo, acorde, vídeo, evento... |
 | [src/ui/](src/ui/) | Peças da interface: lista suspensa, controle segmentado, janela, avisos, dicas |
-| [src/lib/](src/lib/) | Lógica sem interface: cifras e teoria, folhas A4, PDF, IndexedDB, links, áudio, metrônomo, afinador, instrumentos, exercícios, traduções, conta (cloud.ts), sincronização (sync.ts), grupos (groups.ts), regras da agenda (calendar.ts) e contas da separação (stems.ts) |
-| [src/stems.ts](src/stems.ts), [src/stems.worker.ts](src/stems.worker.ts) | Separar faixas: abrir a música, o worker com o modelo de IA (ONNX Runtime Web) e o mixer |
+| [src/lib/](src/lib/) | Lógica sem interface: cifras e teoria, folhas A4, PDF, IndexedDB, repertórios compactados, áudio, metrônomo, afinador, instrumentos, traduções, conta (cloud.ts), sincronização (sync.ts), grupos (groups.ts), e regras da agenda (calendar.ts) |
 | [supabase/](supabase/) | Banco na nuvem: tabelas e regras de acesso (migrations) |
 | [src/styles/app.scss](src/styles/app.scss) | Design system: tokens, temas, layouts desktop/celular, animações |
 | [src/sw.ts](src/sw.ts) | Cache offline |
 
-Os dados ficam no IndexedDB do navegador e, com o login ligado, também na nuvem. Sem login, nada sai do aparelho:
-exporte um backup de vez em quando.
+Os dados ficam na nuvem e também no IndexedDB do navegador, para o app funcionar sem internet.
 
 ## Licença
 
 Código sob [MIT](LICENSE). Fontes Atkinson Hyperlegible, Atkinson Hyperlegible Mono e Lexend sob a
 [SIL Open Font License 1.1](fonts/OFL.txt). jsPDF 2.5.1 sob MIT.
-ONNX Runtime Web sob MIT. A separação de faixas usa o HT-Demucs 6s da Meta (MIT), na conversão para ONNX
-[kramp/htdemucs-6s-webgpu-onnx](https://huggingface.co/kramp/htdemucs-6s-webgpu-onnx) (MIT), baixada do
-Hugging Face na primeira vez que alguém usa.

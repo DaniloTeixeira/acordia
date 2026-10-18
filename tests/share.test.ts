@@ -70,7 +70,7 @@ test("traduções: parâmetros, plural e ordinal", () => {
   assert.equal(tn("song", 1), "1 canción");
   assert.equal(tn("song", 3), "3 canciones");
   assert.equal(ordinal(3), "3.ª");
-  assert.equal(t("lib.sub", {songs: "2 canciones", medleys: "1 repertorio"}), "2 canciones · 1 repertorio · guardado en este dispositivo");
+  assert.equal(t("lib.sub", {songs: "2 canciones", medleys: "1 repertorio"}), "2 canciones · 1 repertorio · guardado en la nube");
   setLang("xx");
   assert.equal(tn("song", 2), "2 músicas");
   setLang("pt");

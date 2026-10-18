@@ -50,24 +50,24 @@ export const amGroupAdmin = () => {
 const PAST_DAYS = 183, FUTURE_DAYS = 366;
 let loading: Promise<void> | null = null;
 export function loadGroups(gid?: string): Promise<void> {
-  if(!cloud || useAuth.getState().status !== "in") return Promise.resolve();
+  if(useAuth.getState().status !== "in") return Promise.resolve();
   if(!useGroups.getState().loaded) loadCache();
   if(loading && !gid) return loading;
   useGroups.setState({loading: true});
   loading = (async () => {
     try{
-      const g = await cloud!.from("groups").select("id,name").order("name");
+      const g = await cloud.from("groups").select("id,name").order("name");
       if(g.error) throw g.error;
       const groups = g.data as Group[];
       const want = gid || useGroups.getState().gid, cur = groups.find(x => x.id === want) ? want : groups[0]?.id || "";
       if(!cur){ useGroups.setState({...EMPTY, groups, loaded: true}); saveCache(); return; }
       const from = new Date(Date.now() - PAST_DAYS * 864e5).toISOString(), to = new Date(Date.now() + FUTURE_DAYS * 864e5).toISOString();
       const [mem, people, sets, evs, un] = await Promise.all([
-        cloud!.from("group_members").select("email,is_admin,role").eq("group_id", cur).order("email"),
-        cloud!.rpc("group_people", {gid: cur}),
-        cloud!.from("group_setlists").select("id,group_id,source_id,name,songs,code,shared_by,updated_at").eq("group_id", cur).order("updated_at", {ascending: false}),
-        cloud!.from("group_events").select("id,group_id,kind,title,starts_at,call_at,place,notes,setlist_id,updated_at").eq("group_id", cur).gte("starts_at", from).lte("starts_at", to).order("starts_at"),
-        cloud!.from("unavailable").select("email,day,note").gte("day", from.slice(0, 10)),
+        cloud.from("group_members").select("email,is_admin,role").eq("group_id", cur).order("email"),
+        cloud.rpc("group_people", {gid: cur}),
+        cloud.from("group_setlists").select("id,group_id,source_id,name,songs,code,shared_by,updated_at").eq("group_id", cur).order("updated_at", {ascending: false}),
+        cloud.from("group_events").select("id,group_id,kind,title,starts_at,call_at,place,notes,setlist_id,updated_at").eq("group_id", cur).gte("starts_at", from).lte("starts_at", to).order("starts_at"),
+        cloud.from("unavailable").select("email,day,note").gte("day", from.slice(0, 10)),
       ]);
       for(const r of [mem, people, sets, evs, un]) if(r.error) throw r.error;
       const ids = (evs.data as GEvent[]).map(e => e.id);
@@ -76,8 +76,8 @@ export function loadGroups(gid?: string): Promise<void> {
       for(let i = 0; i < ids.length; i += 100){
         const part = ids.slice(i, i + 100);
         const [r, a] = await Promise.all([
-          cloud!.from("event_roster").select("event_id,email,role,status,reason").in("event_id", part),
-          cloud!.from("event_attendance").select("event_id,email,status,by_admin").in("event_id", part),
+          cloud.from("event_roster").select("event_id,email,role,status,reason").in("event_id", part),
+          cloud.from("event_attendance").select("event_id,email,status,by_admin").in("event_id", part),
         ]);
         if(r.error) throw r.error; if(a.error) throw a.error;
         roster = roster.concat(r.data as RosterRow[]); attendance = attendance.concat(a.data as AttendanceRow[]);
@@ -104,7 +104,6 @@ export function personName(email: string){
 // ---------- mudanças ----------
 // Cada uma devolve true quando deu certo e recarrega o grupo.
 async function run(fn: () => PromiseLike<{error: unknown}>, reload = true){
-  if(!cloud) return false;
   try{
     const {error} = await fn();
     if(error) return false;
@@ -113,37 +112,35 @@ async function run(fn: () => PromiseLike<{error: unknown}>, reload = true){
   }catch(e){ return false; }
 }
 export async function createGroup(name: string){
-  if(!cloud) return false;
   const {data, error} = await cloud.rpc("create_group", {group_name: name.trim().slice(0, 80)});
   if(error) return false;
   await loadGroups(data as string);
   return true;
 }
-export const renameGroup = (gid: string, name: string) => run(() => cloud!.from("groups").update({name: name.trim().slice(0, 80)}).eq("id", gid));
+export const renameGroup = (gid: string, name: string) => run(() => cloud.from("groups").update({name: name.trim().slice(0, 80)}).eq("id", gid));
 export async function deleteGroup(gid: string){
-  const ok = await run(() => cloud!.from("groups").delete().eq("id", gid), false);
+  const ok = await run(() => cloud.from("groups").delete().eq("id", gid), false);
   if(ok){ useGroups.setState({gid: ""}); await loadGroups(); }
   return ok;
 }
 export const addMember = (gid: string, email: string, admin: boolean, role: string) =>
-  run(() => cloud!.rpc("add_group_member", {gid, member_email: email.trim().toLowerCase(), admin, member_role: role.trim().slice(0, 40)}));
-export const setMemberAdmin = (gid: string, email: string, admin: boolean) => run(() => cloud!.from("group_members").update({is_admin: admin}).eq("group_id", gid).eq("email", email));
+  run(() => cloud.rpc("add_group_member", {gid, member_email: email.trim().toLowerCase(), admin, member_role: role.trim().slice(0, 40)}));
+export const setMemberAdmin = (gid: string, email: string, admin: boolean) => run(() => cloud.from("group_members").update({is_admin: admin}).eq("group_id", gid).eq("email", email));
 export const setMemberRole = (gid: string, email: string, role: string) => email === myEmail() && !amGroupAdmin()
-  ? run(() => cloud!.rpc("set_my_role", {gid, member_role: role.trim().slice(0, 40)}))
-  : run(() => cloud!.from("group_members").update({role: role.trim().slice(0, 40)}).eq("group_id", gid).eq("email", email));
-export const removeMember = (gid: string, email: string) => run(() => cloud!.from("group_members").delete().eq("group_id", gid).eq("email", email));
+  ? run(() => cloud.rpc("set_my_role", {gid, member_role: role.trim().slice(0, 40)}))
+  : run(() => cloud.from("group_members").update({role: role.trim().slice(0, 40)}).eq("group_id", gid).eq("email", email));
+export const removeMember = (gid: string, email: string) => run(() => cloud.from("group_members").delete().eq("group_id", gid).eq("email", email));
 
 // Repertório compartilhado: o código do link (#m=...). Compartilhar de novo o mesmo repertório atualiza.
 export const shareSetlist = (gid: string, sourceId: string, name: string, songs: number, code: string) =>
-  run(() => cloud!.from("group_setlists").upsert({group_id: gid, source_id: sourceId, name: name.slice(0, 80), songs, code, shared_by: myEmail(), updated_at: new Date().toISOString()}, {onConflict: "group_id,source_id"}));
-export const removeSetlist = (id: string) => run(() => cloud!.from("group_setlists").delete().eq("id", id));
+  run(() => cloud.from("group_setlists").upsert({group_id: gid, source_id: sourceId, name: name.slice(0, 80), songs, code, shared_by: myEmail(), updated_at: new Date().toISOString()}, {onConflict: "group_id,source_id"}));
+export const removeSetlist = (id: string) => run(() => cloud.from("group_setlists").delete().eq("id", id));
 
 export interface EventInput { kind: EventKind; title: string; starts_at: string; call_at: string | null; place: string; notes: string; setlist_id: string | null }
 export interface RosterInput { email: string; role: string }
 // Grava o evento e a escala. Quem continua escalado na mesma função mantém a resposta que já deu.
 // dates: com mais de uma, cria um evento igual em cada data (evento repetido).
 export async function saveEvent(gid: string, id: string | null, ev: EventInput, roster: RosterInput[], dates?: {starts_at: string; call_at: string | null}[]){
-  if(!cloud) return false;
   try{
     const clean = roster.filter(r => r.email).map(r => ({email: r.email, role: r.role.trim().slice(0, 40)}));
     const unique = [...new Map(clean.map(r => [r.email + "|" + r.role, r])).values()];
@@ -164,13 +161,13 @@ export async function saveEvent(gid: string, id: string | null, ev: EventInput, 
     return true;
   }catch(e){ return false; }
 }
-export const deleteEvent = (id: string) => run(() => cloud!.from("group_events").delete().eq("id", id));
-export const respond = (eventId: string, answer: Answer, reason = "") => run(() => cloud!.rpc("respond_event", {eid: eventId, answer, why: reason}));
-export const checkIn = (eventId: string, on: boolean) => run(() => cloud!.rpc("check_in", {eid: eventId, on_: on}));
+export const deleteEvent = (id: string) => run(() => cloud.from("group_events").delete().eq("id", id));
+export const respond = (eventId: string, answer: Answer, reason = "") => run(() => cloud.rpc("respond_event", {eid: eventId, answer, why: reason}));
+export const checkIn = (eventId: string, on: boolean) => run(() => cloud.rpc("check_in", {eid: eventId, on_: on}));
 // Chamada feita pelo admin; null tira a marcação.
 export const markAttendance = (eventId: string, email: string, status: Presence | null) => status
-  ? run(() => cloud!.from("event_attendance").upsert({event_id: eventId, email, status, by_admin: true, marked_at: new Date().toISOString()}))
-  : run(() => cloud!.from("event_attendance").delete().eq("event_id", eventId).eq("email", email));
+  ? run(() => cloud.from("event_attendance").upsert({event_id: eventId, email, status, by_admin: true, marked_at: new Date().toISOString()}))
+  : run(() => cloud.from("event_attendance").delete().eq("event_id", eventId).eq("email", email));
 export const setUnavailable = (day: string, on: boolean, note = "") => on
-  ? run(() => cloud!.from("unavailable").upsert({email: myEmail(), day, note: note.slice(0, 120)}))
-  : run(() => cloud!.from("unavailable").delete().eq("email", myEmail()).eq("day", day));
+  ? run(() => cloud.from("unavailable").upsert({email: myEmail(), day, note: note.slice(0, 120)}))
+  : run(() => cloud.from("unavailable").delete().eq("email", myEmail()).eq("day", day));

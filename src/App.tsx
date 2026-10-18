@@ -19,7 +19,7 @@ import { Tools } from "./views/Tools";
 import { Stage } from "./views/Stage";
 import { Dialogs, HELP_STEPS, seenHelp } from "./dialogs/Dialogs";
 import { AuthScreen, Avatar, Profile } from "./views/Account";
-import { useAuth, cloud } from "./lib/cloud";
+import { useAuth } from "./lib/cloud";
 import { Group } from "./views/Group";
 
 const { data } = store;
@@ -130,9 +130,7 @@ function useInstall(){
   return {show, run};
 }
 
-// O Grupo (agenda e escalas) só existe com a conta na nuvem.
-const NAV: [View, string, string][] = ([["medley", "music", "nav.medley"], ["library", "library", "nav.library"], ["group", "calendar", "nav.group"], ["study", "study", "nav.study"], ["tools", "metro", "nav.tools"]] as [View, string, string][])
-  .filter(([v]) => v !== "group" || !!cloud);
+const NAV: [View, string, string][] = [["medley", "music", "nav.medley"], ["library", "library", "nav.library"], ["group", "calendar", "nav.group"], ["study", "study", "nav.study"], ["tools", "metro", "nav.tools"]];
 
 // Itens do trilho com o fundo do ativo deslizando entre eles (as variáveis --y e --h posicionam o fundo no CSS).
 function NavList({children}: {children: ReactNode}){
@@ -158,9 +156,9 @@ export function App(){
     <img className="logo-on-light" src={BASE + "icons/icon.svg"} alt=""/><img className="logo-on-dark" src={BASE + "icons/icon-light.svg"} alt=""/><span><b className="brand-name">Acordia</b>{tagline && <small>{t("app.tagline")}</small>}</span></a>;
   const current = (v: View) => view === v ? "page" as const : undefined;
   const auth = useAuth(s => s.status), recovery = useAuth(s => s.recovery), helpable = view in HELP_STEPS;
-  // Com login ligado, nada do app aparece antes de a pessoa entrar e ter acesso (nem antes da senha nova).
-  if((auth !== "off" && auth !== "in") || recovery) return <><div className="auth-corner"><LangButton/><ThemeButton/></div><AuthScreen/><LangPop/><Toasts/></>;
-  const profileBtn = (rail: boolean) => auth === "in" && <button className={rail ? "nav-item" : "icon-btn"} data-nav="profile" aria-current={current("profile")} aria-label={t("profile.title")} onClick={() => go("profile")}>
+  // Nada do app aparece antes de a pessoa entrar e ter acesso (nem antes da senha nova).
+  if(auth !== "in" || recovery) return <><div className="auth-corner"><LangButton/><ThemeButton/></div><AuthScreen/><LangPop/><Toasts/></>;
+  const profileBtn = (rail: boolean) => <button className={rail ? "nav-item" : "icon-btn"} data-nav="profile" aria-current={current("profile")} aria-label={t("profile.title")} onClick={() => go("profile")}>
     <Avatar/>{rail && <span>{t("profile.title")}</span>}</button>;
   return <>
     <div className="shell">

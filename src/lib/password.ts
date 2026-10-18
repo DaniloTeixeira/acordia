@@ -36,3 +36,7 @@ export function fromError(msg: string, base: PwPolicy = DEFAULT_POLICY): PwPolic
 }
 // Senha que aparece em vazamentos conhecidos (proteção que o Supabase pode ligar).
 export const isPwned = (msg: string) => /pwned|leaked|compromised|known to be weak|easy to guess/i.test(msg);
+
+// E-mail na tela de entrar e nas listas de acesso: nome@dominio.algo, com pelo menos duas letras no fim (pega
+// "nome@gmail" e "nome@gmail.c").
+export const validEmail = (e: string) => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)*\.[a-z]{2,}$/i.test(e.trim());

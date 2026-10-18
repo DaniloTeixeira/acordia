@@ -3,10 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import { songTitle, sanitizeUrl, sanitizeItem, parseSong, detectKey, keyShift, transposeKey, transposeText } from "../lib/core";
 import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
-import { encodeMedley, type IncomingMedley, type IncomingSong } from "../lib/share";
+import type { IncomingMedley, IncomingSong } from "../lib/share";
 import { norm } from "../lib/util";
 import { useUI, toast, go, openDialog, type DialogProps } from "../state";
-import { current, isMedley, openMedley, eff, medleyPayload } from "../repertoire";
+import { current, isMedley, openMedley, eff } from "../repertoire";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
@@ -26,7 +26,6 @@ export function Dialogs(){
   return <>
     {d.picker && <Picker/>}
     {d.song && <SongDialog {...d.song}/>}
-    {d.share && <ShareDialog {...d.share}/>}
     {d.incoming && <IncomingDialog {...d.incoming}/>}
     {d.install && <InstallDialog/>}
     {d.arr && <ArrangementDialog {...d.arr}/>}
@@ -132,42 +131,14 @@ function SongDialog({song: s}: DialogProps["song"]){
   </Dialog>;
 }
 
-// ---------- compartilhar ----------
-function ShareDialog({medley: m}: DialogProps["share"]){
-  const [url, setUrl] = useState(""), [count, setCount] = useState(0);
-  const input = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    const payload = medleyPayload(m);
-    encodeMedley(payload).then(code => { setUrl(location.href.split("#")[0] + "#m=" + code); setCount(payload.songs.length); requestAnimationFrame(() => input.current?.select()); });
-  }, [m]);
-  const copy = async () => {
-    try{ await navigator.clipboard.writeText(url); }catch(e){ input.current?.select(); document.execCommand("copy"); }
-    toast(t("share.copied"));
-  };
-  return <Dialog name="share" id="dlg-share" labelledBy="share-h">
-    <form method="dialog" className="dlg">
-      <DialogHead id="share-h" title={t("share.title")} closeLabel={t("common.close")}/>
-      <div className="dlg-body">
-        <p>{t("share.desc")}</p>
-        <div className="link-box"><input className="input" id="share-url" readOnly aria-label={t("share.urlAria")} value={url} ref={input}/>
-          <button type="button" className="btn primary" id="share-copy" onClick={copy}><Icon name="copy" sm/><span>{t("common.copy")}</span></button></div>
-        <p className="sub" id="share-size">{url ? (url.length > 8000 ? t("share.long", {n: url.length.toLocaleString(locale())}) : t("share.count", {songs: songsN(count)})) : ""}</p>
-      </div>
-      <Foot>
-        {"share" in navigator && <button type="button" className="btn ghost" id="share-native" onClick={() => navigator.share({title: m.name, text: t("share.text", {name:m.name}), url}).catch(()=>{})}><Icon name="share" sm/><span>{t("share.send")}</span></button>}
-        <button className="btn ghost" value="cancel">{t("common.close")}</button></Foot>
-    </form>
-  </Dialog>;
-}
-
-// ---------- receber um link ----------
+// ---------- repertório recebido do grupo ----------
 function findOrCreateSong(e: IncomingSong){
   const same = [...data.songs.values()].find(s => norm(s.title) === norm(songTitle(e.text)) && s.text.trim() === e.text.trim());
   if(same && e.ref && !same.ref){ same.ref = e.ref; store.saveSong(same); }
   return same || store.createSong({text:e.text, type:e.type, key:e.key, bpm:e.bpm, ref:e.ref});
 }
 function IncomingDialog({med, stage}: {med: IncomingMedley; stage?: boolean}){
-  // Já recebeu este repertório antes? Então o link atualiza a cópia em vez de criar outra.
+  // Já recebeu este repertório antes? Então atualiza a cópia em vez de criar outra.
   const existing = med.sourceId ? [...data.medleys.values()].find(x => x.sourceId === med.sourceId && x.kind === med.kind) : undefined;
   const close = (rv: string) => {
     if(rv !== "ok" && rv !== "new") return;
@@ -183,7 +154,7 @@ function IncomingDialog({med, stage}: {med: IncomingMedley; stage?: boolean}){
     });
     blocks.forEach(b => { b.linkOf = med.sourceId; store.saveMedley(b); });
     if(update && existing){
-      // Os medleys que vieram do link anterior saem; os novos entram no lugar.
+      // Os medleys que vieram da versão anterior saem; os novos entram no lugar.
       existing.items.forEach(i => { const b = i.type === "medley" && data.medleys.get(i.medleyId); if(b && b.linkOf === med.sourceId && !blocks.includes(b)) store.deleteMedley(b.id); });
       Object.assign(existing, {name: med.name, items, options: med.options}); store.saveMedley(existing);
       openMedley(existing.id); go("medley");
@@ -192,7 +163,7 @@ function IncomingDialog({med, stage}: {med: IncomingMedley; stage?: boolean}){
     }
     const nm = store.createMedley(med.name, items, med.options, med.kind === "medley" ? "medley" : "setlist");
     if(med.sourceId && !existing){ nm.sourceId = med.sourceId; store.saveMedley(nm); }
-    // Um repertório vazio aberto (ex.: primeiro acesso pelo link) não precisa ficar sobrando.
+    // Um repertório vazio aberto (ex.: primeiro acesso) não precisa ficar sobrando.
     const prev = current(); if(prev.id !== nm.id && !prev.items.length) store.deleteMedley(prev.id);
     openMedley(nm.id); go("medley");
     if(stage) useUI.setState({stageOpen: true});
@@ -262,7 +233,7 @@ function ConfirmDialog({title, message, confirm, resolve}: DialogProps["confirm"
 }
 
 // ---------- guia "Como usar" de cada página ----------
-export const HELP_STEPS = {medley: 6, library: 4, group: 6, study: 6, tools: 7} as const;
+export const HELP_STEPS = {medley: 6, library: 3, group: 6, study: 3, tools: 4} as const;
 export function seenHelp(page: string){ const s = Object.assign({}, data.settings.seenHelp || {}) as Record<string, boolean>; if(!s[page]){ s[page] = true; store.setSetting("seenHelp", s); } }
 function HelpDialog({page}: DialogProps["help"]){
   useEffect(() => seenHelp(page), [page]);

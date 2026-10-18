@@ -2,7 +2,7 @@
 // pode entrar para os admins.
 import { useEffect, useRef, useState } from "react";
 import { t, tn } from "../lib/i18n";
-import { useAuth, signIn, signUp, resendConfirmation, pendingConfirm, setPendingConfirm, forgotPassword, setNewPassword, signInWithGoogle, signOut, saveName, listAllowed, addAllowed, setAllowedAdmin, removeAllowed, validEmail, initials, cloud, type Allowed } from "../lib/cloud";
+import { useAuth, signIn, signUp, resendConfirmation, pendingConfirm, setPendingConfirm, forgotPassword, setNewPassword, signInWithGoogle, signOut, saveName, listAllowed, addAllowed, setAllowedAdmin, removeAllowed, validEmail, initials, type Allowed } from "../lib/cloud";
 import { DEFAULT_POLICY, missing, passes, fromError, isPwned, type PwPolicy, type PwRule } from "../lib/password";
 import { reduced } from "../lib/util";
 import { toast, confirmDialog } from "../state";
@@ -283,13 +283,13 @@ export function Avatar({big}: {big?: boolean}){
 }
 
 export function Profile(){
-  const {status, profile, admin, email} = useAuth();
+  const {profile, admin, email} = useAuth();
   const [name, setName] = useState(profile?.name || "");
   useEffect(() => setName(profile?.name || ""), [profile?.name]);
   return <section className="view" id="view-profile" data-view="profile" aria-labelledby="profile-h">
-    <div className="view-head"><div><h1 id="profile-h">{t("profile.title")}</h1><p className="sub">{status === "in" ? email : t("profile.localSub")}</p></div></div>
+    <div className="view-head"><div><h1 id="profile-h">{t("profile.title")}</h1><p className="sub">{email}</p></div></div>
     <div className="profile-grid">
-      {status === "in" ? <div className="card profile-card">
+      <div className="card profile-card">
         <div className="profile-who"><Avatar big/><div><b>{profile?.name || email}</b><span className="sub">{email}</span>{admin && <span className="chip accent">{t("profile.admin")}</span>}</div></div>
         <label className="field"><span>{t("profile.name")}</span><input className="input" id="profile-name" maxLength={80} autoComplete="name" value={name}
           onChange={e => setName(e.target.value)} onBlur={async () => { if(name.trim() !== (profile?.name || "")) toast(t(await saveName(name) ? "profile.nameSaved" : "profile.saveFail")); }}
@@ -297,8 +297,8 @@ export function Profile(){
         <div className="profile-row"><InstrumentSelect/></div>
         <SyncStatus/>
         <SignOut/>
-      </div> : <div className="card profile-card"><p>{t(cloud ? "profile.out" : "profile.local")}</p><div className="profile-row"><InstrumentSelect/></div></div>}
-      {status === "in" && admin && <People me={email}/>}
+      </div>
+      {admin && <People me={email}/>}
     </div>
   </section>;
 }

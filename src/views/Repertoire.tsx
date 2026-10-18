@@ -7,7 +7,7 @@ import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
 import { reduced, vt } from "../lib/util";
 import { useUI, useData, toast, openDialog, toggleExpanded, go } from "../state";
-import { current, isMedley, openMedley, songItems, arrangementOf, eff, songKey, medleyPayload } from "../repertoire";
+import { current, isMedley, openMedley, songItems, arrangementOf, eff, songKey } from "../repertoire";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select, type Options } from "../ui/Select";
@@ -110,7 +110,6 @@ export function Repertoire(){
       </div>
       <div className="actions">
         <button className="btn ghost" id="btn-new-medley" data-tip-key="tip.new" aria-label={t("medley.new")} onClick={newMedley}><Icon name="plus"/><span className="label-lg">{t("medley.new")}</span></button>
-        <button className="btn ghost" id="btn-share" data-tip-key="tip.share" aria-label={t("medley.share")} onClick={() => shareMedley(m)}><Icon name="share"/><span className="label-lg">{t("medley.share")}</span></button>
         <button className="btn primary" id="btn-stage" data-tip-key="tip.stage" onClick={() => useUI.setState({stageOpen: true})}><Icon name="stage"/><span>{t("medley.stage")}</span></button>
       </div>
     </div>
@@ -129,11 +128,6 @@ export function Repertoire(){
       <SheetPane m={m}><Sheet m={m}/></SheetPane>
     </div>
   </section>;
-}
-
-export function shareMedley(m: Medley){
-  if(!medleyPayload(m).songs.length) return toast(t("share.needSong"));
-  openDialog("share", {medley: m});
 }
 
 function MedleyName({m}: {m: Medley}){

@@ -1,5 +1,5 @@
-// Compartilhar medley por link: o medley inteiro vai compactado no próprio endereço (#m=...),
-// sem servidor. Formato: "z" + base64url(deflate-raw(JSON)), ou "j" + base64url(JSON) sem compressão.
+// Repertório compactado num texto, para compartilhar com o grupo (fica em group_setlists.code).
+// Formato: "z" + base64url(deflate-raw(JSON)), ou "j" + base64url(JSON) sem compressão.
 import { sanitizeEntry, sanitizeItem, sanitizeOptions } from "./core";
 import { t } from "./i18n";
 import type { Options, SongEntry, ItemFields } from "./types";

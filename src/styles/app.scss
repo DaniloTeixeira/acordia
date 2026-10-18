@@ -575,44 +575,6 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .wrong-btn{background:var(--bad)!important;border-color:var(--bad)!important;color:#fff!important;animation:shake .4s var(--ease)}
 @media (max-width:420px){ .note-grid{gap:4px} .answer.cell{min-height:42px;font-size:.9rem} }
 
-/* independência das mãos */
-.hands-intro{margin:16px 0 14px;max-width:760px;display:flex;flex-direction:column;gap:6px}
-.ex-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.kind.ex .chip{align-self:flex-start;margin-top:4px}
-.dots{display:inline-flex;gap:3px;vertical-align:middle}
-.dots i{width:7px;height:7px;border-radius:50%;background:var(--line-strong)}
-.dots i.on{background:var(--accent)}
-.hands-card{display:flex;flex-direction:column;gap:16px;max-width:880px}
-.lane-wrap{position:relative}
-.lanes{width:100%;height:auto;display:block;background:var(--surface-2);border-radius:var(--r-md)}
-.lanes .lane-l{font-size:12px;font-weight:700;fill:var(--muted)}
-.lanes .beat-n{font-size:10px;fill:var(--muted)}
-.lanes line.bar{stroke:var(--line-strong);stroke-width:1.5}
-.lanes line.beat{stroke:var(--line-strong);stroke-dasharray:3 4}
-.lanes line.lane{stroke:var(--line);stroke-width:2}
-.lanes .note{stroke-width:2;transition:fill var(--t-fast),r var(--t-fast)}
-.lanes .note.lh{fill:var(--surface);stroke:var(--lh)} .lanes .note.rh{fill:var(--surface);stroke:var(--accent)}
-.lanes .note.lh.flash{fill:var(--lh)} .lanes .note.rh.flash{fill:var(--accent)}
-.lanes .note.ok{fill:var(--ok);stroke:var(--ok)} .lanes .note.part{fill:#F59E0B;stroke:#F59E0B} .lanes .note.miss{fill:var(--bad-soft);stroke:var(--bad)}
-.lanes .playhead{stroke:var(--ink);stroke-width:2;transition:opacity var(--t-fast)}
-.hands-count{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-display);font-size:3rem;font-weight:700;color:var(--accent);pointer-events:none;text-shadow:0 2px 12px var(--surface)}
-.hands-controls{justify-content:space-between}
-.bpm{display:flex;align-items:center;gap:6px}
-.bpm label{display:flex;align-items:center;gap:10px;font-size:.9rem}
-.bpm input[type=range]{width:min(220px,40vw)}
-.pads{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.pad{min-height:120px;border-radius:var(--r-lg);border:2px solid var(--line-strong);background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;
-  user-select:none;-webkit-user-select:none;touch-action:manipulation;font-size:1rem;transition:transform 60ms var(--ease),background-color var(--t-fast)}
-.pad.lh{border-color:var(--lh);color:var(--lh)} .pad.rh{border-color:var(--accent);color:var(--accent)}
-.pad kbd{font:600 .8rem var(--font-mono);padding:2px 8px;border-radius:6px;border:1px solid currentColor;opacity:.7}
-.pad.hit{animation:pad-hit .18s var(--ease-out)}
-.pad.lh.hit{background:color-mix(in srgb,var(--lh) 14%,var(--surface))} .pad.rh.hit{background:color-mix(in srgb,var(--accent) 14%,var(--surface))}
-@keyframes pad-hit{40%{transform:scale(.96)}}
-.hands-tip{margin-top:-4px}
-.hands-result{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:8px 0}
-.hands-result .big{font-family:var(--font-display);font-size:2.6rem;font-weight:700;color:var(--accent);animation:pop .6s var(--ease-out)}
-.hands-result .stats{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;font-size:.9rem;color:var(--muted)}
-.hands-result .stats b{color:var(--ink)}
 
 /* metrônomo */
 .metro{max-width:560px;margin-top:16px;display:flex;flex-direction:column;gap:18px;align-items:stretch}
@@ -650,69 +612,13 @@ textarea.song-text{field-sizing:content;max-height:65vh;min-height:200px;resize:
 .pad-styles .root-btn{height:auto;min-height:56px;padding:8px 12px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;text-align:left}
 .pad-styles .root-btn small{font-size:.74rem;font-weight:400;line-height:1.3;color:var(--muted)} .pad-styles .root-btn[aria-pressed="true"] small{color:inherit;opacity:.85}
 @media (max-width:640px){ .pad-styles{grid-template-columns:repeat(2,minmax(0,1fr))} }
-/* Efeitos: botões quadrados; acendem com o gradiente e apagam no tempo do som (--d). */
-.fx-card{margin-top:16px}
-/* Título e legenda dos cards do pad, alinhados à esquerda e visíveis também no celular. */
-.pad-layout .card-head{display:flex;flex-direction:column;gap:2px}
-.pad-layout .card-head .sub{text-align:left;display:block}
-/* Em tela grande, pad e efeitos lado a lado e da mesma altura. */
-@media (min-width:1200px){ .pad-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch;max-width:1136px} .pad-layout .metro{max-width:none}
-  .fx-card>.fx-grid+.field{margin-top:auto}
-  /* Botões em 3 colunas × 4 linhas, ocupando a altura que sobra no card (deixam de ser quadrados). */
-  .fx-card .fx-grid{flex:1;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:1fr} .fx-card .fx-pad{aspect-ratio:auto;min-height:72px}
-  .fx-card .fx-pad b{font-size:1rem} .fx-card .fx-pad small{font-size:.78rem} }
-.fx-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.fx-pad{position:relative;isolation:isolate;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px;border-radius:var(--r-md);
-  border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink);cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;text-align:center}
-.fx-pad b{font-size:.9rem;line-height:1.15} .fx-pad small{font-size:.7rem;color:var(--muted);line-height:1.2}
-.fx-pad::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:var(--range-grad);opacity:0}
-.fx-pad.on::before{animation:fx-glow var(--d) var(--ease) both}
-.fx-pad.on{border-color:transparent}
-.fx-pad.on b,.fx-pad.on small{color:#fff}
-@keyframes fx-glow{0%{opacity:.95}100%{opacity:0}}
-/* Hover: borda no gradiente da marca, numa camada própria por cima da borda para poder aparecer com transição. */
-.fx-pad::after{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:var(--range-grad);pointer-events:none;opacity:0;transition:opacity var(--t) var(--ease);
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
-@media (hover:hover){ .fx-pad:hover::after{opacity:1} }
-@media (max-width:640px){ .fx-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px} .fx-pad small{display:none} .fx-pad b{font-size:.85rem} }
+/* Título e legenda do card do pad, alinhados à esquerda e visíveis também no celular. */
+.metro.pad .card-head{display:flex;flex-direction:column;gap:2px}
+.metro.pad .card-head .sub{text-align:left;display:block}
 /* Pad: filtro de build, swell e fade. */
 .pad-filter-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px} .pad-filter-h small{font-weight:400}
 .pad-swell{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .btn.busy{border-color:transparent;background:linear-gradient(var(--surface),var(--surface)) padding-box,var(--range-grad) border-box}
-/* Ritmo: card de largura inteira com BPM, caixa, shaker e grave, dois por linha. */
-.rhythm-card{margin-top:16px}
-.rhythm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-@media (max-width:640px){ .rhythm-grid{grid-template-columns:minmax(0,1fr)} }
-/* Modos dos loops: botões compactos que dividem a largura do bloco, sem vazar. */
-.rhythm-item .seg button{flex:1;min-width:0;padding:5px 8px;font-size:.76rem;overflow:hidden;text-overflow:ellipsis}
-/* Cada parte do ritmo (tempo, caixa, shaker, grave) num bloco com borda, para se identificar de relance. */
-.rhythm-item{display:flex;flex-direction:column;gap:10px;justify-content:space-between;padding:14px 16px;border:1px solid var(--line-strong);border-radius:var(--r-md);background:var(--surface-2)}
-.rhythm-item b{display:block} .rhythm-item small{display:block;color:var(--muted);font-size:.8rem}
-.rhythm-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.rhythm-tempo{align-items:center} .rhythm-bpm{display:flex;align-items:center;gap:12px}
-.rhythm-bpm .metro-read{min-width:96px} .rhythm-bpm .metro-read b{font-size:2.4rem}
-@media (min-width:1200px){ .rhythm-card,.groove-card{grid-column:1/-1;max-width:none} }
-/* Padrão e som de cada loop, lado a lado. */
-.rhythm-pick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-/* Grade do padrão personalizado: 4 tempos de 4 semicolcheias; forte = gradiente cheio, fraca = gradiente claro. */
-.steps-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.steps-beat{display:flex;flex-direction:column;gap:4px} .steps-n{font-size:.72rem;font-weight:700;color:var(--muted)}
-.steps-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}
-.step{aspect-ratio:1;min-width:0;padding:0;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);cursor:pointer;transition:background-color var(--t-fast),border-color var(--t-fast),opacity var(--t-fast)}
-.step:hover{border-color:var(--accent)}
-.step.hi{border-color:transparent;background:var(--range-grad)}
-.step.lo{border-color:transparent;background:var(--range-grad);opacity:.45}
-@media (max-width:640px){ .steps-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px} }
-/* Grooves: estilos em grade e, embaixo, volume, sugestão de BPM e tocar. */
-.groove-card{margin-top:16px}
-.groove-styles{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));grid-auto-rows:1fr}
-.groove-styles .root-btn{justify-content:flex-start}
-.groove-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 16px} .groove-row .field{flex:1 1 220px}
-/* "Usar x BPM" e "Tocar groove" do mesmo tamanho. */
-.groove-row .btn{min-width:160px;min-height:48px;font-size:1rem}
-/* A barra de volume sobe 12px (metade da diferença para os botões), para a trilha ficar no meio deles com o rótulo
-   colado em cima. */
-.groove-row input[type=range]{margin-bottom:12px}
 .metro-mini{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
 .mini-bpm{font-variant-numeric:tabular-nums;min-width:68px;text-align:center}
 .mini-bpm b{font-size:1.1rem}
@@ -797,26 +703,9 @@ a.btn{text-decoration:none}
 .tuner-scale span{position:absolute;bottom:2px;transform:translateX(-50%);font-size:.7rem;color:var(--muted)}
 .tuner-cents{font-weight:600;color:var(--muted);min-height:1.4em}
 
-/* Aba Voz: cantar graus e extensão vocal */
+/* Aba Voz: extensão vocal */
 .voice-card{max-width:720px;margin-top:16px;display:flex;flex-direction:column;gap:12px}
 .voice-card h2{margin:0}
-.voice-link{flex-direction:row;align-items:center;justify-content:space-between;flex-wrap:wrap}
-.voice-link h3{margin:0 0 2px}
-.voice-note{font-size:.6em;color:var(--muted);font-weight:600}
-.voice-meter{display:flex;flex-direction:column;align-items:center;gap:10px}
-.voice-zone{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--ok) 18%,transparent);transition:left var(--t),width var(--t)}
-.voice-meter .tuner-needle.idle{opacity:.3}
-.voice-meter.ok .tuner-needle{background:var(--ok)}
-.voice-meter.ok + .voice-line .tuner-cents{color:var(--ok)}
-/* Estado do microfone ("Pode cantar...") à esquerda e o resultado da nota à direita. */
-.voice-line{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
-.voice-line p{margin:0}
-.voice-line .feedback{text-align:right;margin-left:auto}
-/* O resultado aparece num badge, verde no acerto e vermelho no erro (vazio, não aparece). */
-.voice-line .feedback:is(.ok,.bad){display:inline-flex;align-items:center;padding:4px 12px;border-radius:var(--r-full);font-size:.85rem;animation:pop .3s var(--ease-out)}
-.voice-line .feedback.ok{background:var(--ok-soft)} .voice-line .feedback.bad{background:var(--bad-soft)}
-.voice-hold{width:100%;height:6px;border-radius:var(--r-full);background:var(--surface-2);overflow:hidden}
-.voice-hold span{display:block;height:100%;width:0;background:var(--range-grad);transition:width 100ms linear}
 .voice-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
 .voice-step{display:flex;flex-direction:column;gap:6px;padding:14px;border:1px solid var(--line);border-radius:var(--r-lg);transition:border-color var(--t)}
 /* Medindo: a borda vira o gradiente padrão (a camada ::before acima); a caixa não é clicável, então sem hover. */
@@ -904,30 +793,6 @@ a.btn{text-decoration:none}
 .item-inner > .seg, .dlg-body > .seg{align-self:flex-start}
 .sub-seg{margin:16px 0 4px}
 
-/* exercícios de teclado */
-.k-controls{gap:10px 16px}
-.k-board{background:var(--surface-2);border-radius:var(--r-md);padding:8px}
-.keyboard.practice{max-width:none;width:100%;cursor:pointer;touch-action:manipulation}
-.keyboard.practice .w.rh{fill:#2F6BF0} .keyboard.practice .b.rh{fill:#5B8CFF}
-.keyboard.practice .w.lh{fill:var(--lh)} .keyboard.practice .b.lh{fill:#9B5CF8}
-.keyboard.practice .w.next{fill:#E9EEFB} .keyboard.practice .b.next{fill:#475569}
-.keyboard.practice .hit{fill:#16A34A!important} .keyboard.practice .bad{fill:#DC2626!important}
-/* rótulo da oitava legível sobre teclas coloridas */
-.keyboard.practice rect.rh + .oct,.keyboard.practice rect.lh + .oct,.keyboard.practice rect.hit + .oct,.keyboard.practice rect.bad + .oct{fill:rgba(255,255,255,.8)}
-.keyboard.practice .fing{font-size:13px;font-weight:800;fill:#fff;text-anchor:middle;pointer-events:none}
-.keyboard.practice .oct{font-size:9px;fill:#94A3B8;text-anchor:middle;pointer-events:none}
-.kgrid-wrap{overflow-x:auto;padding-bottom:4px}
-.kgrid{display:flex;gap:4px;min-width:min-content}
-.kstep{display:flex;flex-direction:column;gap:3px;align-items:stretch;min-width:46px;padding:4px;border-radius:var(--r-sm);transition:background-color var(--t-fast)}
-.kstep.on{background:var(--accent-soft)}
-.kbeat{font-size:.7rem;color:var(--muted);text-align:center;font-weight:700}
-.kc{display:flex;flex-direction:column;align-items:center;padding:4px 2px;border-radius:6px;font-size:.78rem;min-height:38px;justify-content:center}
-.kc.rh{background:color-mix(in srgb,#2F6BF0 16%,transparent);color:var(--ink)} .kc.lh{background:color-mix(in srgb,var(--lh) 18%,transparent);color:var(--ink)}
-.kc.auto{opacity:.45}
-.kc small{color:var(--muted);font-weight:700}
-.kc.empty{background:transparent}
-.k-actions{gap:8px}
-.k-sound{margin-left:auto}
 
 /* menu de idioma */
 .menu-pop{width:220px;padding:6px}
@@ -945,22 +810,6 @@ a.btn{text-decoration:none}
 /* janela com alterações: avisa em vez de fechar */
 dialog.nudge{animation:shake .35s var(--ease)}
 
-.kgrid-head{display:flex;flex-direction:column;gap:2px;margin-bottom:-6px}
-.kgrid-head h3{font-size:.95rem}
-.klabels{position:sticky;left:0;z-index:1;background:var(--surface);min-width:72px}
-.kc.lbl{font-weight:700;font-size:.72rem;align-items:flex-start;padding-left:8px}
-.k-auto{margin-top:-8px}
-
-.k-prompt{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:12px 16px;border-radius:var(--r-md);background:var(--accent-soft);color:var(--accent-soft-ink);font-size:1rem;animation:view-in var(--t) var(--ease-out)}
-.kp-step{font-weight:800;font-family:var(--font-display)}
-.kp b{font-size:1.15rem;color:var(--ink)} .kp small{font-size:.8rem;color:var(--muted);font-weight:600}
-.kp.rh::before,.kp.lh::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;background:#2F6BF0}
-.kp.lh::before{background:var(--lh)}
-/* fora da prática o destaque é só uma prévia */
-.hands-card:not(.practicing) .keyboard.practice rect.rh,.hands-card:not(.practicing) .keyboard.practice rect.lh{opacity:.75}
-.keyboard.practice rect.target{animation:key-pulse 1.1s ease-in-out infinite}
-@keyframes key-pulse{50%{opacity:.55}}
-.practicing .k-board{outline:3px solid color-mix(in srgb,var(--accent) 45%,transparent);outline-offset:2px}
 
 .tooltip{position:fixed;inset:auto;margin:0;border:1px solid transparent;padding:6px 11px;border-radius:9px;background:linear-gradient(135deg,var(--tip-a),var(--tip-b)) padding-box,var(--range-grad) border-box;color:var(--ink);font-size:.8rem;font-weight:600;line-height:1.35;max-width:260px;box-shadow:var(--shadow-lg);pointer-events:none;
   opacity:1;transform:none;transition:opacity .12s var(--ease),transform .12s var(--ease-out),display .12s allow-discrete,overlay .12s allow-discrete}
@@ -1339,38 +1188,6 @@ dialog.event-dlg{width:min(640px,calc(100vw - 24px))}
 .share-to-group .sub{margin:-6px 0 0}
 .share-to-group .people-add .select-btn{flex:1;min-width:200px}
 
-/* ---------- Separar faixas ---------- */
-.stems-layout{display:flex;flex-direction:column;gap:16px}
-.stems-in,.stems-mix{display:flex;flex-direction:column;gap:12px}
-.stems-src{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.stems-link{display:flex;gap:8px;flex:1 1 320px}
-.stems-link .input{flex:1;min-width:0}
-.stems-song{display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--r-md);background:var(--surface-2)}
-.stems-song > div{flex:1;min-width:0;display:flex;flex-direction:column}
-.stems-song b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.stems-progress{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:.88rem}
-.stems-progress .bar{flex:1 1 100%;height:8px;border-radius:var(--r-full);background:var(--surface-3);overflow:hidden}
-.stems-progress .bar i{display:block;height:100%;background:var(--range-grad);border-radius:inherit;transition:width .3s var(--ease)}
-.stems-progress .bar i.indet{animation:stems-indet 1.4s ease-in-out infinite alternate;width:40% !important}
-@keyframes stems-indet{from{transform:translateX(-10%)}to{transform:translateX(160%)}}
-@media (prefers-reduced-motion:reduce){ .stems-progress .bar i.indet{animation:none;width:100% !important;opacity:.5} }
-.stems-progress span{flex:1}
-.stems-detail{opacity:.75;word-break:break-word}
-.stems-presets{display:flex;flex-wrap:wrap;gap:6px}
-.stems-presets .root-btn{font-size:.82rem}
-.stems-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
-.stems-list li{display:grid;grid-template-columns:auto minmax(110px,160px) 1fr auto auto;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line)}
-.stems-list li.off .stem-name{color:var(--muted);text-decoration:line-through}
-.stem-toggle{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;border:1px solid var(--line-strong);background:var(--surface);color:var(--muted);cursor:pointer}
-.stem-toggle.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.stem-toggle.on:hover{filter:brightness(.92)}
-@media (max-width:560px){ .stems-list li{grid-template-columns:auto 1fr auto auto} .stems-list li input[type=range]{grid-column:1 / -1;grid-row:2} }
-.stems-player{display:flex;align-items:center;gap:12px}
-.stems-player .metro-go{flex-shrink:0;width:auto;padding:0 18px}
-.stems-player input[type=range]{flex:1}
-.stems-time{font-family:var(--font-mono,monospace);font-size:.85rem;color:var(--muted);min-width:38px;text-align:center}
-.stems-actions{display:flex;gap:8px;flex-wrap:wrap}
-.stems-credit{font-size:.78rem;text-align:center}
 .lib-card .foot.group-set-foot .btn{margin-right:0}
 /* Abas das Ferramentas: no celular estreito, rolam de lado em vez de alargar a página. */
 #tools-tabs{overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain}

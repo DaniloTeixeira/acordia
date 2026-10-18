@@ -31,7 +31,6 @@ function schedule(ms = 1500){ clearTimeout(timer); timer = setTimeout(() => { sy
 
 // Liga e desliga sozinha conforme a pessoa entra e sai da conta.
 export function initSync(){
-  if(!cloud) return;
   const check = () => {
     const {status, profile} = useAuth.getState();
     if(status === "in" && profile && profile.id !== user) startSync(profile.id);
@@ -76,7 +75,7 @@ export function forgetLocal(){
 }
 
 export function syncNow(): Promise<void> {
-  if(!cloud || !user) return Promise.resolve();
+  if(!user) return Promise.resolve();
   if(running){ again = true; return running; }
   running = (async () => {
     useSync.setState({state: "syncing"});
@@ -99,7 +98,7 @@ async function push(){
       return e.op === "del" || !obj ? {id, data: null, updated_at: e.at, deleted: true} : {id, data: obj, updated_at: obj.updatedAt || e.at, deleted: false};
     });
     for(let i = 0; i < rows.length; i += 200){
-      const {error} = await cloud!.rpc("sync_push", {kind: TABLE[kind], rows: rows.slice(i, i + 200)});
+      const {error} = await cloud.rpc("sync_push", {kind: TABLE[kind], rows: rows.slice(i, i + 200)});
       if(error) throw error;
     }
   }
@@ -114,7 +113,7 @@ async function pull(){
   const received = new Set<string>(); let got = 0;
   for(const kind of ["s", "m"] as const){
     for(;;){
-      let req = cloud!.from(TABLE[kind]).select("id,data,updated_at,deleted,server_at").order("server_at").limit(500);
+      let req = cloud.from(TABLE[kind]).select("id,data,updated_at,deleted,server_at").order("server_at").limit(500);
       if(marks[kind]) req = req.gt("server_at", marks[kind]);
       const {data, error} = await req;
       if(error) throw error;

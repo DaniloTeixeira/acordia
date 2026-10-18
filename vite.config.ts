@@ -22,15 +22,23 @@ function staticFiles(): Plugin {
   };
 }
 
+// O app só funciona com login: sem as chaves do Supabase, o build para em vez de publicar um app que não abre.
+function needsSupabase(): Plugin {
+  return {
+    name: "acordia-supabase",
+    apply: "build",
+    configResolved(c){
+      if(!c.env.VITE_SUPABASE_URL || !c.env.VITE_SUPABASE_KEY) throw new Error("Faltam VITE_SUPABASE_URL e VITE_SUPABASE_KEY (ver o README, Conta e nuvem).");
+    }
+  };
+}
+
 export default defineConfig({
   base: "/acordia/",
   build: {outDir: OUT, emptyOutDir: true, target: "es2022"},
-  // Separar faixas: o worker importa o ONNX Runtime como módulo, e o .wasm dele vira um arquivo do build
-  // (fica fora da lista offline; o service worker guarda no primeiro uso).
-  worker: {format: "es"},
-  optimizeDeps: {exclude: ["onnxruntime-web"]},
   plugins: [
     react(),
+    needsSupabase(),
     staticFiles(),
     VitePWA({
       // Service worker próprio (src/sw.ts); o build só preenche a lista de arquivos.

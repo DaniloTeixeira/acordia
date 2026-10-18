@@ -28,7 +28,7 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-        # Login (Supabase): variáveis do repositório. Sem elas, o app sai sem login, como antes.
+        # Login (Supabase): variáveis do repositório. Sem elas, o app não abre.
         env:
           VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           VITE_SUPABASE_KEY: ${{ vars.SUPABASE_KEY }}

@@ -1,17 +1,15 @@
-// Biblioteca: músicas salvas, repertórios e medleys, com busca, filtros, exportar e importar.
+// Biblioteca: músicas salvas, repertórios e medleys, com busca e filtros.
 import { useDeferredValue, useState } from "react";
-import { isChordLine, sanitizeEntry, sanitizeItem, sanitizeOptions } from "../lib/core";
+import { isChordLine, sanitizeItem } from "../lib/core";
 import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
-import { saveBlob } from "../lib/pdf";
 import { ago, norm } from "../lib/util";
 import { useData, toast, openDialog, confirmDialog, go } from "../state";
 import { current, peekCurrent, isMedley, openMedley, songItems, usage, songKey } from "../repertoire";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
-import { openRef, shareMedley } from "./Repertoire";
-import { useSync } from "../lib/sync";
+import { openRef } from "./Repertoire";
 import type { Medley, Song, Item } from "../lib/types";
 
 const { data } = store;
@@ -39,57 +37,6 @@ function deleteMedley(m: Medley){
   if(wasCurrent){ const back = data.settings.returnTo as string; store.setSetting("currentMedley", back && data.medleys.has(back) ? back : ""); store.setSetting("returnTo", ""); }
   toast(t("lib.medleyDeleted", {name:m.name}));
 }
-function exportLibrary(){
-  const all = [...data.songs.values()].filter(s=>s.title);
-  if(!all.length) return toast(t("lib.emptyExport"));
-  const json = JSON.stringify({app:"acordia", version:3, exportedAt:new Date().toISOString(),
-    songs: all.map(({id,title,text,type,key,bpm,ref,arrangements,updatedAt})=>({id,title,text,type,key,bpm,ref,arrangements:arrangements||[],updatedAt})),
-    medleys: [...data.medleys.values()].map(({id,kind,name,items,options,updatedAt})=>({id,kind:kind||"setlist",name,options,updatedAt,
-      items:items.map(i => i.type === "medley" ? {type:"medley", medleyId:i.medleyId} : {songId:i.songId,arrangementId:i.arrangementId||"",target:i.target,capo:i.capo,singer:i.singer,notes:i.notes})}))}, null, 2);
-  saveBlob(new Blob([json], {type:"application/json"}), "acordia-backup-" + new Date().toISOString().slice(0,10) + ".json");
-  toast(t("lib.exported"));
-}
-async function importLibrary(file: File){
-  try{
-    const d = JSON.parse(await file.text());
-    const rows = d && d.songs;
-    if(!Array.isArray(rows)) throw 0;
-    const idMap = new Map<string, string>(), medMap = new Map<string, string>(); let ns = 0, nm = 0;
-    rows.forEach((raw: unknown) => {
-      const e = sanitizeEntry(raw); if(!e) return;
-      const fields = {text:e.text, title:e.title, type:e.type, key:e.key, bpm:e.bpm, ref:e.ref};
-      let s = (e.id && data.songs.get(e.id)) || [...data.songs.values()].find(x => norm(x.title) === norm(e.title));
-      if(s){ Object.assign(s, fields); }
-      else s = store.createSong(Object.assign(fields, e.id ? {id:e.id} : {}));
-      // Arranjos importados entram junto com os que já existem (o mesmo id substitui).
-      const byId = new Map((s.arrangements || []).map(a => [a.id, a])); e.arrangements.forEach(a => byId.set(a.id, a));
-      s.arrangements = [...byId.values()]; store.saveSong(s);
-      if(e.id) idMap.set(e.id, s.id);
-      ns++;
-    });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const medRows: any[] = (Array.isArray(d.medleys) ? d.medleys : []).filter((r: {items?: unknown}) => r && Array.isArray(r.items));
-    // Primeiro os medleys (blocos), para os repertórios poderem apontar para eles.
-    medRows.sort((a, b) => (a.kind === "medley" ? 0 : 1) - (b.kind === "medley" ? 0 : 1)).forEach(r => {
-      const kind = r.kind === "medley" ? "medley" : "setlist";
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const items = r.items.map((i: any): Item | null => {
-        if(!i) return null;
-        if(i.type === "medley") return kind === "setlist" && medMap.get(i.medleyId) ? store.newMedleyItem(medMap.get(i.medleyId)!) : null;
-        return idMap.get(i.songId) ? store.newItem(idMap.get(i.songId)!, sanitizeItem(i)) : null;
-      }).filter(Boolean) as Item[];
-      const name = typeof r.name === "string" && r.name.trim() ? r.name.trim().slice(0,80) : t("lib.importedMedley");
-      const ex = typeof r.id === "string" ? data.medleys.get(r.id) : undefined;
-      let target: Medley;
-      if(ex){ Object.assign(ex, {name, items, kind, options: sanitizeOptions(r.options)}); store.saveMedley(ex); target = ex; }
-      else { target = store.createMedley(name, items, r.options, kind); if(typeof r.id === "string" && r.id){ store.deleteMedley(target.id); target.id = r.id; store.saveMedley(target); } }
-      if(typeof r.id === "string") medMap.set(r.id, target.id);
-      nm++;
-    });
-    toast(nm ? t("lib.importedBoth", {songs: songsN(ns), medleys: medleysN(nm)}) : t("lib.imported", {songs: songsN(ns)}));
-  }catch(err){ toast(t("lib.badFile")); }
-}
-
 // Clicar em qualquer parte do cartão faz a ação principal; botões e seleção de texto ficam de fora.
 function cardClick(run: () => void){
   return (e: React.MouseEvent) => {
@@ -113,8 +60,6 @@ function EmptyCard({icon, title, text}: {icon: string; title: string; text?: str
 
 export function Library(){
   useData();
-  // Com a conta ligada, a biblioteca fica na nuvem (e neste aparelho para usar sem internet).
-  const syncing = useSync(s => s.state !== "off");
   const [tab, setTab] = useState<Tab>("songs");
   const [filter, setFilter] = useState<"all" | "chords" | "letra">("all");
   const [sort, setSort] = useState("az");
@@ -124,14 +69,9 @@ export function Library(){
   const setlists = meds.filter(m => !isMedley(m)), blocks = meds.filter(isMedley);
   return <section className="view" id="view-library" data-view="library" aria-labelledby="lib-h">
     <div className="view-head">
-      <div><h1 id="lib-h">{t("lib.title")}</h1><p className="sub" id="lib-sub">{t(syncing ? "lib.subCloud" : "lib.sub", {songs: songsN(all.length), medleys: medleysN(setlists.length)})}</p></div>
+      <div><h1 id="lib-h">{t("lib.title")}</h1><p className="sub" id="lib-sub">{t("lib.sub", {songs: songsN(all.length), medleys: medleysN(setlists.length)})}</p></div>
       <div className="actions">
         <button className="btn primary" id="lib-new" onClick={() => openDialog("song", {song: null})}><Icon name="plus"/><span>{t("lib.new")}</span></button>
-        <button className="btn ghost" id="lib-export" data-tip-key="tip.export" aria-label={t("lib.export")} onClick={exportLibrary}><Icon name="export"/><span className="label-lg">{t("lib.export")}</span></button>
-        <label className="btn ghost" tabIndex={0} id="lib-import-btn" data-tip-key="tip.import" role="button" aria-label={t("lib.import")}
-          onKeyDown={e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); e.currentTarget.querySelector("input")?.click(); } }}>
-          <Icon name="import"/><span className="label-lg">{t("lib.import")}</span>
-          <input type="file" id="lib-import" accept="application/json,.json" hidden onChange={e => { const f = e.target.files?.[0]; e.target.value = ""; if(f) importLibrary(f); }}/></label>
       </div>
     </div>
     <Seg id="lib-tabs" aria={t("lib.tabsAria")} value={tab} onChange={setTab} options={[
@@ -200,7 +140,6 @@ function MedleyCards({rows: source, blocks, setlists, q}: {rows: Medley[]; block
       <div className="foot"><button className="btn soft sm" data-a="open" onClick={open}>{t("common.open")}</button>
         <span className="when">{ago(m.updatedAt)}</span>
         {m.items.length > 0 && <button className="icon-btn sm" data-a="dup" aria-label={t("common.duplicate")} title={t("common.duplicate")} onClick={dup}><Icon name="copy" sm/></button>}
-        <button className="icon-btn sm" data-a="share" aria-label={t("common.share")} title={t("common.share")} onClick={() => shareMedley(m)}><Icon name="share" sm/></button>
         <button className="icon-btn sm danger" data-a="del" aria-label={t("common.delete")} title={t("common.delete")} onClick={del}><Icon name="trash" sm/></button></div>
     </li>;
   })}</>;

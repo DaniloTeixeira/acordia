@@ -20,7 +20,6 @@ export interface Toast { id: number; msg: string; action?: ToastAction; sticky?:
 export interface DialogProps {
   picker: Record<string, never>;
   song: {song: Song | null};
-  share: {medley: Medley};
   // stage: depois de salvar, abre direto no Palco (repertório do grupo).
   incoming: {med: IncomingMedley; stage?: boolean};
   install: Record<string, never>;
@@ -81,7 +80,7 @@ export function confirmDialog(p: {title: string; message: string; confirm?: stri
 export function animate(run: () => void, kind: VtKind = "fade"){ return vt(() => flushSync(run), kind); }
 
 // Cada página tem seu endereço (#library, #study, #tools; o repertório fica sem hash), para o voltar
-// do navegador e do mouse trocar de tela. Os links de repertório (#m=...) não são páginas.
+// do navegador e do mouse trocar de tela.
 export function viewFromHash(): View | null {
   const h = location.hash.slice(1);
   return (VIEWS as string[]).includes(h) ? h as View : null;

@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
-import { cloud, useAuth, validEmail, initials } from "../lib/cloud";
+import { useAuth, validEmail, initials } from "../lib/cloud";
 import { encodeMedley, decodeMedley } from "../lib/share";
 import { saveBlob } from "../lib/pdf";
 import { ago } from "../lib/util";
@@ -66,8 +66,6 @@ export function Group(){
   const group = g.groups.find(x => x.id === g.gid);
   const head = (sub: string, actions?: React.ReactNode) => <div className="view-head"><div><h1 id="group-h">{group ? group.name : t("group.title")}</h1><p className="sub">{sub}</p></div>
     {actions && <div className="actions">{actions}</div>}</div>;
-  if(!cloud || status !== "in") return <section className="view" id="view-group" data-view="group" aria-labelledby="group-h">
-    {head(t("group.sub"))}<div className="card empty-state"><Icon name="users"/><strong>{t("group.needLogin")}</strong><span>{t("group.needLoginSub")}</span></div></section>;
   if(!group) return <section className="view" id="view-group" data-view="group" aria-labelledby="group-h">
     {head(t("group.sub"))}
     {!g.loaded || g.loading ? <div className="card empty-state"><Spin/><span>{t("auth.loading")}</span></div>
