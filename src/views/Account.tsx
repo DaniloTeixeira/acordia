@@ -8,7 +8,7 @@ import { reduced, flashSaved, norm } from "../lib/util";
 import { toast, confirmDialog, openDialog, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { DateInput } from "../ui/DateInput";
-import { useFold, FoldButton } from "../ui/Fold";
+import { useFold, FoldHead } from "../ui/Fold";
 import { useGroups, loadGroups, setMemberRole, respond, outMark } from "../lib/groups";
 import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, fmtPhone } from "../lib/calendar";
 import { sortRoles } from "../lib/roles";
@@ -329,9 +329,8 @@ export function Profile(){
       {/* Cada card tem o topo (card-top) e o corpo (card-body): lado a lado, os topos dividem a mesma altura
           (subgrid no CSS) e os quadros de campos dos dois começam na mesma linha. */}
       <div className={"card profile-card" + fold.cls}>
-        <FoldButton folded={fold.folded} onToggle={fold.toggle} title={t("profile.data")}/>
-        {/* Este card não tem título (o topo é a foto e o nome): recolhido, mostra este no lugar. */}
-        <h2 className="fold-title">{t("profile.data")}</h2>
+        {/* Lado a lado, este card não tem título (o topo é a foto e o nome); um abaixo do outro, ganha "Meu perfil". */}
+        <FoldHead folded={fold.folded} onToggle={fold.toggle} title={t("profile.card")}/>
         <div className="card-top"><div className="profile-who"><PhotoButton/><div><span className="people-name"><b>{profile?.name || email}</b>{admin && <span className="chip accent">{t("profile.admin")}</span>}</span><span className="sub">{email}</span>
           <PhotoActions/></div></div></div>
         <div className="card-body">
@@ -560,7 +559,7 @@ function People({me}: {me: string}){
     onRow(r, async () => { if(await removeAllowed(r.email)){ toast(t("people.removed", {email: r.email})); await load(); loadGroups(); } else toast(t("profile.saveFail")); });
   };
   return <div className={"card people-card" + fold.cls}>
-    <FoldButton folded={fold.folded} onToggle={fold.toggle} title={t("people.title")}/>
+    <FoldHead folded={fold.folded} onToggle={fold.toggle} title={t("people.title")}/>
     <div className="card-top"><h2>{t("people.title")}</h2><p className="sub">{t("people.sub")}</p></div>
     <div className="card-body">
     <form className="people-add-box" onSubmit={add} noValidate>

@@ -6155,41 +6155,60 @@ dialog.ear-dlg {
   container-type: inline-size;
 }
 /* Recolher o card (ui/Fold.tsx): só com os cards um abaixo do outro, ou seja, quando a grade não cabe duas
-   colunas de 360 px (2 × 360 + 16 de gap = 736). Lado a lado, o botão não aparece e todos ficam abertos. */
-.fold-btn,
-.fold-title {
+   colunas de 360 px (2 × 360 + 16 de gap = 736). Lado a lado, o cabeçalho clicável não aparece, o título normal
+   do card fica e todos ficam abertos. */
+.fold-head {
   display: none;
 }
 @container (max-width: 735.98px) {
-  .foldable {
-    position: relative;
+  /* Um abaixo do outro a subgrid (topos alinhados lado a lado) não serve, e o cabeçalho a mais sobraria numa
+     grade de 2 linhas: o card vira coluna, com o mesmo espaço entre as partes. */
+  .profile-grid > .card.foldable:has(> .card-top) {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    grid-row: auto;
   }
-  .foldable > .fold-btn {
-    display: inline-flex;
-    position: absolute;
-    top: 14px;
-    right: 14px;
-  }
-  /* O título e o topo não passam por baixo do botão. */
-  .foldable > h2,
-  .foldable > .card-top {
-    padding-right: 40px;
-  }
-  /* Recolhido: só o título. O topo sem título (foto e nome do Perfil) dá lugar ao .fold-title; no topo com
-     título, some o resto (a explicação). */
-  /* Com .profile-grid > .card na frente, para ganhar de .profile-grid .card-body/.card-top (display: flex). */
-  .profile-grid > .card.folded > .card-body,
-  .profile-grid > .card.folded > .card-top:not(:has(> h2)),
-  .profile-grid > .card.folded > .card-top > :not(h2) {
-    display: none;
-  }
-  .profile-grid > .card.folded > .fold-title {
+  .profile-grid > .card.foldable > .fold-head {
     display: block;
-    padding-right: 40px;
+    margin: 0;
   }
-  /* Fechado, o card do Perfil (subgrid de 2 linhas) fica só com a linha do topo, sem o vão da segunda. */
-  .profile-grid > .card.foldable.folded {
-    grid-row: span 1;
+  /* O título inteiro é o botão: a linha toda abre e fecha, com a seta centrada na altura do texto. */
+  .fold-head > button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+  .fold-chev {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: var(--muted);
+    transition: background var(--t) var(--ease);
+  }
+  .fold-head > button:hover .fold-chev {
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+  /* O título normal sai (o cabeçalho clicável está no lugar dele). Recolhido, só o cabeçalho. */
+  .profile-grid > .card.foldable > h2:not(.fold-head),
+  .profile-grid > .card.foldable > .card-top > h2,
+  .profile-grid > .card.folded > .card-top,
+  .profile-grid > .card.folded > .card-body {
+    display: none;
   }
 }
 /* Lado a lado, os quadros ficam com a mesma altura (o mais baixo estica até o mais alto). */

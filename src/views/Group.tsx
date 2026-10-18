@@ -21,7 +21,7 @@ import { useUI, useData, toast, openDialog, confirmDialog, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
-import { useFold, FoldButton } from "../ui/Fold";
+import { useFold, FoldHead } from "../ui/Fold";
 import { useLock, Spin, Avatar, PersonFields, useEmailCheck, pickPhoto, PhoneLink, fmtBirthday } from "./Account";
 
 const { data } = store;
@@ -408,7 +408,7 @@ function Members({canEdit}: {canEdit: boolean}){
   const [outEdit, setOutEdit] = useState(""), fold = useFold("group-members");
   return <div className="profile-grid">
     <div className={"card people-card" + fold.cls}>
-      <FoldButton folded={fold.folded} onToggle={fold.toggle} title={t("group.membersTab")}/>
+      <FoldHead folded={fold.folded} onToggle={fold.toggle} title={t("group.membersTab")}/>
       <h2>{t("group.membersTab")}</h2>
       <div className="card-body">
       {canEdit && <><p className="sub">{t("group.addSub")}</p>
@@ -577,7 +577,7 @@ function GroupSettings({appAdmin}: {appAdmin: boolean}){
   useEffect(() => setName(group.name), [group.name]);
   const fold = useFold("group-settings");
   return <div className={"card people-card" + fold.cls}>
-    <FoldButton folded={fold.folded} onToggle={fold.toggle} title={t("group.settings")}/>
+    <FoldHead folded={fold.folded} onToggle={fold.toggle} title={t("group.settings")}/>
     <h2>{t("group.settings")}</h2>
     <div className="card-body">
     {appAdmin && <GroupPhoto/>}
