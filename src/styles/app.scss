@@ -611,10 +611,6 @@ textarea::-webkit-scrollbar {
 .icon-btn.line.danger:hover:where(:not(:disabled)) {
   border-color: color-mix(in srgb, var(--bad) 55%, var(--line-strong));
 }
-/* Junto do toggle com moldura (Líder), segue o canto dele. */
-.member-role-actions .icon-btn.line {
-  border-radius: var(--r-sm);
-}
 @media (max-width: 899px) {
   .btn .label-lg {
     display: none;
@@ -7660,7 +7656,12 @@ dialog.event-dlg {
 .member-role-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+}
+/* Cadeado e lixeira redondos, do tamanho dos da lista "Com acesso". */
+.member-role-actions .icon-btn.sm {
+  width: 34px;
+  height: 34px;
 }
 /* Na lista de membros, a linha das funções ocupa a largura toda: chips e lápis à esquerda, Líder e excluir à direita. */
 .members .member-roles:not(.editing) {
@@ -7668,6 +7669,12 @@ dialog.event-dlg {
 }
 .members .member-role-actions {
   margin-left: auto;
+}
+/* Um abaixo do outro (celular), Líder, cadeado e lixeira descem para a linha de baixo à esquerda. */
+@container (max-width: 735.98px) {
+  .members .member-role-actions {
+    margin-left: 0;
+  }
 }
 .member-roles.editing {
   flex: 1 1 100%;
