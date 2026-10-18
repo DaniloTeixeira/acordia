@@ -358,9 +358,14 @@ function Members({canEdit}: {canEdit: boolean}){
         // Regra dos ensaios no lugar do "% nos ensaios" (a porcentagem fica na dica).
         const hint = t("group.ruleHint", {max: MISS_LIMIT, back: COMEBACK, p: rate.total ? Math.round(100 * rate.present / rate.total) : 0, present: rate.present, total: rate.total});
         // Líder: toggle com moldura (como o Admin da lista de usuários), antes do lápis; desabilitado enquanto salva.
-        const leader = canEdit && m.email !== me ? <label className="switch lead boxed people-admin" aria-busy={busy === m.email + "adm"}><span>{t("group.leader")}</span>
+        // Na própria linha só aparece se a pessoa não fica sem acesso: é admin do app ou há outro líder.
+        const self = m.email === me, otherLeader = g.members.some(x => x.is_admin && x.email !== me);
+        const leader = canEdit && (!self || appAdmin || otherLeader) ? <label className="switch lead boxed people-admin" aria-busy={busy === m.email + "adm"}><span>{t("group.leader")}</span>
           <input type="checkbox" checked={m.is_admin} disabled={busy === m.email + "adm"} aria-label={t("group.leaderAria", {name: personName(m.email)})}
-            onChange={() => row(m, "adm", () => setMemberAdmin(g.gid, m.email, !m.is_admin))}/></label> : null;
+            onChange={async () => {
+              if(self && m.is_admin && !appAdmin && !await confirmDialog({title: t("group.leaveLeadTitle"), message: t("group.leaveLeadMsg", {group: group.name})})) return;
+              row(m, "adm", () => setMemberAdmin(g.gid, m.email, !m.is_admin));
+            }}/></label> : null;
         return <li key={m.email}>
           <PersonAvatar email={m.email}/>
           <span className="people-who"><span><b>{personName(m.email)}</b>{m.email === me && " " + t("group.you")}<br/><span className="sub people-email">{m.email}</span></span></span>

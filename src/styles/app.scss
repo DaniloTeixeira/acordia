@@ -1063,9 +1063,11 @@ main {
     width: 30px;
     height: 30px;
   }
+  /* Cada aba parte da largura do seu rótulo e o espaço que sobra é dividido igual: "Ferramentas", o mais
+     comprido, não fica colado na borda; as laterais respeitam a área segura do aparelho. */
   .tabbar {
-    display: grid;
-    grid-template-columns: repeat(var(--n, 4), 1fr);
+    display: flex;
+    padding-inline: max(6px, env(safe-area-inset-left)) max(6px, env(safe-area-inset-right));
     position: fixed;
     inset: auto 0 0 0;
     z-index: 20;
@@ -1078,6 +1080,8 @@ main {
   }
   /* Aba ativa: traço com o gradiente do logo no topo, na largura toda do item. */
   .tab {
+    flex: 1 1 auto;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1100,11 +1104,16 @@ main {
     position: absolute;
     top: 0;
     left: 0;
-    width: calc(100% / var(--n, 4));
+    width: var(--w, 0);
     height: 3px;
     background: var(--range-grad);
-    transform: translateX(calc(var(--i, 0) * 100%));
-    transition: transform var(--t) var(--ease-out);
+    transform: translateX(var(--x, 0));
+    transition:
+      transform var(--t) var(--ease-out),
+      width var(--t) var(--ease-out);
+  }
+  .tabbar[data-empty]::before {
+    opacity: 0;
   }
   .tab .pill {
     display: grid;

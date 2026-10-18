@@ -1,6 +1,6 @@
 // Estrutura do app: navegação (trilho no computador, barra de abas no celular), páginas, modo
 // palco, janelas, menus de idioma e volume, e avisos.
-import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useIndicator } from "./ui/Seg";
 import { t, getLang, LANGS } from "./lib/i18n";
 import * as store from "./lib/store";
@@ -124,6 +124,9 @@ export function App(){
   const view = useUI(s => s.view), stageOpen = useUI(s => s.stageOpen);
   useUI(s => s.lang);
   const install = useInstall();
+  // Abas do celular com largura pelo rótulo: o traço da aba ativa mede a aba de verdade.
+  const tabbar = useRef<HTMLElement>(null);
+  useIndicator(tabbar, '.tab[aria-current="page"]');
   const songCount = [...data.songs.values()].filter(s => s.title).length;
   // Na primeira visita a uma página, um aviso discreto oferece o guia "Como usar". Ele é daquela página:
   // some ao trocar de página ou ao abrir o Palco (no celular, ficaria por cima da cifra).
@@ -177,7 +180,7 @@ export function App(){
         {view === "profile" && <Profile/>}
       </main>
       <button className="help-fab" id="help-fab" hidden={!helpable} data-tip-key={helpKey} data-tip-side="left" aria-label={t(helpKey)} onClick={() => openDialog("help", {page: view})}><Icon name="question"/></button>
-      <nav className="tabbar" aria-label={t("nav.nav")} style={{"--i": NAV.findIndex(([v]) => v === navOf(view)), "--n": NAV.length} as CSSProperties}>
+      <nav className="tabbar" ref={tabbar} aria-label={t("nav.nav")}>
         {NAV.map(([v, ic, label]) => <button key={v} className="tab" data-nav={v} aria-current={current(v)} onClick={() => go(v)}>
           <span className="pill"><Icon name={ic}/></span><span>{t(label)}</span></button>)}
       </nav>
