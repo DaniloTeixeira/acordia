@@ -17,6 +17,7 @@ import { PlayerDialog } from "./PlayerDialog";
 import { EarDialog } from "./EarDialog";
 import { EventDialog } from "./EventDialog";
 import { PhotoDialog } from "./PhotoDialog";
+import { MemberDialog } from "./MemberDialog";
 import type { SongType } from "../lib/types";
 
 const { data } = store;
@@ -37,6 +38,7 @@ export function Dialogs(){
     {d.ear && <EarDialog {...d.ear}/>}
     {d.event && <EventDialog {...d.event}/>}
     {d.photo && <PhotoDialog {...d.photo}/>}
+    {d.member && <MemberDialog {...d.member}/>}
   </>;
 }
 

@@ -55,7 +55,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Versão fixa: "latest" consulta a API do GitHub sem token e às vezes estoura o limite de chamadas.
+          version: 2.121.0
       # O config.toml não fica no repositório (a integração do Supabase com o GitHub o aplicaria na
       # produção); aqui ele só existe no runner.
       - run: supabase init --force --yes

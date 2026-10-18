@@ -438,8 +438,12 @@ function Members({canEdit}: {canEdit: boolean}){
             }}/></label> : null;
         return <li key={m.email}>
           {/* Como na lista "Com acesso": sempre nome, e-mail (com o aniversário) e celular, com o que falta apagado. */}
-          <span className="people-who"><PersonAvatar email={m.email}/><span className="people-id">
-            <span className="people-name">{m.name ? <b>{m.name}</b> : <span className="people-missing">{t("people.noName")}</span>}{m.email === me && " " + t("group.you")}</span>
+          {/* Tocar na pessoa (foto ou texto) abre os detalhes; o nome é o botão, para o teclado e o leitor de tela.
+              O celular continua sendo link de ligar. */}
+          <span className="people-who member-open" onClick={e => { if(!(e.target as HTMLElement).closest("a, button")) openDialog("member", {email: m.email}); }}>
+            <PersonAvatar email={m.email}/><span className="people-id">
+            <span className="people-name"><button type="button" className="member-open-btn" aria-label={t("member.open", {name: m.name || m.email})}
+              onClick={() => openDialog("member", {email: m.email})}>{m.name ? <b>{m.name}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{m.email === me && " " + t("group.you")}</span>
             <span className="sub people-email">{m.email}{m.birthday && " · " + fmtBirthday(m.birthday)}</span>
             {m.phone ? <PhoneLink phone={m.phone}/> : <span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}</span></span>
           <span className="member-chips">
