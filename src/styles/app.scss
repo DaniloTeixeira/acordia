@@ -1409,7 +1409,10 @@ main {
   outline-offset: 2px;
 }
 .drag-handle .num {
-  transition: filter var(--t-fast);
+  transition:
+    filter var(--t-fast),
+    transform var(--t-fast) var(--ease-out),
+    box-shadow var(--t-fast);
 }
 .drag-handle .grip-hover,
 .drag-handle .grip-touch {
@@ -1473,7 +1476,30 @@ main {
 .items.sorting > .item:not(.dragging) {
   transition: transform 0.18s var(--ease-out);
 }
-/* Item sendo arrastado: borda fina em gradiente (como o .btn.busy). */
+/* Arraste ativado (pronto ou arrastando): borda fina em gradiente (como o .btn.busy). */
+.item.armed,
+.item.armed:focus-within {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    var(--range-grad) border-box;
+}
+/* E a alça também: o número vira ⠿ no mesmo gradiente da borda, um pouco maior, e o ⠿ do toque ganha cor. */
+.item:is(.armed, .dragging) > .item-head .drag-handle .num {
+  background: var(--range-grad);
+  color: var(--accent-ink);
+  transform: scale(1.12);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--grad-2) 25%, transparent);
+}
+.item:is(.armed, .dragging) > .item-head .drag-handle .num-n {
+  display: none;
+}
+.item:is(.armed, .dragging) > .item-head .drag-handle .grip-hover {
+  display: block;
+}
+.item:is(.armed, .dragging) > .item-head .drag-handle .grip-touch {
+  color: var(--grad-2);
+}
 .item.dragging,
 .item.dragging:focus-within {
   position: relative;
@@ -1852,6 +1878,18 @@ textarea.song-text {
   .cards.rows .lib-card .foot .btn {
     margin-right: 8px;
   }
+  /* "Há x minutos" sai da linha dos chips e vai para junto dos botões, centrado na altura deles. */
+  .cards.rows .lib-card .meta .when {
+    display: none;
+  }
+  .cards.rows .lib-card .foot .foot-when {
+    display: inline;
+    margin-right: 12px;
+  }
+}
+/* A cópia do "há x minutos" junto dos botões só aparece no modo linhas. */
+.lib-card .foot .foot-when {
+  display: none;
 }
 /* Abas à esquerda e cards | linhas à direita, na mesma linha e na mesma altura (as abas encolhem e rolam
    se faltar espaço). */

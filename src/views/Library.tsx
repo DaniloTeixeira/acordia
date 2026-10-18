@@ -135,7 +135,7 @@ function SongCards({all, q, sort}: {all: Song[]; q: string; sort: string}){
         {s.bpm && <span className="chip">{t("sheet.bpm", {n:s.bpm})}</span>}{na > 0 && <span className="chip">{tn("arr.count", na)}</span>}{n > 0 && <span className="chip">{medleysN(n)}</span>}
         <span className="when">{ago(s.updatedAt)}</span></div>
       <p className="excerpt">{excerpt(s)}</p>
-      <div className="foot">{cur.has(s.id) ? <><span className="chip current"><Icon name="check" sm/> {t("lib.inCurrent")}</span><span style={{marginRight: "auto"}}/></>
+      <div className="foot"><span className="when foot-when" aria-hidden="true">{ago(s.updatedAt)}</span>{cur.has(s.id) ? <><span className="chip current"><Icon name="check" sm/> {t("lib.inCurrent")}</span><span style={{marginRight: "auto"}}/></>
         : <button className="btn soft sm" data-a="add" onClick={() => addSongToMedley(s.id)}><Icon name="plus" sm/> {t("common.add")}</button>}
         {s.ref && <button className="icon-btn sm ref-btn" data-a="ref" aria-label={t("ref.listen")} title={t("ref.listen")} onClick={() => openRef(s.ref!, s.title)}><Icon name="play" sm/></button>}
         <button className="icon-btn sm" data-a="edit" aria-label={t("common.edit")} title={t("common.edit")} onClick={() => openDialog("song", {song: s})}><Icon name="edit" sm/></button>
@@ -172,7 +172,7 @@ function MedleyCards({rows: source, blocks, setlists, q, sort}: {rows: Medley[];
         {usedIn > 0 && <span className="chip accent owner-chip" data-tip={owners.map(x => x.name).join(" · ")}><Icon name="list" sm/><span>{owners[0].name}</span>{usedIn > 1 && <b>+{usedIn - 1}</b>}</span>}<span className="chip accent">{songsN(titles.length)}</span>
         <span className="when">{ago(m.updatedAt)}</span></div>
       <p className="excerpt">{titles.join(" · ") || t("lib.emptyMedley")}</p>
-      <div className="foot"><button className="btn soft sm" data-a="open" onClick={open}>{t("common.open")}</button>
+      <div className="foot"><span className="when foot-when" aria-hidden="true">{ago(m.updatedAt)}</span><button className="btn soft sm" data-a="open" onClick={open}>{t("common.open")}</button>
         {m.items.length > 0 && <button className="icon-btn sm" data-a="dup" aria-label={t("common.duplicate")} title={t("common.duplicate")} onClick={dup}><Icon name="copy" sm/></button>}
         <button className="icon-btn sm danger" data-a="del" aria-label={t("common.delete")} title={t("common.delete")} onClick={del}><Icon name="trash" sm/></button></div>
     </li>;

@@ -24,7 +24,8 @@ export function useDragSort(ref: RefObject<HTMLElement | null>, onMove: (from: n
       if(handle) e.preventDefault();
       const from = items.indexOf(li), startY = e.clientY, startX = e.clientX;
       let rects: DOMRect[] = [], size = 0, startScroll = scrollY;
-      let active = false, to = from, lastY = e.clientY, raf = 0, hold: ReturnType<typeof setTimeout> | undefined;
+      let active = false, to = from, lastY = e.clientY, raf = 0, hold: ReturnType<typeof setTimeout> | undefined, arm: ReturnType<typeof setTimeout> | undefined;
+      // "Pronto para arrastar": a borda muda já ao pegar (alça na hora; mouse no item ao segurar), antes de mover.
 
       const place = () => {
         const dy = lastY - startY + (scrollY - startScroll);
@@ -74,7 +75,7 @@ export function useDragSort(ref: RefObject<HTMLElement | null>, onMove: (from: n
       const swallow = (ev: MouseEvent) => { ev.preventDefault(); ev.stopPropagation(); };
       const noMenu = (ev: Event) => ev.preventDefault();
       const finish = (cancel: boolean) => {
-        clearTimeout(hold); cancelAnimationFrame(raf);
+        clearTimeout(hold); clearTimeout(arm); cancelAnimationFrame(raf); li.classList.remove("armed");
         removeEventListener("pointermove", move, true);
         removeEventListener("pointerup", up, true);
         removeEventListener("pointercancel", cancelIt, true);
@@ -102,6 +103,8 @@ export function useDragSort(ref: RefObject<HTMLElement | null>, onMove: (from: n
       addEventListener("keydown", key, true);
       addEventListener("touchmove", touchMove, {passive: false});
       if(touch){ li.addEventListener("contextmenu", noMenu); hold = setTimeout(start, HOLD); }
+      else if(handle) li.classList.add("armed");
+      else arm = setTimeout(() => li.classList.add("armed"), HOLD);
       stop = () => finish(true);
     };
     list.addEventListener("pointerdown", down);
