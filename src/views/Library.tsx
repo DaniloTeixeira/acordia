@@ -15,6 +15,9 @@ import type { Medley, Song, Item } from "../lib/types";
 const { data } = store;
 const songsN = (n: number) => tn("song", n), medleysN = (n: number) => tn("medley", n);
 type Tab = "songs" | "setlists" | "medleys";
+// Aba com que a Biblioteca abre da próxima vez (o "voltar" do repertório abre nos repertórios).
+let nextTab: Tab = "songs";
+export function openLibrary(tab: Tab){ nextTab = tab; go("library"); }
 
 function excerpt(s: Song){
   return s.text.split("\n").slice(1).map(l=>l.trim()).filter(l=>l && !isChordLine(l) && !/^\[.*\]$/.test(l)).slice(0, 2).join(" / ");
@@ -36,6 +39,13 @@ function deleteMedley(m: Medley){
   store.deleteMedley(m.id);
   if(wasCurrent){ const back = data.settings.returnTo as string; store.setSetting("currentMedley", back && data.medleys.has(back) ? back : ""); store.setSetting("returnTo", ""); }
   toast(t("lib.medleyDeleted", {name:m.name}));
+}
+// Pede confirmação e exclui; diz quantos repertórios usam o medley. Devolve se excluiu.
+export async function confirmDeleteMedley(m: Medley){
+  const blocks = isMedley(m);
+  const usedIn = blocks ? [...data.medleys.values()].filter(x => !isMedley(x) && x.items.some(i => i.type === "medley" && i.medleyId === m.id)).length : 0;
+  if(!await confirmDialog({title: t(blocks ? "confirm.medleyTitle" : "confirm.setlistTitle"), message: t(usedIn ? "confirm.medleyUsed" : blocks ? "confirm.medley" : "confirm.setlist", {name: m.name, medleys: medleysN(usedIn)})})) return false;
+  deleteMedley(m); return true;
 }
 // Clicar em qualquer parte do cartão faz a ação principal; botões e seleção de texto ficam de fora.
 function cardClick(run: () => void){
@@ -60,8 +70,7 @@ function EmptyCard({icon, title, text}: {icon: string; title: string; text?: str
 
 export function Library(){
   useData();
-  const [tab, setTab] = useState<Tab>("songs");
-  const [filter, setFilter] = useState<"all" | "chords" | "letra">("all");
+  const [tab, setTab] = useState<Tab>(() => { const t0 = nextTab; nextTab = "songs"; return t0; });
   const [sort, setSort] = useState("az");
   const [query, setQuery] = useState("");
   const q = norm(useDeferredValue(query));
@@ -78,20 +87,18 @@ export function Library(){
       {v: "songs", label: t("lib.songs", {n: all.length})}, {v: "setlists", label: t("lib.setlists", {n: setlists.length})}, {v: "medleys", label: t("lib.mblocks", {n: blocks.length})}]}/>
     <div className="lib-toolbar">
       <div className="search"><Icon name="search" sm/><input type="search" className="input" id="lib-q" placeholder={t("lib.search")} aria-label={t("lib.searchAria")} value={query} onChange={e => setQuery(e.target.value)}/></div>
-      {tab === "songs" && <Seg className="sm" id="lib-filter" aria={t("lib.filterAria")} value={filter} onChange={setFilter}
-        options={[{v: "all", label: t("lib.all")}, {v: "chords", label: t("lib.withChords")}, {v: "letra", label: t("lib.lyricsOnly")}]}/>}
       {tab === "songs" && <Select id="lib-sort" style={{width: "auto"}} aria={t("lib.sortAria")} value={sort} onChange={setSort}
         options={[{value: "az", label: t("lib.az")}, {value: "recent", label: t("lib.recent")}]}/>}
     </div>
     <ul className="cards" id="lib-list">
-      {tab === "songs" ? <SongCards all={all} q={q} filter={filter} sort={sort}/> : <MedleyCards rows={tab === "medleys" ? blocks : setlists} blocks={tab === "medleys"} setlists={setlists} q={q}/>}
+      {tab === "songs" ? <SongCards all={all} q={q} sort={sort}/> : <MedleyCards rows={tab === "medleys" ? blocks : setlists} blocks={tab === "medleys"} setlists={setlists} q={q}/>}
     </ul>
   </section>;
 }
 
-function SongCards({all, q, filter, sort}: {all: Song[]; q: string; filter: string; sort: string}){
+function SongCards({all, q, sort}: {all: Song[]; q: string; sort: string}){
   const u = usage(), cur = new Set((peekCurrent()?.items || []).map(i => i.type === "medley" ? "" : i.songId));
-  const rows = all.filter(s => (!q || norm(s.title).includes(q) || norm(s.text).includes(q)) && (filter === "all" || (filter === "letra") === (s.type === "letra")))
+  const rows = all.filter(s => !q || norm(s.title).includes(q) || norm(s.text).includes(q))
     .sort(sort === "recent" ? (a,b)=>(b.updatedAt||0)-(a.updatedAt||0) : (a,b)=>a.title.localeCompare(b.title, locale()));
   if(!rows.length) return all.length ? <EmptyCard icon="search" title={t("lib.noResults")} text={t("lib.noResultsText")}/> : <EmptyCard icon="library" title={t("lib.empty")} text={t("lib.emptyText")}/>;
   return <>{rows.map((s, idx) => {
@@ -101,11 +108,11 @@ function SongCards({all, q, filter, sort}: {all: Song[]; q: string; filter: stri
     return <li key={s.id} className="lib-card" style={{animationDelay: Math.min(idx, 12) * 25 + "ms"}} onClick={cardClick(() => openDialog("song", {song: s}))}>
       <h3>{s.title}</h3>
       <div className="meta">{s.type === "letra" ? <span className="chip">{t("item.lyricsOnly")}</span> : key ? <span className="chip accent">{t("lib.key", {key})}</span> : null}
-        {s.bpm && <span className="chip">{t("sheet.bpm", {n:s.bpm})}</span>}{na > 0 && <span className="chip">{tn("arr.count", na)}</span>}{n > 0 && <span className="chip">{medleysN(n)}</span>}</div>
+        {s.bpm && <span className="chip">{t("sheet.bpm", {n:s.bpm})}</span>}{na > 0 && <span className="chip">{tn("arr.count", na)}</span>}{n > 0 && <span className="chip">{medleysN(n)}</span>}
+        <span className="when">{ago(s.updatedAt)}</span></div>
       <p className="excerpt">{excerpt(s)}</p>
       <div className="foot">{cur.has(s.id) ? <><span className="chip accent"><Icon name="check" sm/> {t("lib.inCurrent")}</span><span style={{marginRight: "auto"}}/></>
         : <button className="btn soft sm" data-a="add" onClick={() => addSongToMedley(s.id)}><Icon name="plus" sm/> {t("common.add")}</button>}
-        <span className="when">{ago(s.updatedAt)}</span>
         {s.ref && <button className="icon-btn sm ref-btn" data-a="ref" aria-label={t("ref.listen")} title={t("ref.listen")} onClick={() => openRef(s.ref!, s.title)}><Icon name="play" sm/></button>}
         <button className="icon-btn sm" data-a="edit" aria-label={t("common.edit")} title={t("common.edit")} onClick={() => openDialog("song", {song: s})}><Icon name="edit" sm/></button>
         <button className="icon-btn sm danger" data-a="del" aria-label={t("common.delete")} title={t("common.delete")} onClick={del}><Icon name="trash" sm/></button></div>
@@ -120,10 +127,13 @@ function MedleyCards({rows: source, blocks, setlists, q}: {rows: Medley[]; block
   if(!rows.length) return blocks ? <EmptyCard icon="link" title={t("lib.noMedleyBlocks")} text={t("lib.noMedleyBlocksText")}/> : <EmptyCard icon="list" title={t("lib.noMedleys")}/>;
   return <>{rows.map((m, idx) => {
     const titles = titlesOf(m);
-    const usedIn = blocks ? setlists.filter(x => x.items.some(i => i.type === "medley" && i.medleyId === m.id)).length : 0;
+    // Repertórios que usam este medley: o chip mostra o nome (e "+N" se houver mais; a lista toda na dica).
+    const owners = blocks ? setlists.filter(x => x.items.some(i => i.type === "medley" && i.medleyId === m.id)) : [];
+    const usedIn = owners.length;
+    const del = () => confirmDeleteMedley(m);
     // Duplica e já abre a cópia com o nome selecionado, pronto para renomear.
     const dup = () => {
-      const copyItem = (i: Item) => i.type === "medley" ? store.newMedleyItem(i.medleyId) : store.newItem(i.songId, sanitizeItem(i));
+      const copyItem = (i: Item) => i.type === "medley" ? Object.assign(store.newMedleyItem(i.medleyId), {moment: i.moment || ""}) : store.newItem(i.songId, sanitizeItem(i));
       const c = store.createMedley(copyName(m.name), m.items.map(copyItem), m.options, m.kind);
       openMedley(c.id);
       const tr = go("medley");
@@ -131,14 +141,13 @@ function MedleyCards({rows: source, blocks, setlists, q}: {rows: Medley[]; block
       toast(t("lib.created", {name: c.name}));
     };
     const open = () => { openMedley(m.id); go("medley"); };
-    const del = async () => { if(await confirmDialog({title: t(blocks ? "confirm.medleyTitle" : "confirm.setlistTitle"), message: t(usedIn ? "confirm.medleyUsed" : blocks ? "confirm.medley" : "confirm.setlist", {name: m.name, medleys: medleysN(usedIn)})})) deleteMedley(m); };
     return <li key={m.id} className="lib-card" style={{animationDelay: Math.min(idx, 12) * 25 + "ms"}} onClick={cardClick(open)}>
       <h3>{m.name}</h3>
-      <div className="meta">{blocks && <span className="chip accent"><Icon name="link" sm/> {t("ctx.medley")}</span>}<span className="chip">{songsN(titles.length)}</span>
-        {usedIn > 0 && <span className="chip">{medleysN(usedIn)}</span>}{m.id === curId && <span className="chip accent">{t("lib.open")}</span>}</div>
+      <div className="meta">{m.id === curId && <span className="chip accent">{t("lib.open")}</span>}
+        {usedIn > 0 && <span className="chip accent owner-chip" data-tip={owners.map(x => x.name).join(" · ")}><Icon name="list" sm/><span>{owners[0].name}</span>{usedIn > 1 && <b>+{usedIn - 1}</b>}</span>}<span className="chip">{songsN(titles.length)}</span>
+        <span className="when">{ago(m.updatedAt)}</span></div>
       <p className="excerpt">{titles.join(" · ") || t("lib.emptyMedley")}</p>
       <div className="foot"><button className="btn soft sm" data-a="open" onClick={open}>{t("common.open")}</button>
-        <span className="when">{ago(m.updatedAt)}</span>
         {m.items.length > 0 && <button className="icon-btn sm" data-a="dup" aria-label={t("common.duplicate")} title={t("common.duplicate")} onClick={dup}><Icon name="copy" sm/></button>}
         <button className="icon-btn sm danger" data-a="del" aria-label={t("common.delete")} title={t("common.delete")} onClick={del}><Icon name="trash" sm/></button></div>
     </li>;

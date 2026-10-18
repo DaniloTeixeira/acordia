@@ -6,7 +6,7 @@ import * as store from "../lib/store";
 import type { IncomingMedley, IncomingSong } from "../lib/share";
 import { norm } from "../lib/util";
 import { useUI, toast, go, openDialog, type DialogProps } from "../state";
-import { current, isMedley, openMedley, eff, lastPlayKey } from "../repertoire";
+import { current, isMedley, openMedley, lastPlayKey } from "../repertoire";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
@@ -28,7 +28,6 @@ export function Dialogs(){
     {d.song && <SongDialog {...d.song}/>}
     {d.incoming && <IncomingDialog {...d.incoming}/>}
     {d.install && <InstallDialog/>}
-    {d.arr && <ArrangementDialog {...d.arr}/>}
     {d.chord && <ChordDialog {...d.chord}/>}
     {d.player && <PlayerDialog {...d.player}/>}
     {d.confirm && <ConfirmDialog {...d.confirm}/>}
@@ -154,8 +153,10 @@ function IncomingDialog({med, stage}: {med: IncomingMedley; stage?: boolean}){
     med.songs.forEach(e => {
       const songItem = store.newItem(findOrCreateSong(e).id, sanitizeItem(e));
       if(e.g !== undefined && blocks[e.g]){
+        // No medley o momento é do bloco inteiro (vem repetido em cada música dele).
+        songItem.moment = "";
         blocks[e.g].items.push(songItem);
-        if(!placed.has(e.g)){ placed.add(e.g); items.push(store.newMedleyItem(blocks[e.g].id)); }
+        if(!placed.has(e.g)){ placed.add(e.g); items.push(Object.assign(store.newMedleyItem(blocks[e.g].id), {moment: e.moment || ""})); }
       } else items.push(songItem);
     });
     blocks.forEach(b => { b.linkOf = med.sourceId; store.saveMedley(b); });
@@ -202,30 +203,6 @@ function InstallDialog(){
   </Dialog>;
 }
 
-// ---------- salvar arranjo ----------
-function ArrangementDialog({medley: m, song: s, item: it}: DialogProps["arr"]){
-  const e = eff(s, it);
-  const key = e.target || s.key || (s.text.trim() ? detectKey(parseSong(s.text)) : "");
-  const [name, setName] = useState([key, e.capo ? t("item.capoChip", {n: e.capo}) : ""].filter(Boolean).join(" · "));
-  const val = useRef(name); val.current = name;
-  const close = (rv: string) => {
-    if(rv !== "ok") return;
-    const nm = val.current.trim().slice(0, 60) || t("arr.label");
-    const a = {id: store.newId("a"), name: nm, target: e.target, capo: e.capo, notes: e.notes};
-    s.arrangements = (s.arrangements || []).concat(a); store.saveSong(s);
-    it.arrangementId = a.id; store.saveMedley(m);
-    toast(t("arr.saved", {name: nm}));
-  };
-  return <Dialog name="arr" id="dlg-arr" labelledBy="arr-h" onClose={close} onOpen={d => d.querySelector<HTMLInputElement>("#arr-name")?.select()}>
-    <form method="dialog" className="dlg">
-      <DialogHead id="arr-h" title={t("arr.dlgTitle")} closeLabel={t("common.close")}/>
-      <div className="dlg-body"><p className="sub">{t("arr.dlgText")}</p>
-        <label className="field"><span>{t("arr.name")}</span><input className="input" id="arr-name" maxLength={60} placeholder={t("arr.namePh")} value={name} onChange={ev => setName(ev.target.value)}/></label></div>
-      <Foot><button className="btn ghost" value="cancel">{t("common.cancel")}</button><button className="btn primary" value="ok">{t("common.save")}</button></Foot>
-    </form>
-  </Dialog>;
-}
-
 // ---------- confirmar exclusão ----------
 function ConfirmDialog({title, message, confirm, resolve}: DialogProps["confirm"]){
   return <Dialog name="confirm" id="dlg-confirm" labelledBy="confirm-h" onClose={rv => resolve(rv === "ok")}
@@ -239,7 +216,7 @@ function ConfirmDialog({title, message, confirm, resolve}: DialogProps["confirm"
 }
 
 // ---------- guia "Como usar" de cada página ----------
-export const HELP_STEPS = {home: 3, medley: 6, library: 3, group: 6, study: 3, tools: 4} as const;
+export const HELP_STEPS = {home: 3, medley: 7, library: 2, group: 6, study: 3, tools: 4} as const;
 export function seenHelp(page: string){ const s = Object.assign({}, data.settings.seenHelp || {}) as Record<string, boolean>; if(!s[page]){ s[page] = true; store.setSetting("seenHelp", s); } }
 function HelpDialog({page}: DialogProps["help"]){
   useEffect(() => seenHelp(page), [page]);

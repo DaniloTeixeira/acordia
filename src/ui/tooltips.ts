@@ -4,8 +4,9 @@
 import { t } from "../lib/i18n";
 
 // Escolhe o lado da dica pela posição do elemento: em cima, embaixo, à esquerda ou à direita,
-// o que couber inteiro na tela com o menor deslocamento (empate fica com a ordem da lista).
-export function placeTip(r: DOMRect, w: number, h: number, vw: number, vh: number, gap = 8, m = 8){
+// o que couber inteiro na tela com o menor deslocamento (empate fica com a ordem da lista). Com `prefer`
+// (data-tip-side no elemento), esse lado vence sempre que couber.
+export function placeTip(r: DOMRect, w: number, h: number, vw: number, vh: number, gap = 8, m = 8, prefer = ""){
   const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
   const sides = [
     {side: "top", x: cx - w / 2, y: r.top - h - gap, fits: r.top - h - gap >= m},
@@ -17,7 +18,7 @@ export function placeTip(r: DOMRect, w: number, h: number, vw: number, vh: numbe
   sides.forEach((s, i) => {
     if(!s.fits) return;
     const x = Math.max(m, Math.min(s.x, vw - w - m)), y = Math.max(m, Math.min(s.y, vh - h - m));
-    const score = Math.abs(x - s.x) + Math.abs(y - s.y) + i * 6;
+    const score = s.side === prefer ? -1 : Math.abs(x - s.x) + Math.abs(y - s.y) + i * 6;
     if(!best || score < best.score) best = {side: s.side, x, y, score};
   });
   const b = best as {side: string; x: number; y: number} | null
@@ -43,7 +44,8 @@ export function initTooltips(){
   };
   const hide = () => { clearTimeout(timer); if(target){ target.removeAttribute("aria-describedby"); target = null; } if(tip.matches(":popover-open")) tip.hidePopover(); };
   const show = (el: HTMLElement) => {
-    const txt = textOf(el); if(!txt || !el.isConnected) return;
+    // Pode ter ficado desabilitado durante o atraso (ex.: a seta que chegou na ponta da lista).
+    const txt = textOf(el); if(!txt || !el.isConnected || inactive(el)) return;
     tip.textContent = txt; target = el; el.setAttribute("aria-describedby", "tooltip");
     tip.style.left = "0px"; tip.style.top = "0px"; tip.style.width = "";
     if(!tip.matches(":popover-open")) tip.showPopover();
@@ -51,7 +53,7 @@ export function initTooltips(){
     const box = tip.getBoundingClientRect(), w = Math.ceil(box.width), h = Math.ceil(box.height);
     tip.style.width = w + "px";
     const r = el.getBoundingClientRect();
-    const p = placeTip(r, w, h, document.documentElement.clientWidth, document.documentElement.clientHeight);
+    const p = placeTip(r, w, h, document.documentElement.clientWidth, document.documentElement.clientHeight, 8, 8, el.dataset.tipSide || "");
     tip.dataset.side = p.side;
     tip.style.left = p.x + "px"; tip.style.top = p.y + "px";
     // A setinha mira o centro do elemento a partir de onde a dica de fato ficou (descontando a borda),
@@ -65,7 +67,12 @@ export function initTooltips(){
     // Onde a setinha sai, em % da largura: a borda dela pega a cor do gradiente nesse ponto.
     tip.style.setProperty("--arrow-p", String(Math.round((a + bw) / at.width * 100)));
   };
-  const find = (e: Event) => { const el = e.target as Element | null; return el && el.closest ? el.closest<HTMLElement>(SEL) : null; };
+  // Só itens ativos têm dica: desabilitado (ou dentro de um fieldset desabilitado) não mostra nada.
+  const inactive = (el: HTMLElement) => el.matches(":disabled,[aria-disabled=true]");
+  const find = (e: Event) => {
+    const el = e.target as Element | null, hit = el && el.closest ? el.closest<HTMLElement>(SEL) : null;
+    return hit && !inactive(hit) ? hit : null;
+  };
   document.addEventListener("mouseover", e => {
     if(touch) return;
     const el = find(e);

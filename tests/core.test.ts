@@ -237,8 +237,8 @@ test("sanitizeOptions e sanitizeItem", () => {
   assert.deepEqual(C.sanitizeOptions(null), C.DEFAULT_OPTIONS);
   assert.deepEqual(C.sanitizeOptions({columns: 3, maxPages: 9, minFont: 2, degreeStyle: "x", dedupe: "s"}),
     Object.assign({}, C.DEFAULT_OPTIONS, {columns: "auto", maxPages: 2, minFont: 7}));
-  assert.deepEqual(C.sanitizeItem({target: "Q", capo: "14", singer: 5, notes: "ok"}), {target: "", capo: "", singer: "", solo: "", notes: "ok", arrangementId: ""});
-  assert.deepEqual(C.sanitizeItem({target: "Am", capo: 3, arrangementId: "a1"}), {target: "Am", capo: "3", singer: "", solo: "", notes: "", arrangementId: "a1"});
+  assert.deepEqual(C.sanitizeItem({target: "Q", capo: "14", singer: 5, notes: "ok"}), {target: "", capo: "", singer: "", solo: "", notes: "ok", arrangementId: "", moment: ""});
+  assert.deepEqual(C.sanitizeItem({target: "Am", capo: 3, arrangementId: "a1", moment: "pos"}), {target: "Am", capo: "3", singer: "", solo: "", notes: "", arrangementId: "a1", moment: "pos"});
   assert.equal(C.sanitizeItem({solo: "x".repeat(90)}).solo.length, 80);
 });
 

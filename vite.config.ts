@@ -36,6 +36,8 @@ function needsSupabase(): Plugin {
 export default defineConfig({
   base: "/acordia/",
   build: {outDir: OUT, emptyOutDir: true, target: "es2022"},
+  // API nova do Sass: a antiga (padrão do Vite 5) avisa que sai no Dart Sass 2.0.
+  css: {preprocessorOptions: {scss: {api: "modern-compiler"}}},
   plugins: [
     react(),
     needsSupabase(),

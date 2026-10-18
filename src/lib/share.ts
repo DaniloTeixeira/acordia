@@ -16,7 +16,7 @@ async function pipe(bytes: Uint8Array, stream: CompressionStream | Decompression
   return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer());
 }
 
-export interface SharedSong { text: string; type?: string; key?: string; bpm?: string; ref?: string; target?: string; capo?: string; singer?: string; solo?: string; notes?: string; g?: number }
+export interface SharedSong { text: string; type?: string; key?: string; bpm?: string; ref?: string; target?: string; capo?: string; singer?: string; solo?: string; notes?: string; moment?: string; g?: number }
 export interface SharedMedley { name: string; options: Options; kind?: "setlist" | "medley"; groups?: string[]; songs: SharedSong[]; sourceId?: string }
 export type IncomingSong = SongEntry & ItemFields & {g?: number};
 export interface IncomingMedley { name: string; sourceId: string; options: Options; kind: "setlist" | "medley"; groups: string[]; songs: IncomingSong[] }
@@ -24,7 +24,7 @@ export interface IncomingMedley { name: string; sourceId: string; options: Optio
 export async function encodeMedley(medley: SharedMedley){
   const compact = {v:1, i: medley.sourceId || undefined, n:medley.name, o:medley.options, k: medley.kind === "medley" ? "m" : undefined, gn: medley.groups && medley.groups.length ? medley.groups : undefined, s:medley.songs.map(s=>{
     const o: Record<string, unknown> = {t:s.text};
-    (["type","key","bpm","ref","target","capo","singer","solo","notes"] as const).forEach(k=>{ if(s[k]) o[k] = s[k]; });
+    (["type","key","bpm","ref","target","capo","singer","solo","notes","moment"] as const).forEach(k=>{ if(s[k]) o[k] = s[k]; });
     if(Number.isInteger(s.g)) o.g = s.g; return o;
   })};
   const json = new TextEncoder().encode(JSON.stringify(compact));

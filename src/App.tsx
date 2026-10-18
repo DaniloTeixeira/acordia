@@ -159,6 +159,8 @@ export function App(){
     <img className="logo-on-light" src={BASE + "icons/icon.svg"} alt=""/><img className="logo-on-dark" src={BASE + "icons/icon-light.svg"} alt=""/><span><b className="brand-name">Acordia</b>{tagline && <small>{t("app.tagline")}</small>}</span></a>;
   const current = (v: View) => navOf(view) === v ? "page" as const : undefined;
   const auth = useAuth(s => s.status), recovery = useAuth(s => s.recovery), helpable = view in HELP_STEPS;
+  // A dica e o rótulo da ajuda dizem de qual página é ("Como usar o Repertório").
+  const helpKey = helpable ? `help.${view}.title` : "help.button";
   // Nada do app aparece antes de a pessoa entrar e ter acesso (nem antes da senha nova).
   if(auth !== "in" || recovery) return <><div className="auth-corner"><LangButton/><ThemeButton/></div><AuthScreen/><LangPop/><Toasts/></>;
   const profileBtn = (rail: boolean) => <button className={rail ? "nav-item" : "icon-btn"} data-nav="profile" aria-current={current("profile")} aria-label={t("profile.title")} onClick={() => go("profile")}>
@@ -183,7 +185,7 @@ export function App(){
         <LangButton/>
         <VolumeButton/>
         <ThemeButton/>
-        {helpable && <button className="icon-btn" data-help-btn data-tip-key="help.button" aria-label={t("help.button")} onClick={() => openDialog("help", {page: view})}><Icon name="help"/></button>}
+        {helpable && <button className="icon-btn" data-help-btn data-tip-key={helpKey} aria-label={t(helpKey)} onClick={() => openDialog("help", {page: view})}><Icon name="help"/></button>}
         {profileBtn(false)}
       </header>
       <main id="main">
@@ -195,7 +197,7 @@ export function App(){
         {view === "tools" && <Tools/>}
         {view === "profile" && <Profile/>}
       </main>
-      <button className="help-fab" id="help-fab" hidden={!helpable} data-tip-key="help.button" aria-label={t("help.button")} onClick={() => openDialog("help", {page: view})}><Icon name="question"/></button>
+      <button className="help-fab" id="help-fab" hidden={!helpable} data-tip-key={helpKey} data-tip-side="left" aria-label={t(helpKey)} onClick={() => openDialog("help", {page: view})}><Icon name="question"/></button>
       <nav className="tabbar" aria-label={t("nav.nav")} style={{"--i": NAV.findIndex(([v]) => v === navOf(view)), "--n": NAV.length} as CSSProperties}>
         {NAV.map(([v, ic, label]) => <button key={v} className="tab" data-nav={v} aria-current={current(v)} onClick={() => go(v)}>
           <span className="pill"><Icon name={ic}/></span><span>{t(label)}</span></button>)}

@@ -76,3 +76,9 @@ test("traduções: parâmetros, plural e ordinal", () => {
   setLang("pt");
   assert.equal(t("item.phChords").split("\n").length, 4);
 });
+
+test("link guarda o momento pós-pregação (e ignora valores estranhos)", async () => {
+  const back = await decodeMedley(await encodeMedley({name: "Culto", options: medley.options, songs: [
+    {text: "Antes\nG\nlá", moment: ""}, {text: "Depois\nG\nlá", moment: "pos"}, {text: "Outro\nG\nlá", moment: "xyz"}]}));
+  assert.deepEqual(back.songs.map(s => s.moment), ["", "pos", ""]);
+});

@@ -54,7 +54,7 @@ export function measure(s: string, fs: number, font: Font){
 // Transição animada entre estados; sem suporte, com movimento reduzido ou com a aba oculta, aplica direto.
 // "slide" (troca de página) entra subindo um pouco; o resto (tema, idioma, ordem) só faz fade, porque o
 // conteúdo continua no mesmo lugar e o deslize parecia um pulo.
-export type VtKind = "fade" | "slide" | "theme";
+export type VtKind = "fade" | "slide" | "theme" | "move";
 export interface ViewTransitionLike { ready: Promise<void>; finished: Promise<void>; updateCallbackDone: Promise<void> }
 export function vt(run: () => void, kind: VtKind = "fade"): ViewTransitionLike | null {
   const d = document as Document & {startViewTransition?: (cb: () => void) => ViewTransitionLike};

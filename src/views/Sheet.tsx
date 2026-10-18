@@ -1,7 +1,7 @@
 // Folha A4 do repertório: modo (cifra, graus, letra), opções, PDF/impressão e as páginas.
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { sanitizeOptions } from "../lib/core";
-import { fit, toSVG, lyricsOnly, type Page, type SheetMode } from "../lib/layout";
+import { fitSetlist, toSVG, lyricsOnly, type Page, type SheetMode } from "../lib/layout";
 import { toPDF, saveBlob } from "../lib/pdf";
 import { t } from "../lib/i18n";
 import * as store from "../lib/store";
@@ -85,6 +85,7 @@ function SheetOptions({m}: {m: Medley}){
 }
 
 // As páginas são recalculadas um pouco depois da última mudança (o ajuste mede o texto várias vezes).
+// A folha mostra sempre o repertório inteiro, na ordem, abra ou feche os cards à esquerda.
 export function Sheet({m}: {m: Medley}){
   const version = useData(), lang = useUI(s => s.lang);
   const mode = sheetMode();
@@ -92,9 +93,9 @@ export function Sheet({m}: {m: Medley}){
   const first = useRef(true);
   useEffect(() => {
     const run = () => {
-      const list = sheetSongs(m);
-      if(!list.length){ lastPages = []; setRes({pages: [], warn: null}); return; }
-      const r = fit(mode === "letra" ? lyricsOnly(list) : list, Object.assign({}, m.options, {mode, measure}));
+      const all = sheetSongs(m);
+      if(!all.length){ lastPages = []; setRes({pages: [], warn: null}); return; }
+      const r = fitSetlist(mode === "letra" ? lyricsOnly(all) : all, Object.assign({}, m.options, {mode, measure}));
       lastPages = r.pages; setRes({pages: r.pages, warn: r.warn});
     };
     if(first.current){ first.current = false; run(); return; }
@@ -116,7 +117,8 @@ export function Sheet({m}: {m: Medley}){
     <p className="note" id="sheet-warn" hidden={!res?.warn}>{res?.warn}</p>
     {res && !res.pages.length
       ? <div className="pages" id="pages"><div className="sheet-empty empty-state"><Icon name="file"/><strong>{t("sheet.emptyTitle")}</strong><span>{t("sheet.emptyText")}</span></div></div>
-      : <div className="pages" id="pages" onClick={onClick}>{svgs.map((svg, i) => <Fragment key={i}>
+      : <div className="pages" id="pages" onClick={onClick}>
+          {svgs.map((svg, i) => <Fragment key={i}>
           <div className="paper" dangerouslySetInnerHTML={{__html: svg}}/>
           {svgs.length > 1 && <p className="page-label">{t("sheet.page", {n:i+1, total:svgs.length})}</p>}
         </Fragment>)}</div>}

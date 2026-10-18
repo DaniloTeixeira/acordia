@@ -1,7 +1,7 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import { parseSong, DEFAULT_OPTIONS } from "../src/lib/core";
-import { fit, layout, lyricsOnly, toSVG } from "../src/lib/layout";
+import { fit, fitSetlist, layout, lyricsOnly, toSVG } from "../src/lib/layout";
 import { setLang } from "../src/lib/i18n";
 
 setLang("pt");
@@ -98,4 +98,15 @@ test("medley: rótulo e título longos quebram dentro da coluna", () => {
 test("toSVG escapa texto", () => {
   const svg = toSVG([{t:"text", x:0, y:0, s:10, f:"sans", b:false, c:[0,0,0], txt:"<b>&"}], "x");
   assert.ok(svg.includes("&lt;b&gt;&amp;"));
+});
+
+test("no repertório, cada música avulsa vai para uma folha e o medley fica junto", () => {
+  const med = (t) => Object.assign(song(t, 1), {group: "g1", gname: "Medley"});
+  const r = fitSetlist([song("A", 1), song("B", 1), med("C"), med("D"), song("E", 1)], opts());
+  assert.equal(r.pages.length, 4);
+  const firstTitle = p => p.find(o => o.t === "text" && o.c && o.s >= 12)?.txt || "";
+  assert.ok(texts([r.pages[2]]).some(x => x.startsWith("C")) && texts([r.pages[2]]).some(x => x.startsWith("D")));
+  assert.ok(firstTitle(r.pages[3]).startsWith("E"));
+  // Um medley sozinho continua igual ao fit normal.
+  assert.equal(fitSetlist([med("C"), med("D")], opts()).pages.length, fit([med("C"), med("D")], opts()).pages.length);
 });

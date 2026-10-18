@@ -5,7 +5,7 @@ import { chordLine, type SheetSong } from "./lib/layout";
 import { t } from "./lib/i18n";
 import * as store from "./lib/store";
 import { useUI } from "./state";
-import type { Medley, Song, SongItem, Item } from "./lib/types";
+import type { Medley, Song, SongItem, Item, Moment } from "./lib/types";
 
 const { data } = store;
 export const isMedley = (m: Medley | null | undefined) => !!m && m.kind === "medley";
@@ -35,15 +35,16 @@ export function openMedley(id: string, {from = ""} = {}){
   useUI.setState({expanded: new Set()});
 }
 
-export interface PlayItem { it: SongItem; group: string; gname: string }
+// moment: o do item no repertório (num medley, o do medley inteiro).
+export interface PlayItem { it: SongItem; group: string; gname: string; moment: Moment }
 // Músicas na ordem em que tocam, abrindo os medleys de um repertório.
 export function songItems(m: Medley): PlayItem[] {
   const out: PlayItem[] = [];
   m.items.forEach(it => {
     if(it.type === "medley"){
       const md = data.medleys.get(it.medleyId); if(!md) return;
-      md.items.forEach(x => { if(x.type !== "medley") out.push({it: x, group: it.id, gname: md.name}); });
-    } else out.push({it, group: isMedley(m) ? m.id : "", gname: isMedley(m) ? m.name : ""});
+      md.items.forEach(x => { if(x.type !== "medley") out.push({it: x, group: it.id, gname: md.name, moment: it.moment || ""}); });
+    } else out.push({it, group: isMedley(m) ? m.id : "", gname: isMedley(m) ? m.name : "", moment: it.moment || ""});
   });
   return out;
 }
@@ -67,9 +68,9 @@ export function lastPlayKey(m: Medley){
   return "";
 }
 
-export interface SheetEntry extends SheetSong { auto: string; itemId: string; ref: string; meta: {bpm: string; capo: string; singer: string; solo: string; notes: string} }
+export interface SheetEntry extends SheetSong { auto: string; itemId: string; ref: string; meta: {bpm: string; capo: string; singer: string; solo: string; notes: string; moment: string} }
 export function sheetSongs(m: Medley): SheetEntry[] {
-  let list = songItems(m).map(({it, group, gname}): SheetEntry | null => {
+  let list = songItems(m).map(({it, group, gname, moment}): SheetEntry | null => {
     const s = data.songs.get(it.songId); if(!s || !s.text.trim()) return null;
     const letra = s.type === "letra", p = parseSong(s.text, letra);
     if(!p.title) return null;
@@ -83,8 +84,11 @@ export function sheetSongs(m: Medley): SheetEntry[] {
     // Desenhos do capo: a cifra mostra o desenho tocado com capotraste e avisa o tom que soa.
     if(m.options.capoShapes && capo && key){ const real = target || key, k = parseKey(real); if(k){ target = keyName(k, -(+capo)); capo = t("sheet.capoSounds", {n: capo, key: real}); } }
     if(target === key) target = "";
-    return Object.assign(p, {key, target, shift: target ? keyShift(key, target) : 0, auto, itemId: it.id, ref: s.ref || "", group, gname,
-      meta: {bpm: letra ? "" : s.bpm, capo, singer: it.singer, solo: it.solo || "", notes: e.notes}});
+    // Pós-pregação: no medley vai junto do nome do medley (uma vez só); na música avulsa, na linha de detalhes.
+    const pos = moment === "pos" ? t("item.momentPos") : "";
+    return Object.assign(p, {key, target, shift: target ? keyShift(key, target) : 0, auto, itemId: it.id, ref: s.ref || "", group,
+      gname: group && pos && !isMedley(m) ? gname + " · " + pos : gname,
+      meta: {bpm: letra ? "" : s.bpm, capo, singer: it.singer, solo: it.solo || "", notes: e.notes, moment: group ? "" : pos}});
   }).filter((x): x is SheetEntry => !!x);
   if(m.options.dedupe) list = dedupeBlocks(list);
   return list;
@@ -105,10 +109,10 @@ export const itemSongId = (i: Item) => i.type === "medley" ? "" : i.songId;
 // O link leva as músicas na ordem; as que estão num medley levam o índice do grupo (g) e o nome (groups).
 export function medleyPayload(m: Medley){
   const groups: string[] = [], gi = new Map<string, number>();
-  const list = songItems(m).map(({it, group, gname}) => {
+  const list = songItems(m).map(({it, group, gname, moment}) => {
     const s = data.songs.get(it.songId); if(!s || !s.text.trim()) return null;
-    const e = eff(s, it), o: {text: string; type: string; key: string; bpm: string; ref?: string; target: string; capo: string; singer: string; solo: string; notes: string; g?: number} =
-      {text:s.text, type:s.type, key:s.key, bpm:s.bpm, ref:s.ref, target:e.target, capo:e.capo, singer:it.singer, solo:it.solo || "", notes:e.notes};
+    const e = eff(s, it), o: {text: string; type: string; key: string; bpm: string; ref?: string; target: string; capo: string; singer: string; solo: string; notes: string; moment: string; g?: number} =
+      {text:s.text, type:s.type, key:s.key, bpm:s.bpm, ref:s.ref, target:e.target, capo:e.capo, singer:it.singer, solo:it.solo || "", notes:e.notes, moment};
     if(group && !isMedley(m)){ if(!gi.has(group)){ gi.set(group, groups.length); groups.push(gname); } o.g = gi.get(group); }
     return o;
   }).filter((x): x is NonNullable<typeof x> => !!x);

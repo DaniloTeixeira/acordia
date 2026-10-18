@@ -15,10 +15,12 @@ export interface SongEntry {
   ref: string; arrangements: Arrangement[]; updatedAt: number; high?: number;
 }
 
-// O que muda só neste repertório: tom, capo, quem canta, quem faz o solo, observações e arranjo escolhido.
-export interface ItemFields { target: string; capo: string; singer: string; solo?: string; notes: string; arrangementId: string }
+// Momento do culto: "" é louvor (o padrão); "pos" é pós-pregação.
+export type Moment = "" | "pos";
+// O que muda só neste repertório: tom, capo, quem canta, quem faz o solo, observações, arranjo escolhido e momento.
+export interface ItemFields { target: string; capo: string; singer: string; solo?: string; notes: string; arrangementId: string; moment?: Moment }
 export interface SongItem extends ItemFields { id: string; type: "song"; songId: string }
-export interface MedleyItem { id: string; type: "medley"; medleyId: string }
+export interface MedleyItem { id: string; type: "medley"; medleyId: string; moment?: Moment }
 export type Item = SongItem | MedleyItem;
 
 export interface Options {

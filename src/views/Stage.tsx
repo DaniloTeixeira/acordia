@@ -170,7 +170,7 @@ export function Stage(){
         {!src.length && <div className="empty-state"><strong>{t("stage.empty")}</strong><span>{t("stage.emptyText")}</span></div>}
         {src.map((s, si) => {
           const key = s.target || s.key;
-          const meta = [!L && s.meta.bpm && t("sheet.bpm", {n:s.meta.bpm}), !L && s.meta.capo && t("sheet.capo", {n:s.meta.capo}), s.meta.singer && t("sheet.voice", {name:s.meta.singer}), !L && s.meta.solo && t("sheet.solo", {name:s.meta.solo}), s.meta.notes].filter(Boolean).join(" · ");
+          const meta = [s.meta.moment, !L && s.meta.bpm && t("sheet.bpm", {n:s.meta.bpm}), !L && s.meta.capo && t("sheet.capo", {n:s.meta.capo}), s.meta.singer && t("sheet.voice", {name:s.meta.singer}), !L && s.meta.solo && t("sheet.solo", {name:s.meta.solo}), s.meta.notes].filter(Boolean).join(" · ");
           const next = src[si+1], tr = m.options.transitions && !L && next ? transition(key, next.target || next.key) : null;
           const group = s.group && (si === 0 || src[si-1].group !== s.group);
           return <div key={si} style={{display: "contents"}}>

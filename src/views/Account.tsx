@@ -427,8 +427,10 @@ function People({me}: {me: string}){
       {rows === null ? <li className="sub">{t("auth.loading")}</li> : rows.map(r => {
         const nm = r.profileName || r.name, bd = r.profileBirthday || r.birthday;
         return <li key={r.email}>
-        <span className="people-who"><span className="people-id">{nm && <b>{nm}</b>}<span className={nm ? "sub people-email" : "people-email"}>{r.email}{bd && " · " + fmtBirthday(bd)}</span></span>
-          {r.is_admin && <span className="chip accent">{t("profile.admin")}</span>}</span>
+        {/* O "Admin" fica logo depois do nome (ou do e-mail, para quem ainda não tem nome). */}
+        <span className="people-who"><span className="people-id">
+          {nm && <span className="people-name"><b>{nm}</b>{r.is_admin && <span className="chip accent">{t("profile.admin")}</span>}</span>}
+          <span className={nm ? "sub people-email" : "people-name people-email"}>{r.email}{bd && " · " + fmtBirthday(bd)}{!nm && r.is_admin && <span className="chip accent">{t("profile.admin")}</span>}</span></span></span>
         {r.email === me ? <span className="chip">{t("people.you")}</span> : <span className="people-actions">
           <button className="icon-btn sm" aria-label={t("people.edit")} title={t("people.edit")} aria-expanded={editing === r.email} onClick={() => setEditing(editing === r.email ? "" : r.email)}><Icon name="edit" sm/></button>
           <button className="btn ghost sm" aria-busy={pending === r.email} onClick={() => toggleAdmin(r)}>{pending === r.email && <Spin/>}{t(r.is_admin ? "people.unadmin" : "people.makeAdmin")}</button>

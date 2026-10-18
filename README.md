@@ -77,17 +77,19 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] **Editar / Ver folha**: alterna os painéis no celular; no computador ficam lado a lado.
 - [ ] **Adicionar**: "Música com cifra", "Só a letra", "Da biblioteca" (escolha várias, com busca) e "Medley".
 - [ ] **Cartão de cada música**:
-  - mover para cima ou para baixo e tirar do repertório (com Desfazer);
-  - chips: tom → tom para tocar, arranjo, capo, BPM e quem canta;
+  - **arrastar o cartão** para outro lugar (menos pelos botões e campos): no mouse, clicar e arrastar (só clicar
+    abre e fecha); no celular, segurar ~¼ s e arrastar; Esc cancela; no teclado, Tab até o número e ↑ ↓;
+  - tirar do repertório (com Desfazer);
+  - chips: tom → tom para tocar, BPM e solo;
   - tipo "Com cifra" ou "Só letra";
   - texto: título na primeira linha, depois cifra e letra;
-  - **Tom original**: automático ou um dos 24;
-  - **Tom para tocar**;
-  - **Capotraste** de 1 a 11, com **sugestão de capo** para cordas ("Usar");
-  - BPM, Quem canta, Observações e link de **Referência** (▶ para ouvir).
-- [ ] **Arranjos**: "Salvar como arranjo" guarda tom, capo e observações com um nome, para reaproveitar em outros
-      repertórios.
-- [ ] **Medley**: bloco de músicas emendadas dentro do repertório, com "Editar medley" e "Voltar para…".
+  - os mesmos campos no repertório e no medley: **Tom** (automático ou um dos 24), Solo, BPM e link de
+    **Referência** (▶ para ouvir).
+- [ ] **Louvor | Pós-pregação** em cada música e em cada medley do repertório (Louvor é o padrão). O medley
+      define uma vez para todas as músicas dele. Pós-pregação aparece como chip no cartão e na folha/Palco.
+- [ ] **Medley**: bloco de músicas emendadas dentro do repertório, com o chip "Medley · N músicas | Editar" e
+      "Voltar para…".
+- [ ] **Voltar para Biblioteca** e **Excluir** (lixeira) no topo do repertório.
 - [ ] **Montar cifra** (tirar de ouvido):
   - quadradinhos acima de cada linha da letra, onde vai um acorde (C, Am, G7) ou um grau (1, 4, 5, 2m, IV,
     bVII…);
@@ -123,8 +125,8 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 
 ### Biblioteca
 - [ ] Abas **Músicas**, **Repertórios** e **Medleys**, com busca.
-- [ ] Músicas: filtro Todas / Com cifra / Só letra e ordem A–Z ou Recentes.
-- [ ] **Cartão de música**: tom, BPM, arranjos, em quantos repertórios está, trecho da letra e quando foi
+- [ ] Músicas: busca e ordem A–Z ou Recentes.
+- [ ] **Cartão de música**: tom, BPM, em quantos repertórios está, trecho da letra e quando foi
       editada; Adicionar ao repertório, ▶, Editar e Excluir.
 - [ ] **Cartão de repertório/medley**: Abrir, **Duplicar** ("(cópia)") e Excluir.
 - [ ] **Janela da música**:

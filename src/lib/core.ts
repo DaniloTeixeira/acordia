@@ -568,7 +568,7 @@ export function sanitizeItem(it: Raw): ItemFields | null {
   if(!it || typeof it !== "object") return null;
   const capo = Number.isInteger(+it.capo) && +it.capo > 0 && +it.capo < 12 ? String(+it.capo) : "";
   return {target: validKey(it.target), capo, singer: str(it.singer).slice(0, 80), solo: str(it.solo).slice(0, 80), notes: str(it.notes).slice(0, 300),
-    arrangementId: str(it.arrangementId).slice(0, 40)};
+    arrangementId: str(it.arrangementId).slice(0, 40), moment: it.moment === "pos" ? "pos" : ""};
 }
 // Arranjos de uma música: versões nomeadas (tom, capo, observações).
 export function sanitizeArrangements(list: Raw): Arrangement[] {

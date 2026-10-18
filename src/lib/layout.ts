@@ -19,7 +19,7 @@ export type Op = TextOp | LineOp;
 export type Page = Op[];
 
 export type SheetMode = "cifras" | "graus" | "letra";
-export interface SongMeta { bpm?: string; capo?: string; singer?: string; solo?: string; notes?: string }
+export interface SongMeta { bpm?: string; capo?: string; singer?: string; solo?: string; notes?: string; moment?: string }
 // Música pronta para a folha: blocos, tom, tom de execução e deslocamento.
 export interface SheetSong {
   title: string; blocks: Block[]; key: string; target: string; shift: number;
@@ -71,6 +71,7 @@ export function chordLine(line: string, s: KeyedSong, mode: SheetMode, style?: D
 function playKey(s: SheetSong){ return s.target || s.key; }
 function metaLine(s: SheetSong, mode: SheetMode){
   const m = s.meta || {}, parts: string[] = [];
+  if(m.moment) parts.push(m.moment);
   if(mode !== "letra"){ if(m.bpm) parts.push(t("sheet.bpm", {n:m.bpm})); if(m.capo) parts.push(t("sheet.capo", {n:m.capo})); }
   if(m.singer) parts.push(t("sheet.voice", {name:m.singer}));
   if(mode !== "letra" && m.solo) parts.push(t("sheet.solo", {name:m.solo}));
@@ -163,6 +164,15 @@ export function fit(songs: SheetSong[], opts: LayoutOpts): FitResult {
   const one = fitColumns(songs, Object.assign({}, opts, {columns:1 as const, maxPages:1 as const}));
   if(!one.warn && one.fs >= AUTO_ONE_COLUMN_MIN) return Object.assign(one, {columns:1 as const});
   return Object.assign(fitColumns(songs, Object.assign({}, opts, {columns:2 as const})), {columns:2 as const});
+}
+// Repertório: cada música avulsa começa numa folha própria e cada medley fica junto na sua folha.
+// Músicas seguidas do mesmo medley (mesmo group) formam um bloco; cada bloco é ajustado sozinho.
+export function fitSetlist(songs: SheetSong[], opts: LayoutOpts): FitResult {
+  const units: SheetSong[][] = [];
+  songs.forEach((s, i) => { if(i && s.group && s.group === songs[i-1].group) units[units.length-1].push(s); else units.push([s]); });
+  if(units.length < 2) return fit(songs, opts);
+  const parts = units.map(u => fit(u, opts));
+  return {pages: parts.flatMap(r => r.pages), fs: Math.min(...parts.map(r => r.fs)), warn: parts.find(r => r.warn)?.warn || null};
 }
 // Escolhe o maior tamanho de letra que cabe em 1 página (ou 2, se permitido) e espalha o espaçamento.
 function fitColumns(songs: SheetSong[], opts: LayoutOpts): FitResult {
