@@ -11,7 +11,7 @@ import { DateInput } from "../ui/DateInput";
 import { useFold, FoldHead } from "../ui/Fold";
 import { useGroups, loadGroups, setMemberRole, respond, outMark } from "../lib/groups";
 import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, fmtPhone } from "../lib/calendar";
-import { sortRoles, joinRoles } from "../lib/roles";
+import { sortRoles, joinRoles, splitRoles } from "../lib/roles";
 import { MemberRoles, RolePicker, StatusChip, eventTitle, timeOf, longDay } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
 
@@ -485,13 +485,18 @@ function PersonEdit({r, onDone}: {r: Allowed; onDone: (saved: boolean) => void})
   const [name, setName] = useState(r.profileName || r.name), [birthday, setBirthday] = useState(r.profileBirthday || r.birthday || "");
   const [phone, setPhone] = useState(r.profilePhone || r.phone);
   const [busy, setBusy] = useState(false), lock = useLock();
+  // Funções, como no cadastro: só com um grupo, e se a pessoa está nele (o grupo aberto é esse grupo).
+  const g = useGroups(), only = g.groups.length === 1 ? g.groups[0] : null, member = only && g.gid === only.id ? g.members.find(x => x.email === r.email) : undefined;
+  const [roles, setRoles] = useState<string[]>(() => member ? sortRoles(splitRoles(member.role)) : []);
   // O admin muda nome e celular mesmo os que a pessoa preencheu no perfil; a data que ela preencheu continua dela.
   const lockedDate = !!r.profileBirthday;
   const save = (e: React.FormEvent) => { e.preventDefault(); lock(async () => {
     setBusy(true);
     const day = lockedDate ? (r.birthday || "") : birthday;
     // Banco sem admin_set_person ainda: grava só na lista de acesso (o que a pessoa preencheu continua valendo).
-    const ok = await setPersonInfo(r.email, name, phone, day).then(done => done || setAllowedInfo(r.email, name, day, phone)).finally(() => setBusy(false));
+    const ok = await setPersonInfo(r.email, name, phone, day).then(done => done || setAllowedInfo(r.email, name, day, phone))
+      .then(async ok => { const v = joinRoles(roles); if(ok && only && member && v !== member.role) await setMemberRole(only.id, r.email, v); return ok; })
+      .finally(() => setBusy(false));
     toast(t(ok ? "people.infoSaved" : "profile.saveFail", {email: r.email}));
     if(ok) onDone(true);
   }); };
@@ -506,6 +511,7 @@ function PersonEdit({r, onDone}: {r: Allowed; onDone: (saved: boolean) => void})
       <button type="button" className="btn ghost" onClick={() => onDone(false)}>{t("common.cancel")}</button>
       <button className="btn primary" aria-busy={busy}>{busy ? <Spin/> : <Icon name="check" sm/>} {t("common.save")}</button>
     </div>
+    {member && <RolePicker value={roles} onChange={setRoles}/>}
     {lockedDate && <p className="sub people-edit-hint">{t("people.lockedHint")}</p>}
   </form>;
 }
