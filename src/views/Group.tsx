@@ -323,15 +323,13 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
       {/* Ensaio é de todos: quem não foi escalado também aparece (sem resposta a dar), só com o nome. */}
       <div className="event-sec"><h3 className="people-sub-h">{t("group.roster")}</h3>
       {e.kind === "rehearsal" && g.members.length ? <ul className="quick-att roster-tbl">
-        <li className="quick-att-head" aria-hidden="true"><span className="quick-att-when">{t("people.colPerson")}</span><span className="quick-att-roles">{t("member.roles")}</span><span className="quick-att-ctl">{t("group.respCol")}</span></li>
+        <li className="quick-att-head" aria-hidden="true"><span className="quick-att-when">{t("people.colPerson")}</span><span className="quick-att-ctl">{t("group.respCol")}</span></li>
         {rosterByPerson(roster).map(r => <li key={r.email}>
           <span className="quick-att-when"><b>{personName(r.email)}{r.email === me && " " + t("group.you")}</b>
             {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}</span>
-          <span className="quick-att-roles">{r.roles.length > 0 ? <span className="roster-chips">{sortRoles(r.roles).map(x => <span key={x} className="chip role">{x}</span>)}</span> : <span className="sub">—</span>}</span>
           <span className="quick-att-ctl"><StatusChip status={r.status}/></span></li>)}
         {g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).map(m => <li key={m.email}>
           <span className="quick-att-when"><b>{personName(m.email)}{m.email === me && " " + t("group.you")}</b></span>
-          <span className="quick-att-roles"><span className="sub">—</span></span>
           <span className="quick-att-ctl"><span className="sub">—</span></span></li>)}</ul>
         : roster.length ? <ul className="roster">{rosterByPerson(roster).map(r => <li key={r.email} className={"st-" + r.status}>
         <span className="roster-who">{personName(r.email)}{r.email === me && " " + t("group.you")}</span>

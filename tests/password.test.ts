@@ -3,11 +3,10 @@ import { test } from "vitest";
 import assert from "node:assert/strict";
 import * as P from "../src/lib/password";
 
-test("por padrão: 8 caracteres, minúscula, maiúscula, número e símbolo", () => {
-  assert.deepEqual(P.missing(P.DEFAULT_POLICY, "curta"), ["length", "upper", "digit", "symbol"]);
+test("por padrão: 8 caracteres, minúscula, maiúscula e número (sem símbolo)", () => {
+  assert.deepEqual(P.missing(P.DEFAULT_POLICY, "curta"), ["length", "upper", "digit"]);
+  assert.deepEqual(P.missing(P.DEFAULT_POLICY, "Louvor2026"), []);
   assert.deepEqual(P.missing(P.DEFAULT_POLICY, "Louvor-2026"), []);
-  // Letra com acento não conta como símbolo (o Supabase também não aceita).
-  assert.deepEqual(P.missing(P.DEFAULT_POLICY, "Canção2026"), ["symbol"]);
 });
 const LENGTH_ONLY: P.PwPolicy = {rules: ["length"], min: 8};
 
@@ -15,6 +14,7 @@ test("lê o que o Supabase exige na mensagem de erro", () => {
   const all = P.fromError("Password should contain at least one character of each: abcdefghijklmnopqrstuvwxyz, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 0123456789, !@#$%^&*()_+-=[]{};'\\:\"|<>?,./`~");
   assert.deepEqual(all.rules, ["length", "lower", "upper", "digit", "symbol"]);
   assert.deepEqual(P.missing(all, "senhaforte"), ["upper", "digit", "symbol"]);
+  assert.deepEqual(P.missing(P.DEFAULT_POLICY, "Senhaforte1"), []);
   assert.deepEqual(P.missing(all, "Senha-forte1"), []);
   const letters = P.fromError("Password should contain at least one character of each: abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ, 0123456789", LENGTH_ONLY);
   assert.deepEqual(letters.rules, ["length", "letter", "digit"]);

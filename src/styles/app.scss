@@ -3447,11 +3447,12 @@ textarea.song-text {
 .pad-filter-h small {
   font-weight: 400;
 }
-.pad-swell {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
+.pad-actions {
+  flex-wrap: nowrap;
+}
+.pad-actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
 }
 .btn.busy {
   border-color: transparent;
@@ -6494,7 +6495,7 @@ dialog.ear-dlg {
 .card .scale-head h2,
 .fold-head > button > span:first-child {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
 }
 /* Títulos das seções do perfil (funções, frequência, próxima escala), das listas de pessoas (adicionar,
@@ -6503,7 +6504,7 @@ dialog.ear-dlg {
 .people-sub-h,
 .member-dlg .field > span:first-child {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   margin-bottom: 4px;
   font-size: 0.95rem;
@@ -6524,6 +6525,8 @@ dialog.ear-dlg {
   border-radius: 2px;
   background: var(--accent-grad);
   flex-shrink: 0;
+  /* Traço na primeira linha do título (não no meio quando quebra em duas). */
+  margin-top: calc((1lh - 1.05em) / 2);
 }
 /* Texto de ajuda das seções do Perfil: colado no que explica, menor e sem negrito, para não parecer título. */
 .profile-sec small.sub {
@@ -8430,6 +8433,11 @@ dialog.member-dlg {
   background: var(--accent-grad);
   pointer-events: none;
 }
+/* No cartão (coluna) o flex-basis: 100% das funções viraria altura e esticaria os chips até ficarem redondos. */
+.scale-card .roster-chips {
+  flex-basis: auto;
+  align-items: flex-start;
+}
 .scale-when {
   display: flex;
   justify-content: space-between;
@@ -8518,6 +8526,23 @@ dialog.member-dlg {
 }
 .home-row:hover {
   background: var(--surface-2);
+}
+/* Celular: o chip (ex.: "1 não pode ir · falta substituto") ia ao lado do texto e espremia o título e a hora.
+   Ele desce para a linha de baixo, alinhado à esquerda do cartão. Nas escalas o chip de status também
+   fica à esquerda quando quebra de linha, em vez de sozinho na direita. */
+@media (max-width: 599px) {
+  .home-row {
+    flex-wrap: wrap;
+  }
+  .home-row .my-next-what {
+    flex: 1 1 calc(100% - 64px);
+  }
+  .home-row > .chip {
+    margin-left: 0;
+  }
+  .scale-stats .chip {
+    margin-left: 0;
+  }
 }
 #group-back {
   margin: 0 0 16px -8px;
@@ -8989,17 +9014,15 @@ dialog.member-dlg {
 /* Lista do ensaio na agenda (mesma tabela do atalho de presença): nome com as funções ao lado, resposta à direita. */
 .roster-tbl .quick-att-when { flex-wrap: wrap; align-items: center; white-space: normal; row-gap: 4px; }
 .roster-tbl .quick-att-when b { font-weight: 600; }
-.roster-tbl .roster-chips { flex-basis: auto; }
 .roster-tbl .roster-reason { padding-left: 0; }
-.roster-tbl .quick-att-ctl { justify-content: center; min-width: 110px; }
+.roster-tbl .quick-att-ctl { justify-content: flex-start; min-width: 110px; }
 
-/* Ensaio na agenda: três colunas (pessoa, funções, resposta); a resposta é só texto colorido, sem pílula. */
-.roster-tbl { grid-template-columns: minmax(64px, auto) minmax(0, 1fr) auto; }
-.roster-tbl .quick-att-roles { padding: 5px 8px; min-width: 0; border-left: 1px solid var(--line); align-self: stretch; display: flex; align-items: center; }
-.roster-tbl .quick-att-head .quick-att-roles { padding: 4px 8px; }
+/* Ensaio na agenda: duas colunas (pessoa e resposta, as funções ficam no cartão da pessoa e em Membros); a resposta é só texto colorido, sem pílula. */
+.roster-tbl { grid-template-columns: minmax(0, 1fr) auto; }
 .roster-tbl .quick-att-when { flex-direction: column; align-items: flex-start; gap: 2px; }
 .roster-tbl .quick-att-ctl { min-width: 0; }
-.roster-tbl .quick-att-ctl .chip { background: transparent; padding: 0; font-weight: 500; }
+.roster-tbl .quick-att-ctl { padding-left: 6px; padding-right: 6px; }
+.roster-tbl .quick-att-ctl .chip { background: transparent; padding: 2px 7px; font-weight: 500; white-space: nowrap; }
 @media (max-width: 420px) {
   .roster-tbl .quick-att-ctl .chip svg { display: none; }
 }

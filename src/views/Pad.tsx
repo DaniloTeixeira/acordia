@@ -37,9 +37,8 @@ export function PadUI(){
     <label className="field"><span>{t("pad.volume")}</span>
       <Range min={0} max={100} step={1} value={Math.round(s.volume * 100)} aria-label={t("pad.volume")} onChange={e => pad.setVolume(+e.target.value / 100)}/></label>
     <div className="field"><span className="pad-filter-h"><span>{t("pad.filter")}</span><small>{t("pad.filter.closed")} ↔ {t("pad.filter.open")}</small></span>
-      <Range min={0} max={100} step={1} value={Math.round(s.filter * 100)} aria-label={t("pad.filter")} onChange={e => pad.setFilter(+e.target.value / 100)}/>
-      <div className="pad-swell">{[4, 8].map(b => <button key={b} className={"btn ghost sm" + (s.swelling === b ? " busy" : "")} onClick={() => pad.swell(b)}>{t("pad.swell", {n: b})}</button>)}</div></div>
-    <div className="metro-actions">
+      <Range min={0} max={100} step={1} value={Math.round(s.filter * 100)} aria-label={t("pad.filter")} onChange={e => pad.setFilter(+e.target.value / 100)}/></div>
+    <div className="metro-actions pad-actions">
       <button className={"btn primary metro-go" + (on ? " running" : "")} id="pad-toggle" onClick={() => pad.toggle().then(fail)}>
         {on ? <><Icon name="stop" sm/> {t("pad.stop")}</> : <><Icon name="play" sm/> {t("pad.start")}</>}</button>
       <button className={"btn ghost" + (s.fading ? " busy" : "")} data-tip-key="pad.fade.tip" onClick={() => pad.fade().then(fail)}>
