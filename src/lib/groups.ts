@@ -11,7 +11,7 @@ import type { GEvent, RosterRow, AttendanceRow, Unavail, Answer, Presence, Event
 // de quadrada (foto e iniciais).
 export interface Group { id: string; name: string; photo?: string; photo_round?: boolean }
 // out_since/out_need: marcado pelo líder como fora dos cultos (desde quando e quantos ensaios faltam).
-export interface Member { email: string; is_admin: boolean; role: string; name: string; birthday?: string | null; photo?: string; phone?: string; out_since?: string | null; out_need?: number }
+export interface Member { email: string; is_admin: boolean; role: string; name: string; birthday?: string | null; photo?: string; phone?: string; out_since?: string | null; out_need?: number; created_at?: string }
 export interface GroupSetlist { id: string; group_id: string; source_id: string; name: string; songs: number; code: string; shared_by: string; updated_at: string }
 
 interface GroupState {
@@ -71,8 +71,8 @@ export function loadGroups(gid?: string): Promise<void> {
       const from = new Date(Date.now() - PAST_DAYS * 864e5).toISOString(), to = new Date(Date.now() + FUTURE_DAYS * 864e5).toISOString();
       const [mem, people, sets, evs, un] = await Promise.all([
         // Banco ainda sem a marcação de fora dos cultos (antes da migração subir): lê sem ela.
-        cloud.from("group_members").select("email,is_admin,role,out_since,out_need").eq("group_id", cur).order("email")
-          .then(r => r.error ? cloud.from("group_members").select("email,is_admin,role").eq("group_id", cur).order("email") : r),
+        cloud.from("group_members").select("email,is_admin,role,out_since,out_need,created_at").eq("group_id", cur).order("email")
+          .then(r => r.error ? cloud.from("group_members").select("email,is_admin,role,created_at").eq("group_id", cur).order("email") : r),
         cloud.rpc("group_people", {gid: cur}),
         cloud.from("group_setlists").select("id,group_id,source_id,name,songs,code,shared_by,updated_at").eq("group_id", cur).order("updated_at", {ascending: false}),
         cloud.from("group_events").select("id,group_id,kind,title,starts_at,call_at,place,notes,setlist_id,updated_at").eq("group_id", cur).gte("starts_at", from).lte("starts_at", to).order("starts_at"),

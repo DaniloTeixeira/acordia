@@ -112,6 +112,8 @@
     --bg: #0b0f1c;
     --seg-bg: #182036;
     --seg-ink: #8f9cb8;
+    --seg-thumb: #2e3a5c;
+    --seg-thumb-ring: inset 0 0 0 1px #3f4d74;
     --surface: #121829;
     --surface-2: #182036;
     --surface-3: #1f2942;
@@ -179,6 +181,8 @@
   --bg: #0b0f1c;
   --seg-bg: #182036;
   --seg-ink: #8f9cb8;
+  --seg-thumb: #2e3a5c;
+  --seg-thumb-ring: inset 0 0 0 1px #3f4d74;
   --surface: #121829;
   --surface-2: #182036;
   --surface-3: #1f2942;
@@ -872,8 +876,9 @@ select.input {
   width: var(--w, 0);
   transform: translateX(var(--x, 0));
   border-radius: var(--r-full);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  /* No escuro, a opção ativa fica mais clara que o trilho (com um contorno leve); no claro, a superfície branca. */
+  background: var(--seg-thumb, var(--surface));
+  box-shadow: var(--seg-thumb-ring, 0 0 0 transparent), var(--shadow-sm);
   transition:
     transform var(--t) var(--ease-out),
     width var(--t) var(--ease-out);
@@ -6225,7 +6230,7 @@ dialog.ear-dlg {
 }
 /* Página Perfil: cada card ocupa duas linhas da grade e as herda (subgrid). A linha de cima é o topo (foto e
    nome; título e explicação) e fica com a altura do topo mais alto, então lado a lado os quadros de campos
-   ("Meus dados" e "Adicionar pessoa") começam na mesma altura. O corpo continua em coluna, como antes.
+   começam na mesma altura. O corpo continua em coluna, como antes.
    Só nos cards com topo e corpo: os do grupo têm mais filhos, e a subgrid de 2 linhas os empilharia. */
 .profile-grid > .card:has(> .card-top) {
   display: grid;
@@ -6235,6 +6240,12 @@ dialog.ear-dlg {
   grid-row: span 2;
   grid-template-rows: subgrid;
   row-gap: 22px;
+}
+/* "Quem pode entrar" não tem mais formulário para alinhar com "Meus dados": tudo começa no topo (título,
+   explicação e a lista logo abaixo); a sobra de altura, lado a lado, fica embaixo. */
+.profile-grid > .card.people-card:has(> .card-top) {
+  display: flex;
+  row-gap: 14px;
 }
 .profile-grid .card-top {
   display: flex;
@@ -6363,7 +6374,7 @@ dialog.ear-dlg {
 .people-list li:first-child {
   border-top: none;
 }
-/* Cabeçalho da lista "Com acesso", como o de uma tabela: rótulos pequenos e a linha embaixo. */
+/* Cabeçalho da lista, como o de uma tabela: rótulos pequenos e a linha embaixo. */
 .people-list-head {
   display: flex;
   justify-content: space-between;
@@ -6428,15 +6439,29 @@ dialog.ear-dlg {
 .people-search {
   margin: 4px 0 8px;
 }
+/* Busca e ordem na mesma linha (também no celular): a busca ocupa o resto; a ordem, só o tamanho do texto,
+   com o mesmo formato redondo da busca. */
+.people-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+.people-tools .people-search {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+.people-tools .select-btn.people-order {
+  flex: 0 0 auto;
+  width: auto;
+  border-radius: var(--r-full);
+  padding-left: 14px;
+}
 .people-add-box .people-sub-h {
   margin: 0;
 }
-/* Quando o card do perfil é o mais alto, a sobra fica entre o cadastro e "Com acesso": a lista desce até o
-   fundo e a última pessoa cai na altura do rodapé do perfil (Sair). */
-.people-card > .people-sub-h,
-.people-card > .card-body > .people-sub-h {
-  margin-top: auto;
-}/* E-mail e o selo Admin juntos à esquerda; "Você" e as ações ficam à direita. */
+/* E-mail e o selo Admin juntos à esquerda; "Você" e as ações ficam à direita. */
 .people-who {
   flex: 1 1 220px;
   min-width: 0;
@@ -6457,8 +6482,8 @@ dialog.ear-dlg {
   .people-list li {
     row-gap: 12px;
   }
-  /* Os botões descem para baixo de cada pessoa: o rótulo "Ações" do cabeçalho não aponta para eles. */
-  .people-list-head > span:last-child {
+  /* No celular os botões descem para baixo de cada pessoa: os rótulos somem e fica só a faixa. */
+  .people-list-head > span {
     display: none;
   }
 }
@@ -7722,6 +7747,13 @@ dialog.event-dlg {
   flex-direction: column;
   gap: 6px;
   padding: 4px 0 2px;
+}
+/* Editar membro (Grupo → Membros): num quadro como o das funções, com um pouco mais de espaço entre as partes. */
+.people-edit.member-edit {
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
 }
 .people-edit-hint {
   margin: 0;
