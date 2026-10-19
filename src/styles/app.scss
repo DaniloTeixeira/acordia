@@ -4944,14 +4944,15 @@ dialog.unsaved .dlg-foot::before {
   background: var(--accent-soft);
 }
 /* Com a lista de músicas aberta por cima da cifra (celular e tablet), as setas saem para não ficar em cima dela.
-   Na tela larga a lista fica ao lado: as setas ficam, e a da esquerda passa para depois da lista (280 px). */
+   Na tela larga a lista fica ao lado: as setas ficam, e a da esquerda passa para depois da lista (280 px).
+   No Só a cifra a lista não aparece (mesmo aberta): as setas ficam nos cantos. */
 @media (max-width: 999px) {
-  .stage-nav:has(#stage-now[aria-expanded="true"]) :is(#stage-prev, #stage-next) {
+  .stage:not(.clean) .stage-nav:has(#stage-now[aria-expanded="true"]) :is(#stage-prev, #stage-next) {
     display: none;
   }
 }
 @media (min-width: 1000px) {
-  .stage-nav:has(#stage-now[aria-expanded="true"]) #stage-prev {
+  .stage:not(.clean) .stage-nav:has(#stage-now[aria-expanded="true"]) #stage-prev {
     left: calc(280px + 6px);
   }
 }
