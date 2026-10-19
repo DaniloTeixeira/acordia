@@ -132,6 +132,9 @@ Toda migração nova vai primeiro para o dev. Produção só depois que o usuár
 
 ## Git e PR
 
+- **Nunca commitar na `main`**, nem localmente. Antes de todo commit, `git rev-parse --abbrev-ref HEAD`: se
+  der `main`, criar a branch primeiro (o checkout pode ter mudado desde o começo da conversa, depois de um merge).
+  Se a branch atual já foi mergeada (PR fechada), criar uma nova a partir da `main` atualizada.
 - Branch a partir da `main`: `feat/<assunto>` ou `fix/<assunto>`. A `main` é protegida: só por PR com CI verde,
   **Squash and merge**. O merge publica, aplica migrações na produção e cria a tag `vAAAA.MM.DD-N`.
 - Mensagens de commit e PR em português, dizendo o que mudou para quem usa (ex.: "Um líder só por grupo; chip
