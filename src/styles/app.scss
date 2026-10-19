@@ -367,6 +367,11 @@ html {
   -webkit-tap-highlight-color: transparent;
   scroll-padding-top: 80px;
 }
+/* Janela aberta trava a rolagem da página de trás; o gutter reservado evita o pulo de layout. */
+html:has(dialog[open]) {
+  overflow: hidden;
+  scrollbar-gutter: stable;
+}
 body {
   margin: 0;
   background: var(--bg);
