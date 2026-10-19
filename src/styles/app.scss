@@ -8430,6 +8430,11 @@ dialog.member-dlg {
   background: var(--accent-grad);
   pointer-events: none;
 }
+/* No cartão (coluna) o flex-basis: 100% das funções viraria altura e esticaria os chips até ficarem redondos. */
+.scale-card .roster-chips {
+  flex-basis: auto;
+  align-items: flex-start;
+}
 .scale-when {
   display: flex;
   justify-content: space-between;
@@ -8989,7 +8994,9 @@ dialog.member-dlg {
 /* Lista do ensaio na agenda (mesma tabela do atalho de presença): nome com as funções ao lado, resposta à direita. */
 .roster-tbl .quick-att-when { flex-wrap: wrap; align-items: center; white-space: normal; row-gap: 4px; }
 .roster-tbl .quick-att-when b { font-weight: 600; }
-.roster-tbl .roster-chips { flex-basis: auto; }
+/* Quem tem 4 ou 5 funções: chips menores e mais juntos, para caberem dois ou três por linha em vez de uma coluna alta. */
+.roster-tbl .roster-chips { flex-basis: auto; gap: 3px; }
+.roster-tbl .roster-chips .chip { padding: 1px 7px; font-size: 0.68rem; }
 .roster-tbl .roster-reason { padding-left: 0; }
 .roster-tbl .quick-att-ctl { justify-content: center; min-width: 110px; }
 
@@ -8999,7 +9006,8 @@ dialog.member-dlg {
 .roster-tbl .quick-att-head .quick-att-roles { padding: 4px 8px; }
 .roster-tbl .quick-att-when { flex-direction: column; align-items: flex-start; gap: 2px; }
 .roster-tbl .quick-att-ctl { min-width: 0; }
-.roster-tbl .quick-att-ctl .chip { background: transparent; padding: 0; font-weight: 500; }
+.roster-tbl .quick-att-ctl { padding-left: 6px; padding-right: 6px; }
+.roster-tbl .quick-att-ctl .chip { background: transparent; padding: 2px 7px; font-weight: 500; white-space: nowrap; }
 @media (max-width: 420px) {
   .roster-tbl .quick-att-ctl .chip svg { display: none; }
 }
