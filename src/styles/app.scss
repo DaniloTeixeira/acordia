@@ -1283,6 +1283,21 @@ main {
   background: var(--accent-grad);
   color: var(--accent-ink);
 }
+/* Líder do grupo: o chip que mais chama atenção (gradiente, coroa, contorno e brilho), logo depois do nome. */
+.chip.leader {
+  background: var(--accent-grad);
+  color: var(--accent-ink);
+  font-weight: 700;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent),
+    0 2px 10px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.chip.leader .i {
+  width: 12px;
+  height: 12px;
+  fill: currentColor;
+  stroke: none;
+}
 .note {
   font-size: 0.88rem;
   padding: 10px 14px;

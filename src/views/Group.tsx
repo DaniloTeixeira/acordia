@@ -15,7 +15,7 @@ import { saveBlob } from "../lib/pdf";
 import { ago, reduced, flashSaved, reveal } from "../lib/util";
 import { splitRoles, joinRoles, toggleRole, sortRoles } from "../lib/roles";
 import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, maskPhone, capFirst, type GEvent, type Presence } from "../lib/calendar";
-import { useGroups, loadGroups, chooseGroup, createGroup, renameGroup, deleteGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setMemberRole, removeMember,
+import { useGroups, loadGroups, chooseGroup, createGroup, renameGroup, deleteGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
   deleteEvent, respond, checkIn, markAttendance, setUnavailable, personName, personPhoto, amGroupAdmin, setMemberOut, outMark, type GroupSetlist, type Member, type Group } from "../lib/groups";
 import { useUI, useData, toast, openDialog, confirmDialog, go } from "../state";
 import { Icon } from "../ui/Icon";
@@ -393,6 +393,8 @@ function Members({canEdit}: {canEdit: boolean}){
   const g = useGroups(), me = useAuth(s => s.email), appAdmin = useAuth(s => s.admin), owner = useAuth(s => s.owner);
   const [email, setEmail] = useState(""), [name, setName] = useState(""), [birthday, setBirthday] = useState(""), [phone, setPhone] = useState(""), [roles, setRoles] = useState<string[]>([]), [asAdmin, setAsAdmin] = useState(false), [busy, setBusy] = useState(""), lock = useLock(), check = useEmailCheck(email);
   const group = g.groups.find(x => x.id === g.gid)!;
+  // Um líder só por grupo: o cadastro só pergunta "Líder" quando o grupo ainda não tem.
+  const leaderNow = g.members.find(m => m.is_admin);
   const load = monthLoad(dayKey(new Date()), g.events, g.roster);
   // Puxar do cadastro (só admins do app leem a lista): quem tem acesso e ainda não está no grupo.
   const [allowed, setAllowed] = useState<Allowed[]>([]);
@@ -406,7 +408,7 @@ function Members({canEdit}: {canEdit: boolean}){
   const add = (ev: React.FormEvent) => { ev.preventDefault(); lock(async () => {
     const v = email.trim().toLowerCase();
     if(!validEmail(v)){ check.fail(); document.getElementById("member-email")?.focus(); return; }
-    setBusy("add"); const ok = await addMember(g.gid, v, asAdmin, joinRoles(roles), name, birthday, phone).finally(() => setBusy(""));
+    setBusy("add"); const ok = await addMember(g.gid, v, asAdmin && !leaderNow, joinRoles(roles), name, birthday, phone).finally(() => setBusy(""));
     if(!ok) return toast(t("profile.saveFail"));
     toast(t("group.memberAdded", {email: v})); setEmail(""); setName(""); setBirthday(""); setPhone(""); setRoles([]); setAsAdmin(false); check.reset();
   }); };
@@ -427,7 +429,7 @@ function Members({canEdit}: {canEdit: boolean}){
             options={[{value: "", label: t("group.pickUser")}, ...outside.map(a => ({value: a.email, label: (a.profileName || a.name) ? (a.profileName || a.name) + " · " + a.email : a.email}))]}/>}
           <div className="people-add">
             <PersonFields idp="member" name={name} onName={setName} email={email} onEmail={setEmail} phone={phone} onPhone={setPhone} birthday={birthday} onBirthday={setBirthday} check={check}/>
-            <label className="switch lead boxed"><span>{t("group.leader")}</span><input type="checkbox" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>
+            {!leaderNow && <label className="switch lead boxed"><span>{t("group.leader")}</span><input type="checkbox" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>}
           </div>
           <RolePicker value={roles} onChange={setRoles}/>
           {/* Adicionar por último, embaixo das funções. */}
@@ -444,13 +446,17 @@ function Members({canEdit}: {canEdit: boolean}){
         // Regra dos ensaios no lugar do "% nos ensaios" (a porcentagem fica na dica).
         const hint = t("group.ruleHint", {max: MISS_LIMIT, back: COMEBACK, p: rate.total ? Math.round(100 * rate.present / rate.total) : 0, present: rate.present, total: rate.total});
         // Líder: toggle com moldura (como o Admin da lista de usuários), antes do lápis; desabilitado enquanto salva.
-        // Na própria linha só aparece se a pessoa não fica sem acesso: é admin do app ou há outro líder.
-        const self = m.email === me, otherLeader = g.members.some(x => x.is_admin && x.email !== me);
-        const leader = canEdit && (!self || appAdmin || otherLeader) ? <label className="switch lead boxed people-admin" aria-busy={busy === m.email + "adm"}><span>{t("group.leader")}</span>
+        // Um líder só: ligar em outra pessoa passa a liderança (quem era vira membro). Desligar o líder sem pôr
+        // outro deixa o grupo sem líder, então só o admin do app faz isso.
+        const self = m.email === me;
+        const leader = canEdit && (!m.is_admin || appAdmin) ? <label className="switch lead boxed people-admin" aria-busy={busy === m.email + "adm"}><span>{t("group.leader")}</span>
           <input type="checkbox" checked={m.is_admin} disabled={busy === m.email + "adm"} aria-label={t("group.leaderAria", {name: personName(m.email)})}
             onChange={async () => {
-              if(self && m.is_admin && !appAdmin && !await confirmDialog({title: t("group.leaveLeadTitle"), message: t("group.leaveLeadMsg", {group: group.name})})) return;
-              row(m, "adm", () => setMemberAdmin(g.gid, m.email, !m.is_admin));
+              if(m.is_admin) return row(m, "adm", () => setMemberAdmin(g.gid, m.email, false));
+              if(leaderNow && !await confirmDialog({title: t("group.passLeadTitle"), confirm: t("group.passLead"),
+                message: leaderNow.email === me && !appAdmin ? t("group.passLeadMine", {name: personName(m.email), group: group.name})
+                  : t("group.passLeadMsg", {name: personName(m.email), group: group.name, current: personName(leaderNow.email)})})) return;
+              row(m, "adm", () => setGroupLeader(g.gid, m.email));
             }}/></label> : null;
         return <li key={m.email}>
           {/* Como na lista "Com acesso": sempre nome, e-mail (com o aniversário) e celular, com o que falta apagado. */}
@@ -459,11 +465,10 @@ function Members({canEdit}: {canEdit: boolean}){
           <span className="people-who member-open" onClick={e => { if(!(e.target as HTMLElement).closest("a, button")) openDialog("member", {email: m.email}); }}>
             <PersonAvatar email={m.email}/><span className="people-id">
             <span className="people-name"><button type="button" className="member-open-btn" aria-label={t("member.open", {name: m.name || m.email})}
-              onClick={() => openDialog("member", {email: m.email})}>{m.name ? <b>{m.name}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{m.email === me && <span className="chip current">{t("people.you")}</span>}</span>
+              onClick={() => openDialog("member", {email: m.email})}>{m.name ? <b>{m.name}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{m.is_admin && <span className="chip leader"><Icon name="crown" sm/>{t("group.leader")}</span>}{m.email === me && <span className="chip current">{t("people.you")}</span>}</span>
             <span className="sub people-email">{m.email}{m.birthday && " · " + fmtBirthday(m.birthday)}</span>
             {m.phone ? <PhoneLink phone={m.phone}/> : <span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}</span></span>
           <span className="member-chips">
-            {m.is_admin && <span className="chip accent">{t("group.leader")}</span>}
             {sd.out ? <span className="chip st-no" title={hint}>{tn("group.standOut", sd.need)}</span>
               : sd.streak > 0 ? <span className={"chip" + (sd.streak >= MISS_LIMIT - 3 ? " st-pending" : "")} title={hint}>{t("group.streak", {n: sd.streak, max: MISS_LIMIT})}</span>
               : sd.called > 0 && <span className="chip st-yes" title={hint}>{t("group.standOk")}</span>}

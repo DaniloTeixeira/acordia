@@ -175,6 +175,14 @@ export const addMember = (gid: string, email: string, admin: boolean, role: stri
   if(r.error) r = await cloud.rpc("add_group_member", info);
   return r.error ? cloud.rpc("add_group_member", base) : r;
 });
+// Passa a liderança (um líder só por grupo): quem era vira membro e a pessoa escolhida vira líder. Banco ainda
+// sem set_group_leader (antes da migração subir): faz os dois passos à mão.
+export const setGroupLeader = (gid: string, email: string) => run(async () => {
+  const r = await cloud.rpc("set_group_leader", {gid, leader_email: email});
+  if(!r.error || !/set_group_leader|function/i.test(r.error.message || "")) return r;
+  const off = await cloud.from("group_members").update({is_admin: false}).eq("group_id", gid).eq("is_admin", true).neq("email", email);
+  return off.error ? off : cloud.from("group_members").update({is_admin: true}).eq("group_id", gid).eq("email", email);
+});
 export const setMemberAdmin = (gid: string, email: string, admin: boolean) => run(() => cloud.from("group_members").update({is_admin: admin}).eq("group_id", gid).eq("email", email));
 export const setMemberRole = (gid: string, email: string, role: string) => email === myEmail() && !amGroupAdmin()
   ? run(() => cloud.rpc("set_my_role", {gid, member_role: role.trim().slice(0, ROLES_MAX)}))
