@@ -4947,7 +4947,8 @@ dialog.unsaved .dlg-foot::before {
 .stage-nav:has(#stage-now[aria-expanded="true"]) :is(#stage-prev, #stage-next) {
   display: none;
 }
-/* Música anterior e próxima: nos cantos da tela, no meio da altura, fáceis de alcançar com o polegar. */
+/* Música anterior e próxima: nos cantos da tela, no meio da altura, fáceis de alcançar com o polegar. Fantasma
+   (só o contorno e um fundo bem leve), para a cifra continuar legível por baixo; igual em todas as telas. */
 .stage-nav #stage-prev,
 .stage-nav #stage-next {
   position: absolute;
@@ -4957,10 +4958,11 @@ dialog.unsaved .dlg-foot::before {
   height: 88px;
   margin-top: -44px;
   border-radius: var(--r-lg);
-  background: var(--accent);
-  border: none;
-  box-shadow: var(--shadow-md);
-  color: var(--accent-ink);
+  border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
+  background: color-mix(in srgb, var(--surface) 45%, transparent);
+  backdrop-filter: blur(2px);
+  box-shadow: none;
+  color: var(--ink);
 }
 .stage-nav #stage-prev {
   left: max(6px, env(safe-area-inset-left));
@@ -4970,13 +4972,12 @@ dialog.unsaved .dlg-foot::before {
 }
 .stage-nav #stage-prev:hover:where(:not(:disabled)),
 .stage-nav #stage-next:hover:where(:not(:disabled)) {
-  background: var(--accent-hover);
-  color: var(--accent-ink);
+  background: color-mix(in srgb, var(--surface) 75%, transparent);
+  color: var(--ink);
 }
 .stage-nav #stage-prev:disabled,
 .stage-nav #stage-next:disabled {
-  opacity: 0.2;
-  box-shadow: none;
+  opacity: 0.25;
 }
 .stage-nav #stage-prev .i,
 .stage-nav #stage-next .i {
@@ -4990,25 +4991,17 @@ dialog.unsaved .dlg-foot::before {
     padding: 4px max(4px, env(safe-area-inset-right)) 4px
       max(4px, env(safe-area-inset-left));
   }
+  /* Setas fantasma nos cantos, como nas outras telas, um pouco menores. */
   .stage-nav #stage-prev,
   .stage-nav #stage-next {
-    position: static;
-    flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    margin: 0;
-    border-radius: var(--r-full);
-    box-shadow: none;
+    width: 40px;
+    height: 72px;
+    margin-top: -36px;
   }
   .stage-nav #stage-prev .i,
   .stage-nav #stage-next .i {
-    width: 24px;
-    height: 24px;
-  }
-  .stage-nav:has(#stage-now[aria-expanded="true"])
-    :is(#stage-prev, #stage-next) {
-    display: inline-grid;
-    visibility: hidden;
+    width: 22px;
+    height: 22px;
   }
   .stage-nav .stage-now {
     height: 44px;
