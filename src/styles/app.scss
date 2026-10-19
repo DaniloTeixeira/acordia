@@ -612,6 +612,13 @@ textarea::-webkit-scrollbar {
     transform var(--t-fast) var(--ease);
 }
 /* Lixeira com contorno: no hover a borda acompanha o vermelho. */
+/* Hover bem visível nos de contorno (editar, fora dos cultos...): fundo, borda e ícone na cor de destaque. O
+   surface-2 de antes quase não aparecia sobre o card no tema escuro. A lixeira continua com o vermelho. */
+.icon-btn.line:not(.danger):hover:where(:not(:disabled)) {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--line-strong));
+  color: var(--accent-soft-ink);
+}
 .icon-btn.line.danger:hover:where(:not(:disabled)) {
   border-color: color-mix(in srgb, var(--bad) 55%, var(--line-strong));
 }
@@ -1283,20 +1290,34 @@ main {
   background: var(--accent-grad);
   color: var(--accent-ink);
 }
-/* Líder do grupo: o chip que mais chama atenção (gradiente, coroa, contorno e brilho), logo depois do nome. */
+/* Líder do grupo: o chip que mais chama atenção, logo depois do nome. Fundo com o gradiente e uma borda
+   gradiente mais forte girando em volta, sempre. A borda ocupa 2 px do
+   espaçamento, então o chip fica da mesma altura dos outros. */
+@property --leader-a {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
 .chip.leader {
-  background: var(--accent-grad);
+  padding: 0 7px;
+  border: 2px solid transparent;
+  background:
+    var(--accent-grad) padding-box,
+    conic-gradient(from var(--leader-a), #3bd5fa, #4c82f5, #9a5cf8, #f0e6ff, #3bd5fa) border-box;
   color: var(--accent-ink);
   font-weight: 700;
-  box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent),
-    0 2px 10px color-mix(in srgb, var(--accent) 45%, transparent);
+  animation: leader-spin 2.4s linear infinite;
 }
-.chip.leader .i {
-  width: 12px;
-  height: 12px;
-  fill: currentColor;
-  stroke: none;
+@keyframes leader-spin {
+  to { --leader-a: 360deg; }
+}
+/* Gira sempre, mesmo com "menos movimento" no sistema: passa por cima da regra geral que corta as animações
+   (lá embaixo, com !important em *). */
+@media (prefers-reduced-motion: reduce) {
+  .chip.leader {
+    animation-duration: 2.4s !important;
+    animation-iteration-count: infinite !important;
+  }
 }
 .note {
   font-size: 0.88rem;
@@ -6774,6 +6795,35 @@ dialog.ear-dlg {
 #group-tabs {
   margin-bottom: 16px;
 }
+/* Novo evento no meio da linha do nome e dos membros, não do bloco todo com o "Início"
+   em cima: as ações descem até essa linha e centralizam na altura da marca (52 px). */
+#view-group > .view-head {
+  align-items: flex-end;
+}
+#view-group > .view-head > .actions {
+  min-height: 52px;
+  align-items: center;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+#view-group > .view-head > .actions > .btn {
+  flex-shrink: 0;
+}
+/* "GRUPO" em cima do nome: deixa claro em que tela a pessoa está. */
+.group-kicker {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+/* Lápis de editar o grupo, logo depois do nome. */
+.group-edit-btn {
+  margin-left: 8px;
+  vertical-align: middle;
+}
 .group-new {
   width: min(100%, 460px);
   margin-top: 6px;
@@ -7314,9 +7364,35 @@ dialog.event-dlg {
   text-align: start;
   cursor: pointer;
 }
-.member-open:hover .member-open-btn {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+/* Passar o mouse (ou o foco do teclado) na pessoa: a linha inteira ganha, suavemente, um fundo um pouco
+   diferente do card (escurece no claro, clareia no escuro). O fundo é uma camada atrás da linha, um pouco mais
+   larga que ela, então as linhas divisórias e o alinhamento não mudam. */
+.people-list li:has(> .member-open) {
+  position: relative;
+  isolation: isolate;
+}
+.people-list li:has(> .member-open)::before {
+  content: "";
+  position: absolute;
+  inset: 0 -10px;
+  z-index: -1;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  opacity: 0;
+  transition: opacity var(--t);
+  pointer-events: none;
+}
+.member-open-btn:focus-visible {
+  outline: none;
+}
+.people-list li:has(> .member-open .member-open-btn:focus-visible)::before {
+  opacity: 1;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+@media (hover: hover) {
+  .people-list li:has(> .member-open:hover)::before {
+    opacity: 1;
+  }
 }
 /* Janela de detalhes do membro */
 .member-dlg-who {
@@ -7420,6 +7496,47 @@ dialog.event-dlg {
   align-items: center;
   gap: 10px;
 }
+.home-new-group {
+  flex-basis: 100%;
+}
+/* Cards dos grupos: lado a lado enquanto cabem (no celular, um embaixo do outro). */
+.home-groups {
+  flex-basis: 100%;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+}
+.home-groups > .home-group-card {
+  max-width: none;
+}
+/* Fixar e excluir no canto de baixo à direita, por cima do botão que cobre o card (como a câmera); a seta
+   continua no meio, à direita. O card ganha espaço embaixo para os botões não encostarem na seta. */
+.home-group-card:has(> .home-group-acts) {
+  padding-bottom: 40px;
+}
+.home-group-acts {
+  position: absolute;
+  z-index: 1;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  gap: 6px;
+}
+/* Fixado: o alfinete na cor de destaque. */
+.home-group-pin[aria-pressed="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+/* Linha entre as partes do Início (grupo, escalas, continuar). */
+.home-sep {
+  width: 100%;
+  margin: 6px 0;
+  border: none;
+  border-top: 1px solid var(--line);
+}
 /* O cartão todo leva ao grupo (o ::after do botão cobre o cartão); a marca com câmera (admins) fica por cima. */
 .home-group-card {
   position: relative;
@@ -7499,11 +7616,13 @@ dialog.event-dlg {
   align-items: center;
   gap: 5px;
 }
+/* O "Ver agenda" logo depois do título (no canto direito ficava longe demais no computador). */
 .home-sec-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 4px 16px;
   margin-top: 8px;
 }
 .home-sec-head h2 {
@@ -7875,6 +7994,11 @@ dialog.event-dlg {
   align-items: center;
   gap: 8px;
   min-width: 0;
+}
+/* Nome um pouco maior que o resto da linha (e o "Sem nome" junto, para as linhas terem a mesma altura). */
+.people-name b,
+.people-name > .member-open-btn > .people-missing {
+  font-size: 1.07rem;
 }
 .people-name .chip {
   flex-shrink: 0;

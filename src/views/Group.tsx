@@ -12,12 +12,12 @@ import { current, openMedley } from "../repertoire";
 import type { Item } from "../lib/types";
 import { copyName } from "./Library";
 import { saveBlob } from "../lib/pdf";
-import { ago, reduced, flashSaved, reveal } from "../lib/util";
+import { ago, reduced, reveal } from "../lib/util";
 import { splitRoles, joinRoles, toggleRole, sortRoles } from "../lib/roles";
 import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, maskPhone, capFirst, type GEvent, type Presence } from "../lib/calendar";
-import { useGroups, loadGroups, chooseGroup, createGroup, renameGroup, deleteGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
+import { useGroups, loadGroups, createGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
   deleteEvent, respond, checkIn, markAttendance, setUnavailable, personName, personPhoto, amGroupAdmin, setMemberOut, outMark, type GroupSetlist, type Member, type Group } from "../lib/groups";
-import { useUI, useData, toast, openDialog, confirmDialog, go } from "../state";
+import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
@@ -125,12 +125,15 @@ export function Group(){
   useGroupRefresh();
   const admin = useAuth(s => s.admin);
   const g = useGroups();
-  const tab: Tab = (["agenda", "setlists", "members"] as const).find(v => v === data.settings.groupTab) || "agenda";
   const group = g.groups.find(x => x.id === g.gid);
+  const canEdit = !!group && amGroupAdmin();
+  const tab: Tab = (["agenda", "setlists", "members"] as const).find(v => v === data.settings.groupTab) || "agenda";
+  // Quem lidera tem o lápis ao lado do nome: abre a janela com a foto, o nome e (admin do app) outro grupo e excluir.
   const head = (sub: string, actions?: React.ReactNode) => <div className="view-head"><div>
     <button className="btn ghost sm back" id="group-back" onClick={() => go("home")}><Icon name="back" sm/><span>{t("nav.home")}</span></button>
     <div className="group-title">{group && (admin ? <GroupPhotoButton group={group}/> : <GroupMark group={group}/>)}
-      <div><h1 id="group-h">{group ? group.name : t("group.title")}</h1><p className="sub">{sub}</p></div></div></div>
+      <div>{group && <span className="group-kicker">{t("group.title")}</span>}<h1 id="group-h">{group ? group.name : t("group.title")}{canEdit && <button type="button" className="icon-btn sm line group-edit-btn" id="group-edit"
+        aria-label={t("group.edit")} title={t("group.edit")} onClick={() => openDialog("group", {})}><Icon name="edit" sm/></button>}</h1><p className="sub">{sub}</p></div></div></div>
     {actions && <div className="actions">{actions}</div>}</div>;
   if(!group) return <section className="view" id="view-group" data-view="group" aria-labelledby="group-h">
     {head(t("group.sub"))}
@@ -138,10 +141,8 @@ export function Group(){
       : g.error ? <div className="card empty-state"><Icon name="sync"/><strong>{t("group.loadFail")}</strong><button className="btn ghost" onClick={() => loadGroups()}>{t("group.retry")}</button></div>
       : <div className="card empty-state"><Icon name="users"/><strong>{t("group.none")}</strong><span>{t(admin ? "group.noneAdmin" : "group.noneSub")}</span>{admin && <NewGroup/>}</div>}
   </section>;
-  const canEdit = amGroupAdmin();
   return <section className="view" id="view-group" data-view="group" aria-labelledby="group-h">
     {head(tn("group.members", g.members.length) + (g.error ? " · " + t("group.offline") : ""), <>
-      {g.groups.length > 1 && <Select id="group-pick" aria={t("group.pick")} value={g.gid} onChange={v => chooseGroup(v)} options={g.groups.map(x => ({value: x.id, label: x.name}))}/>}
       {canEdit && tab === "agenda" && <button className="btn primary" id="group-new-event" onClick={() => openDialog("event", {id: null, day: dayKey(new Date())})}><Icon name="plus" sm/><span>{t("group.newEvent")}</span></button>}
     </>)}
     <Seg id="group-tabs" className="block" aria={t("group.title")} value={tab} onChange={v => store.setSetting("groupTab", v)}
@@ -446,17 +447,17 @@ function Members({canEdit}: {canEdit: boolean}){
         // Regra dos ensaios no lugar do "% nos ensaios" (a porcentagem fica na dica).
         const hint = t("group.ruleHint", {max: MISS_LIMIT, back: COMEBACK, p: rate.total ? Math.round(100 * rate.present / rate.total) : 0, present: rate.present, total: rate.total});
         // Líder: toggle com moldura (como o Admin da lista de usuários), antes do lápis; desabilitado enquanto salva.
-        // Um líder só: ligar em outra pessoa passa a liderança (quem era vira membro). Desligar o líder sem pôr
-        // outro deixa o grupo sem líder, então só o admin do app faz isso.
+        // Um líder só: o toggle fica só na linha do líder (sem líder, em todos, para escolher um). Desligar o líder
+        // pergunta antes quem fica no lugar; sem ninguém no lugar (grupo sem líder), só o admin do app.
         const self = m.email === me;
-        const leader = canEdit && (!m.is_admin || appAdmin) ? <label className="switch lead boxed people-admin" aria-busy={busy === m.email + "adm"}><span>{t("group.leader")}</span>
+        const leader = canEdit && (m.is_admin || !leaderNow) ? <label className="switch lead boxed people-admin" aria-busy={busy === m.email + "adm"}><span>{t("group.leader")}</span>
           <input type="checkbox" checked={m.is_admin} disabled={busy === m.email + "adm"} aria-label={t("group.leaderAria", {name: personName(m.email)})}
             onChange={async () => {
-              if(m.is_admin) return row(m, "adm", () => setMemberAdmin(g.gid, m.email, false));
-              if(leaderNow && !await confirmDialog({title: t("group.passLeadTitle"), confirm: t("group.passLead"),
-                message: leaderNow.email === me && !appAdmin ? t("group.passLeadMine", {name: personName(m.email), group: group.name})
-                  : t("group.passLeadMsg", {name: personName(m.email), group: group.name, current: personName(leaderNow.email)})})) return;
-              row(m, "adm", () => setGroupLeader(g.gid, m.email));
+              if(!m.is_admin) return row(m, "adm", () => setGroupLeader(g.gid, m.email));
+              const next = await pickLeaderDialog({group: group.name, current: personName(m.email), allowNone: appAdmin, mine: self && !appAdmin,
+                options: g.members.filter(x => x.email !== m.email).map(x => ({value: x.email, label: x.name ? x.name + " · " + x.email : x.email}))});
+              if(next === null) return;
+              row(m, "adm", () => next ? setGroupLeader(g.gid, next) : setMemberAdmin(g.gid, m.email, false));
             }}/></label> : null;
         return <li key={m.email}>
           {/* Como na lista "Com acesso": sempre nome, e-mail (com o aniversário) e celular, com o que falta apagado. */}
@@ -465,14 +466,15 @@ function Members({canEdit}: {canEdit: boolean}){
           <span className="people-who member-open" onClick={e => { if(!(e.target as HTMLElement).closest("a, button")) openDialog("member", {email: m.email}); }}>
             <PersonAvatar email={m.email}/><span className="people-id">
             <span className="people-name"><button type="button" className="member-open-btn" aria-label={t("member.open", {name: m.name || m.email})}
-              onClick={() => openDialog("member", {email: m.email})}>{m.name ? <b>{m.name}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{m.is_admin && <span className="chip leader"><Icon name="crown" sm/>{t("group.leader")}</span>}{m.email === me && <span className="chip current">{t("people.you")}</span>}</span>
+              onClick={() => openDialog("member", {email: m.email})}>{m.name ? <b>{m.name}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{m.is_admin && <span className="chip leader">{t("group.leader")}</span>}{m.email === me && <span className="chip current">{t("people.you")}</span>}</span>
             <span className="sub people-email">{m.email}{m.birthday && " · " + fmtBirthday(m.birthday)}</span>
             {m.phone ? <PhoneLink phone={m.phone}/> : <span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}</span></span>
+          {/* Escalas no mês primeiro; a situação nos ensaios (em dia, faltas seguidas, fora) por último. */}
           <span className="member-chips">
+            {n > 0 && <span className="chip" title={t("group.loadHint")}>{tn("group.load", n)}</span>}
             {sd.out ? <span className="chip st-no" title={hint}>{tn("group.standOut", sd.need)}</span>
               : sd.streak > 0 ? <span className={"chip" + (sd.streak >= MISS_LIMIT - 3 ? " st-pending" : "")} title={hint}>{t("group.streak", {n: sd.streak, max: MISS_LIMIT})}</span>
               : sd.called > 0 && <span className="chip st-yes" title={hint}>{t("group.standOk")}</span>}
-            {n > 0 && <span className="chip" title={t("group.loadHint")}>{tn("group.load", n)}</span>}
           </span>
           {/* As funções só aparecem aqui; mudar (como todo o resto) é pelo lápis junto das ações. */}
           <MemberRoles m={m} editable={false} showEmpty={canEdit || self} busy={busy === m.email + "role"} before={leader} onSave={() => {}}
@@ -490,7 +492,6 @@ function Members({canEdit}: {canEdit: boolean}){
         </li>; })}</ul>
       </div>
     </div>
-    {canEdit && <GroupSettings appAdmin={appAdmin}/>}
   </div>;
 }
 
@@ -606,7 +607,7 @@ export function GroupPhotoButton({group, id}: {group: Group; id?: string}){
 }
 
 // Foto do grupo: só os admins do app trocam (o banco recusa os líderes).
-function GroupPhoto(){
+export function GroupPhoto(){
   const g = useGroups(), group = g.groups.find(x => x.id === g.gid)!, [busy, setBusy] = useState(false), lock = useLock();
   const label = t(group.photo ? "photo.change" : "photo.add");
   const remove = async () => {
@@ -626,24 +627,3 @@ function GroupPhoto(){
     </div></div>;
 }
 
-function GroupSettings({appAdmin}: {appAdmin: boolean}){
-  const g = useGroups(), group = g.groups.find(x => x.id === g.gid)!;
-  const [name, setName] = useState(group.name), lock = useLock();
-  useEffect(() => setName(group.name), [group.name]);
-  const fold = useFold("group-settings");
-  return <div className={"card people-card" + fold.cls}>
-    <FoldHead folded={fold.folded} onToggle={fold.toggle} title={t("group.settings")}/>
-    <h2>{t("group.settings")}</h2>
-    <div className="card-body">
-    {appAdmin && <GroupPhoto/>}
-    <label className="field"><span>{t("group.name")}</span><input className="input" id="group-rename" maxLength={80} value={name} onChange={e => setName(e.target.value)}
-      onBlur={e => { const el = e.currentTarget; if(name.trim() && name.trim() !== group.name) lock(async () => { if(await renameGroup(g.gid, name)) flashSaved(el); else toast(t("profile.saveFail")); }); }}
-      onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}/></label>
-    {appAdmin && <><h3>{t("group.newGroup")}</h3><NewGroup/>
-      <button className="btn ghost danger" onClick={async () => {
-        if(!await confirmDialog({title: t("group.deleteTitle"), message: t("group.deleteMsg", {name: group.name})})) return;
-        lock(async () => toast(t(await deleteGroup(g.gid) ? "group.deleted" : "profile.saveFail", {name: group.name})));
-      }}><Icon name="trash" sm/> {t("group.delete")}</button></>}
-    </div>
-  </div>;
-}

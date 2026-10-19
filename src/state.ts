@@ -28,6 +28,9 @@ export interface DialogProps {
   chord: {symbol: string; songKey: string};
   player: {url: string; title: string};
   confirm: {title: string; message: string; confirm?: string; resolve: (ok: boolean) => void};
+  // Escolher o novo líder do grupo antes de tirar o atual. options: os outros membros; allowNone: pode ficar
+  // sem líder (só admin do app); mine: quem tira é o próprio líder. Resolve o e-mail ("" = sem líder) ou null.
+  leader: {group: string; current: string; options: {value: string; label: string}[]; allowNone: boolean; mine: boolean; resolve: (email: string | null) => void};
   help: {page: View};
   ear: {text: string; songKey: string; onApply: (text: string, key: string) => void};
   // id null: evento novo no dia (AAAA-MM-DD).
@@ -36,6 +39,9 @@ export interface DialogProps {
   photo: {src: string; gid?: string};
   // Detalhes de uma pessoa (só leitura): do grupo aberto ou, fora dele, com os dados da lista de acesso.
   member: {email: string; person?: {name: string; phone: string; birthday: string | null; photo: string}};
+  // Editar o grupo aberto (foto, nome, excluir) e criar outro grupo.
+  group: Record<string, never>;
+  newGroup: Record<string, never>;
 }
 export type DialogName = keyof DialogProps;
 
@@ -83,6 +89,11 @@ export function closeDialog(name: DialogName){
 // Confirmação antes de excluir. Resolve true quando a pessoa confirma.
 export function confirmDialog(p: {title: string; message: string; confirm?: string}){
   return new Promise<boolean>(resolve => openDialog("confirm", {...p, resolve}));
+}
+
+// Novo líder do grupo: resolve o e-mail escolhido, "" para ficar sem líder, ou null se a pessoa cancelar.
+export function pickLeaderDialog(p: Omit<DialogProps["leader"], "resolve">){
+  return new Promise<string | null>(resolve => openDialog("leader", {...p, resolve}));
 }
 
 // ---------- navegação e idioma ----------

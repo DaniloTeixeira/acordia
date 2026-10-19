@@ -18,6 +18,7 @@ import { EarDialog } from "./EarDialog";
 import { EventDialog } from "./EventDialog";
 import { PhotoDialog } from "./PhotoDialog";
 import { MemberDialog } from "./MemberDialog";
+import { GroupDialog, NewGroupDialog } from "./GroupDialog";
 import type { SongType } from "../lib/types";
 
 const { data } = store;
@@ -34,11 +35,14 @@ export function Dialogs(){
     {d.chord && <ChordDialog {...d.chord}/>}
     {d.player && <PlayerDialog {...d.player}/>}
     {d.confirm && <ConfirmDialog {...d.confirm}/>}
+    {d.leader && <LeaderDialog {...d.leader}/>}
     {d.help && <HelpDialog {...d.help}/>}
     {d.ear && <EarDialog {...d.ear}/>}
     {d.event && <EventDialog {...d.event}/>}
     {d.photo && <PhotoDialog {...d.photo}/>}
     {d.member && <MemberDialog {...d.member}/>}
+    {d.group && <GroupDialog/>}
+    {d.newGroup && <NewGroupDialog/>}
   </>;
 }
 
@@ -207,6 +211,26 @@ function ConfirmDialog({title, message, confirm, resolve}: DialogProps["confirm"
       <DialogHead id="confirm-h" title={title} closeLabel={t("common.close")}/>
       <div className="dlg-body"><p id="confirm-msg">{message}</p></div>
       <Foot><button className="btn ghost" value="cancel">{t("common.cancel")}</button><button className="btn danger-solid" value="ok" id="confirm-ok">{confirm || t("common.delete")}</button></Foot>
+    </form>
+  </Dialog>;
+}
+
+// ---------- novo líder do grupo ----------
+// Desligar o Líder pergunta antes quem fica no lugar; a troca só acontece ao confirmar.
+function LeaderDialog({group, current, options, allowNone, mine, resolve}: DialogProps["leader"]){
+  const opts = [...(allowNone ? [{value: "", label: t("group.noLeader")}] : []), ...options];
+  const [pick, setPick] = useState(opts[0]?.value ?? ""), ref = useRef(pick);
+  ref.current = pick;
+  return <Dialog name="leader" id="dlg-leader" labelledBy="leader-h" onClose={rv => resolve(rv === "ok" ? ref.current : null)}>
+    <form method="dialog" className="dlg">
+      <DialogHead id="leader-h" title={t("group.newLeaderTitle")} closeLabel={t("common.close")}/>
+      <div className="dlg-body">
+        <p id="leader-msg">{t(mine ? "group.newLeaderMine" : "group.newLeaderMsg", {group, current})}</p>
+        <div className="field"><span>{t("group.newLeader")}</span>
+          <Select id="leader-pick" aria={t("group.newLeader")} value={pick} onChange={setPick} options={opts}/></div>
+      </div>
+      <Foot><button className="btn ghost" value="cancel">{t("common.cancel")}</button>
+        <button className="btn primary" value="ok" id="leader-ok" disabled={!opts.length}>{t("group.passLead")}</button></Foot>
     </form>
   </Dialog>;
 }
