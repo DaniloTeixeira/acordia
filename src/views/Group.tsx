@@ -22,7 +22,7 @@ import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
 import { useFold, FoldHead } from "../ui/Fold";
-import { useLock, Spin, Avatar, PersonFields, useEmailCheck, pickPhoto, PhoneLink, fmtBirthday, today, usePeopleFilter, PeopleTools } from "./Account";
+import { SKIP_OPEN, useLock, Spin, Avatar, PersonFields, useEmailCheck, pickPhoto, PhoneLink, fmtBirthday, today, usePeopleFilter, PeopleTools } from "./Account";
 import { DateInput } from "../ui/DateInput";
 
 const { data } = store;
@@ -113,8 +113,8 @@ export function useGroupRefresh(){
     return () => document.removeEventListener("visibilitychange", wake);
   }, [status]);
 }
-// Abre a página do grupo numa aba (do Início).
-export function openGroup(tab: Tab = "agenda", eventId = ""){
+// Abre a página do grupo numa aba; sem aba, em Membros.
+export function openGroup(tab: Tab = "members", eventId = ""){
   store.setSetting("groupTab", tab);
   useUI.setState({eventFocus: eventId});
   go("group");
@@ -127,7 +127,7 @@ export function Group(){
   const g = useGroups();
   const group = g.groups.find(x => x.id === g.gid);
   const canEdit = !!group && amGroupAdmin();
-  const tab: Tab = (["agenda", "setlists", "members"] as const).find(v => v === data.settings.groupTab) || "agenda";
+  const tab: Tab = (["agenda", "setlists", "members"] as const).find(v => v === data.settings.groupTab) || "members";
   // Quem lidera tem o lápis ao lado do nome: abre a janela com a foto, o nome e (admin do app) outro grupo e excluir.
   const head = (sub: string, actions?: React.ReactNode) => <div className="view-head"><div>
     <button className="btn ghost sm back" id="group-back" onClick={() => go("home")}><Icon name="back" sm/><span>{t("nav.home")}</span></button>
@@ -459,11 +459,11 @@ function Members({canEdit}: {canEdit: boolean}){
               if(next === null) return;
               row(m, "adm", () => next ? setGroupLeader(g.gid, next) : setMemberAdmin(g.gid, m.email, false));
             }}/></label> : null;
-        return <li key={m.email}>
+        // Tocar em qualquer parte da linha (fora dos botões, links e do painel de editar) abre os detalhes; o
+        // nome é o botão, para o teclado e o leitor de tela. O celular continua sendo link de ligar.
+        return <li key={m.email} className="member-open" onClick={e => { if(!(e.target as HTMLElement).closest(SKIP_OPEN)) openDialog("member", {email: m.email}); }}>
           {/* Como na lista "Com acesso": sempre nome, e-mail (com o aniversário) e celular, com o que falta apagado. */}
-          {/* Tocar na pessoa (foto ou texto) abre os detalhes; o nome é o botão, para o teclado e o leitor de tela.
-              O celular continua sendo link de ligar. */}
-          <span className="people-who member-open" onClick={e => { if(!(e.target as HTMLElement).closest("a, button")) openDialog("member", {email: m.email}); }}>
+          <span className="people-who">
             <PersonAvatar email={m.email}/><span className="people-id">
             <span className="people-name"><button type="button" className="member-open-btn" aria-label={t("member.open", {name: m.name || m.email})}
               onClick={() => openDialog("member", {email: m.email})}>{m.name ? <b>{m.name}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{m.is_admin && <span className="chip leader">{t("group.leader")}</span>}{m.email === me && <span className="chip current">{t("people.you")}</span>}</span>

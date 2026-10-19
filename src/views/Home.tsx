@@ -1,18 +1,24 @@
-// Início: o resumo da semana na equipe. O grupo (com o número de eventos, repertórios e membros), as
-// próximas escalas da pessoa com quantos confirmaram, os eventos que precisam de substituto (para quem
-// lidera), os aniversariantes, a agenda do grupo e um atalho para o último repertório.
+// Início: o painel da semana na equipe. Na coluna principal, o grupo (com o número de eventos, repertórios
+// e membros), os próximos 7 dias, as escalas da pessoa com quantos confirmaram, os eventos que precisam de
+// substituto (para quem lidera), os números da Biblioteca e os últimos itens abertos. Ao lado (embaixo, no
+// celular), as ferramentas rápidas, os aniversariantes e a agenda do grupo.
 import { useState, type ReactNode } from "react";
 import * as store from "../lib/store";
 import { t, tn, locale } from "../lib/i18n";
+import { ago } from "../lib/util";
 import { useAuth } from "../lib/cloud";
-import { dayKey, splitEvents, upcomingBirthdays, type GEvent } from "../lib/calendar";
+import { dayKey, eventDay, splitEvents, upcomingBirthdays, type GEvent } from "../lib/calendar";
 import { useGroups, chooseGroup, personName, amGroupAdmin, deleteGroup, type Group } from "../lib/groups";
 import { useUI, useData, go, openDialog, confirmDialog, toast } from "../state";
-import { peekCurrent, openMedley, songItems } from "../repertoire";
+import { peekCurrent, openMedley, songItems, isMedley, songKey, recentItems, type Recent } from "../repertoire";
 import { Icon } from "../ui/Icon";
 import { Spin } from "./Account";
 import { sortRoles } from "../lib/roles";
-import { useGroupRefresh, openGroup, eventTitle, StatusChip, fmt, timeOf, PersonAvatar, GroupMark, GroupPhotoButton } from "./Group";
+import { openLibrary } from "./Library";
+import { setStudy } from "./study/Study";
+import { useGroupRefresh, openGroup, eventTitle, StatusChip, fmt, timeOf, longDay, PersonAvatar, GroupMark, GroupPhotoButton } from "./Group";
+
+const { data } = store;
 
 // "hoje", "amanhã", "em 3 dias" (no idioma do app).
 function relDay(iso: string){
@@ -32,6 +38,10 @@ export function Home(){
   const needs = amGroupAdmin() ? upcoming.filter(e => g.roster.some(r => r.event_id === e.id && r.status === "no")) : [];
   const others = upcoming.filter(e => !mine.includes(e)).slice(0, 3);
   const name = (profile?.name || me.split("@")[0]).split(" ")[0];
+  const recent = recentList(), bdays = group ? upcomingBirthdays(g.members, dayKey(new Date()), 30) : [];
+  const showAgenda = !!group && others.length > 0;
+  const small = [recent.length > 0 && "continue", "tools", bdays.length > 0 && "birthdays", showAgenda && "agenda"].filter(Boolean);
+  const lastWide = small.length % 2 ? small[small.length - 1] : "";
   // Excluir um grupo pelo card (só admins do app), depois de confirmar. Enquanto o banco apaga, o card fica
   // apagado, com "Excluindo…" no lugar dos números e sem aceitar toque.
   const [deleting, setDeleting] = useState("");
@@ -49,15 +59,17 @@ export function Home(){
   return <section className="view" id="view-home" data-view="home" aria-labelledby="home-h">
     <div className="view-head"><div><h1 id="home-h">{t("home.hello", {name})}</h1>
       <p className="sub">{fmt({weekday: "long", day: "numeric", month: "long"}).format(new Date())}</p></div></div>
+    <div className="home-grid">
     {group ? <>
       {/* Um card por grupo (no lugar do dropdown): tocar abre o grupo. O aberto agora usa os números já carregados. */}
-      <div className="home-group">
+      <Block id="home-group" className="home-group" wide title={tn("home.groups", g.groups.length)} count={g.groups.length > 1 ? g.groups.length : 0}
+        action={admin && <button className="btn ghost sm" id="home-new-group" onClick={() => openDialog("newGroup", {})}><Icon name="plus" sm/> {t("group.newGroupTitle")}</button>}>
         <ul className="home-groups">{ordered.map(x => {
           const cur = x.id === g.gid, st = cur ? {events: upcoming.length, setlists: g.setlists.length, members: g.members.length} : x.stats;
           const del = deleting === x.id, pin = pinned === x.id;
           return <li key={x.id} className={"card home-group-card" + (del ? " deleting" : "")} aria-busy={del}>
             {admin ? <GroupPhotoButton group={x}/> : <GroupMark group={x}/>}
-            <button className="home-group-open" id={"home-group-" + x.id} disabled={del} onClick={() => { if(!cur) chooseGroup(x.id); openGroup("agenda"); }}>
+            <button className="home-group-open" id={"home-group-" + x.id} disabled={del} onClick={() => { if(!cur) chooseGroup(x.id); openGroup("members"); }}>
             <span className="home-group-what"><b>{x.name}</b>
               {del ? <span className="home-group-stats home-group-deleting" role="status">{t("group.deleting")}</span>
               : st && <span className="home-group-stats">
@@ -77,32 +89,48 @@ export function Home(){
             </span>}
           </li>;
         })}</ul>
-        {/* Criar outro grupo: só admins do app, numa linha própria embaixo dos cards. */}
-        {admin && <div className="home-new-group"><button className="btn ghost sm" id="home-new-group" onClick={() => openDialog("newGroup", {})}><Icon name="plus" sm/> {t("group.newGroupTitle")}</button></div>}
-      </div>
+      </Block>
 
-      <hr className="home-sep"/>
-      <div className="home-sec-head"><h2>{t("home.myScales")} {mine.length > 0 && <span className="count-chip">{mine.length}</span>}</h2>
-        <button className="link-btn" onClick={() => openGroup("agenda")}>{t("home.seeAgenda")} <Icon name="chev" sm className="chev-right"/></button></div>
-      {mine.length ? <ul className="home-scroll" id="home-scales">{mine.map(e => <ScaleCard key={e.id} e={e}/>)}</ul>
-        : <div className="card empty-state home-empty"><Icon name="calendar"/><span>{t("home.noScales")}</span></div>}
+      <Block id="home-scales-block" wide title={t("home.myScales")} count={mine.length} link={{label: t("home.seeAgenda"), run: () => openGroup("agenda")}}>
+        <WeekStrip upcoming={upcoming}/>
+        {mine.length ? <ul className="home-scroll" id="home-scales">{mine.map(e => <ScaleCard key={e.id} e={e}/>)}</ul>
+          : <div className="empty-state home-empty"><Icon name="calendar"/><span>{t("home.noScales")}</span></div>}
+      </Block>
 
-      <Birthdays/>
-
-      {needs.length > 0 && <div className="card home-needs">
-        <h2>{t("home.needsSub")}</h2>
+      {needs.length > 0 && <Block id="home-needs" className="home-needs" wide title={t("home.needsSub")} count={needs.length}>
         <ul className="my-next-list">{needs.map(e => <EventRow key={e.id} e={e} chip={<span className="chip st-no">{tn("group.needSub", g.roster.filter(r => r.event_id === e.id && r.status === "no").length)}</span>}/>)}</ul>
-      </div>}
+      </Block>}
+      <Tiles/>
+    </> : <>
+      <div className="card empty-state wide">{!g.loaded || g.loading ? <><Spin/><span>{t("auth.loading")}</span></>
+        : <><Icon name="users"/><strong>{t("group.none")}</strong><span>{t(useAuth.getState().admin ? "group.noneAdmin" : "group.noneSub")}</span>
+          {useAuth.getState().admin && <button className="btn primary" onClick={() => openDialog("newGroup", {})}><Icon name="plus" sm/> {t("group.create")}</button>}</>}</div>
+      <Tiles/>
+    </>}
 
-      {others.length > 0 && <div className="card home-agenda">
-        <h2>{t("home.groupAgenda")}</h2>
+      {/* Os blocos menores, 2 por linha quando cabem; com um número ímpar, o último ocupa a linha toda. */}
+      {recent.length > 0 && <Continue list={recent} wide={lastWide === "continue"}/>}
+      <QuickTools wide={lastWide === "tools"}/>
+      {bdays.length > 0 && <Birthdays list={bdays} wide={lastWide === "birthdays"}/>}
+      {showAgenda && <Block id="home-agenda" className="home-agenda" wide={lastWide === "agenda"} title={t("home.groupAgenda")} link={{label: t("home.seeAgenda"), run: () => openGroup("agenda")}}>
         <ul className="my-next-list">{others.map(e => <EventRow key={e.id} e={e} chip={<span className={"chip kind-" + e.kind}>{t("group.kind." + e.kind)}</span>}/>)}</ul>
-      </div>}
-    </> : <div className="card empty-state">{!g.loaded || g.loading ? <><Spin/><span>{t("auth.loading")}</span></>
-      : <><Icon name="users"/><strong>{t("group.none")}</strong><span>{t(useAuth.getState().admin ? "group.noneAdmin" : "group.noneSub")}</span>
-        {useAuth.getState().admin && <button className="btn primary" onClick={() => openDialog("newGroup", {})}><Icon name="plus" sm/> {t("group.create")}</button>}</>}</div>}
+      </Block>}
+    </div>
+  </section>;
+}
 
-    <Continue sep={!!group}/>
+// Bloco do painel: título (com o número e um link "Ver…" opcionais) e o conteúdo embaixo.
+// wide: ocupa a linha toda da grade.
+// action: um botão no lugar do link (como o "Novo grupo").
+function Block({id, className = "", wide, icon, title, count, link, action, children}: {id: string; className?: string; wide?: boolean; icon?: string; title: string; count?: number;
+  link?: {label: string; run: () => void}; action?: ReactNode; children: ReactNode}){
+  return <section className={"card home-block " + className + (wide ? " wide" : "")} id={id} aria-labelledby={id + "-h"}>
+    <div className="home-block-head">
+      <h2 id={id + "-h"}>{icon && <Icon name={icon} sm/>}{title}{!!count && <span className="count-chip">{count}</span>}</h2>
+      {link && <button type="button" className="link-btn" onClick={link.run}>{link.label} <Icon name="chev" sm className="chev-right"/></button>}
+      {action}
+    </div>
+    {children}
   </section>;
 }
 
@@ -141,33 +169,100 @@ function EventRow({e, chip}: {e: GEvent; chip: ReactNode}){
 }
 
 // Aniversariantes do grupo nos próximos 30 dias (só dia e mês; a idade não aparece).
-function Birthdays(){
-  const g = useGroups(), me = useAuth(s => s.email);
-  const list = upcomingBirthdays(g.members, dayKey(new Date()), 30);
-  if(!list.length) return null;
+function Birthdays({list, wide}: {list: {email: string; in: number; day: number; month: number}[]; wide: boolean}){
+  const me = useAuth(s => s.email);
   const when = (n: number) => new Intl.RelativeTimeFormat(locale(), {numeric: "auto"}).format(n, "day");
-  return <div className="card home-birthdays" id="home-birthdays">
-    <h2><Icon name="gift" sm/> {t("home.birthdays")}</h2>
+  return <Block id="home-birthdays" className="home-birthdays" wide={wide} icon="gift" title={t("home.birthdays")}>
     <ul className="birthday-list">{list.map(p => <li key={p.email} className={p.in === 0 ? "today" : ""}>
       <PersonAvatar email={p.email}/>
       <span className="birthday-who"><b>{personName(p.email)}{p.email === me && " " + t("group.you")}</b>
         <span className="sub">{fmt({day: "numeric", month: "long", timeZone: "UTC"}).format(new Date(Date.UTC(2000, p.month - 1, p.day)))}</span></span>
       <span className={"chip" + (p.in === 0 ? " accent" : "")}>{p.in === 0 ? t("home.birthdayToday") : when(p.in)}</span>
     </li>)}</ul>
-  </div>;
+  </Block>;
 }
 
-// Atalho para o último repertório aberto (no app ou direto no Palco).
-function Continue({sep}: {sep: boolean}){
-  const m = peekCurrent();
-  if(!m || !m.items.length) return null;
-  const n = songItems(m).length;
+// Os próximos 7 dias, de hoje em diante: um ponto nos dias com evento do grupo (na cor de destaque quando a
+// pessoa está escalada). Tocar no dia abre o primeiro evento dele na agenda.
+function WeekStrip({upcoming}: {upcoming: GEvent[]}){
+  const g = useGroups(), me = useAuth(s => s.email), now = new Date();
+  const days = Array.from({length: 7}, (_, i) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + i));
+  return <ol className="home-week" aria-label={t("home.week")}>{days.map((d, i) => {
+    const evs = upcoming.filter(e => eventDay(e) === dayKey(d));
+    const mine = evs.some(e => g.roster.some(r => r.event_id === e.id && r.email === me));
+    const label = longDay(d) + (evs.length ? ": " + evs.map(eventTitle).join(", ") : "");
+    return <li key={i}><button type="button" className={"home-day" + (i === 0 ? " today" : "")} disabled={!evs.length} aria-label={label}
+      onClick={() => openGroup("agenda", evs[0].id)}>
+      <small>{fmt({weekday: "short"}).format(d).replace(".", "")}</small><b>{d.getDate()}</b>
+      <span className={"home-day-dot" + (mine ? " mine" : evs.length ? "" : " none")} aria-hidden="true"/>
+    </button></li>;
+  })}</ol>;
+}
+
+// Números da Biblioteca num bloco, cada um no seu cartão interno, dividindo a linha em partes iguais; cada um leva à sua lista.
+function Tiles(){
+  const meds = [...data.medleys.values()];
+  const tiles = [
+    {id: "songs", icon: "music", n: [...data.songs.values()].filter(s => s.title).length, label: t("home.tile.songs"), run: () => openLibrary("songs")},
+    {id: "setlists", icon: "list", n: meds.filter(m => !isMedley(m)).length, label: t("home.tile.setlists"), run: () => openLibrary("setlists")},
+    {id: "medleys", icon: "link", n: meds.filter(isMedley).length, label: t("home.tile.medleys"), run: () => openLibrary("medleys")},
+  ];
+  return <Block id="home-shortcuts" wide title={t("home.shortcuts")}>
+    <ul className="home-tiles">{tiles.map(x => <li key={x.id}>
+    <button type="button" className="home-tile" id={"home-tile-" + x.id} onClick={x.run}>
+      <span className="home-tile-icon"><Icon name={x.icon}/></span>
+      <span className="home-tile-what"><b>{x.n}</b><span>{x.label}</span></span>
+      <Icon name="chev" sm className="chev-right"/>
+    </button></li>)}</ul>
+  </Block>;
+}
+
+// Últimos itens abertos (músicas, repertórios e medleys), lado a lado. Sem histórico ainda, o último repertório.
+function recentList(): Recent[] {
+  const cur = peekCurrent(), list = recentItems().slice(0, 8);
+  if(!list.length && cur && cur.items.length) list.push({kind: "medley", id: cur.id, at: cur.updatedAt || 0});
+  return list;
+}
+function Continue({list, wide}: {list: Recent[]; wide: boolean}){
+  return <Block id="home-continue" wide={wide} title={t("home.continue")} link={{label: t("lib.title"), run: () => openLibrary("songs")}}>
+    <ul className="home-scroll home-recent" id="home-recent">{list.map(r => <RecentCard key={r.kind + r.id} r={r}/>)}</ul>
+  </Block>;
+}
+function RecentCard({r}: {r: Recent}){
+  if(r.kind === "song"){
+    const s = data.songs.get(r.id)!, key = s.type === "letra" ? "" : songKey(s);
+    return <li><div className="recent-card">
+      <span className="recent-kind"><Icon name="music" sm/> {t("home.kind.song")}</span>
+      <b className="recent-name">{s.title}</b>
+      <span className="sub recent-meta">{key && <span className="chip accent">{t("lib.key", {key})}</span>}<span>{ago(r.at)}</span></span>
+      <div className="recent-actions"><button className="btn soft sm" onClick={() => openDialog("song", {song: s})}>{t("common.open")}</button></div>
+    </div></li>;
+  }
+  const m = data.medleys.get(r.id)!, blocks = isMedley(m);
   const open = (stage: boolean) => { openMedley(m.id); go("medley"); if(stage) useUI.setState({stageOpen: true}); };
-  return <>{sep && <hr className="home-sep"/>}<div className="card home-continue">
-    <div><span className="sub">{t("home.continue")}</span><b>{m.name}</b><span className="sub">{tn("song", n)}</span></div>
-    <div className="home-continue-actions">
-      <button className="btn ghost" onClick={() => open(false)}>{t("common.open")}</button>
-      <button className="btn primary" onClick={() => open(true)}><Icon name="stage" sm/> {t("medley.stage")}</button>
+  return <li><div className="card recent-card">
+    <span className="recent-kind"><Icon name={blocks ? "link" : "list"} sm/> {t(blocks ? "home.kind.medley" : "home.kind.setlist")}</span>
+    <b className="recent-name">{m.name}</b>
+    <span className="sub recent-meta"><span>{tn("song", songItems(m).length)}</span><span>{ago(r.at)}</span></span>
+    <div className="recent-actions">
+      <button className={"btn sm " + (blocks ? "soft" : "ghost")} onClick={() => open(false)}>{t("common.open")}</button>
+      {!blocks && m.items.length > 0 && <button className="btn primary sm" onClick={() => open(true)}><Icon name="stage" sm/> {t("medley.stage")}</button>}
     </div>
-  </div></>;
+  </div></li>;
+}
+
+// Ferramentas rápidas: abrem a página já na aba certa.
+function QuickTools({wide}: {wide: boolean}){
+  const tool = (tab: string) => () => { store.setSetting("toolsTab", tab); go("tools"); };
+  const items = [
+    {id: "metro", icon: "metro", label: t("tools.metro"), run: tool("metro")},
+    {id: "tuner", icon: "tuner", label: t("tools.tuner"), run: tool("tuner")},
+    {id: "pad", icon: "pad", label: t("tools.pad"), run: tool("pad")},
+    {id: "train", icon: "study", label: t("study.train"), run: () => { setStudy({tab: "train"}); go("study"); }},
+  ];
+  return <Block id="home-tools" wide={wide} title={t("home.tools")}>
+    <ul className="home-tools-grid">{items.map(x => <li key={x.id}>
+      <button type="button" className="home-tool" id={"home-tool-" + x.id} onClick={x.run}><Icon name={x.icon}/><span>{x.label}</span></button>
+    </li>)}</ul>
+  </Block>;
 }

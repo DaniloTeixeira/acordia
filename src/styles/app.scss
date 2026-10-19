@@ -4869,6 +4869,8 @@ dialog.unsaved .dlg-foot::before {
   overflow-x: hidden;
   padding: 24px max(66px, env(safe-area-inset-left)) 40vh;
   outline: none;
+  /* O gesto para o lado é do Palco (troca de música); rolar e dar zoom continuam do navegador. */
+  touch-action: pan-y pinch-zoom;
 }
 /* No celular a cifra usa a largura toda: as setas fantasma ficam por cima, nos cantos. */
 @media (max-width: 599px) {
@@ -6345,8 +6347,20 @@ dialog.ear-dlg {
   gap: 22px;
   justify-content: space-between;
 }
-/* Títulos das seções do perfil (funções, frequência, próxima escala) e das listas de pessoas (adicionar,
-   com acesso, membros do grupo): maiores, na cor do texto e com um traço no gradiente da marca, para não se
+/* Título de todo card de seção (Início, Perfil, Grupo, Estudo, Pads; e o cabeçalho que recolhe o card no
+   celular): o traço no gradiente antes do texto, como nos subtítulos abaixo. Ficam de fora os cards de itens
+   (música, repertório, evento), o resultado do Treino e as janelas. O tamanho de cada título não muda. */
+.card:not(.summary) > h2:not(.fold-head),
+.card > .card-top > h2,
+.card > .card-head > h2,
+.card .scale-head h2,
+.fold-head > button > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Títulos das seções do perfil (funções, frequência, próxima escala), das listas de pessoas (adicionar,
+   com acesso, membros do grupo) e o traço dos blocos do Início: maiores, na cor do texto e com um traço no gradiente da marca, para não se
    confundirem com o rótulo dos campos (Nome, Celular...). */
 .people-sub-h,
 .profile-roles > span:first-child,
@@ -6362,6 +6376,12 @@ dialog.ear-dlg {
   color: var(--ink);
 }
 .people-sub-h::before,
+.home-block-head h2::before,
+.card:not(.summary) > h2:not(.fold-head)::before,
+.card > .card-top > h2::before,
+.card > .card-head > h2::before,
+.card .scale-head h2::before,
+.fold-head > button > span:first-child::before,
 .profile-roles > span:first-child::before,
 .profile-att > span:first-child::before,
 .profile-next > span:first-child::before,
@@ -7351,7 +7371,7 @@ dialog.event-dlg {
 .members .people-who {
   flex: 1 1 180px;
 }
-/* Tocar na pessoa abre os detalhes: o nome é um botão sem cara de botão. */
+/* Tocar na linha da pessoa abre os detalhes: o nome é um botão sem cara de botão. */
 .member-open {
   cursor: pointer;
 }
@@ -7367,11 +7387,11 @@ dialog.event-dlg {
 /* Passar o mouse (ou o foco do teclado) na pessoa: a linha inteira ganha, suavemente, um fundo um pouco
    diferente do card (escurece no claro, clareia no escuro). O fundo é uma camada atrás da linha, um pouco mais
    larga que ela, então as linhas divisórias e o alinhamento não mudam. */
-.people-list li:has(> .member-open) {
+.people-list li.member-open {
   position: relative;
   isolation: isolate;
 }
-.people-list li:has(> .member-open)::before {
+.people-list li.member-open::before {
   content: "";
   position: absolute;
   inset: 0 -10px;
@@ -7385,12 +7405,12 @@ dialog.event-dlg {
 .member-open-btn:focus-visible {
   outline: none;
 }
-.people-list li:has(> .member-open .member-open-btn:focus-visible)::before {
+.people-list li.member-open:has(.member-open-btn:focus-visible)::before {
   opacity: 1;
   box-shadow: inset 0 0 0 2px var(--accent);
 }
 @media (hover: hover) {
-  .people-list li:has(> .member-open:hover)::before {
+  .people-list li.member-open:hover:not(:has(.people-edit:hover))::before {
     opacity: 1;
   }
 }
@@ -7480,7 +7500,336 @@ dialog.event-dlg {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  max-width: 960px;
+  max-width: 1240px;
+}
+/* Painel: blocos lado a lado enquanto cabem (como no Perfil); grupos, números, escalas e substitutos na linha toda. */
+.home-grid {
+  display: grid;
+  gap: 16px;
+  /* No máximo 2 colunas (cada uma com pelo menos 360 px): os 4 blocos menores ficam em 2 × 2. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, max(360px, calc((100% - 16px) / 2))), 1fr));
+  align-items: stretch;
+}
+.home-grid > .wide {
+  grid-column: 1 / -1;
+}
+/* Bloco do painel: título com o link "Ver…" à direita e o conteúdo embaixo. */
+.home-block {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.home-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.home-block-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.home-block-head h2 .i {
+  color: var(--accent);
+}
+.home-block-head .link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  text-decoration: none;
+}
+/* As fileiras que rolam de lado vão até a borda do bloco (o próximo cartão aparece cortado nela). */
+.home-block .home-scroll {
+  margin: 0 -18px;
+  padding: 2px 18px 4px;
+  scroll-padding-inline: 18px;
+}
+/* Celular: os cartões internos (escalas, continuar, atalhos) ocupam a largura toda, um embaixo do outro,
+   em vez da fileira que rola de lado. */
+@media (max-width: 600px) {
+  .home-block .home-scroll {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+  .home-block .home-tiles {
+    grid-template-columns: 1fr;
+  }
+}
+.home-block .home-empty {
+  padding: 18px 16px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+/* Próximos 7 dias: sete colunas iguais, com um ponto nos dias com evento. */
+.home-week {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.home-day {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    background-color var(--t-fast),
+    border-color var(--t-fast);
+}
+/* Cada dia numa célula da grade; hoje com o fundo na cor de destaque, bem suave. */
+.home-day:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.home-day.today {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+.home-day:disabled {
+  cursor: default;
+  opacity: 1;
+}
+.home-day small {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.home-day b {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-full);
+  font-size: 0.95rem;
+}
+.home-day.today b {
+  background: var(--accent);
+  color: var(--accent-ink, #fff);
+}
+.home-day-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--ink-2);
+}
+.home-day-dot.mine {
+  background: var(--accent);
+}
+.home-day-dot.none {
+  visibility: hidden;
+}
+/* Celular: as sete células ficam estreitas (uns 40 px); tudo um pouco menor para o círculo de hoje caber com folga. */
+@media (max-width: 480px) {
+  .home-week {
+    gap: 4px;
+  }
+  .home-day {
+    gap: 3px;
+    padding: 6px 0 5px;
+    border-radius: var(--r-sm, 8px);
+  }
+  .home-day small {
+    font-size: 0.62rem;
+    letter-spacing: -0.02em;
+  }
+  .home-day b {
+    width: 26px;
+    height: 26px;
+    font-size: 0.85rem;
+  }
+  .home-day-dot {
+    width: 5px;
+    height: 5px;
+  }
+}
+/* Números com atalho: três cartões que dividem a linha em partes iguais e esticam até a altura da linha.
+   Estreitos (celular), ícone, número e nome um embaixo do outro, centralizados; largos, lado a lado. */
+.home-tiles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+.home-tiles > li {
+  display: flex;
+  min-width: 0;
+  container-type: inline-size;
+}
+.home-tile {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  text-align: center;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    border-color var(--t-fast),
+    box-shadow var(--t-fast);
+}
+/* Cartão interno, como os de Continuar e das escalas: um tom abaixo do bloco, sem sombra. */
+.home-tile:hover {
+  border-color: var(--accent);
+}
+.home-tile-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent-soft-ink);
+}
+.home-tile-what {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.home-tile-what b {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+.home-tile-what span {
+  font-size: 0.8rem;
+  line-height: 1.25;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.home-tile .chev-right {
+  display: none;
+  flex: none;
+  color: var(--muted);
+}
+@container (min-width: 220px) {
+  .home-tile {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 14px;
+    padding: 14px;
+    text-align: left;
+  }
+  .home-tile-what {
+    flex: 1;
+  }
+  .home-tile .chev-right {
+    display: block;
+  }
+}
+/* Continuar de onde parou: cartões menores que os das escalas. */
+.home-recent {
+  grid-auto-columns: min(240px, 72%);
+}
+.recent-card {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+.recent-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.recent-name {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recent-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 0.82rem;
+}
+.recent-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 6px;
+}
+.recent-actions .btn {
+  flex: 1;
+}
+/* Ferramentas rápidas: grade 2 × 2. */
+.home-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.home-tools-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.home-tool {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  font: 600 0.82rem var(--font-ui);
+  color: var(--ink-2);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color var(--t-fast),
+    background-color var(--t-fast);
+}
+.home-tool:hover {
+  border-color: var(--accent);
+}
+.home-tool .i {
+  width: 26px;
+  height: 26px;
+  color: var(--accent);
 }
 #view-home .view-head {
   margin-bottom: 6px;
@@ -7490,15 +7839,6 @@ dialog.event-dlg {
   font-size: 1rem;
 }
 /* Cartão do grupo: marca com as iniciais, nome e os números do grupo; leva à agenda. */
-.home-group {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-.home-new-group {
-  flex-basis: 100%;
-}
 /* Cards dos grupos: lado a lado enquanto cabem (no celular, um embaixo do outro). */
 .home-groups {
   flex-basis: 100%;
@@ -7529,13 +7869,6 @@ dialog.event-dlg {
 .home-group-pin[aria-pressed="true"] {
   color: var(--accent);
   border-color: var(--accent);
-}
-/* Linha entre as partes do Início (grupo, escalas, continuar). */
-.home-sep {
-  width: 100%;
-  margin: 6px 0;
-  border: none;
-  border-top: 1px solid var(--line);
 }
 /* O cartão todo leva ao grupo (o ::after do botão cobre o cartão); a marca com câmera (admins) fica por cima. */
 .home-group-card {
@@ -7620,26 +7953,6 @@ dialog.event-dlg {
   align-items: center;
   gap: 5px;
 }
-/* O "Ver agenda" logo depois do título (no canto direito ficava longe demais no computador). */
-.home-sec-head {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-  margin-top: 8px;
-}
-.home-sec-head h2 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.home-sec-head .link-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  text-decoration: none;
-}
 .count-chip {
   display: inline-grid;
   place-items: center;
@@ -7686,15 +7999,31 @@ dialog.event-dlg {
     border-color var(--t-fast),
     box-shadow var(--t-fast);
 }
-.scale-card:hover {
+/* Escalas do Início: borda como a dos outros cartões e, por cima do fundo, o degradê padrão (--accent-grad) bem
+   suave, que desce do canto de cima e some no meio. O hover é azul, como o de todos os cartões da tela. Só no
+   Início: .scale-card também é o cartão das escalas musicais do Estudo. */
+.home-scroll .scale-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  box-shadow: none;
+}
+.home-scroll .scale-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--accent-grad);
+  opacity: 0.12;
+  -webkit-mask-image: linear-gradient(160deg, #000, transparent 60%);
+  mask-image: linear-gradient(160deg, #000, transparent 60%);
+  pointer-events: none;
+}
+.home-scroll .scale-card:hover {
   border-color: var(--accent);
   box-shadow: var(--shadow-md, var(--shadow-sm));
-}
-.scale-card.rehearsal {
-  border-top: 3px solid var(--ok);
-}
-.scale-card.service {
-  border-top: 3px solid var(--accent);
 }
 .scale-when {
   display: flex;
@@ -7784,30 +8113,6 @@ dialog.event-dlg {
 }
 .home-row:hover {
   background: var(--surface-2);
-}
-.home-continue {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 8px;
-}
-.home-continue > div:first-child {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.home-continue b {
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.home-continue-actions {
-  display: flex;
-  gap: 8px;
 }
 #group-back {
   margin: 0 0 16px -8px;

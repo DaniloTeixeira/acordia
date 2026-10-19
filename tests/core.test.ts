@@ -46,6 +46,13 @@ test("parseSong: com o fim marcado, o refrão vai até ele (mesmo com linhas vaz
   assert.deepEqual(C.parseSong("T\n[Refrão]\nG\na\n\nD\nb\n[Ponte]\nEm\nc\n[/Refrão]").chorus, [true, true, false]);
 });
 
+test("parseSong: cifra dividida em partes, o refrão vai até a próxima marcação", () => {
+  const s = C.parseSong("T\n[Primeira Parte]\nC\nverso\n\n[Refrão]\nF\nref a\nref b\n\nG\nref c\nref d\n\n( C G )\n\n[Segunda Parte]\nAm\nponte\n\n[Refrão]\nF\nref a\nref b");
+  assert.deepEqual(s.chorus, [false, true, true, false, false, true]);
+  // Refrão repetido sem marcação também é refrão.
+  assert.deepEqual(C.parseSong("T\n[Primeira Parte]\nC\nverso\n\n[Refrão]\nF\nref a\nref b\n\n[Ponte]\nG\nponte\n\nF\nref a\nref b").chorus, [false, true, false, true]);
+});
+
 test("parseSong sem marcação trata como refrão o bloco de letra que se repete", () => {
   const s = C.parseSong("T\nC\nverso\nsegue\n\nG\nSanto, santo\né o Senhor\n\nAm\noutro verso\nfim\n\nG\nsanto santo\nÉ o Senhor!\n\nC\nverso");
   assert.deepEqual(s.chorus, [false, true, false, true, false]);

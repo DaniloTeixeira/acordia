@@ -136,3 +136,15 @@ test("sheetText segue o modo: cifras no tom tocado, graus ou só letra", () => {
   assert.equal(sheetText([{...s, target: "", shift: 0}], "graus"), "MÚSICA  (C)\n\nI    V\nlinha um\n\n(Refrão)\nvi\nrefrão");
   assert.equal(sheetText([s], "letra"), "MÚSICA\n\nlinha um\n\n(Refrão)\nrefrão");
 });
+
+test("refrão com várias estrofes: um fundo só e o rótulo uma vez (na folha e no texto)", () => {
+  const s = Object.assign(parseSong("T\nC\nverso\n\n[Refrão]\nG\nref a\n\nD\nref b\n[/Refrão]\nEm\nfim"), {key: "C", target: "", shift: 0, meta: {}});
+  assert.deepEqual(s.chorus, [false, true, true, false]);
+  const ops = layout([s], 12, 1, opts()).pages.flat();
+  assert.equal(texts([ops]).filter(x => x === "REFRÃO").length, 1);
+  // Os dois fundos se emendam (o segundo começa antes do fim do primeiro).
+  const bg = ops.filter(o => o.t === "rect" && o.r === 4);
+  assert.equal(bg.length, 2);
+  assert.ok(bg[1].y < bg[0].y + bg[0].h);
+  assert.equal(lyricsText([s]), "T\n\nverso\n\n(Refrão)\nref a\n\nref b\n\nfim");
+});

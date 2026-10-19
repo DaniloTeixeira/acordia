@@ -6,14 +6,14 @@ import { Select } from "../ui/Select";
 import { useAuth, savePhone, cleanPhone, signIn, signUp, resendConfirmation, pendingConfirm, setPendingConfirm, forgotPassword, setNewPassword, signInWithGoogle, signOut, saveName, saveBirthday, listAllowed, setAllowedInfo, setPersonInfo, setAllowedAdmin, removeAllowed, validEmail, initials, ownPhoto, removePhoto, type Allowed } from "../lib/cloud";
 import { DEFAULT_POLICY, missing, passes, fromError, isPwned, type PwPolicy, type PwRule } from "../lib/password";
 import { reduced, flashSaved, norm } from "../lib/util";
-import { toast, confirmDialog, openDialog, go } from "../state";
+import { toast, confirmDialog, openDialog } from "../state";
 import { Icon } from "../ui/Icon";
 import { DateInput } from "../ui/DateInput";
 import { useFold, FoldHead } from "../ui/Fold";
 import { useGroups, loadGroups, setMemberRole, respond, outMark } from "../lib/groups";
 import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, fmtPhone, maskPhone, capFirst } from "../lib/calendar";
 import { sortRoles, joinRoles, splitRoles } from "../lib/roles";
-import { MemberRoles, RolePicker, StatusChip, eventTitle, timeOf, longDay } from "./Group";
+import { MemberRoles, RolePicker, StatusChip, eventTitle, timeOf, longDay, openGroup } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
 
 const BASE = import.meta.env.BASE_URL;
@@ -281,6 +281,8 @@ const GoogleIcon = () => <svg className="g-logo" viewBox="0 0 48 48" aria-hidden
 // Bolinha com as iniciais (botão do perfil no topo e no trilho; com `person`, a de outra pessoa).
 // Com foto (a enviada pelo app ou a da conta Google), mostra a foto; se ela não carregar (sem internet, link vencido), volta às iniciais.
 // Celular nas listas de pessoas: linha própria com o ícone, no formato "(11) 91234-5678"; toca para ligar.
+// Linha de pessoa: tocar fora destes (botões, links, campos, painel de editar) abre os detalhes.
+export const SKIP_OPEN = "a, button, input, label, select, textarea, .people-edit";
 export const PhoneLink = ({phone}: {phone: string}) =>
   <a className="phone-link" href={"tel:" + phone.replace(/[^\d+]/g, "")}><Icon name="phone" sm/><span>{fmtPhone(phone)}</span></a>;
 
@@ -422,9 +424,9 @@ function MyTeam(){
         <div className="profile-next-actions">
           <button className={"btn sm" + (st === "yes" ? " primary" : " ghost")} aria-pressed={st === "yes"} aria-busy={busy === "yes"} onClick={() => answer("yes")}>{busy === "yes" ? <Spin/> : <Icon name="check" sm/>} {t("group.confirm")}</button>
           <button className={"btn sm" + (st === "no" ? " danger armed" : " ghost")} aria-pressed={st === "no"} aria-busy={busy === "no"} onClick={() => answer("no")}>{busy === "no" ? <Spin/> : <Icon name="x" sm/>} {t("group.decline")}</button>
-          <button className="link-btn" onClick={() => go("group")}>{t("profile.seeAgenda")}</button>
+          <button className="link-btn" onClick={() => openGroup("agenda")}>{t("profile.seeAgenda")}</button>
         </div>
-      </div> : <span className="sub">{t("profile.nextNone")} <button className="link-btn" onClick={() => go("group")}>{t("profile.seeAgenda")}</button></span>}
+      </div> : <span className="sub">{t("profile.nextNone")} <button className="link-btn" onClick={() => openGroup("agenda")}>{t("profile.seeAgenda")}</button></span>}
     </div>
   </>;
 }
@@ -605,10 +607,10 @@ function People({me}: {me: string}){
       {shown === null ? <li className="sub">{t("auth.loading")}</li> : shown.map(r => {
         const nm = r.profileName || r.name, bd = r.profileBirthday || r.birthday, ph = r.profilePhone || r.phone;
         const openPerson = () => openDialog("member", {email: r.email, person: {name: nm, phone: ph, birthday: bd || null, photo: r.profilePhoto || ""}});
-        return <li key={r.email}>
+        return <li key={r.email} className="member-open" onClick={e => { if(!(e.target as HTMLElement).closest(SKIP_OPEN)) openPerson(); }}>
         {/* O "Admin" fica logo depois do nome (ou do e-mail, para quem ainda não tem nome). */}
         {/* Tocar na pessoa (foto ou texto) abre os detalhes, como em Grupo → Membros; o nome é o botão. */}
-        <span className="people-who member-open" onClick={e => { if(!(e.target as HTMLElement).closest("a, button")) openPerson(); }}>
+        <span className="people-who">
           <Avatar person={{name: nm, email: r.email, photo: r.profilePhoto}}/><span className="people-id">
           {/* Sempre as três linhas (nome, e-mail, celular), com um texto apagado no que falta: todas as pessoas
               ficam com a mesma altura. */}

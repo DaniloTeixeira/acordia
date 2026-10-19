@@ -27,7 +27,19 @@ export function peekCurrent(): Medley | null {
   return data.medleys.get(data.settings.currentMedley as string)
     || [...data.medleys.values()].filter(x => !isMedley(x)).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0] || null;
 }
+// Últimos itens abertos (músicas, repertórios e medleys), do mais novo ao mais antigo, para o "Continuar
+// de onde parou" do Início. Fica só no aparelho.
+export interface Recent { kind: "song" | "medley"; id: string; at: number }
+const RECENT_MAX = 12;
+export function markOpened(kind: Recent["kind"], id: string){
+  const list = store.setting<Recent[]>("recent", []).filter(r => !(r.kind === kind && r.id === id));
+  store.setSetting("recent", [{kind, id, at: Date.now()}, ...list].slice(0, RECENT_MAX));
+}
+// Os que ainda existem (uma música ou repertório excluído sai da lista).
+export const recentItems = () => store.setting<Recent[]>("recent", []).filter(r => r.kind === "song" ? data.songs.has(r.id) : data.medleys.has(r.id));
+
 export function openMedley(id: string, {from = ""} = {}){
+  markOpened("medley", id);
   store.setSetting("currentMedley", id);
   store.setSetting("returnTo", from);
   current();

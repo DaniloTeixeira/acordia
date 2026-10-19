@@ -91,10 +91,10 @@ export function lyricsOnly<T extends {blocks: Block[]; chorus?: boolean[]}>(song
   });
 }
 // Letra das músicas como texto, para colar (WhatsApp, projeção): título, os blocos separados por linha vazia e o
-// refrão com "(Refrão)" em cima; uma linha vazia a mais entre as músicas.
+// refrão com "(Refrão)" em cima (uma vez só se o refrão tem várias estrofes); uma linha vazia a mais entre as músicas.
 export function lyricsText(songs: {title: string; blocks: Block[]; chorus?: boolean[]}[]){
   return lyricsOnly(songs).filter(s => s.blocks.length).map(s => [s.title.toUpperCase(),
-    ...s.blocks.map((b, i) => (s.chorus?.[i] ? "(" + t("sheet.chorus") + ")\n" : "") + b.map(it => it.lyric).join("\n"))].join("\n\n")).join("\n\n\n");
+    ...s.blocks.map((b, i) => (s.chorus?.[i] && !s.chorus[i-1] ? "(" + t("sheet.chorus") + ")\n" : "") + b.map(it => it.lyric).join("\n"))].join("\n\n")).join("\n\n\n");
 }
 type KeyedSong = Pick<SheetSong, "key" | "shift" | "target">;
 export function chordText(line: string, s: KeyedSong, mode: SheetMode, style?: DegreeStyle){
@@ -113,7 +113,7 @@ export function sheetText(songs: SheetSong[], mode: SheetMode, style?: DegreeSty
   if(mode === "letra") return lyricsText(songs);
   return songs.filter(s => s.blocks.length).map(s => {
     const k = playKey(s);
-    return [s.title.toUpperCase() + (k ? "  (" + k + ")" : ""), ...s.blocks.map((b, i) => (s.chorus?.[i] ? "(" + t("sheet.chorus") + ")\n" : "") +
+    return [s.title.toUpperCase() + (k ? "  (" + k + ")" : ""), ...s.blocks.map((b, i) => (s.chorus?.[i] && !s.chorus[i-1] ? "(" + t("sheet.chorus") + ")\n" : "") +
       b.map(it => {
         const c = it.chord != null ? chordLine(it.chord, s, mode, style).text.replace(/\s+$/, "") : null;
         return it.kind === "pair" ? c + "\n" + it.lyric : c ?? it.lyric;
@@ -191,16 +191,22 @@ export function layout(songs: SheetSong[], fs: number, k: number, opts: LayoutOp
     push({t:"line",x1:x(),x2:x()+COLW,y:y+TITLE_SIZE+6,c:ACCENT,w:0.9});
     y += TH;
     metaLines.forEach(txt=>{ push({t:"text",x:x(),y:y+META_SIZE*0.8,s:META_SIZE,f:"sans",b:false,c:MUTED,txt}); y += META_SIZE + 3; });
+    // Estrofes seguidas de refrão viram um fundo só, com um rótulo só (o fundo emenda o espaço entre elas).
+    let chorusEnd: {page: number; col: number; y: number} | null = null;
     blocks.forEach((b, bi)=>{
-      const ch = !!s.chorus?.[bi], body = b.reduce((h,it)=>h+itemH(it),0) + (ch ? CHORUS_LBL : 0);
-      const h = body + (bi?BG:0);
+      const ch = !!s.chorus?.[bi], body = b.reduce((h,it)=>h+itemH(it),0);
+      const h = body + (ch && !s.chorus?.[bi-1] ? CHORUS_LBL : 0) + (bi?BG:0);
       if(y + h > bottom && y > M + TH) nextCol(); else if(bi) y += BG;
       if(ch){
+        const joined = chorusEnd && chorusEnd.page === page && chorusEnd.col === col && s.chorus?.[bi-1];
+        const top = joined ? chorusEnd!.y - 8 : y - CHORUS_PAD + 1, lbl = joined ? 0 : CHORUS_LBL;
         // O fundo vem antes do texto (fica atrás); não passa do fim da coluna se o bloco for mais alto que ela.
-        push({t:"rect",x:x()-CHORUS_PAD,y:y-CHORUS_PAD+1,w:COLW+CHORUS_PAD*2,h:Math.min(body, bottom - y)+CHORUS_PAD*2-2,r:4,c:CHORUS_BG});
-        push({t:"text",x:x(),y:y+META_SIZE*0.8,s:META_SIZE,f:"sans",b:true,c:ACCENT,txt:t("sheet.chorus").toUpperCase()});
-        y += CHORUS_LBL;
-      }
+        const end = Math.min(y + lbl + body, bottom) + CHORUS_PAD - 1;
+        push({t:"rect",x:x()-CHORUS_PAD,y:top,w:COLW+CHORUS_PAD*2,h:end - top,r:4,c:CHORUS_BG});
+        if(!joined) push({t:"text",x:x(),y:y+META_SIZE*0.8,s:META_SIZE,f:"sans",b:true,c:ACCENT,txt:t("sheet.chorus").toUpperCase()});
+        y += lbl;
+        chorusEnd = {page, col, y: end};
+      } else chorusEnd = null;
       b.forEach(it=>{
         if(y + itemH(it) > bottom) nextCol();
         if(it.chord!==undefined && it.chord!==null){
