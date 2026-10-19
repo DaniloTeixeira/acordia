@@ -643,6 +643,13 @@ textarea.input {
     border-color var(--t-fast),
     box-shadow var(--t-fast);
 }
+/* Hover discreto em campos e dropdowns: o contorno puxa um pouco para a cor do texto (no escuro clareia, no
+   claro escurece). Só com mouse; focado, aberto, desativado ou com erro, vale o estado deles. */
+@media (hover: hover) {
+  .input:hover:not(:focus, :disabled, [aria-invalid="true"], [aria-expanded="true"]) {
+    border-color: color-mix(in srgb, var(--line-strong), var(--ink) 22%);
+  }
+}
 .input:focus {
   outline: none;
   border-color: var(--accent);
