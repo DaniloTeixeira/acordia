@@ -8524,6 +8524,23 @@ dialog.member-dlg {
 .home-row:hover {
   background: var(--surface-2);
 }
+/* Celular: o chip (ex.: "1 não pode ir · falta substituto") ia ao lado do texto e espremia o título e a hora.
+   Ele desce para a linha de baixo, alinhado à esquerda do cartão. Nas escalas o chip de status também
+   fica à esquerda quando quebra de linha, em vez de sozinho na direita. */
+@media (max-width: 599px) {
+  .home-row {
+    flex-wrap: wrap;
+  }
+  .home-row .my-next-what {
+    flex: 1 1 calc(100% - 64px);
+  }
+  .home-row > .chip {
+    margin-left: 0;
+  }
+  .scale-stats .chip {
+    margin-left: 0;
+  }
+}
 #group-back {
   margin: 0 0 16px -8px;
 }
@@ -8994,15 +9011,11 @@ dialog.member-dlg {
 /* Lista do ensaio na agenda (mesma tabela do atalho de presença): nome com as funções ao lado, resposta à direita. */
 .roster-tbl .quick-att-when { flex-wrap: wrap; align-items: center; white-space: normal; row-gap: 4px; }
 .roster-tbl .quick-att-when b { font-weight: 600; }
-/* Quem tem 4 ou 5 funções: chips menores e mais juntos, para caberem dois ou três por linha em vez de uma coluna alta. */
-.roster-tbl .roster-chips { flex-basis: auto; gap: 3px; }
-.roster-tbl .roster-chips .chip { padding: 1px 7px; font-size: 0.68rem; }
 .roster-tbl .roster-reason { padding-left: 0; }
-.roster-tbl .quick-att-ctl { justify-content: center; min-width: 110px; }
+.roster-tbl .quick-att-ctl { justify-content: flex-start; min-width: 110px; }
 
-/* Ensaio na agenda: três colunas (pessoa, funções, resposta); a resposta é só texto colorido, sem pílula. */
-.roster-tbl { grid-template-columns: minmax(64px, auto) minmax(0, 1fr) auto; }
-.roster-tbl .quick-att-roles { padding: 5px 8px; min-width: 0; border-left: 1px solid var(--line); align-self: stretch; display: flex; align-items: center; }
+/* Ensaio na agenda: duas colunas (pessoa e resposta, as funções ficam no cartão da pessoa e em Membros); a resposta é só texto colorido, sem pílula. */
+.roster-tbl { grid-template-columns: minmax(0, 1fr) auto; }
 .roster-tbl .quick-att-head .quick-att-roles { padding: 4px 8px; }
 .roster-tbl .quick-att-when { flex-direction: column; align-items: flex-start; gap: 2px; }
 .roster-tbl .quick-att-ctl { min-width: 0; }
