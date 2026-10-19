@@ -8355,6 +8355,16 @@ dialog.member-dlg {
   font-size: 0.78rem;
   font-weight: 700;
 }
+/* Contador do título da lista de membros: na cor de destaque, para o número saltar à vista. */
+.people-sub-h .count-chip {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
 .home-empty {
   padding: 24px 20px;
 }
