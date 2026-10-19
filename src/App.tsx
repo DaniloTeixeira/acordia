@@ -18,7 +18,7 @@ import { Study } from "./views/study/Study";
 import { Tools } from "./views/Tools";
 import { Stage } from "./views/Stage";
 import { Dialogs, HELP_STEPS, seenHelp } from "./dialogs/Dialogs";
-import { AuthScreen, Avatar, Profile } from "./views/Account";
+import { AuthScreen, Avatar, Profile, PeoplePage } from "./views/Account";
 import { useAuth } from "./lib/cloud";
 import { Group } from "./views/Group";
 import { Home } from "./views/Home";
@@ -108,9 +108,9 @@ function useInstall(){
   return {show, run};
 }
 
-// O Grupo abre pelo Início (e conta como ele na navegação).
+// O Grupo abre pelo Início e Usuários pelo Perfil (e contam como eles na navegação).
 const NAV: [View, string, string][] = [["home", "home", "nav.home"], ["medley", "music", "nav.medley"], ["library", "library", "nav.library"], ["study", "study", "nav.study"], ["tools", "metro", "nav.tools"]];
-const navOf = (v: View): View => v === "group" ? "home" : v;
+const navOf = (v: View): View => v === "group" ? "home" : v === "people" ? "profile" : v;
 
 // Itens do trilho com o fundo do ativo deslizando entre eles (as variáveis --y e --h posicionam o fundo no CSS).
 function NavList({children}: {children: ReactNode}){
@@ -178,6 +178,7 @@ export function App(){
         {view === "group" && <Group/>}
         {view === "tools" && <Tools/>}
         {view === "profile" && <Profile/>}
+        {view === "people" && <PeoplePage/>}
       </main>
       <button className="help-fab" id="help-fab" hidden={!helpable} data-tip-key={helpKey} data-tip-side="left" aria-label={t(helpKey)} onClick={() => openDialog("help", {page: view})}><Icon name="question"/></button>
       <nav className="tabbar" ref={tabbar} aria-label={t("nav.nav")}>

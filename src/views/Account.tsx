@@ -1,19 +1,18 @@
 // Conta: tela de entrar (Google ou e-mail e senha), aviso de sem acesso e a página Perfil, com a lista de quem
 // pode entrar para os admins.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { t, tn, locale } from "../lib/i18n";
 import { Select } from "../ui/Select";
 import { useAuth, savePhone, cleanPhone, signIn, signUp, resendConfirmation, pendingConfirm, setPendingConfirm, forgotPassword, setNewPassword, signInWithGoogle, signOut, saveName, saveBirthday, listAllowed, setAllowedInfo, setPersonInfo, setAllowedAdmin, removeAllowed, validEmail, initials, ownPhoto, removePhoto, type Allowed } from "../lib/cloud";
 import { DEFAULT_POLICY, missing, passes, fromError, isPwned, type PwPolicy, type PwRule } from "../lib/password";
 import { reduced, flashSaved, norm } from "../lib/util";
-import { toast, confirmDialog, openDialog } from "../state";
+import { toast, confirmDialog, openDialog, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { DateInput } from "../ui/DateInput";
-import { useFold, FoldHead } from "../ui/Fold";
-import { useGroups, loadGroups, setMemberRole, respond, outMark } from "../lib/groups";
+import { useGroups, loadGroups, chooseGroup, setMemberRole, respond, outMark } from "../lib/groups";
 import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, fmtPhone, maskPhone, capFirst } from "../lib/calendar";
 import { sortRoles, joinRoles, splitRoles } from "../lib/roles";
-import { MemberRoles, RolePicker, StatusChip, eventTitle, timeOf, longDay, openGroup } from "./Group";
+import { MemberRoles, RolePicker, StatusChip, GroupMark, eventTitle, timeOf, longDay, openGroup } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
 
 const BASE = import.meta.env.BASE_URL;
@@ -321,55 +320,89 @@ function PhotoActions(){
   </span>;
 }
 
+// Perfil em painel (como o Início): o topo (foto, nome e escalas) na linha toda e cada seção num card
+// próprio, dois por linha quando cabem (Meus dados ao lado de Meus grupos).
 export function Profile(){
   const {profile, admin, owner, email} = useAuth();
-  const [name, setName] = useState(profile?.name || "");
-  useEffect(() => setName(profile?.name || ""), [profile?.name]);
-  const fold = useFold("profile");
   return <section className="view" id="view-profile" data-view="profile" aria-labelledby="profile-h">
     <div className="view-head"><div><h1 id="profile-h">{t("profile.title")}</h1><p className="sub">{email}</p></div></div>
-    <div className="profile-grid">
-      {/* Cada card tem o topo (card-top) e o corpo (card-body): lado a lado, os topos dividem a mesma altura
-          (subgrid no CSS) e os quadros de campos dos dois começam na mesma linha. */}
-      <div className={"card profile-card" + fold.cls}>
-        {/* Lado a lado, este card não tem título (o topo é a foto e o nome); um abaixo do outro, ganha "Meu perfil". */}
-        <FoldHead folded={fold.folded} onToggle={fold.toggle} title={t("profile.card")}/>
-        <div className="card-top"><div className="profile-who"><PhotoButton/><div><span className="people-name"><b>{profile?.name || email}</b>{(owner || admin) && <span className="chip accent">{t(owner ? "profile.owner" : "profile.admin")}</span>}</span><span className="sub">{email}</span>
-          <PhotoActions/></div></div></div>
-        <div className="card-body">
-        {/* Nome, celular e nascimento num quadro com título, como o "Adicionar pessoa" ao lado; na mesma linha
-            (no celular estreito, quebram). */}
-        <section className="people-add-box" aria-labelledby="profile-data-h">
-        <h3 className="people-sub-h" id="profile-data-h">{t("profile.data")}</h3>
+    <div className="profile-panel">
+      <div className="card profile-top wide">
+        <div className="profile-who"><PhotoButton/><div><span className="people-name"><b>{profile?.name || email}</b>{(owner || admin) && <span className="chip accent">{t(owner ? "profile.owner" : "profile.admin")}</span>}</span><span className="sub">{email}</span>
+          <PhotoActions/></div></div>
+        {/* À direita, no pé do card: o estado da nuvem (só quando há algo) antes das escalas. */}
+        <div className="profile-side"><SyncStatus/><MySoon/></div>
+      </div>
+      {/* Nome, celular e nascimento na mesma linha enquanto cabem; senão, quebram. */}
+      <Sec id="profile-data" title={t("profile.data")}>
         <div className="profile-pair">
-        <label className="field"><span>{t("profile.name")}</span><input className="input" id="profile-name" maxLength={80} autoComplete="name" value={name}
-          onChange={e => setName(capFirst(e.target.value))} onBlur={async e => { const el = e.currentTarget; if(name.trim() !== (profile?.name || "")){ if(await saveName(name)) flashSaved(el); else toast(t("profile.saveFail")); } }}
-          onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}/></label>
+        <NameField/>
         <PhoneField/>
         <BirthdayField/>
         </div>
-        </section>
-        <MyRoles/>
-        <MyTeam/>
-        <GroupNote/>
-        {/* Sair à esquerda e o estado da nuvem na mesma linha, à direita, no fundo do card: a linha de cima
-            fica na altura da linha da última pessoa da lista ao lado (mesma altura de linha). */}
-        <div className="profile-foot"><SignOut/><SyncStatus/></div>
-        </div>
-      </div>
-      {admin && <People me={email}/>}
+      </Sec>
+      <MyGroups/>
+      <MyRoles/>
+      <MyAttendance/>
+      <MyNext/>
+      <GroupNote/>
+      {admin && <PeopleLink/>}
     </div>
+    {/* Sair no fim da página, sozinho, como nos apps de celular. */}
+    <div className="profile-out"><SignOut/></div>
   </section>;
 }
 
-// Estado da nuvem: tudo salvo, sincronizando, sem internet (com quantas mudanças esperam) ou erro.
+// No topo do Perfil: quantas escalas a pessoa tem nos próximos 30 dias no grupo aberto e quantas já confirmou.
+function MySoon(){
+  const {g, me, ok} = useMyGroup();
+  if(!ok) return null;
+  const now = Date.now(), until = now + 30 * 864e5;
+  const soon = g.events.filter(e => { const at = new Date(e.starts_at).getTime(); return at > now && at < until && g.roster.some(r => r.event_id === e.id && r.email === me); });
+  const yes = soon.filter(e => g.roster.some(r => r.event_id === e.id && r.email === me && r.status === "yes")).length;
+  return <span className="profile-soon">
+    <span><Icon name="calendar" sm/> {tn("profile.soon", soon.length)}</span>
+    {soon.length > 0 && <span className={yes === soon.length ? "ok" : ""}><Icon name="check" sm/> {t("profile.soonYes", {n: yes, total: soon.length})}</span>}
+  </span>;
+}
+
+// Os grupos da pessoa: tocar abre o grupo. No aberto (o único com os membros carregados), o chip Líder e
+// desde quando ela está nele; nos outros, os números do grupo.
+function MyGroups(){
+  const g = useGroups(), me = useAuth(s => s.email);
+  if(!g.groups.length) return null;
+  const m = g.members.find(x => x.email === me);
+  return <Sec id="profile-groups" className="profile-groups" title={t("profile.groups")}>
+    <ul className="profile-group-list">{g.groups.map(x => {
+      const cur = x.id === g.gid;
+      return <li key={x.id}><button type="button" className="profile-group-open" onClick={() => { if(!cur) chooseGroup(x.id); openGroup("members"); }}>
+        <GroupMark group={x}/>
+        <span className="profile-group-what"><span className="people-name"><b>{x.name}</b>{cur && m?.is_admin && <span className="chip leader">{t("group.leader")}</span>}</span>
+          {cur && m?.created_at ? <span className="sub">{t("profile.since", {date: fmtMonth(m.created_at)})}</span>
+            : x.stats && <span className="sub">{tn("home.events", x.stats.events)} · {tn("profile.members", x.stats.members)}</span>}</span>
+        <Icon name="chev" sm className="chev-right"/>
+      </button></li>;
+    })}</ul>
+  </Sec>;
+}
+// Mês e ano ("março de 2025"), para o "no grupo desde".
+const fmtMonth = (v: string) => new Intl.DateTimeFormat(locale(), {month: "long", year: "numeric"}).format(new Date(v));
+
+// Card de uma seção do Perfil: título com o traço no degradê e o conteúdo embaixo. wide: a linha toda.
+function Sec({id, title, wide, className = "", children}: {id: string; title: string; wide?: boolean; className?: string; children: ReactNode}){
+  return <section className={"card profile-sec " + className + (wide ? " wide" : "")} id={id} aria-labelledby={id + "-h"}>
+    <h2 id={id + "-h"}>{title}</h2>{children}</section>;
+}
+
+// Estado da nuvem: sincronizando, mudanças esperando, sem internet ou erro. Com tudo salvo (quase sempre),
+// não aparece: o aviso só existe quando há algo a saber ou fazer.
 function SyncStatus(){
   const {state, pending} = useSync();
-  if(state === "off") return null;
+  if(state === "off" || (state === "idle" && !pending)) return null;
   const text = state === "syncing" ? t("sync.syncing") : state === "offline" ? (pending ? tn("sync.offline", pending) : t("sync.offlineNone"))
-    : state === "error" ? t("sync.error") : pending ? tn("sync.pending", pending) : t("sync.ok");
+    : state === "error" ? t("sync.error") : tn("sync.pending", pending);
   return <div className={"sync-status " + state} role="status">
-    {state === "syncing" ? <Spin/> : <Icon name={state === "idle" && !pending ? "check" : "sync"} sm/>}
+    {state === "syncing" ? <Spin/> : <Icon name="sync" sm/>}
     <span>{text}</span>
     {(state === "error" || state === "offline" || (state === "idle" && pending > 0)) && <button type="button" className="link-btn" onClick={() => syncNow()}>{t("sync.now")}</button>}
   </div>;
@@ -388,14 +421,34 @@ function SignOut(){
   return <button className="btn ghost" id="profile-out" aria-busy={busy} onClick={leave}>{busy ? <Spin/> : <Icon name="back" sm/>} {t("auth.signOut")}</button>;
 }
 
-// No grupo aberto: a frequência da pessoa nos ensaios (com a regra que tira dos cultos) e o próximo
-// evento em que ela está escalada, com Confirmar e Não posso ali mesmo.
-function MyTeam(){
-  const g = useGroups(), me = useAuth(s => s.email), [busy, setBusy] = useState(""), lock = useLock();
-  const group = g.groups.find(x => x.id === g.gid);
-  if(!group || !g.members.some(x => x.email === me)) return null;
+// No grupo aberto, se a pessoa é membro dele (só assim existem as seções de frequência e da próxima escala).
+function useMyGroup(){
+  const g = useGroups(), me = useAuth(s => s.email);
+  return {g, me, ok: g.groups.some(x => x.id === g.gid) && g.members.some(x => x.email === me)};
+}
+
+// A frequência da pessoa nos ensaios do grupo aberto, com a regra que tira dos cultos.
+function MyAttendance(){
+  const {g, me, ok} = useMyGroup();
+  if(!ok) return null;
   const rate = attendanceRate(me, g.events, g.attendance), sd = rehearsalStanding(me, g.events, g.attendance, Date.now(), outMark(g.members.find(x => x.email === me)));
   const p = rate.total ? Math.round(100 * rate.present / rate.total) : 0;
+  return <Sec id="profile-att" className="profile-att" title={t("profile.attendance")}>
+    {rate.total ? <div className="profile-stat">
+      <b>{p}%</b><span className="sub">{t("profile.attCount", {present: rate.present, total: rate.total})}</span>
+      {sd.out ? <span className="chip st-no">{tn("group.standOut", sd.need)}</span>
+        : sd.streak > 0 ? <span className={"chip" + (sd.streak >= MISS_LIMIT - 3 ? " st-pending" : "")}>{t("group.streak", {n: sd.streak, max: MISS_LIMIT})}</span>
+        : <span className="chip st-yes">{t("group.standOk")}</span>}
+      <span className="meter" aria-hidden="true"><i style={{width: p + "%"}}/></span>
+    </div> : <span className="sub">{t("profile.attNone")}</span>}
+    <small className="sub">{t("profile.attRule", {max: MISS_LIMIT, back: COMEBACK})}</small>
+  </Sec>;
+}
+
+// O próximo evento do grupo aberto em que a pessoa está escalada, com Confirmar e Não posso ali mesmo.
+function MyNext(){
+  const {g, me, ok} = useMyGroup(), [busy, setBusy] = useState(""), lock = useLock();
+  if(!ok) return null;
   // Um evento que começou há pouco ainda conta como o "próximo" (a pessoa pode estar a caminho).
   const soon = Date.now() - 3 * 3600 * 1000;
   const next = g.events.filter(e => new Date(e.starts_at).getTime() > soon && g.roster.some(r => r.event_id === e.id && r.email === me))
@@ -406,38 +459,26 @@ function MyTeam(){
     const ok = await respond(next!.id, to).finally(() => setBusy(""));
     toast(t(!ok ? "profile.saveFail" : to === "yes" ? "group.confirmed" : to === "no" ? "group.declined" : "group.saved"));
   });
-  return <>
-    <div className="field profile-att"><span>{t("profile.attendance")}</span>
-      {rate.total ? <div className="profile-stat">
-        <b>{p}%</b><span className="sub">{t("profile.attCount", {present: rate.present, total: rate.total})}</span>
-        {sd.out ? <span className="chip st-no">{tn("group.standOut", sd.need)}</span>
-          : sd.streak > 0 ? <span className={"chip" + (sd.streak >= MISS_LIMIT - 3 ? " st-pending" : "")}>{t("group.streak", {n: sd.streak, max: MISS_LIMIT})}</span>
-          : <span className="chip st-yes">{t("group.standOk")}</span>}
-        <span className="meter" aria-hidden="true"><i style={{width: p + "%"}}/></span>
-      </div> : <span className="sub">{t("profile.attNone")}</span>}
-      <small className="sub">{t("profile.attRule", {max: MISS_LIMIT, back: COMEBACK})}</small></div>
-    <div className="field profile-next"><span>{t("profile.next")}</span>
-      {next ? <div className="profile-next-box">
-        <div className="profile-next-what"><b>{eventTitle(next)}</b>
-          <span className="sub">{longDay(new Date(next.starts_at))} · {timeOf(next.starts_at)}{next.place && " · " + next.place}</span>
-          <span className="profile-next-chips">{sortRoles(rows.map(r => r.role).filter(Boolean)).map(r => <span key={r} className="chip">{r}</span>)}<StatusChip status={st}/></span></div>
-        <div className="profile-next-actions">
-          <button className={"btn sm" + (st === "yes" ? " primary" : " ghost")} aria-pressed={st === "yes"} aria-busy={busy === "yes"} onClick={() => answer("yes")}>{busy === "yes" ? <Spin/> : <Icon name="check" sm/>} {t("group.confirm")}</button>
-          <button className={"btn sm" + (st === "no" ? " danger armed" : " ghost")} aria-pressed={st === "no"} aria-busy={busy === "no"} onClick={() => answer("no")}>{busy === "no" ? <Spin/> : <Icon name="x" sm/>} {t("group.decline")}</button>
-          <button className="link-btn" onClick={() => openGroup("agenda")}>{t("profile.seeAgenda")}</button>
-        </div>
-      </div> : <span className="sub">{t("profile.nextNone")} <button className="link-btn" onClick={() => openGroup("agenda")}>{t("profile.seeAgenda")}</button></span>}
-    </div>
-  </>;
+  return <Sec id="profile-next" className="profile-next" title={t("profile.next")}>
+    {next ? <div className="profile-next-box">
+      <div className="profile-next-what"><b>{eventTitle(next)}</b>
+        <span className="sub">{longDay(new Date(next.starts_at))} · {timeOf(next.starts_at)}{next.place && " · " + next.place}</span>
+        <span className="profile-next-chips">{sortRoles(rows.map(r => r.role).filter(Boolean)).map(r => <span key={r} className="chip">{r}</span>)}<StatusChip status={st}/></span></div>
+      <div className="profile-next-actions">
+        <button className={"btn sm" + (st === "yes" ? " primary" : " ghost")} aria-pressed={st === "yes"} aria-busy={busy === "yes"} onClick={() => answer("yes")}>{busy === "yes" ? <Spin/> : <Icon name="check" sm/>} {t("group.confirm")}</button>
+        <button className={"btn sm" + (st === "no" ? " danger armed" : " ghost")} aria-pressed={st === "no"} aria-busy={busy === "no"} onClick={() => answer("no")}>{busy === "no" ? <Spin/> : <Icon name="x" sm/>} {t("group.decline")}</button>
+        <button className="link-btn" onClick={() => openGroup("agenda")}>{t("profile.seeAgenda")}</button>
+      </div>
+    </div> : <span className="sub">{t("profile.nextNone")} <button className="link-btn" onClick={() => openGroup("agenda")}>{t("profile.seeAgenda")}</button></span>}
+  </Sec>;
 }
 
-// Sem funções e frequência no card: avisa o porquê (o grupo não carregou, ou a pessoa não está em nenhum),
-// em vez de o card ficar só com os campos.
+// Sem as seções do grupo: um card avisa o porquê (o grupo não carregou, ou a pessoa não está em nenhum).
 function GroupNote(){
   const g = useGroups(), me = useAuth(s => s.email);
   if(g.members.some(x => x.email === me)) return null;
-  if(g.error) return <p className="sub profile-group-note">{t("group.loadFail")} <button className="link-btn" onClick={() => loadGroups()}>{t("group.retry")}</button></p>;
-  return g.loaded && !g.loading ? <p className="sub profile-group-note">{t("profile.noGroup")}</p> : null;
+  if(g.error) return <div className="card profile-sec profile-group-note"><p className="sub">{t("group.loadFail")} <button className="link-btn" onClick={() => loadGroups()}>{t("group.retry")}</button></p></div>;
+  return g.loaded && !g.loading ? <div className="card profile-sec profile-group-note"><p className="sub">{t("profile.noGroup")}</p></div> : null;
 }
 
 // As funções da pessoa no grupo aberto (pode ter várias: tocar e cantar). São as que aparecem ao montar
@@ -449,32 +490,58 @@ function MyRoles(){
   const group = g.groups.find(x => x.id === g.gid), m = g.members.find(x => x.email === me);
   if(!group || !m) return null;
   const save = async (v: string) => { setBusy(true); const ok = await setMemberRole(g.gid, me, v).finally(() => setBusy(false)); toast(t(ok ? "profile.rolesSaved" : "profile.saveFail")); };
-  return <div className="field profile-roles"><span>{t("profile.roles", {group: group.name})}</span>
+  return <Sec id="profile-roles" className="profile-roles" title={t("profile.roles", {group: group.name})}>
     <MemberRoles m={m} editable busy={busy} onSave={save}/>
-    <small className="sub">{t("profile.rolesHint")}</small></div>;
+    <small className="sub">{t("profile.rolesHint")}</small></Sec>;
 }
 
 // Hoje no formato do campo de data ("AAAA-MM-DD"), para não aceitar datas no futuro.
 export const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
 
+// Campo que grava na nuvem: enquanto salva, "Salvando…" com o spinner no canto do rótulo (onde depois
+// aparece o "✓ Salvo") e a borda na cor de destaque; falhou, o aviso. Todo campo que grava na rede usa isto:
+// a pessoa sempre vê que está salvando, que salvou ou que não deu.
+export function useFieldSave(){
+  const [saving, setSaving] = useState(false);
+  const run = async (el: Element, save: () => Promise<boolean>) => {
+    setSaving(true);
+    const ok = await save().catch(() => false).finally(() => setSaving(false));
+    if(ok) flashSaved(el); else toast(t("profile.saveFail"));
+    return ok;
+  };
+  const status = saving && <span className="field-saving" role="status"><Spin/>{t("common.saving")}</span>;
+  return {saving, run, status};
+}
+
+// Nome no perfil: salva ao sair do campo (ou no Enter).
+function NameField(){
+  const saved = useAuth(s => s.profile?.name || "");
+  const [v, setV] = useState(saved), f = useFieldSave();
+  useEffect(() => setV(saved), [saved]);
+  return <label className="field"><span>{t("profile.name")}</span>{f.status}
+    <input className="input" id="profile-name" maxLength={80} autoComplete="name" value={v} aria-busy={f.saving}
+      onChange={e => setV(capFirst(e.target.value))} onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}
+      onBlur={e => { if(v.trim() !== saved) f.run(e.currentTarget, () => saveName(v)); }}/></label>;
+}
+
 // Celular no perfil: salva ao sair do campo (o grupo vê, para achar substituto).
 function PhoneField(){
   const saved = useAuth(s => s.profile?.phone || "");
-  const [v, setV] = useState(maskPhone(saved));
+  const [v, setV] = useState(maskPhone(saved)), f = useFieldSave();
   useEffect(() => setV(maskPhone(saved)), [saved]);
-  return <label className="field"><span>{t("profile.phone")}</span>
-    <input className="input" id="profile-phone" type="tel" inputMode="tel" autoComplete="tel" maxLength={30} placeholder={t("profile.phonePh")} value={v}
+  return <label className="field"><span>{t("profile.phone")}</span>{f.status}
+    <input className="input" id="profile-phone" type="tel" inputMode="tel" autoComplete="tel" maxLength={30} placeholder={t("profile.phonePh")} value={v} aria-busy={f.saving}
       onChange={e => setV(maskPhone(e.target.value))} onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}
-      onBlur={async e => { const el = e.currentTarget; if(cleanPhone(v) === saved || v === maskPhone(saved)) return; if(await savePhone(v)) flashSaved(el); else { setV(maskPhone(saved)); toast(t("profile.saveFail")); } }}/></label>;
+      onBlur={async e => { if(cleanPhone(v) === saved || v === maskPhone(saved)) return; if(!await f.run(e.currentTarget, () => savePhone(v))) setV(maskPhone(saved)); }}/></label>;
 }
 
 // Data de nascimento no perfil: salva ao mudar (o grupo vê só o dia e o mês, na página Início).
 function BirthdayField(){
   const saved = useAuth(s => s.profile?.birthday || "");
-  const [v, setV] = useState(saved);
+  const [v, setV] = useState(saved), f = useFieldSave();
   useEffect(() => setV(saved), [saved]);
-  const save = async (nv: string, el: HTMLElement) => { setV(nv); if(nv === saved) return; if(await saveBirthday(nv)) flashSaved(el); else { setV(saved); toast(t("profile.saveFail")); } };
-  return <label className="field"><span>{t("profile.birthday")}</span>
+  const save = async (nv: string, el: HTMLElement) => { setV(nv); if(nv === saved) return; if(!await f.run(el, () => saveBirthday(nv))) setV(saved); };
+  return <label className="field"><span>{t("profile.birthday")}</span>{f.status}
     <DateInput id="profile-birthday" aria={t("profile.birthday")} max={today()} clearable value={v} onChange={save}/>
     <small className="sub">{t("profile.birthdayHint")}</small></label>;
 }
@@ -482,7 +549,7 @@ function BirthdayField(){
 // Dia e mês de uma data de nascimento ("12 de março"), sem o ano.
 export const fmtBirthday = (v: string) => new Intl.DateTimeFormat(locale(), {day: "numeric", month: "long", timeZone: "UTC"}).format(new Date(v + "T00:00:00Z"));
 
-// Rótulo das funções em "Quem pode entrar": com mais de um grupo, diz de qual grupo são.
+// Rótulo das funções na página Usuários: com mais de um grupo, diz de qual grupo são.
 const rolesLabel = (count: number, group: string) => count > 1 ? t("people.rolesIn", {group}) : undefined;
 
 // Nome, celular, data de nascimento e funções de quem já está na lista. O admin muda tudo, mesmo o que a
@@ -571,8 +638,45 @@ export function PeopleTools({idp, f}: {idp: string; f: ReturnType<typeof usePeop
       options={[{value: "az", label: t("people.orderAz")}, {value: "new", label: t("people.orderNew")}, {value: "old", label: t("people.orderOld")}]}/></div>;
 }
 
+// Página Usuários (só admin): todos com acesso ao app, com admin, editar e tirar o acesso. Abre pelo Perfil;
+// quem não é admin e chega pelo endereço volta para o Perfil.
+export function PeoplePage(){
+  const {admin, email} = useAuth();
+  useEffect(() => { if(!admin) go("profile", {instant: true}); }, [admin]);
+  if(!admin) return null;
+  return <section className="view" id="view-people" data-view="people" aria-labelledby="people-h">
+    <div className="view-head"><div>
+      <button className="btn ghost sm back" id="people-back" onClick={() => go("profile")}><Icon name="back" sm/><span>{t("profile.title")}</span></button>
+      <h1 id="people-h">{t("people.title")}</h1><p className="sub">{t("people.sub")}</p></div></div>
+    <People me={email}/>
+  </section>;
+}
+
+// Card do Perfil do admin que leva à página Usuários: quantos têm acesso (com as fotos dos que entraram por
+// último), quantos são admins e quantos ainda estão sem celular ou sem data de nascimento.
+function PeopleLink(){
+  const [rows, setRows] = useState<Allowed[] | null>(null);
+  useEffect(() => { listAllowed().then(r => setRows(r || [])); }, []);
+  const recent = rows ? [...rows].sort((a, b) => b.created_at.localeCompare(a.created_at)) : [];
+  const admins = recent.filter(r => r.is_owner || r.is_admin).length;
+  const noPhone = recent.filter(r => !(r.profilePhone || r.phone)).length, noBirthday = recent.filter(r => !(r.profileBirthday || r.birthday)).length;
+  return <section className="card profile-sec profile-people" id="profile-users" aria-labelledby="profile-users-h">
+    <h2 id="profile-users-h">{t("people.title")}{recent.length > 0 && <span className="count-chip">{recent.length}</span>}</h2>
+    {rows === null ? <span className="sub">{t("auth.loading")}</span> : recent.length > 0 && <>
+      <span className="scale-people" aria-hidden="true">{recent.slice(0, 8).map(r => <Avatar key={r.email} person={{name: r.profileName || r.name, email: r.email, photo: r.profilePhoto}}/>)}
+        {recent.length > 8 && <span className="avatar more">+{recent.length - 8}</span>}</span>
+      <ul className="profile-users-stats">
+        <li><Icon name="user" sm/> {tn("people.statAdmins", admins)}</li>
+        {noPhone > 0 && <li className="warn"><Icon name="phone" sm/> {tn("people.statNoPhone", noPhone)}</li>}
+        {noBirthday > 0 && <li className="warn"><Icon name="gift" sm/> {tn("people.statNoBirthday", noBirthday)}</li>}
+        {!noPhone && !noBirthday && <li className="ok"><Icon name="check" sm/> {t("people.statComplete")}</li>}
+      </ul></>}
+    <button type="button" className="btn primary sm" id="profile-people" onClick={() => go("people")}><Icon name="users" sm/> {t("people.see")} <Icon name="chev" sm className="chev-right"/></button>
+  </section>;
+}
+
 function People({me}: {me: string}){
-  const [rows, setRows] = useState<Allowed[] | null>(null), fold = useFold("people");
+  const [rows, setRows] = useState<Allowed[] | null>(null);
   // pending: o e-mail da linha com uma mudança em andamento (os botões dela ficam desabilitados).
   const [pending, setPending] = useState("");
   // editing: o e-mail da linha com o nome e a data abertos para editar.
@@ -593,10 +697,7 @@ function People({me}: {me: string}){
     if(!await confirmDialog({title: t("people.removeTitle"), message: t("people.removeMsg", {email: r.email}), confirm: t("people.remove")})) return;
     onRow(r, async () => { if(await removeAllowed(r.email)){ toast(t("people.removed", {email: r.email})); await load(); loadGroups(); } else toast(t("profile.saveFail")); });
   };
-  return <div className={"card people-card" + fold.cls}>
-    <FoldHead folded={fold.folded} onToggle={fold.toggle} title={t("people.title")}/>
-    <div className="card-top"><h2>{t("people.title")}</h2><p className="sub">{t("people.sub")}</p></div>
-    <div className="card-body">
+  return <div className="card people-card people-page">
     <h3 className="people-sub-h">{t("people.listTitle")} {rows && rows.length > 0 && <span className="count-chip">{nq && shown ? shown.length + "/" + rows.length : rows.length}</span>}</h3>
     {rows && rows.length > 0 && <PeopleTools idp="people" f={filter}/>}
     {/* Cabeçalho da lista, como numa tabela: marca onde as pessoas começam (no celular, só a faixa). */}
@@ -630,6 +731,5 @@ function People({me}: {me: string}){
         {editing === r.email && <PersonEdit r={r} onDone={async saved => { setEditing(""); if(saved) await load(); }}/>}
       </li>; })}
     </ul>
-    </div>
   </div>;
 }
