@@ -4817,7 +4817,7 @@ dialog.unsaved .dlg-foot::before {
   padding: 24px max(66px, env(safe-area-inset-left)) 40vh;
   outline: none;
 }
-/* No celular as setas ficam na barra de músicas (abaixo), então a cifra usa a largura toda. */
+/* No celular a cifra usa a largura toda: as setas fantasma ficam por cima, nos cantos. */
 @media (max-width: 599px) {
   .stage-scroll {
     padding-left: max(16px, env(safe-area-inset-left));
@@ -4832,8 +4832,11 @@ dialog.unsaved .dlg-foot::before {
 .stage-scroll.fit .stage-content > :last-child > .stage-song {
   margin-bottom: 0;
 }
+/* O bloco da música tem a largura da linha mais longa (até 1100 px) e fica no meio, entre as setas: música de
+   linhas curtas não fica presa à esquerda de uma área larga e vazia. */
 .stage-content {
-  max-width: 1100px;
+  width: fit-content;
+  max-width: min(100%, 1100px);
   margin: 0 auto;
   font-size: var(--stage-fs, 22px);
 }

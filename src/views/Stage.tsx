@@ -17,6 +17,8 @@ import { sheetMode } from "./Sheet";
 
 // Caber na tela: do menor legível até bem grande (a altura disponível é quem decide o tamanho).
 const FIT_MIN = 9, FIT_MAX = 96;
+// Largura máxima do bloco da música (a mesma do CSS de .stage-content).
+const CONTENT_MAX = 1100;
 const stageFsDefault = () => innerWidth < 500 ? 17 : innerWidth < 700 ? 19 : 24;
 // Tela larga (tablet deitado, computador): a lista de músicas fica ao lado da cifra.
 const wide = () => matchMedia("(min-width:1000px)").matches;
@@ -103,10 +105,16 @@ export function Stage(){
   };
   // Se o repertório diminuir, a música em cena continua valendo.
   useEffect(() => { if(cur > 0 && cur >= src.length) setCur(Math.max(0, src.length - 1)); }, [src.length]);
-  // A cifra quebra na largura da tela (sem rolagem para o lado): mede quantas colunas cabem.
+  // A cifra quebra na largura da tela (sem rolagem para o lado): mede quantas colunas cabem. Mede a área de
+  // rolagem (sem o recuo das setas), não o bloco da música: ele tem a largura da linha mais longa, e medir nele
+  // faria a quebra encolher o bloco, que encolheria a quebra.
   useEffect(() => {
-    const el = content.current; if(!el) return;
-    const ro = new ResizeObserver(() => setWidth(el.clientWidth)); ro.observe(el);
+    const el = scroll.current; if(!el) return;
+    const ro = new ResizeObserver(() => {
+      const cs = getComputedStyle(el);
+      setWidth(Math.min(CONTENT_MAX, el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)));
+    });
+    ro.observe(el);
     return () => ro.disconnect();
   }, []);
   const size = fit && fitFs ? fitFs : fs;
