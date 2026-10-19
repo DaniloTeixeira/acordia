@@ -349,6 +349,8 @@ const pt: Dict = {
   "profile.attCount":"{present} de {total} ensaios",
   "profile.attNone":"Ainda não teve chamada em nenhum ensaio.",
   "profile.attRule":"Quem falta a {max} ensaios seguidos fica fora dos cultos até participar de {back}.",
+
+  "profile.nextRoles":"Suas funções:",
   "profile.next":"Minha próxima escala",
   "profile.nextNone":"Você não está escalado em nenhum evento marcado.",
   "profile.noGroup":"Você ainda não está em nenhum grupo. Suas funções, frequência e próximo evento aparecem aqui quando um líder te adicionar.",
@@ -1347,6 +1349,8 @@ const en: Dict = {
   "profile.attCount":"{present} of {total} rehearsals",
   "profile.attNone":"No rehearsal has had a roll call yet.",
   "profile.attRule":"Missing {max} rehearsals in a row takes you off services until you attend {back}.",
+
+  "profile.nextRoles":"Your roles:",
   "profile.next":"My next roster",
   "profile.nextNone":"You're not on the roster for any upcoming event.",
   "profile.noGroup":"You're not in a group yet. Your roles, attendance and next event show up here once a leader adds you.",
@@ -2345,6 +2349,8 @@ const es: Dict = {
   "profile.attCount":"{present} de {total} ensayos",
   "profile.attNone":"Todavía no hubo lista en ningún ensayo.",
   "profile.attRule":"Quien falta a {max} ensayos seguidos queda fuera de los cultos hasta participar de {back}.",
+
+  "profile.nextRoles":"Tus funciones:",
   "profile.next":"Mi próxima escala",
   "profile.nextNone":"No estás en la escala de ningún evento próximo.",
   "profile.noGroup":"Todavía no estás en ningún grupo. Tus funciones, asistencia y próximo evento aparecen aquí cuando un líder te agregue.",

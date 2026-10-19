@@ -454,6 +454,7 @@ function MyNext(){
   const next = g.events.filter(e => new Date(e.starts_at).getTime() > soon && g.roster.some(r => r.event_id === e.id && r.email === me))
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at))[0];
   const rows = next ? g.roster.filter(r => r.event_id === next.id && r.email === me) : [], st = rows[0]?.status || "pending";
+  const roles = sortRoles(rows.map(r => r.role).filter(Boolean));
   const answer = (v: "yes" | "no") => lock(async () => {
     const to = st === v ? "pending" : v; setBusy(v);
     const ok = await respond(next!.id, to).finally(() => setBusy(""));
@@ -461,9 +462,11 @@ function MyNext(){
   });
   return <Sec id="profile-next" className="profile-next" title={t("profile.next")}>
     {next ? <div className="profile-next-box">
-      <div className="profile-next-what"><b>{eventTitle(next)}</b>
+      {/* A situação ao lado do título; embaixo da data, "Suas funções:" e os chips na mesma linha. */}
+      <div className="profile-next-what"><span className="profile-next-title"><b>{eventTitle(next)}</b><StatusChip status={st}/></span>
         <span className="sub">{longDay(new Date(next.starts_at))} · {timeOf(next.starts_at)}{next.place && " · " + next.place}</span>
-        <span className="profile-next-chips">{sortRoles(rows.map(r => r.role).filter(Boolean)).map(r => <span key={r} className="chip">{r}</span>)}<StatusChip status={st}/></span></div>
+        {roles.length > 0 && <div className="profile-next-roles"><span className="profile-next-label">{t("profile.nextRoles")}</span>
+          <span className="profile-next-chips">{roles.map(r => <span key={r} className="chip">{r}</span>)}</span></div>}</div>
       <div className="profile-next-actions">
         <button className={"btn sm" + (st === "yes" ? " primary" : " ghost")} aria-pressed={st === "yes"} aria-busy={busy === "yes"} onClick={() => answer("yes")}>{busy === "yes" ? <Spin/> : <Icon name="check" sm/>} {t("group.confirm")}</button>
         <button className={"btn sm" + (st === "no" ? " danger armed" : " ghost")} aria-pressed={st === "no"} aria-busy={busy === "no"} onClick={() => answer("no")}>{busy === "no" ? <Spin/> : <Icon name="x" sm/>} {t("group.decline")}</button>

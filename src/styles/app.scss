@@ -8541,7 +8541,7 @@ dialog.event-dlg {
 .profile-next-box {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
@@ -8551,7 +8551,7 @@ dialog.event-dlg {
 .profile-next-what {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   min-width: 0;
 }
 .profile-next-chips,
@@ -8559,7 +8559,35 @@ dialog.event-dlg {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
+}
+.profile-next-actions {
+  gap: 10px 12px;
+}
+/* As funções são chips como os de Minhas funções: dentro do quadro (fundo --surface-2, a cor do chip
+   comum), o chip ganha o fundo do card e uma borda para não sumir. Os de situação têm cor própria. */
+.profile-next-chips .chip:not(.st-yes, .st-no, .st-pending) {
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.profile-next-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+/* Funções: "Suas funções:" na cor do texto e os chips na mesma linha (no celular estreito, quebram). */
+.profile-next-roles {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin-top: 4px;
+}
+.profile-next-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink);
 }
 .profile-next-actions .link-btn {
   margin-left: auto;
