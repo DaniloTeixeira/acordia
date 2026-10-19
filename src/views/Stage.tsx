@@ -5,7 +5,7 @@ import { lyricsOnly, chordLine, transitionLine, wrapCols, type SheetMode } from 
 import { t } from "../lib/i18n";
 import * as store from "../lib/store";
 import { reduced, focusPlatform } from "../lib/util";
-import { useData, useUI } from "../state";
+import { useData, useUI, openDialog } from "../state";
 import { current, sheetSongs, shiftItemKey } from "../repertoire";
 import { Icon } from "../ui/Icon";
 import { ThemeButton } from "../ui/theme";
@@ -35,12 +35,14 @@ function monoWidth(el: HTMLElement | null){
   return monoW;
 }
 
-// No Palco o acorde não abre a janela do acorde (tocando, ela tiraria o foco): tocar nele vale como tocar na tela.
-function ChordSpans({cl, songKey}: {cl: {text: string; chords: {pos: number; len: number; chord: string}[]}; songKey: string}){
+// Tocar no acorde abre a janela do acorde; no Só a cifra (tela cheia, tocando) não abre, para não tirar o foco:
+// o toque vale como tocar na tela.
+function ChordSpans({cl, songKey, clickable}: {cl: {text: string; chords: {pos: number; len: number; chord: string}[]}; songKey: string; clickable: boolean}){
   const out: React.ReactNode[] = []; let at = 0;
   cl.chords.forEach((c, i) => {
     out.push(cl.text.slice(at, c.pos));
-    out.push(<span key={i} className="chd" data-chord={c.chord} data-key={songKey || ""}>{cl.text.slice(c.pos, c.pos + c.len)}</span>);
+    out.push(<span key={i} className="chd" data-chord={c.chord} data-key={songKey || ""}
+      onClick={clickable ? e => { e.stopPropagation(); openDialog("chord", {symbol: c.chord, songKey: songKey || ""}); } : undefined}>{cl.text.slice(c.pos, c.pos + c.len)}</span>);
     at = c.pos + c.len;
   });
   out.push(cl.text.slice(at));
@@ -291,7 +293,7 @@ export function Stage(){
                 return <div key={ii} style={{display: "contents"}}>{parts.map(([a, z]) => {
                   const ly = it.lyric?.slice(a, z), ch = cl && {text: cl.text.slice(a, z), chords: cl.chords.filter(c => c.pos >= a && c.pos < z).map(c => ({...c, pos: c.pos - a}))};
                   return <div key={a} style={{display: "contents"}}>
-                    {ch && (one || ch.text.trim()) && <p className="stage-line ch"><ChordSpans cl={ch} songKey={key}/></p>}
+                    {ch && (one || ch.text.trim()) && <p className="stage-line ch"><ChordSpans cl={ch} songKey={key} clickable={!clean}/></p>}
                     {ly !== undefined && (one || ly.trim()) && <p className="stage-line">{ly}</p>}
                   </div>;
                 })}</div>;

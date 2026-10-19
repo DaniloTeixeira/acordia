@@ -3626,6 +3626,18 @@ a.btn {
 .paper rect.hit:hover {
   fill: rgba(47, 107, 240, 0.12);
 }
+/* Acorde clicável no Palco (abre a janela do acorde); no Só a cifra não é clicável. */
+.stage:not(.clean) .stage-line .chd {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0 1px;
+  margin: 0 -1px;
+  transition: background-color var(--t-fast);
+}
+.stage:not(.clean) .stage-line .chd:hover,
+.stage:not(.clean) .stage-line .chd:active {
+  background: color-mix(in srgb, var(--chord) 18%, transparent);
+}
 
 /* afinador */
 .tuner {
