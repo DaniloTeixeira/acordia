@@ -3,7 +3,8 @@
 // a resposta dele diz o quê (fromError) e a tela passa a mostrar também.
 export type PwRule = "length" | "letter" | "lower" | "upper" | "digit" | "symbol";
 export const MIN_PASSWORD = 8;
-export const PASSWORD_RULES: PwRule[] = ["length", "lower", "upper", "digit", "symbol"];
+// Símbolo não é exigido por padrão: o gerador de senhas do navegador não coloca. Só entra se o Supabase pedir.
+export const PASSWORD_RULES: PwRule[] = ["length", "lower", "upper", "digit"];
 export interface PwPolicy { rules: PwRule[]; min: number }
 export const DEFAULT_POLICY: PwPolicy = {rules: PASSWORD_RULES, min: MIN_PASSWORD};
 

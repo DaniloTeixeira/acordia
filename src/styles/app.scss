@@ -3447,11 +3447,12 @@ textarea.song-text {
 .pad-filter-h small {
   font-weight: 400;
 }
-.pad-swell {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
+.pad-actions {
+  flex-wrap: nowrap;
+}
+.pad-actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
 }
 .btn.busy {
   border-color: transparent;
@@ -6494,7 +6495,7 @@ dialog.ear-dlg {
 .card .scale-head h2,
 .fold-head > button > span:first-child {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
 }
 /* Títulos das seções do perfil (funções, frequência, próxima escala), das listas de pessoas (adicionar,
@@ -6503,7 +6504,7 @@ dialog.ear-dlg {
 .people-sub-h,
 .member-dlg .field > span:first-child {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   margin-bottom: 4px;
   font-size: 0.95rem;
@@ -6524,6 +6525,8 @@ dialog.ear-dlg {
   border-radius: 2px;
   background: var(--accent-grad);
   flex-shrink: 0;
+  /* Traço na primeira linha do título (não no meio quando quebra em duas). */
+  margin-top: calc((1lh - 1.05em) / 2);
 }
 /* Texto de ajuda das seções do Perfil: colado no que explica, menor e sem negrito, para não parecer título. */
 .profile-sec small.sub {
@@ -9016,7 +9019,6 @@ dialog.member-dlg {
 
 /* Ensaio na agenda: duas colunas (pessoa e resposta, as funções ficam no cartão da pessoa e em Membros); a resposta é só texto colorido, sem pílula. */
 .roster-tbl { grid-template-columns: minmax(0, 1fr) auto; }
-.roster-tbl .quick-att-head .quick-att-roles { padding: 4px 8px; }
 .roster-tbl .quick-att-when { flex-direction: column; align-items: flex-start; gap: 2px; }
 .roster-tbl .quick-att-ctl { min-width: 0; }
 .roster-tbl .quick-att-ctl { padding-left: 6px; padding-right: 6px; }
