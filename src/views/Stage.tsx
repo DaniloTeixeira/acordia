@@ -17,6 +17,8 @@ import { sheetMode } from "./Sheet";
 
 // Caber na tela: do menor legível até bem grande (a altura disponível é quem decide o tamanho).
 const FIT_MIN = 9, FIT_MAX = 96;
+// Largura máxima do bloco da música (a mesma do CSS de .stage-content).
+const CONTENT_MAX = 1100;
 const stageFsDefault = () => innerWidth < 500 ? 17 : innerWidth < 700 ? 19 : 24;
 // Tela larga (tablet deitado, computador): a lista de músicas fica ao lado da cifra.
 const wide = () => matchMedia("(min-width:1000px)").matches;
@@ -33,12 +35,14 @@ function monoWidth(el: HTMLElement | null){
   return monoW;
 }
 
-function ChordSpans({cl, songKey}: {cl: {text: string; chords: {pos: number; len: number; chord: string}[]}; songKey: string}){
+// Tocar no acorde abre a janela do acorde; no Só a cifra (tela cheia, tocando) não abre, para não tirar o foco:
+// o toque vale como tocar na tela.
+function ChordSpans({cl, songKey, clickable}: {cl: {text: string; chords: {pos: number; len: number; chord: string}[]}; songKey: string; clickable: boolean}){
   const out: React.ReactNode[] = []; let at = 0;
   cl.chords.forEach((c, i) => {
     out.push(cl.text.slice(at, c.pos));
     out.push(<span key={i} className="chd" data-chord={c.chord} data-key={songKey || ""}
-      onClick={e => { e.stopPropagation(); openDialog("chord", {symbol: c.chord, songKey: songKey || ""}); }}>{cl.text.slice(c.pos, c.pos + c.len)}</span>);
+      onClick={clickable ? e => { e.stopPropagation(); openDialog("chord", {symbol: c.chord, songKey: songKey || ""}); } : undefined}>{cl.text.slice(c.pos, c.pos + c.len)}</span>);
     at = c.pos + c.len;
   });
   out.push(cl.text.slice(at));
@@ -94,6 +98,14 @@ export function Stage(){
     const el = sc.querySelector<HTMLElement>(`.stage-song[data-i="${n}"]`);
     sc.scrollTop = n === first || !el ? 0 : el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 12;
   });
+  // Rolando: as setas aparecem mais e voltam a ficar apagadas um pouco depois de parar.
+  const [scrolling, setScrolling] = useState(false), scrollTimer = useRef(0);
+  const onScroll = () => {
+    if(!scrolling) setScrolling(true);
+    clearTimeout(scrollTimer.current); scrollTimer.current = window.setTimeout(() => setScrolling(false), 1200);
+    track();
+  };
+  useEffect(() => () => clearTimeout(scrollTimer.current), []);
   // No medley, a música em cena acompanha a rolagem: a última cujo título passou do primeiro quarto da tela.
   const track = () => {
     const sc = scroll.current; if(!sc || last === first) return;
@@ -103,10 +115,16 @@ export function Stage(){
   };
   // Se o repertório diminuir, a música em cena continua valendo.
   useEffect(() => { if(cur > 0 && cur >= src.length) setCur(Math.max(0, src.length - 1)); }, [src.length]);
-  // A cifra quebra na largura da tela (sem rolagem para o lado): mede quantas colunas cabem.
+  // A cifra quebra na largura da tela (sem rolagem para o lado): mede quantas colunas cabem. Mede a área de
+  // rolagem (sem o recuo das setas), não o bloco da música: ele tem a largura da linha mais longa, e medir nele
+  // faria a quebra encolher o bloco, que encolheria a quebra.
   useEffect(() => {
-    const el = content.current; if(!el) return;
-    const ro = new ResizeObserver(() => setWidth(el.clientWidth)); ro.observe(el);
+    const el = scroll.current; if(!el) return;
+    const ro = new ResizeObserver(() => {
+      const cs = getComputedStyle(el);
+      setWidth(Math.min(CONTENT_MAX, el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)));
+    });
+    ro.observe(el);
     return () => ro.disconnect();
   }, []);
   const size = fit && fitFs ? fitFs : fs;
@@ -118,7 +136,9 @@ export function Stage(){
   // (O tom entra na conta: transpor muda o tamanho das linhas de acorde.)
   const sig = src.slice(first, last + 1).map(s => s.itemId + (s.target || s.key)).join() + mode;
   const [, kick] = useState(0);
-  useEffect(() => {
+  // Antes de pintar (layout effect, como cada passo da busca): a música nova não aparece um instante no
+  // tamanho da anterior antes de ajustar.
+  useLayoutEffect(() => {
     if(!fit){ search.current = null; setFitFs(null); return; }
     search.current = {lo: FIT_MIN, hi: FIT_MAX}; setFitFs(Math.ceil((FIT_MIN + FIT_MAX) / 2)); kick(n => n + 1);
   }, [fit, sig, box, width, clean]);
@@ -188,7 +208,7 @@ export function Stage(){
     const r = e.currentTarget.getBoundingClientRect(), y = (e.clientY - r.top) / r.height;
     if(y > 0.6) page(1); else if(y < 0.3) page(-1);
   };
-  return <div className={"stage" + (L ? " letra" : "") + (clean ? " clean" : "")} id="stage" role="dialog" aria-modal="true" aria-label={t("stage.aria")}>
+  return <div className={"stage" + (L ? " letra" : "") + (clean ? " clean" : "") + (scrolling ? " scrolling" : "")} id="stage" role="dialog" aria-modal="true" aria-label={t("stage.aria")}>
     {/* Só a cifra: dois botões discretos no canto, voltar e caber na tela. */}
     {clean && <div className="stage-clean-bar">
       <button className="icon-btn sm" id="stage-fit-clean" aria-pressed={fit} aria-label={t("stage.fit")} title={t("stage.fit")} onClick={toggleFit}><Icon name="fit" sm/></button>
@@ -235,13 +255,23 @@ export function Stage(){
     </div>}
     <div className="stage-body">
     {listOpen && src.length > 0 && <nav className="stage-list" id="stage-list" aria-label={t("stage.songs")}>
-      <ol>{src.map((s, si) => <li key={si}>
-        <button className={si === cur ? "on" : ""} aria-current={si === cur ? "true" : undefined} onClick={() => goSong(si)}>
-          <span className="n">{si + 1}</span><span className="tt">{s.title}</span>{(s.target || s.key) && !L && <small>{s.target || s.key}</small>}
-        </button>
-      </li>)}</ol>
+      {/* Medley: o nome dele e as músicas como subitens, com o mesmo número da folha. */}
+      <ol>{src.map((s, si) => {
+        const song = (i: number) => <li key={i}>
+          <button className={i === cur ? "on" : ""} aria-current={i === cur ? "true" : undefined} onClick={() => goSong(i)}>
+            <span className="n">{i + 1}</span><span className="tt">{src[i].title}</span>{(src[i].target || src[i].key) && !L && <small>{src[i].target || src[i].key}</small>}
+          </button>
+        </li>;
+        if(!s.group) return song(si);
+        if(si > 0 && src[si - 1].group === s.group) return null;
+        const [a, z] = screen(si), ids = Array.from({length: z - a + 1}, (_, k) => a + k);
+        return <li key={si} className="stage-list-medley">
+          <span className="stage-list-mh"><Icon name="link" sm/><span className="tt">{s.gname || t("sheet.medleyLabel", {name: ""})}</span></span>
+          <ol>{ids.map(song)}</ol>
+        </li>;
+      })}</ol>
     </nav>}
-    <div className={"stage-scroll" + (fit ? " fit" : "")} id="stage-scroll" tabIndex={0} ref={scroll} onClick={onTap} onScroll={track}>
+    <div className={"stage-scroll" + (fit ? " fit" : "")} id="stage-scroll" tabIndex={0} ref={scroll} onClick={onTap} onScroll={onScroll}>
       <div className="stage-content" id="stage-content" ref={content} style={{"--stage-fs": size + "px"} as React.CSSProperties} data-fit={fit || undefined}>
         {!src.length && <div className="empty-state"><strong>{t("stage.empty")}</strong><span>{t("stage.emptyText")}</span></div>}
         {src.slice(first, last + 1).map((s, k) => {
@@ -271,7 +301,7 @@ export function Stage(){
                 return <div key={ii} style={{display: "contents"}}>{parts.map(([a, z]) => {
                   const ly = it.lyric?.slice(a, z), ch = cl && {text: cl.text.slice(a, z), chords: cl.chords.filter(c => c.pos >= a && c.pos < z).map(c => ({...c, pos: c.pos - a}))};
                   return <div key={a} style={{display: "contents"}}>
-                    {ch && (one || ch.text.trim()) && <p className="stage-line ch"><ChordSpans cl={ch} songKey={key}/></p>}
+                    {ch && (one || ch.text.trim()) && <p className="stage-line ch"><ChordSpans cl={ch} songKey={key} clickable={!clean}/></p>}
                     {ly !== undefined && (one || ly.trim()) && <p className="stage-line">{ly}</p>}
                   </div>;
                 })}</div>;

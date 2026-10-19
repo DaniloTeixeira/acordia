@@ -3631,15 +3631,16 @@ a.btn {
 .paper rect.hit:hover {
   fill: rgba(47, 107, 240, 0.12);
 }
-.stage-line .chd {
+/* Acorde clicável no Palco (abre a janela do acorde); no Só a cifra não é clicável. */
+.stage:not(.clean) .stage-line .chd {
   cursor: pointer;
   border-radius: 4px;
   padding: 0 1px;
   margin: 0 -1px;
   transition: background-color var(--t-fast);
 }
-.stage-line .chd:hover,
-.stage-line .chd:active {
+.stage:not(.clean) .stage-line .chd:hover,
+.stage:not(.clean) .stage-line .chd:active {
   background: color-mix(in srgb, var(--chord) 18%, transparent);
 }
 
@@ -4833,7 +4834,7 @@ dialog.unsaved .dlg-foot::before {
   padding: 24px max(66px, env(safe-area-inset-left)) 40vh;
   outline: none;
 }
-/* No celular as setas ficam na barra de músicas (abaixo), então a cifra usa a largura toda. */
+/* No celular a cifra usa a largura toda: as setas fantasma ficam por cima, nos cantos. */
 @media (max-width: 599px) {
   .stage-scroll {
     padding-left: max(16px, env(safe-area-inset-left));
@@ -4848,8 +4849,11 @@ dialog.unsaved .dlg-foot::before {
 .stage-scroll.fit .stage-content > :last-child > .stage-song {
   margin-bottom: 0;
 }
+/* O bloco da música tem a largura da linha mais longa (até 1100 px) e fica no meio, entre as setas: música de
+   linhas curtas não fica presa à esquerda de uma área larga e vazia. */
 .stage-content {
-  max-width: 1100px;
+  width: fit-content;
+  max-width: min(100%, 1100px);
   margin: 0 auto;
   font-size: var(--stage-fs, 22px);
 }
@@ -4959,24 +4963,45 @@ dialog.unsaved .dlg-foot::before {
 .stage-nav:has(#stage-now[aria-expanded="true"]) {
   background: var(--accent-soft);
 }
-/* Com a lista de músicas aberta, as setas saem para não ficar em cima dela. */
-.stage-nav:has(#stage-now[aria-expanded="true"]) :is(#stage-prev, #stage-next) {
-  display: none;
+/* Com a lista de músicas aberta por cima da cifra (celular e tablet), as setas saem para não ficar em cima dela.
+   Na tela larga a lista fica ao lado: as setas ficam, e a da esquerda passa para depois da lista (280 px).
+   No Só a cifra a lista não aparece (mesmo aberta): as setas ficam nos cantos. */
+@media (max-width: 999px) {
+  .stage:not(.clean) .stage-nav:has(#stage-now[aria-expanded="true"]) :is(#stage-prev, #stage-next) {
+    display: none;
+  }
 }
-/* Música anterior e próxima: nos cantos da tela, no meio da altura, fáceis de alcançar com o polegar. */
+@media (min-width: 1000px) {
+  .stage:not(.clean) .stage-nav:has(#stage-now[aria-expanded="true"]) #stage-prev {
+    left: calc(280px + 6px);
+  }
+}
+/* Música anterior e próxima: nos cantos da tela, no meio da altura, fáceis de alcançar com o polegar. Redondas e
+   fantasma (contorno e fundo bem leves, sem desfoque), para a cifra continuar legível por baixo; igual em todas
+   as telas. */
 .stage-nav #stage-prev,
 .stage-nav #stage-next {
   position: absolute;
   top: 50%;
   z-index: 3;
-  width: 52px;
-  height: 88px;
-  margin-top: -44px;
-  border-radius: var(--r-lg);
-  background: var(--accent);
-  border: none;
-  box-shadow: var(--shadow-md);
-  color: var(--accent-ink);
+  width: 48px;
+  height: 48px;
+  margin-top: -24px;
+  border-radius: var(--r-full);
+  border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
+  background: color-mix(in srgb, var(--surface) 25%, transparent);
+  box-shadow: none;
+  color: color-mix(in srgb, var(--ink) 75%, transparent);
+  /* Bem apagadas com a tela parada; rolando (.stage.scrolling) ou com o mouse em cima, aparecem. */
+  opacity: 0.35;
+  transition:
+    opacity var(--t) var(--ease),
+    background-color var(--t-fast);
+}
+.stage.scrolling .stage-nav :is(#stage-prev, #stage-next),
+.stage-nav :is(#stage-prev, #stage-next):hover,
+.stage-nav :is(#stage-prev, #stage-next):focus-visible {
+  opacity: 1;
 }
 .stage-nav #stage-prev {
   left: max(6px, env(safe-area-inset-left));
@@ -4986,18 +5011,18 @@ dialog.unsaved .dlg-foot::before {
 }
 .stage-nav #stage-prev:hover:where(:not(:disabled)),
 .stage-nav #stage-next:hover:where(:not(:disabled)) {
-  background: var(--accent-hover);
-  color: var(--accent-ink);
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  color: var(--ink);
 }
 .stage-nav #stage-prev:disabled,
-.stage-nav #stage-next:disabled {
-  opacity: 0.2;
-  box-shadow: none;
+.stage-nav #stage-next:disabled,
+.stage.scrolling .stage-nav :is(#stage-prev, #stage-next):disabled {
+  opacity: 0.12;
 }
 .stage-nav #stage-prev .i,
 .stage-nav #stage-next .i {
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   stroke-width: 2.5;
 }
 /* No celular: setas dentro da barra, ao lado do nome da música, sem cobrir a cifra; "Ver músicas" vira só o ícone. */
@@ -5006,25 +5031,17 @@ dialog.unsaved .dlg-foot::before {
     padding: 4px max(4px, env(safe-area-inset-right)) 4px
       max(4px, env(safe-area-inset-left));
   }
+  /* Setas fantasma nos cantos, como nas outras telas, um pouco menores. */
   .stage-nav #stage-prev,
   .stage-nav #stage-next {
-    position: static;
-    flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    margin: 0;
-    border-radius: var(--r-full);
-    box-shadow: none;
+    width: 40px;
+    height: 40px;
+    margin-top: -20px;
   }
   .stage-nav #stage-prev .i,
   .stage-nav #stage-next .i {
-    width: 24px;
-    height: 24px;
-  }
-  .stage-nav:has(#stage-now[aria-expanded="true"])
-    :is(#stage-prev, #stage-next) {
-    display: inline-grid;
-    visibility: hidden;
+    width: 20px;
+    height: 20px;
   }
   .stage-nav .stage-now {
     height: 44px;
@@ -5217,7 +5234,14 @@ dialog.unsaved .dlg-foot::before {
   border-bottom: none;
 }
 /* Só a cifra: some tudo menos a música (título e linhas); dois botões discretos no canto. */
-.stage.clean :is(.stage-bar, .stage-nav, .stage-progress, .stage-metro, .stage-focus, .stage-list, .stage-hint, .stage-key, .stage-ref) {
+.stage.clean :is(.stage-bar, .stage-progress, .stage-metro, .stage-focus, .stage-list, .stage-hint, .stage-key, .stage-ref) {
+  display: none;
+}
+/* A barra de navegação some, mas as setas fantasma dos cantos ficam (sem elas não dá para trocar de música). */
+.stage.clean .stage-nav {
+  display: contents;
+}
+.stage.clean .stage-nav .stage-now {
   display: none;
 }
 /* O título não passa por baixo dos dois botões do canto. */
@@ -5280,6 +5304,30 @@ dialog.unsaved .dlg-foot::before {
   flex-shrink: 0;
   font-size: 0.78rem;
   color: var(--muted);
+}
+/* Medley na lista: o nome dele (não é botão) e as músicas como subitens, recuadas e com um traço à esquerda. */
+.stage-list-mh {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.stage-list-mh .tt {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stage-list .stage-list-medley > ol {
+  margin-left: 20px;
+  padding-left: 8px;
+  border-left: 2px solid var(--line);
 }
 @media (max-width: 999px) {
   .stage-list {
