@@ -86,7 +86,7 @@ test("graus em tom menor usam a tônica menor", () => {
 
 test("detectKey não confunde o tom maior com a relativa menor (começar no vi ou no ii)", () => {
   // Músicas reais do repertório: começam no vi ou no ii e são em E.
-  assert.equal(C.detectKey(C.parseSong("T\nC#m  A\nla\n\nE  B\nla\n\nE/G#  A\nla")), "E");
+  assert.equal(C.detectKey(C.parseSong("T\nC#m  A\nla\n\nE  B\nla\n\nA  B\nla\n\nE\nfim")), "E");
   assert.equal(C.detectKey(C.parseSong("T\nF#m7  E/G#  A2\nla\n\nB  E\nla")), "E");
   // vi-IV-I-V é tom maior; com o V maior da menor harmônica, é menor.
   assert.equal(C.detectKey(C.parseSong("T\nAm  F  C  G\nla\n\nAm  F  C  G\nla")), "C");
