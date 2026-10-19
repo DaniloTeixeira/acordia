@@ -2,7 +2,7 @@
 // pode entrar para os admins.
 import { useEffect, useRef, useState } from "react";
 import { t, tn, locale } from "../lib/i18n";
-import { useAuth, savePhone, cleanPhone, signIn, signUp, resendConfirmation, pendingConfirm, setPendingConfirm, forgotPassword, setNewPassword, signInWithGoogle, signOut, saveName, saveBirthday, listAllowed, addAllowed, setAllowedInfo, setAllowedAdmin, removeAllowed, validEmail, initials, ownPhoto, removePhoto, type Allowed } from "../lib/cloud";
+import { useAuth, savePhone, cleanPhone, signIn, signUp, resendConfirmation, pendingConfirm, setPendingConfirm, forgotPassword, setNewPassword, signInWithGoogle, signOut, saveName, saveBirthday, listAllowed, addAllowed, setAllowedInfo, setPersonInfo, setAllowedAdmin, removeAllowed, validEmail, initials, ownPhoto, removePhoto, type Allowed } from "../lib/cloud";
 import { DEFAULT_POLICY, missing, passes, fromError, isPwned, type PwPolicy, type PwRule } from "../lib/password";
 import { reduced, flashSaved, norm } from "../lib/util";
 import { toast, confirmDialog, openDialog, go } from "../state";
@@ -485,25 +485,28 @@ function PersonEdit({r, onDone}: {r: Allowed; onDone: (saved: boolean) => void})
   const [name, setName] = useState(r.profileName || r.name), [birthday, setBirthday] = useState(r.profileBirthday || r.birthday || "");
   const [phone, setPhone] = useState(r.profilePhone || r.phone);
   const [busy, setBusy] = useState(false), lock = useLock();
-  const lockedName = !!r.profileName, lockedDate = !!r.profileBirthday, lockedPhone = !!r.profilePhone;
+  // O admin muda nome e celular mesmo os que a pessoa preencheu no perfil; a data que ela preencheu continua dela.
+  const lockedDate = !!r.profileBirthday;
   const save = (e: React.FormEvent) => { e.preventDefault(); lock(async () => {
     setBusy(true);
-    const ok = await setAllowedInfo(r.email, lockedName ? r.name : name, lockedDate ? (r.birthday || "") : birthday, lockedPhone ? r.phone : phone).finally(() => setBusy(false));
+    const day = lockedDate ? (r.birthday || "") : birthday;
+    // Banco sem admin_set_person ainda: grava só na lista de acesso (o que a pessoa preencheu continua valendo).
+    const ok = await setPersonInfo(r.email, name, phone, day).then(done => done || setAllowedInfo(r.email, name, day, phone)).finally(() => setBusy(false));
     toast(t(ok ? "people.infoSaved" : "profile.saveFail", {email: r.email}));
     if(ok) onDone(true);
   }); };
   return <form className="people-edit" onSubmit={save}>
     <div className="people-add">
       <div className="field"><label htmlFor={"edit-name-" + r.email}>{t("profile.name")}</label>
-        <input className="input" id={"edit-name-" + r.email} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} disabled={lockedName} onChange={e => setName(e.target.value)} autoFocus={!lockedName}/></div>
+        <input className="input" id={"edit-name-" + r.email} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onChange={e => setName(e.target.value)} autoFocus/></div>
       <div className="field phone"><label htmlFor={"edit-phone-" + r.email}>{t("profile.phone")}</label>
-        <input className="input" id={"edit-phone-" + r.email} type="tel" inputMode="tel" autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} disabled={lockedPhone} onChange={e => setPhone(e.target.value)}/></div>
+        <input className="input" id={"edit-phone-" + r.email} type="tel" inputMode="tel" autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} onChange={e => setPhone(e.target.value)}/></div>
       <div className="field birthday"><label htmlFor={"edit-birthday-" + r.email}>{t("profile.birthday")}</label>
         <DateInput className="people-birthday" id={"edit-birthday-" + r.email} max={today()} clearable value={birthday} disabled={lockedDate} onChange={setBirthday}/></div>
       <button type="button" className="btn ghost" onClick={() => onDone(false)}>{t("common.cancel")}</button>
-      <button className="btn primary" disabled={lockedName && lockedDate && lockedPhone} aria-busy={busy}>{busy ? <Spin/> : <Icon name="check" sm/>} {t("common.save")}</button>
+      <button className="btn primary" aria-busy={busy}>{busy ? <Spin/> : <Icon name="check" sm/>} {t("common.save")}</button>
     </div>
-    {(lockedName || lockedDate || lockedPhone) && <p className="sub people-edit-hint">{t("people.lockedHint")}</p>}
+    {lockedDate && <p className="sub people-edit-hint">{t("people.lockedHint")}</p>}
   </form>;
 }
 

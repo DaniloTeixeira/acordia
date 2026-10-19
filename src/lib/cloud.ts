@@ -250,6 +250,12 @@ export async function setAllowedInfo(email: string, name: string, birthday: stri
   if(error && phone !== undefined) ({error} = await cloud.from("allowed_emails").update(info).eq("email", email));
   return !error;
 }
+// Admin: nome e celular valem também por cima do que a pessoa preencheu no perfil (admin_set_person). Banco ainda
+// sem a função: false, e quem chama volta ao setAllowedInfo (só a lista de acesso).
+export async function setPersonInfo(email: string, name: string, phone: string, birthday: string){
+  const {error} = await cloud.rpc("admin_set_person", {person_email: email, person_name: name, person_phone: cleanPhone(phone), person_birthday: validBirthday(birthday) || null});
+  return !error;
+}
 export async function setAllowedAdmin(email: string, admin: boolean){
   const {error} = await cloud.from("allowed_emails").update({is_admin: admin}).eq("email", email);
   return !error;
