@@ -211,7 +211,7 @@ function Agenda({canEdit}: {canEdit: boolean}){
       <div className="agenda-list">
         {sel ? <DayBar day={sel} off={myOff.has(sel)} canEdit={canEdit} onClear={() => setSel("")}/>
           : <Seg className="block" id="agenda-when" aria={t("group.agenda")} value={showPast ? "past" : "next"} onChange={v => setShowPast(v === "past")}
-            options={[{v: "next", label: t("group.upcoming")}, {v: "past", label: t("group.past")}]}/>}
+            options={[{v: "past", label: t("group.past")}, {v: "next", label: t("group.upcoming")}]}/>}
         {list.length ? <ul className="events">{list.map(e => <EventCard key={e.id} e={e} canEdit={canEdit}/>)}</ul>
           : <div className="card empty-state"><Icon name="calendar"/><strong>{t(sel ? "group.noEventsDay" : showPast ? "group.noPast" : "group.noEvents")}</strong>
             {canEdit && !showPast && <span>{t("group.noEventsAdmin")}</span>}</div>}
@@ -318,14 +318,6 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
       </div>
     </div>
     </div></div>
-    {(reply || (e.kind === "rehearsal" && canCheckIn(e))) && <div className="event-sec"><h3 className="people-sub-h">{t("group.myReply")}</h3><div className="event-actions">
-      {reply}
-      {canReply && myStatus === "no" && <label className="event-cover"><span>{t("group.coverAsk")}</span>
-        <Select value={myCover} options={coverOpts} aria={t("group.coverAsk")} disabled={busy === "cover"} onChange={pickCover}/>{busy === "cover" && <Spin/>}</label>}
-      {e.kind === "rehearsal" && canCheckIn(e) && !(myAtt && myAtt.by_admin) && <button className={"btn sm" + (myAtt ? " primary" : " soft")} aria-pressed={!!myAtt} aria-busy={busy === "in"}
-        onClick={() => act("in", () => checkIn(e.id, !myAtt), myAtt ? "group.saved" : "group.checkedIn")}>{busy === "in" ? <Spin/> : <Icon name="user" sm/>} {t("group.checkIn")}</button>}
-    </div>
-    </div>}
     <div className="event-more">
       {/* Cada pessoa: nome e situação em cima, as funções neste evento como chips embaixo. */}
       {/* Ensaio é de todos: quem não foi escalado também aparece (sem resposta a dar), só com o nome. */}
@@ -348,6 +340,15 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
         {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}</li>)}</ul>
         : <p className="sub">{t("group.noRoster")}</p>}</div>
       {e.notes && <div className="event-sec"><h3 className="people-sub-h">{t("group.notes")}</h3><p className="event-notes">{e.notes}</p></div>}
+      {/* A resposta vem depois de ver o evento e quem está na escala: primeiro entender, depois responder. */}
+      {(reply || (e.kind === "rehearsal" && canCheckIn(e))) && <div className="event-sec"><h3 className="people-sub-h">{t("group.myReply")}</h3><div className="event-actions">
+        {reply}
+        {canReply && myStatus === "no" && <label className="event-cover">
+          <Select value={myCover} options={coverOpts} aria={t("group.coverAsk")} disabled={busy === "cover"} onChange={pickCover}/>{busy === "cover" && <Spin/>}</label>}
+        {e.kind === "rehearsal" && canCheckIn(e) && !(myAtt && myAtt.by_admin) && <button className={"btn sm" + (myAtt ? " primary" : " soft")} aria-pressed={!!myAtt} aria-busy={busy === "in"}
+          onClick={() => act("in", () => checkIn(e.id, !myAtt), myAtt ? "group.saved" : "group.checkedIn")}>{busy === "in" ? <Spin/> : <Icon name="user" sm/>} {t("group.checkIn")}</button>}
+      </div>
+      </div>}
       {e.kind === "rehearsal" && canEdit && Date.now() >= d.getTime() - 12 * 3600 * 1000 && <Attendance e={e}/>}
       <div className="event-foot">
         {set && <><button className="btn ghost sm" onClick={() => openGroupSetlist(set)}><Icon name="music" sm/> {t("group.openSetlist")}</button>
