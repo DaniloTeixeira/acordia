@@ -176,11 +176,15 @@ export function detectKey(song: {blocks: Block[]}): string {
     return {r:NOTES[m[1]], q: /°|º|dim/.test(suf) ? "d" : /^m(?!aj)/.test(suf) ? "m" : "M"}; });
   const f = info[0], l = info[info.length-1];
   let best = "E", bestScore = -1;
+  // Maior e relativa menor têm os mesmos acordes: o desempate vem da tônica no fim (pesa mais) e no começo. A
+  // menor só vale com o V maior da menor harmônica (E em Am): sem ele, "vi-IV-I-V" (Am F C G), tão comum no
+  // louvor, é tom maior (C), e música que começa no vi ou no ii não vira tom menor.
   const score = (pc: number, table: Record<number, string>, tonicQ: string) => {
     let sc = 0;
     info.forEach(c=>{ const want = table[(c.r-pc+12)%12]; if(want!==undefined) sc += want.includes(c.q) ? 1 : 0.4; });
-    if(f.r===pc && f.q===tonicQ) sc += 1.5;
-    if(l.r===pc && l.q===tonicQ) sc += 1;
+    if(f.r===pc && f.q===tonicQ) sc += 1;
+    if(l.r===pc && l.q===tonicQ) sc += 1.5;
+    if(tonicQ === "m" && !info.some(c => c.q === "M" && (c.r-pc+12)%12 === 7)) sc -= 3;
     return sc;
   };
   KEYS.forEach((k, i)=>{
