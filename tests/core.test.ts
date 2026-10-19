@@ -37,6 +37,15 @@ test("parseSong marca o refrão pela marcação [Refrão] (e não pelo [Pré-ref
   assert.deepEqual(s.chorus, [false, false, true, true]);
 });
 
+test("parseSong: com o fim marcado, o refrão vai até ele (mesmo com linhas vazias no meio)", () => {
+  const txt = (end: string) => `T\nC\nverso\n\n[Refrão]\nG\nref a\n\nD\nref b\n${end}\nEm\nponte\n\nC\nfim`;
+  for(const end of ["[/Refrão]", "[Fim do refrão]", "[fim refrao]", "[End of chorus]", "[/Coro]"])
+    assert.deepEqual(C.parseSong(txt(end)).chorus, [false, true, true, false, false], end);
+  // Sem o fim marcado, continua só o bloco seguinte; outra marcação também encerra.
+  assert.deepEqual(C.parseSong(txt("")).chorus, [false, true, false, false, false]);
+  assert.deepEqual(C.parseSong("T\n[Refrão]\nG\na\n\nD\nb\n[Ponte]\nEm\nc\n[/Refrão]").chorus, [true, true, false]);
+});
+
 test("parseSong sem marcação trata como refrão o bloco de letra que se repete", () => {
   const s = C.parseSong("T\nC\nverso\nsegue\n\nG\nSanto, santo\né o Senhor\n\nAm\noutro verso\nfim\n\nG\nsanto santo\nÉ o Senhor!\n\nC\nverso");
   assert.deepEqual(s.chorus, [false, true, false, true, false]);
@@ -82,6 +91,15 @@ test("graus em tom menor usam a tônica menor", () => {
   assert.equal(C.chordToDegree("Am", "Am"), "i");
   assert.equal(C.chordToDegree("C", "Am"), "bIII");
   assert.equal(C.chordToDegree("E7", "Am"), "V7");
+});
+
+test("detectKey não confunde o tom maior com a relativa menor (começar no vi ou no ii)", () => {
+  // Músicas reais do repertório: começam no vi ou no ii e são em E.
+  assert.equal(C.detectKey(C.parseSong("T\nC#m  A\nla\n\nE  B\nla\n\nA  B\nla\n\nE\nfim")), "E");
+  assert.equal(C.detectKey(C.parseSong("T\nF#m7  E/G#  A2\nla\n\nB  E\nla")), "E");
+  // vi-IV-I-V é tom maior; com o V maior da menor harmônica, é menor.
+  assert.equal(C.detectKey(C.parseSong("T\nAm  F  C  G\nla\n\nAm  F  C  G\nla")), "C");
+  assert.equal(C.detectKey(C.parseSong("T\nAm  F\nla\n\nE7\nla\n\nAm\nfim")), "Am");
 });
 
 test("transposição", () => {
