@@ -10,7 +10,7 @@ import { toast, confirmDialog, openDialog, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { DateInput } from "../ui/DateInput";
 import { useGroups, loadGroups, chooseGroup, setMemberRole, respond, outMark } from "../lib/groups";
-import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, fmtPhone, maskPhone, capFirst } from "../lib/calendar";
+import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, streakLevel, fmtPhone, maskPhone, capFirst } from "../lib/calendar";
 import { sortRoles, joinRoles, splitRoles } from "../lib/roles";
 import { MemberRoles, RolePicker, StatusChip, GroupMark, eventTitle, timeOf, longDay, openGroup } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
@@ -70,6 +70,12 @@ function NotesBg(){
 // (os botões ficam habilitados, só com o indicador). Se a função devolver KEEP, a trava continua
 // fechada: deu certo e a tela vai mudar (entrar no app, ir para o Google). release() reabre.
 const KEEP = Symbol("keep");
+// Chip de faltas seguidas: neutro até a 2ª; da 3ª à 7ª vai de laranja a vermelho (a 8ª já deixa a pessoa fora dos cultos).
+export function StreakChip({streak, title}: {streak: number; title?: string}){
+  const lvl = streakLevel(streak);
+  return <span className={"chip" + (lvl === null ? "" : " streak")} style={lvl === null ? undefined : {"--lvl": lvl} as React.CSSProperties} title={title}>{t("group.streak", {n: streak, max: MISS_LIMIT})}</span>;
+}
+
 export function useLock(){
   const on = useRef(false);
   const lock = async (fn: () => Promise<unknown>) => {
@@ -437,7 +443,7 @@ function MyAttendance(){
     {rate.total ? <div className="profile-stat">
       <b>{p}%</b><span className="sub">{t("profile.attCount", {present: rate.present, total: rate.total})}</span>
       {sd.out ? <span className="chip st-no">{tn("group.standOut", sd.need)}</span>
-        : sd.streak > 0 ? <span className={"chip" + (sd.streak >= MISS_LIMIT - 3 ? " st-pending" : "")}>{t("group.streak", {n: sd.streak, max: MISS_LIMIT})}</span>
+        : sd.streak > 0 ? <StreakChip streak={sd.streak}/>
         : <span className="chip st-yes">{t("group.standOk")}</span>}
       <span className="meter" aria-hidden="true"><i style={{width: p + "%"}}/></span>
     </div> : <span className="sub">{t("profile.attNone")}</span>}
@@ -466,7 +472,7 @@ function MyNext(){
       <div className="profile-next-what"><span className="profile-next-title"><b>{eventTitle(next)}</b><StatusChip status={st}/></span>
         <span className="sub">{longDay(new Date(next.starts_at))} · {timeOf(next.starts_at)}{next.place && " · " + next.place}</span>
         {roles.length > 0 && <div className="profile-next-roles"><span className="profile-next-label">{t("profile.nextRoles")}</span>
-          <span className="profile-next-chips">{roles.map(r => <span key={r} className="chip">{r}</span>)}</span></div>}</div>
+          <span className="profile-next-chips">{roles.map(r => <span key={r} className="chip role">{r}</span>)}</span></div>}</div>
       <div className="profile-next-actions">
         <button className={"btn sm" + (st === "yes" ? " primary" : " ghost")} aria-pressed={st === "yes"} aria-busy={busy === "yes"} onClick={() => answer("yes")}>{busy === "yes" ? <Spin/> : <Icon name="check" sm/>} {t("group.confirm")}</button>
         <button className={"btn sm" + (st === "no" ? " danger armed" : " ghost")} aria-pressed={st === "no"} aria-busy={busy === "no"} onClick={() => answer("no")}>{busy === "no" ? <Spin/> : <Icon name="x" sm/>} {t("group.decline")}</button>
@@ -622,7 +628,14 @@ type PeopleOrder = "az" | "new" | "old";
 // Busca (por nome ou e-mail) e ordem de uma lista de pessoas: por nome (A–Z), mais recentes ou mais antigos
 // primeiro (pela data em que entrou na lista); empate fica por nome. A ordem fica lembrada no aparelho, por lista.
 export function usePeopleFilter<T extends {email: string}>(rows: T[] | null, key: string, name: (r: T) => string, since: (r: T) => string){
-  const [q, setQ] = useState(""), nq = norm(q.trim());
+  const [q, setQState] = useState(""), nq = norm(q.trim()), listRef = useRef<HTMLUListElement>(null);
+  // Ao buscar, a lista encolhe e a página ficaria mais curta: o navegador puxaria a rolagem para cima. Enquanto
+  // há busca, a lista guarda a altura que tinha antes (min-height) e a tela fica parada.
+  const setQ = (v: string) => {
+    const ul = listRef.current;
+    if(ul) ul.style.minHeight = v.trim() ? (ul.style.minHeight || ul.offsetHeight + "px") : "";
+    setQState(v);
+  };
   const [order, setOrderState] = useState<PeopleOrder>(() => { try{ const v = localStorage.getItem(key); return v === "new" || v === "old" ? v : "az"; }catch(e){ return "az"; } });
   const setOrder = (v: string) => { setOrderState(v as PeopleOrder); try{ localStorage.setItem(key, v); }catch(e){ /* sem armazenamento: só não lembra */ } };
   const label = (r: T) => name(r) || r.email;
@@ -630,7 +643,7 @@ export function usePeopleFilter<T extends {email: string}>(rows: T[] | null, key
   const sign = order === "new" ? -1 : 1;
   const found = rows && nq ? rows.filter(r => norm(name(r)).includes(nq) || norm(r.email).includes(nq)) : rows;
   const shown = found && [...found].sort((a, b) => order === "az" ? byName(a, b) : sign * since(a).localeCompare(since(b)) || byName(a, b));
-  return {q, setQ, nq, order, setOrder, shown};
+  return {q, setQ, nq, order, setOrder, shown, listRef};
 }
 // Campo de busca e a ordem, na mesma linha.
 export function PeopleTools({idp, f}: {idp: string; f: ReturnType<typeof usePeopleFilter<any>>}){
@@ -705,7 +718,7 @@ function People({me}: {me: string}){
     {rows && rows.length > 0 && <PeopleTools idp="people" f={filter}/>}
     {/* Cabeçalho da lista, como numa tabela: marca onde as pessoas começam (no celular, só a faixa). */}
     {shown && shown.length > 0 && <div className="people-list-head" aria-hidden="true"><span>{t("people.colPerson")}</span><span>{t("people.colActions")}</span></div>}
-    <ul className="people-list" id="people-list">
+    <ul className="people-list" id="people-list" ref={filter.listRef}>
       {nq && shown && !shown.length && <li className="sub">{t("lib.noResults")}</li>}
       {failed && <li className="sub">{t("profile.loadFail")} <button type="button" className="link-btn" onClick={load}>{t("common.retry")}</button></li>}
       {shown === null ? <li className="sub">{t("auth.loading")}</li> : shown.map(r => {
@@ -731,6 +744,8 @@ function People({me}: {me: string}){
             <input type="checkbox" checked={!!r.is_admin} disabled={pending === r.email} aria-label={t("people.adminAria", {email: r.email})} onChange={() => toggleAdmin(r)}/></label>}
           {editBtn(r)}
           <button className="icon-btn sm line danger" aria-label={t("people.remove")} title={t("people.remove")} onClick={() => remove(r)}><Icon name="trash" sm/></button></span>}
+        {/* Chevron: indica que a linha inteira abre os detalhes. */}
+        <span className="member-open-hint" aria-hidden="true">›</span>
         {editing === r.email && <PersonEdit r={r} onDone={async saved => { setEditing(""); if(saved) await load(); }}/>}
       </li>; })}
     </ul>

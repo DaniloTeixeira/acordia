@@ -8,7 +8,8 @@ export interface GEvent {
   id: string; group_id: string; kind: EventKind; title: string; starts_at: string; call_at: string | null;
   place: string; notes: string; setlist_id: string | null; updated_at?: string;
 }
-export interface RosterRow { event_id: string; email: string; role: string; status: Answer; reason: string }
+// cover: e-mail de quem cobre a vaga de quem disse "não posso" (vazio ou ausente = ninguém indicado).
+export interface RosterRow { event_id: string; email: string; role: string; status: Answer; reason: string; cover?: string }
 export interface AttendanceRow { event_id: string; email: string; status: Presence; by_admin: boolean }
 export interface Unavail { email: string; day: string; note: string }
 
@@ -85,6 +86,14 @@ export function attendanceRate(email: string, events: GEvent[], att: AttendanceR
 // mark: o líder marcou a pessoa fora dos cultos (faltas de antes do app); a partir de "since" ela
 // está fora e precisa de "need" ensaios para voltar, como se tivesse chegado à 8ª falta ali.
 export const MISS_LIMIT = 8, COMEBACK = 4;
+// Quanto o chip de faltas seguidas deve chamar atenção: 0 até 2 faltas é neutro (null); da 3ª em diante vai
+// de 0 (laranja) a 100 (vermelho) na última antes de ficar fora (MISS_LIMIT - 1 = 7 faltas).
+export const STREAK_WARN_FROM = 3;
+export function streakLevel(streak: number): number | null {
+  if(streak < STREAK_WARN_FROM) return null;
+  const last = MISS_LIMIT - 1;
+  return Math.round(100 * Math.min(1, (streak - STREAK_WARN_FROM) / Math.max(1, last - STREAK_WARN_FROM)));
+}
 export interface Standing { out: boolean; streak: number; need: number; called: number; marked?: boolean }
 export interface OutMark { since: string; need: number }
 export function rehearsalStanding(email: string, events: GEvent[], att: AttendanceRow[], now = Date.now(), mark?: OutMark | null): Standing {
@@ -217,13 +226,18 @@ export function upcomingBirthdays<T extends {birthday?: string | null}>(people: 
 // ---------- escala por pessoa ----------
 // A escala guarda uma linha por função (a mesma pessoa pode tocar e cantar). Para mostrar, junta as
 // linhas de cada pessoa, na ordem em que aparecem. A resposta é a mesma em todas as linhas da pessoa.
-export interface PersonOnRoster { email: string; roles: string[]; status: Answer; reason: string }
-export function rosterByPerson(rows: Pick<RosterRow, "email" | "role" | "status" | "reason">[]): PersonOnRoster[] {
+export interface PersonOnRoster { email: string; roles: string[]; status: Answer; reason: string; cover?: string }
+export function rosterByPerson(rows: Pick<RosterRow, "email" | "role" | "status" | "reason" | "cover">[]): PersonOnRoster[] {
   const out = new Map<string, PersonOnRoster>();
   rows.forEach(r => {
-    const p = out.get(r.email) || {email: r.email, roles: [], status: r.status, reason: r.reason};
+    const p = out.get(r.email) || {email: r.email, roles: [], status: r.status, reason: r.reason, ...(r.cover ? {cover: r.cover} : {})};
     if(r.role && !p.roles.includes(r.role)) p.roles.push(r.role);
     out.set(r.email, p);
   });
   return [...out.values()];
+}
+
+// Quem disse "não posso" e ainda não indicou quem cobre (uma vez por pessoa, mesmo com várias funções).
+export function needsCover(rows: Pick<RosterRow, "email" | "status" | "cover">[]): string[] {
+  return [...new Set(rows.filter(r => r.status === "no" && !r.cover).map(r => r.email))];
 }

@@ -13,7 +13,7 @@ import type { GEvent, RosterRow, AttendanceRow, Unavail, Answer, Presence, Event
 // stats: os números do card de cada grupo no Início (próximos eventos, repertórios e membros).
 export interface Group { id: string; name: string; photo?: string; photo_round?: boolean; stats?: {events: number; setlists: number; members: number} }
 // out_since/out_need: marcado pelo líder como fora dos cultos (desde quando e quantos ensaios faltam).
-export interface Member { email: string; is_admin: boolean; role: string; name: string; birthday?: string | null; photo?: string; phone?: string; out_since?: string | null; out_need?: number; created_at?: string }
+export interface Member { email: string; is_admin: boolean; role: string; name: string; birthday?: string | null; photo?: string; phone?: string; out_since?: string | null; out_need?: number; active?: boolean; created_at?: string }
 export interface GroupSetlist { id: string; group_id: string; source_id: string; name: string; songs: number; code: string; shared_by: string; updated_at: string }
 
 interface GroupState {
@@ -85,8 +85,9 @@ export function loadGroups(gid?: string): Promise<void> {
       if(!cur){ useGroups.setState({...EMPTY, groups, loaded: true}); saveCache(); return; }
       const from = new Date(Date.now() - PAST_DAYS * 864e5).toISOString(), to = new Date(Date.now() + FUTURE_DAYS * 864e5).toISOString();
       const [mem, people, sets, evs, un] = await Promise.all([
-        // Banco ainda sem a marcação de fora dos cultos (antes da migração subir): lê sem ela.
-        cloud.from("group_members").select("email,is_admin,role,out_since,out_need,created_at").eq("group_id", cur).order("email")
+        // Banco ainda sem o ativo/inativo ou sem a marcação de fora dos cultos (antes da migração subir): lê sem eles.
+        cloud.from("group_members").select("email,is_admin,role,out_since,out_need,active,created_at").eq("group_id", cur).order("email")
+          .then(r => r.error ? cloud.from("group_members").select("email,is_admin,role,out_since,out_need,created_at").eq("group_id", cur).order("email") : r)
           .then(r => r.error ? cloud.from("group_members").select("email,is_admin,role,created_at").eq("group_id", cur).order("email") : r),
         cloud.rpc("group_people", {gid: cur}),
         cloud.from("group_setlists").select("id,group_id,source_id,name,songs,code,shared_by,updated_at").eq("group_id", cur).order("updated_at", {ascending: false}),
@@ -99,8 +100,13 @@ export function loadGroups(gid?: string): Promise<void> {
       // Em lotes, para o endereço da consulta não ficar grande demais.
       for(let i = 0; i < ids.length; i += 100){
         const part = ids.slice(i, i + 100);
+        // Banco ainda sem a coluna "covered_by": lê a escala na forma antiga.
+        const readRoster = async () => {
+          const n = await cloud.from("event_roster").select("event_id,email,role,status,reason,cover:covered_by").in("event_id", part);
+          return n.error ? cloud.from("event_roster").select("event_id,email,role,status,reason").in("event_id", part) : n;
+        };
         const [r, a] = await Promise.all([
-          cloud.from("event_roster").select("event_id,email,role,status,reason").in("event_id", part),
+          readRoster(),
           cloud.from("event_attendance").select("event_id,email,status,by_admin").in("event_id", part),
         ]);
         if(r.error) throw r.error; if(a.error) throw a.error;
@@ -209,6 +215,9 @@ export const setMemberRole = (gid: string, email: string, role: string) => email
 export const setMemberOut = (gid: string, email: string, need: number) => run(() => cloud.from("group_members")
   .update(need > 0 ? {out_since: new Date().toISOString(), out_need: need} : {out_since: null}).eq("group_id", gid).eq("email", email));
 export const outMark = (m?: Pick<Member, "out_since" | "out_need">) => m?.out_since ? {since: m.out_since, need: m.out_need || 4} : null;
+// Inativo: afastado do grupo, sem sair dele. Não aparece para escalar nem na chamada; o histórico fica.
+export const isActive = (m: Pick<Member, "active">) => m.active !== false;
+export const setMemberActive = (gid: string, email: string, active: boolean) => run(() => cloud.from("group_members").update({active}).eq("group_id", gid).eq("email", email));
 export const removeMember = (gid: string, email: string) => run(() => cloud.from("group_members").delete().eq("group_id", gid).eq("email", email));
 
 
@@ -239,6 +248,8 @@ export async function saveEvent(gid: string, id: string | null, ev: EventInput, 
 }
 export const deleteEvent = (id: string) => run(() => cloud.from("group_events").delete().eq("id", id));
 export const respond = (eventId: string, answer: Answer, reason = "") => run(() => cloud.rpc("respond_event", {eid: eventId, answer, why: reason}));
+// Quem disse "não posso" indica quem cobre a vaga (vazio tira a indicação).
+export const setCover = (eventId: string, email: string) => run(() => cloud.rpc("set_event_cover", {eid: eventId, cover: email}));
 export const checkIn = (eventId: string, on: boolean) => run(() => cloud.rpc("check_in", {eid: eventId, on_: on}));
 // Chamada feita pelo admin; null tira a marcação.
 export const markAttendance = (eventId: string, email: string, status: Presence | null) => status

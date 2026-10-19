@@ -31,7 +31,7 @@ export interface DialogProps {
   confirm: {title: string; message: string; confirm?: string; resolve: (ok: boolean) => void};
   // Escolher o novo líder do grupo antes de tirar o atual. options: os outros membros; allowNone: pode ficar
   // sem líder (só admin do app); mine: quem tira é o próprio líder. Resolve o e-mail ("" = sem líder) ou null.
-  leader: {group: string; current: string; options: {value: string; label: string}[]; allowNone: boolean; mine: boolean; resolve: (email: string | null) => void};
+  leader: {group: string; current: string; options: {value: string; label: string; sub?: string}[]; allowNone: boolean; mine: boolean; resolve: (email: string | null) => void};
   help: {page: View};
   ear: {text: string; songKey: string; onApply: (text: string, key: string) => void};
   // id null: evento novo no dia (AAAA-MM-DD).

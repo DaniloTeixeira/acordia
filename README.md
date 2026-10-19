@@ -120,6 +120,8 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] Tela cheia, com a tela sempre acesa.
 - [ ] Modos Cifras, Graus ou Letra.
 - [ ] Fonte **A− / A+** (fica salva).
+- [ ] **Caber na tela**: a letra encolhe até a música inteira caber sem rolar; botão ligado fica preenchido.
+      No celular o botão some nos medleys (não cabem numa tela), e eles rolam normalmente.
 - [ ] **Metrônomo** compacto, no BPM da primeira música.
 - [ ] **−/+ por música**: meio tom abaixo ou acima. Muda o tom para tocar no repertório.
 - [ ] Acordes clicáveis, ▶ referência, dados da música, aviso de transição e rótulo de medley.
@@ -166,10 +168,15 @@ também libera o acesso ao app para eles).
   - **escala**: quem toca o quê, com funções sugeridas e "Escalar todos";
   - avisos ao escalar: marcou que não pode no dia, já está em outro evento no dia ou já recusou; cada pessoa
     mostra quantas vezes já foi escalada no mês.
-- [ ] **Resposta da escala**: "Confirmar" ou "Não posso" com o motivo; quem lidera vê "precisa de substituto".
+- [ ] **Resposta da escala**: abas "Confirmar" e "Não posso" (gravam na hora, com spinner). Quem marca "Não posso" pode indicar
+      **quem cobre** a vaga (só um aviso para o grupo); quem lidera vê "não pode ir · falta substituto" enquanto ninguém foi indicado.
+- [ ] **Membro ativo ou inativo**: em Membros, quem lidera deixa alguém inativo (olho cortado) sem tirar do grupo.
+      O inativo some da escala e da chamada dos ensaios, mas o histórico fica; reativar é pelo mesmo botão. O líder não fica inativo.
 - [ ] **Presença nos ensaios**: "Cheguei" (de 12 h antes a 12 h depois do início) e a chamada de quem lidera
       (presente, falta, justificada), que vale por cima do "Cheguei".
-- [ ] **Adicionar ao calendário** (.ics): um evento ou todas as suas escalas, com lembrete 1 dia e 2 h antes.
+      Em Membros, o botão de check na linha da pessoa marca presença ou falta dos últimos ensaios sem abrir a agenda.
+      A lista do ensaio é uma tabela (pessoa e resposta) com todos os membros ativos, escalados ou não.
+- [ ] **Adicionar ao calendário** (.ics): todas as suas escalas de uma vez (botão no card "Suas próximas escalas"), com lembrete 1 dia e 2 h antes.
 - [ ] **Repertórios do grupo**: quem lidera compartilha um repertório seu (compartilhar de novo atualiza);
       todos abrem ("Salvar e abrir" ou "Atualizar") ou vão direto ao **Palco**.
 - [ ] **Membros**: nome, e-mail, funções (várias, como Vocal e Violão; cada um edita as suas), selo Líder, **frequência nos ensaios** (6 meses)

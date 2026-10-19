@@ -60,7 +60,7 @@ export function Stage(){
   // Caber na tela: a letra encolhe até a música (ou o medley) inteira caber sem rolar, para quem não pode
   // parar de tocar. O tamanho sai de uma busca binária medindo a altura de verdade (a quebra de linha muda
   // com o tamanho). A− e A+ desligam e seguem do tamanho em que estava.
-  const [fit, setFit] = useState(store.data.settings.stageFit === true);
+  const [fitWanted, setFit] = useState(store.data.settings.stageFit === true);
   const [fitFs, setFitFs] = useState<number | null>(null);
   const search = useRef<{lo: number; hi: number} | null>(null);
   const [box, setBox] = useState(0);
@@ -82,6 +82,10 @@ export function Stage(){
     return [a, z];
   };
   const [first, last] = screen(Math.min(cur, Math.max(0, src.length - 1)));
+  // Medley no celular quase nunca cabe numa tela: o botão some e a música rola normalmente. A escolha do
+  // usuário fica guardada e volta nas músicas avulsas.
+  const noFit = last > first && matchMedia("(max-width:899px)").matches;
+  const fit = fitWanted && !noFit;
   // Ao trocar de tela, começa do topo; escolhida na lista uma música do meio do medley, rola até ela.
   const pendingTop = useRef<number | null>(null);
   const goSong = (i: number) => {
@@ -144,8 +148,17 @@ export function Stage(){
   }, [fit, sig, box, width, clean]);
   // A cada passo da busca: mede se coube, estreita o intervalo e tenta o meio; no fim fica com o maior que cabe.
   useLayoutEffect(() => {
-    const s = search.current, sc = scroll.current; if(!fit || !s || fitFs === null || !sc) return;
-    if(sc.scrollHeight <= sc.clientHeight + 1) s.lo = fitFs; else s.hi = fitFs - 1;
+    const sc = scroll.current; if(!fit || fitFs === null || !sc) return;
+    // Mede com o tamanho que está de fato aplicado na tela (não o do estado, que pode estar um passo atrás
+    // quando a busca recomeça no mesmo ciclo) e só aceita se não passar nem na altura nem na largura: em
+    // tamanho grande a linha não quebra mais (mínimo de colunas) e vazaria para o lado, cortada.
+    const at = parseFloat(content.current?.style.getPropertyValue("--stage-fs") || "") || fitFs;
+    const ok = sc.scrollHeight <= sc.clientHeight + 1 && sc.scrollWidth <= sc.clientWidth + 1;
+    let s = search.current;
+    // Busca já terminada mas o tamanho não cabe (fonte que carregou depois, medley que mudou de altura, busca
+    // que parou no meio): confere a cada desenho e recomeça de cima do tamanho atual, em vez de ficar torto.
+    if(!s){ if(ok || at <= FIT_MIN) return; s = search.current = {lo: FIT_MIN, hi: at - 1}; }
+    else if(ok) s.lo = Math.max(s.lo, at); else s.hi = Math.min(s.hi, at - 1);
     if(s.lo >= s.hi){ search.current = null; if(fitFs !== s.lo) setFitFs(s.lo); return; }
     setFitFs(Math.ceil((s.lo + s.hi) / 2));
   });
@@ -228,7 +241,7 @@ export function Stage(){
   return <div className={"stage" + (L ? " letra" : "") + (clean ? " clean" : "") + (scrolling ? " scrolling" : "")} id="stage" role="dialog" aria-modal="true" aria-label={t("stage.aria")}>
     {/* Só a cifra: dois botões discretos no canto, voltar e caber na tela. */}
     {clean && <div className="stage-clean-bar">
-      <button className="icon-btn sm" id="stage-fit-clean" aria-pressed={fit} aria-label={t("stage.fit")} title={t("stage.fit")} onClick={toggleFit}><Icon name="fit" sm/></button>
+      {!noFit && <button className="icon-btn sm" id="stage-fit-clean" aria-pressed={fit} aria-label={t("stage.fit")} title={t("stage.fit")} onClick={toggleFit}><Icon name="fit" sm/></button>}
       <button className="icon-btn sm" id="stage-unclean" aria-label={t("stage.cleanExit")} title={t("stage.cleanExit")} onClick={toggleClean}><Icon name="x" sm/></button>
     </div>}
     <div className="stage-bar">
@@ -238,7 +251,7 @@ export function Stage(){
       <span className="grow"/>
       <button className="icon-btn" id="stage-focus" aria-pressed={focusOpen} aria-label={t("stage.focus")} title={t("stage.focus")} onClick={() => setFocusOpen(v => !v)}><Icon name="lock"/></button>
       <button className="icon-btn" id="stage-clean" aria-pressed={clean} aria-label={t("stage.clean")} title={t("stage.clean")} onClick={toggleClean}><Icon name="stage"/></button>
-      <button className="icon-btn" id="stage-fit" aria-pressed={fit} aria-label={t("stage.fit")} title={t("stage.fit")} onClick={toggleFit}><Icon name="fit"/></button>
+      {!noFit && <button className="icon-btn" id="stage-fit" aria-pressed={fit} aria-label={t("stage.fit")} title={t("stage.fit")} onClick={toggleFit}><Icon name="fit"/></button>}
       <button className="icon-btn" id="stage-metro" aria-pressed={metroOpen} aria-label={t("metro.title")} title={t("metro.title")} onClick={toggleMetro}><Icon name="metro"/></button>
       <button className="icon-btn" id="stage-smaller" aria-label={t("stage.smaller")} onClick={() => font(-2)}><b>A−</b></button>
       <button className="icon-btn" id="stage-bigger" aria-label={t("stage.bigger")} onClick={() => font(2)}><b>A+</b></button>

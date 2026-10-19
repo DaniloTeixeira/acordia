@@ -3,7 +3,7 @@
 // outro evento no dia ou já recusou. Na escala, cada pessoa pode ter mais de uma função (tocar e cantar).
 import { useRef, useState } from "react";
 import { t, tn } from "../lib/i18n";
-import { useGroups, saveEvent, personName, outMark, type RosterInput } from "../lib/groups";
+import { useGroups, saveEvent, personName, outMark, isActive, type RosterInput } from "../lib/groups";
 import { warningsFor, rehearsalStanding, monthLoad, weekly, dayKey, rosterByPerson, type EventKind, type GEvent } from "../lib/calendar";
 import { toast, type DialogProps } from "../state";
 import { Dialog, DialogHead } from "../ui/Dialog";
@@ -44,9 +44,9 @@ export function EventDialog({id, day}: DialogProps["event"]){
   // Ao escalar, a função sugerida é a primeira da pessoa; as outras dela aparecem para marcar também.
   const rolesOf = (email: string) => splitRoles(g.members.find(m => m.email === email)?.role || "");
   const firstRole = (email: string) => rolesOf(email).slice(0, 1);
-  const memberOpts = [{value: "", label: t("group.pickPerson")}, ...g.members.map(m => ({value: m.email,
+  const memberOpts = [{value: "", label: t("group.pickPerson")}, ...g.members.filter(m => isActive(m) || roster.some(r => r.email === m.email)).map(m => ({value: m.email,
     label: personName(m.email) + (m.role ? " · " + sortRoles(splitRoles(m.role)).join(", ") : "") + ((load.get(m.email) || 0) ? " · " + tn("group.load", load.get(m.email)!) : "")}))];
-  const free = g.members.filter(m => !roster.some(r => r.email === m.email));
+  const free = g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email));
   const save = async () => {
     if(!starts) return toast(t("group.needDate"));
     setBusy(true);
