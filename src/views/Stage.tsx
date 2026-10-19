@@ -5,7 +5,7 @@ import { lyricsOnly, chordLine, transitionLine, wrapCols, type SheetMode } from 
 import { t } from "../lib/i18n";
 import * as store from "../lib/store";
 import { reduced, focusPlatform } from "../lib/util";
-import { useData, useUI, openDialog } from "../state";
+import { useData, useUI } from "../state";
 import { current, sheetSongs, shiftItemKey } from "../repertoire";
 import { Icon } from "../ui/Icon";
 import { ThemeButton } from "../ui/theme";
@@ -33,12 +33,12 @@ function monoWidth(el: HTMLElement | null){
   return monoW;
 }
 
+// No Palco o acorde não abre a janela do acorde (tocando, ela tiraria o foco): tocar nele vale como tocar na tela.
 function ChordSpans({cl, songKey}: {cl: {text: string; chords: {pos: number; len: number; chord: string}[]}; songKey: string}){
   const out: React.ReactNode[] = []; let at = 0;
   cl.chords.forEach((c, i) => {
     out.push(cl.text.slice(at, c.pos));
-    out.push(<span key={i} className="chd" data-chord={c.chord} data-key={songKey || ""}
-      onClick={e => { e.stopPropagation(); openDialog("chord", {symbol: c.chord, songKey: songKey || ""}); }}>{cl.text.slice(c.pos, c.pos + c.len)}</span>);
+    out.push(<span key={i} className="chd" data-chord={c.chord} data-key={songKey || ""}>{cl.text.slice(c.pos, c.pos + c.len)}</span>);
     at = c.pos + c.len;
   });
   out.push(cl.text.slice(at));
@@ -118,7 +118,9 @@ export function Stage(){
   // (O tom entra na conta: transpor muda o tamanho das linhas de acorde.)
   const sig = src.slice(first, last + 1).map(s => s.itemId + (s.target || s.key)).join() + mode;
   const [, kick] = useState(0);
-  useEffect(() => {
+  // Antes de pintar (layout effect, como cada passo da busca): a música nova não aparece um instante no
+  // tamanho da anterior antes de ajustar.
+  useLayoutEffect(() => {
     if(!fit){ search.current = null; setFitFs(null); return; }
     search.current = {lo: FIT_MIN, hi: FIT_MAX}; setFitFs(Math.ceil((FIT_MIN + FIT_MAX) / 2)); kick(n => n + 1);
   }, [fit, sig, box, width, clean]);
@@ -235,11 +237,21 @@ export function Stage(){
     </div>}
     <div className="stage-body">
     {listOpen && src.length > 0 && <nav className="stage-list" id="stage-list" aria-label={t("stage.songs")}>
-      <ol>{src.map((s, si) => <li key={si}>
-        <button className={si === cur ? "on" : ""} aria-current={si === cur ? "true" : undefined} onClick={() => goSong(si)}>
-          <span className="n">{si + 1}</span><span className="tt">{s.title}</span>{(s.target || s.key) && !L && <small>{s.target || s.key}</small>}
-        </button>
-      </li>)}</ol>
+      {/* Medley: o nome dele e as músicas como subitens, com o mesmo número da folha. */}
+      <ol>{src.map((s, si) => {
+        const song = (i: number) => <li key={i}>
+          <button className={i === cur ? "on" : ""} aria-current={i === cur ? "true" : undefined} onClick={() => goSong(i)}>
+            <span className="n">{i + 1}</span><span className="tt">{src[i].title}</span>{(src[i].target || src[i].key) && !L && <small>{src[i].target || src[i].key}</small>}
+          </button>
+        </li>;
+        if(!s.group) return song(si);
+        if(si > 0 && src[si - 1].group === s.group) return null;
+        const [a, z] = screen(si), ids = Array.from({length: z - a + 1}, (_, k) => a + k);
+        return <li key={si} className="stage-list-medley">
+          <span className="stage-list-mh"><Icon name="link" sm/><span className="tt">{t("sheet.medleyLabel", {name: s.gname || ""})}</span></span>
+          <ol>{ids.map(song)}</ol>
+        </li>;
+      })}</ol>
     </nav>}
     <div className={"stage-scroll" + (fit ? " fit" : "")} id="stage-scroll" tabIndex={0} ref={scroll} onClick={onTap} onScroll={track}>
       <div className="stage-content" id="stage-content" ref={content} style={{"--stage-fs": size + "px"} as React.CSSProperties} data-fit={fit || undefined}>
