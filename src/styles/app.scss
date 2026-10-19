@@ -3480,9 +3480,18 @@ textarea.song-text {
   background: var(--surface);
   animation: view-in var(--t) var(--ease-out);
 }
-#stage-metro[aria-pressed="true"] {
-  background: var(--accent-soft);
-  color: var(--accent-soft-ink);
+/* Botão ligado do Palco (foco, só a cifra, caber na tela, metrônomo): preenchido na cor do app, bem diferente do
+   desligado (que é só o ícone). Vale também para os dois botões do canto no Só a cifra. */
+:is(.stage-bar, .stage-clean-bar) .icon-btn[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  opacity: 1;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+:is(.stage-bar, .stage-clean-bar) .icon-btn[aria-pressed="true"]:hover:where(:not(:disabled)) {
+  background: var(--accent);
+  color: var(--accent-ink);
+  filter: brightness(0.92);
 }
 
 /* referência (YouTube) */
@@ -4043,6 +4052,10 @@ a.btn {
 .stage-song-head h2 > .moment-chip {
   margin-left: 0.6em;
   vertical-align: middle;
+  /* "middle" mira o meio da letra minúscula; o título é de maiúsculas e números, então sobe um pouco, na
+     proporção do tamanho do Palco. */
+  position: relative;
+  top: calc(var(--stage-fs, 22px) * -0.12);
   font-weight: 600;
 }
 .medley-songs {
@@ -5442,7 +5455,8 @@ dialog.unsaved .dlg-foot::before {
   transition: opacity var(--t-fast);
 }
 .stage-clean-bar:hover,
-.stage-clean-bar:focus-within {
+.stage-clean-bar:focus-within,
+.stage-clean-bar:has([aria-pressed="true"]) {
   opacity: 1;
 }
 .stage-clean-bar .icon-btn {

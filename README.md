@@ -120,6 +120,8 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] Tela cheia, com a tela sempre acesa.
 - [ ] Modos Cifras, Graus ou Letra.
 - [ ] Fonte **A− / A+** (fica salva).
+- [ ] **Caber na tela**: a letra encolhe até a música inteira caber sem rolar; botão ligado fica preenchido.
+      No celular o botão some nos medleys (não cabem numa tela), e eles rolam normalmente.
 - [ ] **Metrônomo** compacto, no BPM da primeira música.
 - [ ] **−/+ por música**: meio tom abaixo ou acima. Muda o tom para tocar no repertório.
 - [ ] Acordes clicáveis, ▶ referência, dados da música, aviso de transição e rótulo de medley.
