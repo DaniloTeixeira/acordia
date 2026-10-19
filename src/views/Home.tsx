@@ -7,7 +7,7 @@ import * as store from "../lib/store";
 import { t, tn, locale } from "../lib/i18n";
 import { ago } from "../lib/util";
 import { useAuth } from "../lib/cloud";
-import { dayKey, eventDay, splitEvents, upcomingBirthdays, type GEvent } from "../lib/calendar";
+import { dayKey, eventDay, splitEvents, upcomingBirthdays, needsCover, type GEvent } from "../lib/calendar";
 import { useGroups, chooseGroup, personName, amGroupAdmin, deleteGroup, type Group } from "../lib/groups";
 import { useUI, useData, go, openDialog, confirmDialog, toast } from "../state";
 import { peekCurrent, openMedley, songItems, isMedley, songKey, recentItems, type Recent } from "../repertoire";
@@ -35,7 +35,7 @@ export function Home(){
   const group = g.groups.find(x => x.id === g.gid);
   const {upcoming} = splitEvents(g.events);
   const mine = upcoming.filter(e => g.roster.some(r => r.event_id === e.id && r.email === me));
-  const needs = amGroupAdmin() ? upcoming.filter(e => g.roster.some(r => r.event_id === e.id && r.status === "no")) : [];
+  const needs = amGroupAdmin() ? upcoming.filter(e => needsCover(g.roster.filter(r => r.event_id === e.id)).length > 0) : [];
   const others = upcoming.filter(e => !mine.includes(e)).slice(0, 3);
   const name = (profile?.name || me.split("@")[0]).split(" ")[0];
   const recent = recentList(), bdays = group ? upcomingBirthdays(g.members, dayKey(new Date()), 30) : [];
@@ -98,7 +98,7 @@ export function Home(){
       </Block>
 
       {needs.length > 0 && <Block id="home-needs" className="home-needs" wide title={t("home.needsSub")} count={needs.length}>
-        <ul className="my-next-list">{needs.map(e => <EventRow key={e.id} e={e} chip={<span className="chip st-no">{tn("group.needSub", g.roster.filter(r => r.event_id === e.id && r.status === "no").length)}</span>}/>)}</ul>
+        <ul className="my-next-list">{needs.map(e => <EventRow key={e.id} e={e} chip={<span className="chip st-no">{tn("group.needSub", needsCover(g.roster.filter(r => r.event_id === e.id)).length)}</span>}/>)}</ul>
       </Block>}
       <Tiles/>
     </> : <>
@@ -146,7 +146,8 @@ function ScaleCard({e}: {e: GEvent}){
     <button className={"card scale-card " + e.kind} onClick={() => openGroup("agenda", e.id)}>
       <span className="scale-when"><span>{fmt({weekday: "long"}).format(d)}, {timeOf(e.starts_at)}</span><span>{fmt({day: "numeric", month: "short"}).format(d)}</span></span>
       <b className="scale-title">{eventTitle(e)}</b>
-      <span className="sub scale-rel">{relDay(e.starts_at)}{myRows.some(r => r.role) && " · " + sortRoles(myRows.map(r => r.role).filter(Boolean)).join(", ")}</span>
+      <span className="sub scale-rel">{relDay(e.starts_at)}</span>
+      {myRows.some(r => r.role) && <span className="roster-chips">{sortRoles(myRows.map(r => r.role).filter(Boolean)).map(x => <span key={x} className="chip role">{x}</span>)}</span>}
       <span className="scale-people" aria-hidden="true">{people.slice(0, 7).map(p => <PersonAvatar key={p} email={p}/>)}
         {people.length > 7 && <span className="avatar more">+{people.length - 7}</span>}</span>
       <span className="scale-stats">

@@ -43,6 +43,7 @@
   --seg-ink: #4a5674;
   --surface: #ffffff;
   --surface-2: #eef1f9;
+  --chip-bg: #e3e8f4;
   --surface-3: #e4e9f5;
   --ink: #0f172a;
   --ink-2: #334155;
@@ -82,6 +83,8 @@
   --bad-soft: #fee2e2;
   --warn: #9a3412;
   --warn-soft: #fff1e8;
+  --role-soft: #f1e8fd;
+  --role-ink: #6b2fb3;
   --shadow-sm:
     0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.08);
   --shadow-md:
@@ -116,6 +119,7 @@
     --seg-thumb-ring: inset 0 0 0 1px #3f4d74;
     --surface: #121829;
     --surface-2: #182036;
+    --chip-bg: #29345a;
     --surface-3: #1f2942;
     --ink: #e8ecf7;
     --ink-2: #c4cce0;
@@ -155,6 +159,8 @@
     --bad-soft: #3a1717;
     --warn: #fdba74;
     --warn-soft: #2a1c12;
+    --role-soft: #3a2159;
+    --role-ink: #dcc2ff;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
     --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
@@ -185,6 +191,7 @@
   --seg-thumb-ring: inset 0 0 0 1px #3f4d74;
   --surface: #121829;
   --surface-2: #182036;
+  --chip-bg: #29345a;
   --surface-3: #1f2942;
   --ink: #e8ecf7;
   --ink-2: #c4cce0;
@@ -216,6 +223,8 @@
   --bad-soft: #3a1717;
   --warn: #fdba74;
   --warn-soft: #2a1c12;
+  --role-soft: #3a2159;
+  --role-ink: #dcc2ff;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
@@ -539,6 +548,17 @@ textarea::-webkit-scrollbar {
 .btn.ghost:hover:where(:not(:disabled)) {
   background: var(--surface-2);
 }
+/* Só texto, para ações secundárias (Fechar): sem moldura nem fundo; o hover sublinha e passa para a cor do texto (branco no escuro). */
+.btn.text {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+  font-weight: 500;
+}
+.btn.text:hover:where(:not(:disabled)) {
+  color: var(--ink);
+  text-decoration: underline;
+}
 .btn.soft {
   background: var(--accent-soft);
   color: var(--accent-soft-ink);
@@ -556,7 +576,21 @@ textarea::-webkit-scrollbar {
   filter: brightness(1.25);
 }
 .btn.danger {
+  background: var(--bad-soft);
   color: var(--bad);
+}
+/* Excluir/remover: o hover mantém o vermelho (nada de fundo cinza); escurece no claro e clareia no escuro. */
+.btn.danger:not(.ghost, .armed):hover:where(:not(:disabled)) {
+  background: var(--bad-soft);
+  filter: brightness(0.92);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .btn.danger:not(.ghost, .armed):hover:where(:not(:disabled)) {
+    filter: brightness(1.25);
+  }
+}
+:root[data-theme="dark"] .btn.danger:not(.ghost, .armed):hover:where(:not(:disabled)) {
+  filter: brightness(1.25);
 }
 .btn.danger.armed {
   background: var(--bad);
@@ -626,6 +660,20 @@ textarea::-webkit-scrollbar {
 }
 .icon-btn.line.danger:hover:where(:not(:disabled)) {
   border-color: color-mix(in srgb, var(--bad) 55%, var(--line-strong));
+}
+/* Excluir com texto: contorno vermelho sempre; no hover continua vermelho (fundo suave, borda e texto). */
+.btn.ghost.danger {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--bad) 55%, var(--line-strong));
+}
+/* O anel em gradiente do hover dos botões de contorno vira vermelho aqui, para seguir a cor do botão. */
+.btn.ghost.danger::before {
+  background: var(--bad);
+}
+.btn.ghost.danger:hover:where(:not(:disabled)) {
+  background: var(--bad-soft);
+  border-color: color-mix(in srgb, var(--bad) 55%, var(--line-strong));
+  color: var(--bad);
 }
 @media (max-width: 899px) {
   .btn .label-lg {
@@ -941,6 +989,13 @@ select.input {
 }
 .seg button[aria-pressed="true"] {
   color: var(--ink);
+}
+/* Hover das abas só no texto (sem fundo): a aba inativa passa para a cor de texto cheia. Ativa não reage. */
+@media (hover: hover) {
+  .seg button:hover:not(:disabled, [aria-disabled="true"], [aria-pressed="true"]),
+  .tab:hover:not([aria-current="page"]) {
+    color: var(--ink);
+  }
 }
 .seg.sm button {
   padding: 5px 11px;
@@ -1310,7 +1365,7 @@ main {
   border-radius: var(--r-full);
   font-size: 0.74rem;
   font-weight: 600;
-  background: var(--surface-2);
+  background: var(--chip-bg);
   color: var(--ink-2);
   white-space: nowrap;
 }
@@ -3343,7 +3398,7 @@ textarea.song-text {
 /* Estilos: nome e uma linha curta do que muda no som. */
 .pad-styles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
 }
 .pad-styles .root-btn {
@@ -4175,9 +4230,6 @@ a.btn {
   background: var(--bad);
   color: #fff;
 }
-.btn.danger-solid:hover:where(:not(:disabled)) {
-  filter: brightness(1.08);
-}
 .tuner-top .a4 span {
   font-size: 0.8rem;
   font-weight: 600;
@@ -4267,6 +4319,42 @@ a.btn {
 .menu-item .i {
   stroke: url(#g-logo);
 }
+.menu-item .menu-lbl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.menu-item.danger {
+  color: var(--bad);
+}
+.menu-item.sep {
+  margin-top: 7px;
+  position: relative;
+}
+.menu-item.sep::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -4px;
+  border-top: 1px solid var(--line);
+}
+.menu-item .menu-lbl .i,
+.menu-item.danger .i {
+  stroke: currentColor;
+}
+/* Com o menu aberto, a lista atrás não reage ao ponteiro (sem hover nas linhas, e o toque de fora só fecha o menu). */
+body[data-menu-open] .people-list li {
+  pointer-events: none;
+}
+.action-pop::backdrop {
+  background: transparent;
+}
+.action-pop {
+  width: auto;
+  min-width: 200px;
+}
+/* Um botão só (menu "⋯") ao lado dos chips das funções. */
 .lang-item [data-lang-name] {
   flex: 1;
 }
@@ -4428,6 +4516,21 @@ dialog.nudge {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* Detalhe (e-mail) ao lado do nome: cinza, fino e menor, para não competir com o nome. */
+.opt-sub {
+  margin-left: 8px;
+  font-size: .85em;
+  font-weight: 400;
+  color: var(--muted);
+}
+.menu-item[aria-selected="true"] .opt-sub {
+  color: inherit;
+  opacity: .7;
+}
+.menu-item .opt-txt {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .select-btn .chev-down {
   flex-shrink: 0;
@@ -4636,6 +4739,15 @@ dialog:not([open])::backdrop {
   flex-direction: column;
   gap: 12px;
 }
+/* Divisória abaixo do cabeçalho, simétrica à do rodapé. Fora as janelas curtas (confirmar, escolher líder,
+   instalar), onde duas linhas pesariam mais que o conteúdo. */
+dialog:not(#dlg-confirm, #dlg-leader, #dlg-install) .dlg-head {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+dialog:not(#dlg-confirm, #dlg-leader, #dlg-install) .dlg-body {
+  padding-top: 16px;
+}
 .dlg-foot {
   display: flex;
   justify-content: flex-end;
@@ -4741,12 +4853,12 @@ dialog.unsaved .dlg-foot::before {
   height: 38px;
   border-radius: 50%;
   border: 2px solid transparent;
-  opacity: 0.6;
-  background: color-mix(in srgb, var(--surface) 45%, transparent);
+  opacity: 0.32;
+  background: color-mix(in srgb, var(--surface) 30%, transparent);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   color: var(--ink);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm, none);
   cursor: pointer;
   transition:
     color var(--t) var(--ease),
@@ -7023,8 +7135,33 @@ dialog.ear-dlg {
   margin: 0;
   font-size: 1rem;
 }
-.my-next > .btn {
+/* Selo da data quadrado e do tamanho do bloco de texto (título, hora, chips e botão); o tamanho vem de useSquareBadge. */
+.my-next-list .date-badge {
   align-self: flex-start;
+  flex: none;
+}
+.my-next-list .date-badge b {
+  font-size: 1.9rem;
+}
+.my-next-list .date-badge small {
+  font-size: 0.85rem;
+}
+.my-next-hint {
+  margin: 0;
+  font-size: 0.8rem;
+}
+.my-next-ics {
+  align-self: flex-start;
+  margin-top: 8px;
+}
+@media (max-width: 420px) {
+  .my-next-ics {
+    height: auto;
+    white-space: normal;
+    text-align: left;
+    border-radius: var(--r-md);
+    padding-block: 6px;
+  }
 }
 .my-next-list {
   list-style: none;
@@ -7038,6 +7175,13 @@ dialog.ear-dlg {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+/* Funções e status juntos numa linha só, com respiro da hora acima. */
+.my-next-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
 }
 .my-next-what {
   flex: 1;
@@ -7230,10 +7374,20 @@ dialog.ear-dlg {
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 18px;
 }
 .event.declined {
   border-color: color-mix(in srgb, var(--bad) 40%, var(--line));
+}
+/* Dados do evento num cartão próprio (data, título, chips e a resposta de quem é escalado); a lista de pessoas fica fora dele. */
+.event-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
 }
 .event-top {
   display: flex;
@@ -7269,12 +7423,7 @@ dialog.ear-dlg {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-}
-.event-chev {
-  transition: transform var(--t) var(--ease-out);
-}
-.event-chev.up {
-  transform: rotate(180deg);
+  margin-top: 6px;
 }
 .chip.kind-rehearsal {
   background: var(--ok-soft);
@@ -7296,25 +7445,28 @@ dialog.ear-dlg {
   background: var(--warn-soft);
   color: var(--warn);
 }
+/* Faltas seguidas: do laranja (3ª falta) ao vermelho (7ª), pela variável --lvl (0 a 100) que vem do app. */
+.chip.streak {
+  background: color-mix(in srgb, var(--bad-soft) calc(var(--lvl) * 1%), var(--warn-soft));
+  color: color-mix(in srgb, var(--bad) calc(var(--lvl) * 1%), var(--warn));
+  font-weight: calc(500 + var(--lvl) * 2);
+}
 .event-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: flex-end;
 }
-.decline {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.decline .input {
-  flex: 1 1 220px;
-}
+/* Abas Confirmar / Não posso: dividem a largura no celular, ficam do tamanho do conteúdo na tela larga. */
+.event-reply { flex: 1 1 240px; max-width: 420px; }
+.event-reply button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; line-height: 1; }
+.event-reply button:disabled { opacity: 1; cursor: progress; }
+.event-reply [data-v="yes"][aria-pressed="true"] { color: var(--ok); }
+.event-reply [data-v="no"][aria-pressed="true"] { color: var(--bad); }
 .event-more {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
+  gap: 18px;
 }
 .event-notes {
   margin: 0;
@@ -7325,8 +7477,13 @@ dialog.ear-dlg {
 .event-foot {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 12px;
   align-items: center;
+}
+/* Ações do evento numa barra só, separada da lista; Editar e a lixeira ficam juntos. */
+.event-foot {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
 }
 .roster {
   list-style: none;
@@ -7557,6 +7714,30 @@ dialog.event-dlg {
   .people-list li.member-open:hover:not(:has(.people-edit:hover))::before {
     opacity: 1;
   }
+  .people-list li.member-open:hover .member-open-hint {
+    color: var(--ink);
+  }
+}
+/* Chevron sempre visível no lado direito da linha (mouse e toque): diz que a linha abre os detalhes. */
+.people-list li.member-open {
+  padding-inline-end: 22px;
+}
+.member-open-hint {
+  position: absolute;
+  inset-inline-end: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.7rem;
+  line-height: 1;
+  color: var(--muted);
+  transition: color var(--t);
+  pointer-events: none;
+}
+/* Na lista do Perfil as ações ocupam o meio da direita: o chevron vai para o canto de baixo. */
+.people-list:not(.members) .member-open-hint {
+  top: auto;
+  bottom: 10px;
+  transform: none;
 }
 /* Janela de detalhes do membro */
 .member-dlg-who {
@@ -7573,6 +7754,24 @@ dialog.event-dlg {
 .member-dlg-who .member-chips {
   margin-top: 4px;
 }
+/* Lixeira no canto direito do cabeçalho, centralizada na altura; 40px ainda é um bom alvo de toque. */
+.member-dlg-who .member-remove {
+  flex-shrink: 0;
+  align-self: center;
+  margin-left: auto;
+  width: 40px;
+  height: 40px;
+  color: var(--bad);
+  border-color: color-mix(in srgb, var(--bad) 55%, var(--line-strong));
+}
+.member-dlg-who .people-id {
+  min-width: 0;
+}
+/* Detalhes do membro (dados, frequência, escalas e ações): mais larga e mais alta que a janela padrão. */
+dialog.member-dlg {
+  --dlg-w: 680px;
+  max-height: min(92dvh, 880px);
+}
 .member-dlg .dlg-body {
   display: flex;
   flex-direction: column;
@@ -7581,6 +7780,44 @@ dialog.event-dlg {
 /* Título da seção mais perto do conteúdo (só o gap de 4 px do campo). */
 .member-dlg .field > span:first-child {
   margin-bottom: 0;
+}
+/* Ações da pessoa na janela de detalhes: um botão por linha no celular, 3 por linha na tela larga. */
+.member-manage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.member-manage .people-sub-h {
+  margin: 0;
+}
+.member-manage-btns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+.member-manage-btns .btn {
+  justify-content: center;
+  min-width: 0;
+  min-height: 44px;
+  height: auto;
+  padding-block: 8px;
+  text-align: center;
+  white-space: normal;
+  border-radius: var(--r-md);
+}
+/* Tela larga: 3 por linha (o Remover fica na lixeira do cabeçalho). */
+@media (min-width: 600px) {
+  .member-manage-btns {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.member-manage-btns .btn[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.member-dlg-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 .member-dlg-next {
   display: flex;
@@ -7945,7 +8182,7 @@ dialog.event-dlg {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
 .home-tool {
@@ -8287,13 +8524,14 @@ dialog.event-dlg {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  justify-content: center;
   min-height: 32px;
-  padding: 4px 12px;
+  padding: 0 12px 2px; /* o Segoe UI assenta baixo na linha: 2px embaixo sobe o texto ao centro */
   border-radius: var(--r-full);
   border: 1px solid var(--line-strong);
   background: var(--surface);
   color: var(--ink-2);
-  font: 600 0.82rem var(--font-ui);
+  font: 600 0.82rem/1.2 var(--font-ui);
   cursor: pointer;
   transition:
     background-color var(--t-fast),
@@ -8324,7 +8562,7 @@ dialog.event-dlg {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
+  gap: 7px;
 }
 .member-roles .sub {
   font-size: 0.82rem;
@@ -8345,15 +8583,20 @@ dialog.event-dlg {
   flex: 1 1 100%;
   padding-left: 70px;
 }
+/* O menu "⋯" fica no canto de cima à direita da linha, na altura do nome; o nome reserva a folga do botão. */
+.people-list.members > li {
+  position: relative;
+}
 .members .member-role-actions {
-  margin-left: auto;
+  position: absolute;
+  top: 10px;
+  right: 0;
+  margin: 0;
+}
+.members .people-who {
+  padding-right: 44px;
 }
 /* Um abaixo do outro (celular), Líder, cadeado e lixeira descem para a linha de baixo à esquerda. */
-@container (max-width: 735.98px) {
-  .members .member-role-actions {
-    margin-left: 0;
-  }
-}
 .member-roles.editing {
   flex: 1 1 100%;
   flex-direction: column;
@@ -8571,7 +8814,7 @@ dialog.event-dlg {
 }
 /* As funções são chips como os de Minhas funções: dentro do quadro (fundo --surface-2, a cor do chip
    comum), o chip ganha o fundo do card e uma borda para não sumir. Os de situação têm cor própria. */
-.profile-next-chips .chip:not(.st-yes, .st-no, .st-pending) {
+.profile-next-chips .chip:not(.st-yes, .st-no, .st-pending, .role) {
   background: var(--surface);
   border: 1px solid var(--line);
 }
@@ -8609,13 +8852,151 @@ dialog.event-dlg {
 }
 
 /* Grupo → Membros: painel "fora dos cultos" (número de ensaios para voltar e os botões). */
+.out-status {
+  margin: 0;
+}
 .out-edit-row {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 12px;
   font-size: 0.9rem;
 }
-.out-edit-row .grow {
-  flex: 1;
+.out-step {
+  gap: 10px;
+}
+.out-step .icon-btn {
+  width: 44px;
+  height: 44px;
+  font-size: 1.3rem;
+}
+.out-step b {
+  min-width: 32px;
+  font-size: 1.25rem;
+}
+.out-edit-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Grupo → Membros: atalho de presença/falta. Quadro na largura toda; cada ensaio numa linha só
+   (data e hora à esquerda, Seg à direita). */
+.people-edit.quick-att-box {
+  gap: 2px;
+  padding: 4px 12px 8px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+/* Contornada como uma tabela: moldura arredondada, linha entre os ensaios e uma divisória antes das abas. */
+.quick-att { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: 1fr auto; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+/* .people-list li (altura mínima de 65 px das pessoas) também pega estas linhas: por isso o seletor mais forte. */
+/* Colunas iguais em todas as linhas (subgrid), para a divisória vertical e o cabeçalho alinharem. */
+:is(.people-list, .event-more, .member-manage) .quick-att li { min-height: 0; display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: center; gap: 0; padding: 0 0 0 12px; border-top: 1px solid var(--line); }
+:is(.people-list, .event-more, .member-manage) .quick-att li:first-child { border-top: 0; }
+:is(.people-list, .event-more, .member-manage) .quick-att li.quick-att-head { background: color-mix(in srgb, var(--surface) 55%, transparent); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.quick-att-head .quick-att-when { padding: 4px 0; }
+.quick-att-head .quick-att-ctl { padding-top: 4px; padding-bottom: 4px; }
+.quick-att-when { padding: 5px 8px 5px 0; display: flex; align-items: baseline; gap: 8px; min-width: 0; white-space: nowrap; }
+.quick-att-when b { font-size: 0.92rem; }
+.quick-att-when b::first-letter { text-transform: uppercase; }
+.qa-short { display: none; }
+.people-edit.quick-att-box { min-width: 0; }
+/* Celular estreito: data curta (sáb., 17/10), abas e quadro mais enxutos, para a linha caber sem estourar. */
+@media (max-width: 420px) {
+  .qa-long { display: none; }
+  .qa-short { display: inline; }
+  .people-edit.quick-att-box { padding-left: 8px; padding-right: 8px; }
+  .quick-att-when { gap: 6px; }
+  :is(.people-list, .event-more, .member-manage) .quick-att-ctl { gap: 4px; padding: 5px 6px 5px 8px; }
+  :is(.people-list, .event-more, .member-manage) .quick-att li { padding-left: 8px; }
+
+  :is(.people-list, .event-more, .member-manage) .quick-att .seg button { min-width: 0; padding-left: 9px; padding-right: 9px; }
+}
+.quick-att-when .sub { font-size: 0.8rem; }
+.quick-att .seg button { min-height: 28px; padding-top: 3px; padding-bottom: 3px; font-size: 0.82rem; }
+/* Presente fica verde e Falta laranja (os mesmos tons do "em dia" e do "pendente"), para ler o resultado sem ler a palavra. */
+.quick-att .seg:has([data-v="present"][aria-pressed="true"]) { --seg-thumb: color-mix(in srgb, var(--ok) 12%, transparent); }
+.quick-att .seg:has([data-v="absent"][aria-pressed="true"]) { --seg-thumb: color-mix(in srgb, var(--warn) 12%, transparent); }
+.quick-att [data-v="present"][aria-pressed="true"] { color: var(--ok); }
+.quick-att [data-v="absent"][aria-pressed="true"] { color: var(--warn); }
+/* Hover do Presente | Falta: como nas outras abas, só o texto muda (regra global em .seg button:hover); a marcada
+   mantém a cor e só escurece no claro / clareia no escuro. */
+@media (hover: hover) {
+  .quick-att .seg button[aria-pressed="true"]:hover:not(:disabled) {
+    filter: brightness(0.92);
+  }
+}
+@media (hover: hover) and (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .quick-att .seg button[aria-pressed="true"]:hover:not(:disabled) {
+    filter: brightness(1.25);
+  }
+}
+@media (hover: hover) {
+  :root[data-theme="dark"] .quick-att .seg button[aria-pressed="true"]:hover:not(:disabled) {
+    filter: brightness(1.25);
+  }
+}
+.quick-att-foot { display: flex; justify-content: flex-end; padding-top: 4px; }
+.quick-att-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.quick-att-top .quick-att-hint { flex: 1; min-width: 0; margin: 0; align-items: flex-start; font-size: 1rem; font-weight: 700; line-height: 1.35; color: var(--ink); }
+.quick-att-top .quick-att-hint::before { margin-top: 0.15em; height: 1.05em; }
+.quick-att-top .icon-btn { flex-shrink: 0; }
+.quick-att-hint { font-size: 0.95rem; padding: 4px 0 2px; color: var(--ink); }
+.quick-att-ctl { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; align-self: stretch; padding: 5px 8px 5px 12px; border-left: 1px solid var(--line); }
+/* Abas com trilho visível (o quadro e o trilho padrão têm o mesmo fundo) e as duas do mesmo tamanho. */
+.quick-att .seg { background: color-mix(in srgb, var(--surface) 45%, transparent); box-shadow: none; padding: 2px; }
+.quick-att .seg::before { box-shadow: none; top: 2px; bottom: 2px; }
+.quick-att .seg button { min-width: 68px; font-weight: 500; }
+
+/* Chips da lista de membros por tipo: situação (verde/laranja/vermelho), escalas (azul) e funções (roxo). */
+.chip.role {
+  background: var(--role-soft);
+  color: var(--role-ink);
+}
+/* Borda de 1 px na cor do próprio texto do chip (mais acesa que o fundo). Em sombra interna para o chip não crescer. */
+.member-roles .chip:not(.leader, .current),
+.chip.role,
+.chip:is(.st-yes, .st-no, .st-pending) {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent);
+}
+
+/* Lista do ensaio na agenda (mesma tabela do atalho de presença): nome com as funções ao lado, resposta à direita. */
+.roster-tbl .quick-att-when { flex-wrap: wrap; align-items: center; white-space: normal; row-gap: 4px; }
+.roster-tbl .quick-att-when b { font-weight: 600; }
+.roster-tbl .roster-chips { flex-basis: auto; }
+.roster-tbl .roster-reason { padding-left: 0; }
+.roster-tbl .quick-att-ctl { justify-content: center; min-width: 110px; }
+
+/* Ensaio na agenda: três colunas (pessoa, funções, resposta); a resposta é só texto colorido, sem pílula. */
+.roster-tbl { grid-template-columns: minmax(64px, auto) minmax(0, 1fr) auto; }
+.roster-tbl .quick-att-roles { padding: 5px 8px; min-width: 0; border-left: 1px solid var(--line); align-self: stretch; display: flex; align-items: center; }
+.roster-tbl .quick-att-head .quick-att-roles { padding: 4px 8px; }
+.roster-tbl .quick-att-when { flex-direction: column; align-items: flex-start; gap: 2px; }
+.roster-tbl .quick-att-ctl { min-width: 0; }
+.roster-tbl .quick-att-ctl .chip { background: transparent; padding: 0; font-weight: 500; }
+@media (max-width: 420px) {
+  .roster-tbl .quick-att-ctl .chip svg { display: none; }
+}
+
+/* Seções do evento (resposta, escala, observações): cada uma com o título de barra gradiente. */
+.event-sec { display: flex; flex-direction: column; gap: 8px; }
+.event-sec > .people-sub-h { margin: 0; }
+
+/* Quem cobre (só para quem marcou "Não posso"): rótulo e lista na mesma linha e da mesma altura das abas ao lado. */
+.event-reply { height: 42px; box-sizing: border-box; }
+.event-cover { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; flex: 0 1 auto; max-width: 100%; font-size: 0.88rem; color: var(--ink-2); }
+.event-cover > span { white-space: nowrap; }
+.event-cover .select-btn { width: auto; max-width: 100%; height: 42px; min-height: 0; box-sizing: border-box; border-radius: var(--r-full); padding-left: 16px; }
+/* Celular estreito: as abas ocupam a linha toda e a lista de quem cobre vai para baixo delas. */
+@media (max-width: 420px) {
+  .event-reply { flex-basis: 100%; max-width: none; }
+}
+
+/* Chips do cabeçalho do evento (tipo, situação, falta substituto): só contorno fino na cor do texto, sem fundo cheio. */
+.event-chips .chip {
+  background: transparent;
+  font-weight: 500;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 35%, transparent);
 }

@@ -5,7 +5,8 @@ import { createPortal } from "react-dom";
 import { Icon } from "./Icon";
 import { placeNear, toggler } from "./popover";
 
-export interface Opt { value: string; label: string }
+// sub: detalhe discreto depois do nome (ex.: e-mail), em tom suave na lista e no botão.
+export interface Opt { value: string; label: string; sub?: string }
 export interface OptGroup { group: string; options: Opt[] }
 export type Options = (Opt | OptGroup)[];
 const flat = (o: Options) => o.flatMap(x => "group" in x ? x.options : [x]);
@@ -47,7 +48,7 @@ export function Select({value, options, onChange, id, className = "", aria, styl
     btn.current?.focus();
   };
   const item = (o: Opt) => <button key={o.value} type="button" className="menu-item" role="option" data-value={o.value} aria-selected={o.value === value}
-    onClick={() => choose(o.value)}>{o.label}{o.value === value && <Icon name="check" sm/>}</button>;
+    onClick={() => choose(o.value)}><span className="opt-txt">{o.label}{o.sub && <span className="opt-sub">{o.sub}</span>}</span>{o.value === value && <Icon name="check" sm/>}</button>;
   const onKey = (e: React.KeyboardEvent) => {
     const items = [...pop.current!.querySelectorAll<HTMLElement>(".menu-item")], i = items.indexOf(document.activeElement as HTMLElement);
     if(e.key === "ArrowDown" || e.key === "ArrowUp"){ e.preventDefault(); items[Math.max(0, Math.min(items.length - 1, i + (e.key === "ArrowDown" ? 1 : -1)))]?.focus(); }
@@ -64,13 +65,13 @@ export function Select({value, options, onChange, id, className = "", aria, styl
     <select className={"input native-hidden " + className} id={id} value={value} tabIndex={-1} aria-label={aria} disabled={disabled}
       data-instrument={dataInstrument ? "" : undefined} data-f={f} onChange={e => onChange(e.target.value)}>
       {options.map(o => "group" in o
-        ? <optgroup key={o.group} label={o.group}>{o.options.map(x => <option key={x.value} value={x.value}>{x.label}</option>)}</optgroup>
-        : <option key={o.value} value={o.value}>{o.label}</option>)}
+        ? <optgroup key={o.group} label={o.group}>{o.options.map(x => <option key={x.value} value={x.value}>{x.label}{x.sub ? " · " + x.sub : ""}</option>)}</optgroup>
+        : <option key={o.value} value={o.value}>{o.label}{o.sub ? " · " + o.sub : ""}</option>)}
     </select>
     <button type="button" ref={btn} className={"input select-btn " + className} aria-haspopup="listbox" aria-expanded={open} aria-label={aria}
       style={style} disabled={disabled} onPointerDown={tg.onPointerDown} onClick={tg.onClick}
       onKeyDown={e => { if(e.key === "ArrowDown" || e.key === "ArrowUp"){ e.preventDefault(); show(); } }}>
-      <span className="select-label">{cur ? cur.label : ""}</span><Icon name="chev" sm className="chev-down"/>
+      <span className="select-label">{cur ? cur.label : ""}{cur?.sub && <span className="opt-sub">{cur.sub}</span>}</span><Icon name="chev" sm className="chev-down"/>
     </button>
     {host && createPortal(<div ref={pop} className="popover menu-pop select-pop" popover="auto" role="listbox" onKeyDown={onKey}
 >
