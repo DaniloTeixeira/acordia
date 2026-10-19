@@ -12,7 +12,7 @@ import { current, openMedley } from "../repertoire";
 import type { Item } from "../lib/types";
 import { copyName } from "./Library";
 import { saveBlob } from "../lib/pdf";
-import { ago, reduced, flashSaved } from "../lib/util";
+import { ago, reduced, flashSaved, reveal } from "../lib/util";
 import { splitRoles, joinRoles, toggleRole, sortRoles } from "../lib/roles";
 import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, loadGroups, chooseGroup, createGroup, renameGroup, deleteGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setMemberRole, removeMember,
@@ -274,13 +274,15 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
   const d = new Date(e.starts_at), isPast = d.getTime() < Date.now() - 6 * 3600 * 1000;
   const att = g.attendance.filter(a => a.event_id === e.id), myAtt = att.find(a => a.email === me);
   const needs = roster.filter(r => r.status === "no");
+  // Abriu: rola para o evento aberto ficar inteiro na tela.
+  const toggleOpen = () => { if(!open) reveal(ref.current); setOpen(o => !o); };
   const act = (key: string, fn: () => Promise<boolean>, ok?: string) => lock(async () => { setBusy(key); const r = await fn().finally(() => setBusy("")); toast(t(r ? ok || "group.saved" : "profile.saveFail")); return r; });
   const yes = mineRows.length > 0 && !isPast && <button className={"btn sm" + (myStatus === "yes" ? " primary" : " ghost")} aria-pressed={myStatus === "yes"} aria-busy={busy === "yes"}
     onClick={() => act("yes", () => respond(e.id, myStatus === "yes" ? "pending" : "yes"), myStatus === "yes" ? "group.saved" : "group.confirmed")}>{busy === "yes" ? <Spin/> : <Icon name="check" sm/>} {t("group.confirm")}</button>;
   const no = mineRows.length > 0 && !isPast && <button className={"btn sm" + (myStatus === "no" ? " danger armed" : " ghost")} aria-pressed={myStatus === "no"}
     onClick={() => myStatus === "no" ? act("no", () => respond(e.id, "pending")) : (setDeclining(true), setOpen(true))}><Icon name="x" sm/> {t("group.decline")}</button>;
   return <li ref={ref} className={"card event " + e.kind + (myStatus === "no" ? " declined" : "")}>
-    <div className="event-top" onClick={() => setOpen(o => !o)}>
+    <div className="event-top" onClick={toggleOpen}>
       <span className="date-badge" ref={sq.badge}><small>{fmt({weekday: "short"}).format(d)}</small><b>{d.getDate()}</b><small>{fmt({month: "short"}).format(d)}</small></span>
       <div className="event-what" ref={sq.what}>
         <b>{eventTitle(e)}</b>
@@ -295,7 +297,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
           {pendingCheckIn(e, [me], g.attendance).length > 0 && <span className="chip st-pending"><Icon name="dot" sm/> {t("group.att.pending")}</span>}
         </span>
       </div>
-      <button className="icon-btn sm" aria-expanded={open} aria-label={t(open ? "group.less" : "group.more")} onClick={ev => { ev.stopPropagation(); setOpen(o => !o); }}><Icon name="chev" sm className={"event-chev" + (open ? " up" : "")}/></button>
+      <button className="icon-btn sm" aria-expanded={open} aria-label={t(open ? "group.less" : "group.more")} onClick={ev => { ev.stopPropagation(); toggleOpen(); }}><Icon name="chev" sm className={"event-chev" + (open ? " up" : "")}/></button>
     </div>
     {(yes || no || (e.kind === "rehearsal" && canCheckIn(e))) && <div className="event-actions">
       {yes}{no}
@@ -308,9 +310,12 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
       <button className="btn danger-solid sm" aria-busy={busy === "no"}>{busy === "no" && <Spin/>}{t("group.sendDecline")}</button>
     </form>}
     {open && <div className="event-more">
+      {/* Cada pessoa: nome e situação em cima, as funções neste evento como chips embaixo. */}
       {roster.length ? <ul className="roster">{rosterByPerson(roster).map(r => <li key={r.email} className={"st-" + r.status}>
-        <span className="roster-role">{sortRoles(r.roles).join(", ") || "—"}</span><span className="roster-who">{personName(r.email)}{r.email === me && " " + t("group.you")}</span>
-        <StatusChip status={r.status}/>{r.reason && <span className="roster-reason">“{r.reason}”</span>}</li>)}</ul>
+        <span className="roster-who">{personName(r.email)}{r.email === me && " " + t("group.you")}</span>
+        <StatusChip status={r.status}/>
+        {r.roles.length > 0 && <span className="roster-chips">{sortRoles(r.roles).map(x => <span key={x} className="chip">{x}</span>)}</span>}
+        {r.reason && <span className="roster-reason">“{r.reason}”</span>}</li>)}</ul>
         : <p className="sub">{t("group.noRoster")}</p>}
       {e.notes && <p className="event-notes">{e.notes}</p>}
       {e.kind === "rehearsal" && canEdit && Date.now() >= d.getTime() - 12 * 3600 * 1000 && <Attendance e={e}/>}
@@ -492,7 +497,7 @@ function OutEdit({m, marked, need, busy, onSave, onCancel}: {m: Member; marked: 
 }
 
 // Funções para escolher: as mais comuns e as que o grupo já usa.
-const ROLES = ["sound", "voice", "bass", "drums", "acoustic", "keys"];
+const ROLES = ["sound", "voice", "bass", "drums", "acoustic", "electric", "keys"];
 export function roleOptions(){
   const g = useGroups.getState();
   return sortRoles(splitRoles([...ROLES.map(r => t("group.roles." + r)), ...g.members.map(m => m.role), ...g.roster.map(r => r.role)].join(",")));

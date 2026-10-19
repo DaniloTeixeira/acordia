@@ -6457,6 +6457,10 @@ dialog.ear-dlg {
   .people-list li {
     row-gap: 12px;
   }
+  /* Os botões descem para baixo de cada pessoa: o rótulo "Ações" do cabeçalho não aponta para eles. */
+  .people-list-head > span:last-child {
+    display: none;
+  }
 }
 .people-email {
   min-width: 0;
@@ -7037,12 +7041,6 @@ dialog.ear-dlg {
   gap: 6px 10px;
   font-size: 0.9rem;
 }
-.roster-role {
-  min-width: 96px;
-  font-weight: 700;
-  color: var(--ink-2);
-  font-size: 0.82rem;
-}
 .roster-who {
   flex: 1;
   min-width: 0;
@@ -7096,9 +7094,21 @@ dialog.ear-dlg {
 .roster li {
   padding: 6px 0;
 }
-.attendance li + li,
-.roster li + li {
+.attendance li + li {
   border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+}
+/* Escala do evento: uma linha bem visível entre as pessoas; funções em chips na linha de baixo. */
+.roster li {
+  padding: 10px 0;
+}
+.roster li + li {
+  border-top: 1px solid var(--line);
+}
+.roster-chips {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 /* Chamada aberta: o prazo e o aviso no WhatsApp para os pendentes. */
 .att-pending {

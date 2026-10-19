@@ -1,7 +1,7 @@
 // Rode com: npm test
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, rehearsalStanding, canCheckIn, pendingCheckIn, waNumber, waLink, fmtPhone, toICS, splitEvents, dayKey, upcomingBirthdays, rosterByPerson, type GEvent, type RosterRow } from "../src/lib/calendar";
+import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, rehearsalStanding, canCheckIn, pendingCheckIn, waNumber, waLink, fmtPhone, maskPhone, capFirst, toICS, splitEvents, dayKey, upcomingBirthdays, rosterByPerson, type GEvent, type RosterRow } from "../src/lib/calendar";
 
 const ev = (id: string, starts: Date, kind: GEvent["kind"] = "service"): GEvent =>
   ({id, group_id: "g", kind, title: id, starts_at: starts.toISOString(), call_at: null, place: "", notes: "", setlist_id: null});
@@ -163,4 +163,18 @@ test("celular para mostrar: formato do Brasil, outros como vieram", () => {
   assert.equal(fmtPhone("011 3456-7890"), "(11) 3456-7890");
   assert.equal(fmtPhone("+353 87 123 4567"), "+353 87 123 4567");
   assert.equal(fmtPhone("123"), "123");
+});
+
+test("maskPhone formata o celular enquanto digita; capFirst deixa a primeira letra maiúscula", () => {
+  assert.equal(maskPhone(""), "");
+  assert.equal(maskPhone("1"), "(1");
+  assert.equal(maskPhone("119"), "(11) 9");
+  assert.equal(maskPhone("1196416"), "(11) 9641-6");
+  assert.equal(maskPhone("1112345678"), "(11) 1234-5678");
+  assert.equal(maskPhone("11964160074"), "(11) 96416-0074");
+  assert.equal(maskPhone("(11) 96416-00745"), "(11) 96416-0074");
+  assert.equal(maskPhone("+353 87 123"), "+353 87 123");
+  assert.equal(capFirst("danilo"), "Danilo");
+  assert.equal(capFirst(" élio"), " Élio");
+  assert.equal(capFirst("Ana"), "Ana");
 });

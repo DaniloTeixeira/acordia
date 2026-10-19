@@ -143,6 +143,18 @@ export function fmtPhone(phone: string){
   if(!br) return s;
   return "(" + br.slice(0, 2) + ") " + br.slice(2, -4) + "-" + br.slice(-4);
 }
+// Máscara do campo de celular, enquanto digita: (11) 91234-5678 (ou (11) 1234-5678 com 10 números). Número com
+// + (de fora) fica como foi digitado.
+export function maskPhone(v: string){
+  if(/^\s*\+/.test(v)) return v.replace(/[^\d+()\- ]/g, "").slice(0, 30);
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  if(!d) return "";
+  if(d.length <= 2) return "(" + d;
+  const rest = d.slice(2), cut = d.length === 11 ? 5 : 4;
+  return "(" + d.slice(0, 2) + ") " + (rest.length > cut ? rest.slice(0, cut) + "-" + rest.slice(cut) : rest);
+}
+// Nome com a primeira letra maiúscula, mesmo digitado em minúscula ("danilo" → "Danilo").
+export const capFirst = (v: string) => v.replace(/^(\s*)(\p{L})/u, (_, sp: string, c: string) => sp + c.toLocaleUpperCase());
 // Abre o WhatsApp com a mensagem já escrita: para a pessoa, ou sem número para escolher a conversa
 // (o grupo da equipe, por exemplo).
 export const waLink = (text: string, phone = "") => "https://wa.me/" + waNumber(phone) + "?text=" + encodeURIComponent(text);

@@ -34,8 +34,8 @@ export interface DialogProps {
   event: {id: string | null; day: string};
   // Recortar a foto escolhida (src: link local da imagem, URL.createObjectURL): a do perfil ou, com gid, a do grupo.
   photo: {src: string; gid?: string};
-  // Detalhes de um membro do grupo aberto (só leitura).
-  member: {email: string};
+  // Detalhes de uma pessoa (só leitura): do grupo aberto ou, fora dele, com os dados da lista de acesso.
+  member: {email: string; person?: {name: string; phone: string; birthday: string | null; photo: string}};
 }
 export type DialogName = keyof DialogProps;
 

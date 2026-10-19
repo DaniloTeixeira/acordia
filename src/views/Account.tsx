@@ -10,7 +10,7 @@ import { Icon } from "../ui/Icon";
 import { DateInput } from "../ui/DateInput";
 import { useFold, FoldHead } from "../ui/Fold";
 import { useGroups, loadGroups, setMemberRole, respond, outMark } from "../lib/groups";
-import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, fmtPhone } from "../lib/calendar";
+import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, fmtPhone, maskPhone, capFirst } from "../lib/calendar";
 import { sortRoles, joinRoles, splitRoles } from "../lib/roles";
 import { MemberRoles, RolePicker, StatusChip, eventTitle, timeOf, longDay } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
@@ -340,7 +340,7 @@ export function Profile(){
         <h3 className="people-sub-h" id="profile-data-h">{t("profile.data")}</h3>
         <div className="profile-pair">
         <label className="field"><span>{t("profile.name")}</span><input className="input" id="profile-name" maxLength={80} autoComplete="name" value={name}
-          onChange={e => setName(e.target.value)} onBlur={async e => { const el = e.currentTarget; if(name.trim() !== (profile?.name || "")){ if(await saveName(name)) flashSaved(el); else toast(t("profile.saveFail")); } }}
+          onChange={e => setName(capFirst(e.target.value))} onBlur={async e => { const el = e.currentTarget; if(name.trim() !== (profile?.name || "")){ if(await saveName(name)) flashSaved(el); else toast(t("profile.saveFail")); } }}
           onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}/></label>
         <PhoneField/>
         <BirthdayField/>
@@ -457,12 +457,12 @@ export const today = () => new Date(Date.now() - new Date().getTimezoneOffset() 
 // Celular no perfil: salva ao sair do campo (o grupo vê, para achar substituto).
 function PhoneField(){
   const saved = useAuth(s => s.profile?.phone || "");
-  const [v, setV] = useState(saved);
-  useEffect(() => setV(saved), [saved]);
+  const [v, setV] = useState(maskPhone(saved));
+  useEffect(() => setV(maskPhone(saved)), [saved]);
   return <label className="field"><span>{t("profile.phone")}</span>
     <input className="input" id="profile-phone" type="tel" inputMode="tel" autoComplete="tel" maxLength={30} placeholder={t("profile.phonePh")} value={v}
-      onChange={e => setV(e.target.value)} onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}
-      onBlur={async e => { const el = e.currentTarget; if(cleanPhone(v) === saved) return; if(await savePhone(v)) flashSaved(el); else { setV(saved); toast(t("profile.saveFail")); } }}/></label>;
+      onChange={e => setV(maskPhone(e.target.value))} onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}
+      onBlur={async e => { const el = e.currentTarget; if(cleanPhone(v) === saved || v === maskPhone(saved)) return; if(await savePhone(v)) flashSaved(el); else { setV(maskPhone(saved)); toast(t("profile.saveFail")); } }}/></label>;
 }
 
 // Data de nascimento no perfil: salva ao mudar (o grupo vê só o dia e o mês, na página Início).
@@ -483,7 +483,7 @@ export const fmtBirthday = (v: string) => new Intl.DateTimeFormat(locale(), {day
 // aparece travado: só ela muda.
 function PersonEdit({r, onDone}: {r: Allowed; onDone: (saved: boolean) => void}){
   const [name, setName] = useState(r.profileName || r.name), [birthday, setBirthday] = useState(r.profileBirthday || r.birthday || "");
-  const [phone, setPhone] = useState(r.profilePhone || r.phone);
+  const [phone, setPhone] = useState(maskPhone(r.profilePhone || r.phone));
   const [busy, setBusy] = useState(false), lock = useLock();
   // Funções, como no cadastro: só com um grupo, e se a pessoa está nele (o grupo aberto é esse grupo).
   const g = useGroups(), only = g.groups.length === 1 ? g.groups[0] : null, member = only && g.gid === only.id ? g.members.find(x => x.email === r.email) : undefined;
@@ -503,9 +503,9 @@ function PersonEdit({r, onDone}: {r: Allowed; onDone: (saved: boolean) => void})
   return <form className="people-edit" onSubmit={save}>
     <div className="people-add">
       <div className="field"><label htmlFor={"edit-name-" + r.email}>{t("profile.name")}</label>
-        <input className="input" id={"edit-name-" + r.email} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onChange={e => setName(e.target.value)} autoFocus/></div>
+        <input className="input" id={"edit-name-" + r.email} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onChange={e => setName(capFirst(e.target.value))} autoFocus/></div>
       <div className="field phone"><label htmlFor={"edit-phone-" + r.email}>{t("profile.phone")}</label>
-        <input className="input" id={"edit-phone-" + r.email} type="tel" inputMode="tel" autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} onChange={e => setPhone(e.target.value)}/></div>
+        <input className="input" id={"edit-phone-" + r.email} type="tel" inputMode="tel" autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} onChange={e => setPhone(maskPhone(e.target.value))}/></div>
       <div className="field birthday"><label htmlFor={"edit-birthday-" + r.email}>{t("profile.birthday")}</label>
         <DateInput className="people-birthday" id={"edit-birthday-" + r.email} max={today()} clearable value={birthday} disabled={lockedDate} onChange={setBirthday}/></div>
       <button type="button" className="btn ghost" onClick={() => onDone(false)}>{t("common.cancel")}</button>
@@ -527,13 +527,13 @@ export function PersonFields({idp, name, onName, email, onEmail, phone, onPhone,
   email: string; onEmail: (v: string) => void; phone: string; onPhone: (v: string) => void; birthday: string; onBirthday: (v: string) => void; check: ReturnType<typeof useEmailCheck>}){
   return <>
     <div className="field"><label htmlFor={idp + "-name"}>{t("profile.name")}</label>
-      <input className="input" id={idp + "-name"} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onChange={e => onName(e.target.value)}/></div>
+      <input className="input" id={idp + "-name"} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onChange={e => onName(capFirst(e.target.value))}/></div>
     <div className="field"><label htmlFor={idp + "-email"}>{t("auth.email")}</label>
       <input className="input" id={idp + "-email"} type="email" inputMode="email" autoComplete="off" placeholder={t("people.emailPh")} value={email}
         aria-invalid={check.bad} aria-describedby={check.bad ? idp + "-email-err" : undefined} onBlur={check.blur} onChange={e => onEmail(e.target.value)}/>
       {check.bad && <span className="field-error" id={idp + "-email-err"}>{t("auth.badEmail")}</span>}</div>
     <div className="field phone"><label htmlFor={idp + "-phone"}>{t("profile.phone")}</label>
-      <input className="input" id={idp + "-phone"} type="tel" inputMode="tel" autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} onChange={e => onPhone(e.target.value)}/></div>
+      <input className="input" id={idp + "-phone"} type="tel" inputMode="tel" autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} onChange={e => onPhone(maskPhone(e.target.value))}/></div>
     <div className="field birthday"><label htmlFor={idp + "-birthday"}>{t("profile.birthday")}</label>
       <DateInput className="people-birthday" id={idp + "-birthday"} max={today()} clearable value={birthday} onChange={onBirthday}/></div>
   </>;
@@ -596,12 +596,16 @@ function People({me}: {me: string}){
       {failed && <li className="sub">{t("profile.loadFail")} <button type="button" className="link-btn" onClick={load}>{t("common.retry")}</button></li>}
       {shown === null ? <li className="sub">{t("auth.loading")}</li> : shown.map(r => {
         const nm = r.profileName || r.name, bd = r.profileBirthday || r.birthday, ph = r.profilePhone || r.phone;
+        const openPerson = () => openDialog("member", {email: r.email, person: {name: nm, phone: ph, birthday: bd || null, photo: r.profilePhoto || ""}});
         return <li key={r.email}>
         {/* O "Admin" fica logo depois do nome (ou do e-mail, para quem ainda não tem nome). */}
-        <span className="people-who"><Avatar person={{name: nm, email: r.email, photo: r.profilePhoto}}/><span className="people-id">
+        {/* Tocar na pessoa (foto ou texto) abre os detalhes, como em Grupo → Membros; o nome é o botão. */}
+        <span className="people-who member-open" onClick={e => { if(!(e.target as HTMLElement).closest("a, button")) openPerson(); }}>
+          <Avatar person={{name: nm, email: r.email, photo: r.profilePhoto}}/><span className="people-id">
           {/* Sempre as três linhas (nome, e-mail, celular), com um texto apagado no que falta: todas as pessoas
               ficam com a mesma altura. */}
-          <span className="people-name">{nm ? <b>{nm}</b> : <span className="people-missing">{t("people.noName")}</span>}{r.is_admin && <span className="chip accent">{t("profile.admin")}</span>}</span>
+          <span className="people-name"><button type="button" className="member-open-btn" aria-label={t("member.open", {name: nm || r.email})} onClick={openPerson}>
+            {nm ? <b>{nm}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{r.is_admin && <span className="chip accent">{t("profile.admin")}</span>}</span>
           <span className="sub people-email">{r.email}{bd && " · " + fmtBirthday(bd)}</span>
           {ph ? <PhoneLink phone={ph}/> : <span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}</span></span>
         {r.email === me ? <span className="chip">{t("people.you")}</span> : <span className="people-actions">
