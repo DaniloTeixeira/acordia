@@ -4943,9 +4943,17 @@ dialog.unsaved .dlg-foot::before {
 .stage-nav:has(#stage-now[aria-expanded="true"]) {
   background: var(--accent-soft);
 }
-/* Com a lista de músicas aberta, as setas saem para não ficar em cima dela. */
-.stage-nav:has(#stage-now[aria-expanded="true"]) :is(#stage-prev, #stage-next) {
-  display: none;
+/* Com a lista de músicas aberta por cima da cifra (celular e tablet), as setas saem para não ficar em cima dela.
+   Na tela larga a lista fica ao lado: as setas ficam, e a da esquerda passa para depois da lista (280 px). */
+@media (max-width: 999px) {
+  .stage-nav:has(#stage-now[aria-expanded="true"]) :is(#stage-prev, #stage-next) {
+    display: none;
+  }
+}
+@media (min-width: 1000px) {
+  .stage-nav:has(#stage-now[aria-expanded="true"]) #stage-prev {
+    left: calc(280px + 6px);
+  }
 }
 /* Música anterior e próxima: nos cantos da tela, no meio da altura, fáceis de alcançar com o polegar. Fantasma
    (só o contorno e um fundo bem leve), para a cifra continuar legível por baixo; igual em todas as telas. */

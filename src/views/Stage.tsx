@@ -248,7 +248,7 @@ export function Stage(){
         if(si > 0 && src[si - 1].group === s.group) return null;
         const [a, z] = screen(si), ids = Array.from({length: z - a + 1}, (_, k) => a + k);
         return <li key={si} className="stage-list-medley">
-          <span className="stage-list-mh"><Icon name="link" sm/><span className="tt">{t("sheet.medleyLabel", {name: s.gname || ""})}</span></span>
+          <span className="stage-list-mh"><Icon name="link" sm/><span className="tt">{s.gname || t("sheet.medleyLabel", {name: ""})}</span></span>
           <ol>{ids.map(song)}</ol>
         </li>;
       })}</ol>
