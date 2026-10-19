@@ -4971,22 +4971,22 @@ dialog.unsaved .dlg-foot::before {
     left: calc(280px + 6px);
   }
 }
-/* Música anterior e próxima: nos cantos da tela, no meio da altura, fáceis de alcançar com o polegar. Fantasma
-   (só o contorno e um fundo bem leve), para a cifra continuar legível por baixo; igual em todas as telas. */
+/* Música anterior e próxima: nos cantos da tela, no meio da altura, fáceis de alcançar com o polegar. Redondas e
+   fantasma (contorno e fundo bem leves, sem desfoque), para a cifra continuar legível por baixo; igual em todas
+   as telas. */
 .stage-nav #stage-prev,
 .stage-nav #stage-next {
   position: absolute;
   top: 50%;
   z-index: 3;
-  width: 52px;
-  height: 88px;
-  margin-top: -44px;
-  border-radius: var(--r-lg);
-  border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
-  background: color-mix(in srgb, var(--surface) 45%, transparent);
-  backdrop-filter: blur(2px);
+  width: 48px;
+  height: 48px;
+  margin-top: -24px;
+  border-radius: var(--r-full);
+  border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
+  background: color-mix(in srgb, var(--surface) 25%, transparent);
   box-shadow: none;
-  color: var(--ink);
+  color: color-mix(in srgb, var(--ink) 75%, transparent);
 }
 .stage-nav #stage-prev {
   left: max(6px, env(safe-area-inset-left));
@@ -4996,17 +4996,17 @@ dialog.unsaved .dlg-foot::before {
 }
 .stage-nav #stage-prev:hover:where(:not(:disabled)),
 .stage-nav #stage-next:hover:where(:not(:disabled)) {
-  background: color-mix(in srgb, var(--surface) 75%, transparent);
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
   color: var(--ink);
 }
 .stage-nav #stage-prev:disabled,
 .stage-nav #stage-next:disabled {
-  opacity: 0.25;
+  opacity: 0.2;
 }
 .stage-nav #stage-prev .i,
 .stage-nav #stage-next .i {
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   stroke-width: 2.5;
 }
 /* No celular: setas dentro da barra, ao lado do nome da música, sem cobrir a cifra; "Ver músicas" vira só o ícone. */
@@ -5019,13 +5019,13 @@ dialog.unsaved .dlg-foot::before {
   .stage-nav #stage-prev,
   .stage-nav #stage-next {
     width: 40px;
-    height: 72px;
-    margin-top: -36px;
+    height: 40px;
+    margin-top: -20px;
   }
   .stage-nav #stage-prev .i,
   .stage-nav #stage-next .i {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
   }
   .stage-nav .stage-now {
     height: 44px;
