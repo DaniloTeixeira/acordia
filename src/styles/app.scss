@@ -5194,7 +5194,14 @@ dialog.unsaved .dlg-foot::before {
   border-bottom: none;
 }
 /* Só a cifra: some tudo menos a música (título e linhas); dois botões discretos no canto. */
-.stage.clean :is(.stage-bar, .stage-nav, .stage-progress, .stage-metro, .stage-focus, .stage-list, .stage-hint, .stage-key, .stage-ref) {
+.stage.clean :is(.stage-bar, .stage-progress, .stage-metro, .stage-focus, .stage-list, .stage-hint, .stage-key, .stage-ref) {
+  display: none;
+}
+/* A barra de navegação some, mas as setas fantasma dos cantos ficam (sem elas não dá para trocar de música). */
+.stage.clean .stage-nav {
+  display: contents;
+}
+.stage.clean .stage-nav .stage-now {
   display: none;
 }
 /* O título não passa por baixo dos dois botões do canto. */
