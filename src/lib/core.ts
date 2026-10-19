@@ -57,8 +57,11 @@ function normInterlude(line: string){
   const toks = line.replace(/[()|]/g," ").split(/\s+/).filter(Boolean);
   return /^\s*\(/.test(line) ? "( " + toks.join("  ") + " )" : null;
 }
-// Marcação de refrão: [Refrão], [Refrão 2x], [Coro], [Chorus], [Estribillo] (não [Pré-refrão]).
+// Marcação de refrão: [Refrão], [Refrão 2x], [Coro], [Chorus], [Estribillo] (não [Pré-refrão]). Sozinha, marca o
+// bloco seguinte; com o fim marcado ([/Refrão], [Fim do refrão], [End of chorus]...), tudo até ele, mesmo com
+// linhas vazias no meio. Outra marcação ([Segunda Parte]) também encerra o refrão.
 const CHORUS_TAG = /^\s*\[\s*(refr[ãa]o|coro|chorus|estribillo)(?![\p{L}])[^\]]*\]\s*$/iu;
+const CHORUS_END = /^\s*\[\s*(\/\s*(refr[ãa]o|coro|chorus|estribillo)|(fim|final|end|fin)\s+(d[oe]l?\s+|of\s+(the\s+)?)?(refr[ãa]o|coro|chorus|estribillo))(?![\p{L}])[^\]]*\]\s*$/iu;
 export function parseSong(text: string, plain?: boolean): ParsedSong {
   const raw = text.replace(/\r/g,"").split("\n");
   let i = 0; while(i<raw.length && !raw[i].trim()) i++;
@@ -66,12 +69,18 @@ export function parseSong(text: string, plain?: boolean): ParsedSong {
   // As marcações [Parte] saem da letra, mas fecham o bloco e dizem se o próximo é refrão.
   const lines = raw.slice(i).filter(l=>!/^\s*[eEBGDA]\|/.test(l)).map(cleanLine);
   const blocks: Block[] = [], chorus: boolean[] = [];
-  let cur: Block = [], tagged = false, nextChorus = false, curChorus = false;
+  // inChorus: refrão aberto com o fim marcado mais adiante (atravessa as linhas vazias).
+  const hasEnd = lines.some(l => CHORUS_END.test(l));
+  let cur: Block = [], tagged = false, nextChorus = false, curChorus = false, inChorus = false;
   const close = () => { if(cur.length){ blocks.push(cur); chorus.push(curChorus); cur = []; } };
   for(let j=0;j<lines.length;j++){
     const l = lines[j];
-    if(/^\s*\[.*\]\s*$/.test(l)){ close(); nextChorus = CHORUS_TAG.test(l); tagged ||= nextChorus; continue; }
-    if(!l.trim()){ close(); continue; }
+    if(/^\s*\[.*\]\s*$/.test(l)){
+      close();
+      nextChorus = !CHORUS_END.test(l) && CHORUS_TAG.test(l); inChorus = nextChorus && hasEnd; tagged ||= nextChorus;
+      continue;
+    }
+    if(!l.trim()){ close(); if(inChorus) nextChorus = true; continue; }
     if(!cur.length){ curChorus = nextChorus; nextChorus = false; }
     // Só a letra: as linhas de cifra saem e a letra perde os "_" e os espaços de alinhar com os acordes.
     if(plain){ if(!isChordLine(l)){ const t = l.replace(/_+/g,"").replace(/\s+/g," ").trim(); if(t) cur.push({kind:"lyric",lyric:t}); } continue; }
@@ -176,11 +185,15 @@ export function detectKey(song: {blocks: Block[]}): string {
     return {r:NOTES[m[1]], q: /°|º|dim/.test(suf) ? "d" : /^m(?!aj)/.test(suf) ? "m" : "M"}; });
   const f = info[0], l = info[info.length-1];
   let best = "E", bestScore = -1;
+  // Maior e relativa menor têm os mesmos acordes: o desempate vem da tônica no fim (pesa mais) e no começo. A
+  // menor só vale com o V maior da menor harmônica (E em Am): sem ele, "vi-IV-I-V" (Am F C G), tão comum no
+  // louvor, é tom maior (C), e música que começa no vi ou no ii não vira tom menor.
   const score = (pc: number, table: Record<number, string>, tonicQ: string) => {
     let sc = 0;
     info.forEach(c=>{ const want = table[(c.r-pc+12)%12]; if(want!==undefined) sc += want.includes(c.q) ? 1 : 0.4; });
-    if(f.r===pc && f.q===tonicQ) sc += 1.5;
-    if(l.r===pc && l.q===tonicQ) sc += 1;
+    if(f.r===pc && f.q===tonicQ) sc += 1;
+    if(l.r===pc && l.q===tonicQ) sc += 1.5;
+    if(tonicQ === "m" && !info.some(c => c.q === "M" && (c.r-pc+12)%12 === 7)) sc -= 3;
     return sc;
   };
   KEYS.forEach((k, i)=>{
