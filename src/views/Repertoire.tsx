@@ -4,7 +4,7 @@ import { flushSync } from "react-dom";
 import { KEYS, MINOR_KEYS, songTitle, sanitizeUrl, youtubeId, parseSong, detectKey } from "../lib/core";
 import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
-import { reduced, vt, flashSaved } from "../lib/util";
+import { reduced, vt, flashSaved, reveal } from "../lib/util";
 import { useUI, useData, toast, openDialog, toggleExpanded, go } from "../state";
 import { current, isMedley, openMedley, songItems, arrangementOf, eff, songKey, lastPlayKey, sheetSongs } from "../repertoire";
 import { Icon } from "../ui/Icon";
@@ -221,7 +221,7 @@ function MedleyCard({m, it, i}: {m: Medley; it: MedleyItem; i: number}){
   const sameKey = new Set(keys).size === 1;
   // Abre e fecha como as músicas: aberto, mostra as músicas e entra na folha ao lado. O lápis edita o medley.
   const open = useUI(st => st.expanded.has(it.id));
-  const toggle = () => toggleExpanded(it.id);
+  const toggle = (e: React.MouseEvent) => { const li = e.currentTarget.closest(".item"); toggleExpanded(it.id); if(!open) reveal(li); };
   const edit = () => { if(md) openMedley(md.id, {from: m.id}); };
   return <li className={"item medley-item" + (open ? "" : " collapsed")} data-id={it.id}>
     <div className="item-head">
@@ -268,7 +268,7 @@ function ItemCard({m, it, i}: {m: Medley; it: SongItem; i: number}){
   if(!letra && it.solo) chips.push(<span key="so" className="chip">{t("sheet.solo", {name: it.solo})}</span>);
   const toggle = () => {
     toggleExpanded(it.id);
-    if(!open) setTimeout(() => ref.current?.querySelector("textarea")?.focus({preventScroll:true}), 120);
+    if(!open){ setTimeout(() => ref.current?.querySelector("textarea")?.focus({preventScroll:true}), 120); reveal(ref.current); }
   };
   // Montar cifra: os acordes entram no texto; com acordes, a música passa a ser "com cifra".
   const ear = () => openDialog("ear", {text: song.text, songKey: song.key, onApply: (nt, k) => {

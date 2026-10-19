@@ -74,7 +74,7 @@ test("traduções: parâmetros, plural e ordinal", () => {
   setLang("xx");
   assert.equal(tn("song", 2), "2 músicas");
   setLang("pt");
-  assert.equal(t("item.phChords").split("\n").length, 4);
+  assert.equal(t("item.phChords").split("\n").length, 9);
 });
 
 test("link guarda o momento pós-pregação (e ignora valores estranhos)", async () => {

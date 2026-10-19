@@ -2,17 +2,18 @@
 // pode entrar para os admins.
 import { useEffect, useRef, useState } from "react";
 import { t, tn, locale } from "../lib/i18n";
-import { useAuth, savePhone, cleanPhone, signIn, signUp, resendConfirmation, pendingConfirm, setPendingConfirm, forgotPassword, setNewPassword, signInWithGoogle, signOut, saveName, saveBirthday, listAllowed, addAllowed, setAllowedInfo, setAllowedAdmin, removeAllowed, validEmail, initials, ownPhoto, removePhoto, type Allowed } from "../lib/cloud";
+import { Select } from "../ui/Select";
+import { useAuth, savePhone, cleanPhone, signIn, signUp, resendConfirmation, pendingConfirm, setPendingConfirm, forgotPassword, setNewPassword, signInWithGoogle, signOut, saveName, saveBirthday, listAllowed, setAllowedInfo, setPersonInfo, setAllowedAdmin, removeAllowed, validEmail, initials, ownPhoto, removePhoto, type Allowed } from "../lib/cloud";
 import { DEFAULT_POLICY, missing, passes, fromError, isPwned, type PwPolicy, type PwRule } from "../lib/password";
 import { reduced, flashSaved, norm } from "../lib/util";
-import { toast, confirmDialog, openDialog, go } from "../state";
+import { toast, confirmDialog, openDialog } from "../state";
 import { Icon } from "../ui/Icon";
 import { DateInput } from "../ui/DateInput";
 import { useFold, FoldHead } from "../ui/Fold";
 import { useGroups, loadGroups, setMemberRole, respond, outMark } from "../lib/groups";
-import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, fmtPhone } from "../lib/calendar";
-import { sortRoles } from "../lib/roles";
-import { MemberRoles, StatusChip, eventTitle, timeOf, longDay } from "./Group";
+import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, fmtPhone, maskPhone, capFirst } from "../lib/calendar";
+import { sortRoles, joinRoles, splitRoles } from "../lib/roles";
+import { MemberRoles, RolePicker, StatusChip, eventTitle, timeOf, longDay, openGroup } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
 
 const BASE = import.meta.env.BASE_URL;
@@ -280,6 +281,8 @@ const GoogleIcon = () => <svg className="g-logo" viewBox="0 0 48 48" aria-hidden
 // Bolinha com as iniciais (botão do perfil no topo e no trilho; com `person`, a de outra pessoa).
 // Com foto (a enviada pelo app ou a da conta Google), mostra a foto; se ela não carregar (sem internet, link vencido), volta às iniciais.
 // Celular nas listas de pessoas: linha própria com o ícone, no formato "(11) 91234-5678"; toca para ligar.
+// Linha de pessoa: tocar fora destes (botões, links, campos, painel de editar) abre os detalhes.
+export const SKIP_OPEN = "a, button, input, label, select, textarea, .people-edit";
 export const PhoneLink = ({phone}: {phone: string}) =>
   <a className="phone-link" href={"tel:" + phone.replace(/[^\d+]/g, "")}><Icon name="phone" sm/><span>{fmtPhone(phone)}</span></a>;
 
@@ -319,7 +322,7 @@ function PhotoActions(){
 }
 
 export function Profile(){
-  const {profile, admin, email} = useAuth();
+  const {profile, admin, owner, email} = useAuth();
   const [name, setName] = useState(profile?.name || "");
   useEffect(() => setName(profile?.name || ""), [profile?.name]);
   const fold = useFold("profile");
@@ -331,7 +334,7 @@ export function Profile(){
       <div className={"card profile-card" + fold.cls}>
         {/* Lado a lado, este card não tem título (o topo é a foto e o nome); um abaixo do outro, ganha "Meu perfil". */}
         <FoldHead folded={fold.folded} onToggle={fold.toggle} title={t("profile.card")}/>
-        <div className="card-top"><div className="profile-who"><PhotoButton/><div><span className="people-name"><b>{profile?.name || email}</b>{admin && <span className="chip accent">{t("profile.admin")}</span>}</span><span className="sub">{email}</span>
+        <div className="card-top"><div className="profile-who"><PhotoButton/><div><span className="people-name"><b>{profile?.name || email}</b>{(owner || admin) && <span className="chip accent">{t(owner ? "profile.owner" : "profile.admin")}</span>}</span><span className="sub">{email}</span>
           <PhotoActions/></div></div></div>
         <div className="card-body">
         {/* Nome, celular e nascimento num quadro com título, como o "Adicionar pessoa" ao lado; na mesma linha
@@ -340,7 +343,7 @@ export function Profile(){
         <h3 className="people-sub-h" id="profile-data-h">{t("profile.data")}</h3>
         <div className="profile-pair">
         <label className="field"><span>{t("profile.name")}</span><input className="input" id="profile-name" maxLength={80} autoComplete="name" value={name}
-          onChange={e => setName(e.target.value)} onBlur={async e => { const el = e.currentTarget; if(name.trim() !== (profile?.name || "")){ if(await saveName(name)) flashSaved(el); else toast(t("profile.saveFail")); } }}
+          onChange={e => setName(capFirst(e.target.value))} onBlur={async e => { const el = e.currentTarget; if(name.trim() !== (profile?.name || "")){ if(await saveName(name)) flashSaved(el); else toast(t("profile.saveFail")); } }}
           onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}/></label>
         <PhoneField/>
         <BirthdayField/>
@@ -421,9 +424,9 @@ function MyTeam(){
         <div className="profile-next-actions">
           <button className={"btn sm" + (st === "yes" ? " primary" : " ghost")} aria-pressed={st === "yes"} aria-busy={busy === "yes"} onClick={() => answer("yes")}>{busy === "yes" ? <Spin/> : <Icon name="check" sm/>} {t("group.confirm")}</button>
           <button className={"btn sm" + (st === "no" ? " danger armed" : " ghost")} aria-pressed={st === "no"} aria-busy={busy === "no"} onClick={() => answer("no")}>{busy === "no" ? <Spin/> : <Icon name="x" sm/>} {t("group.decline")}</button>
-          <button className="link-btn" onClick={() => go("group")}>{t("profile.seeAgenda")}</button>
+          <button className="link-btn" onClick={() => openGroup("agenda")}>{t("profile.seeAgenda")}</button>
         </div>
-      </div> : <span className="sub">{t("profile.nextNone")} <button className="link-btn" onClick={() => go("group")}>{t("profile.seeAgenda")}</button></span>}
+      </div> : <span className="sub">{t("profile.nextNone")} <button className="link-btn" onClick={() => openGroup("agenda")}>{t("profile.seeAgenda")}</button></span>}
     </div>
   </>;
 }
@@ -457,12 +460,12 @@ export const today = () => new Date(Date.now() - new Date().getTimezoneOffset() 
 // Celular no perfil: salva ao sair do campo (o grupo vê, para achar substituto).
 function PhoneField(){
   const saved = useAuth(s => s.profile?.phone || "");
-  const [v, setV] = useState(saved);
-  useEffect(() => setV(saved), [saved]);
+  const [v, setV] = useState(maskPhone(saved));
+  useEffect(() => setV(maskPhone(saved)), [saved]);
   return <label className="field"><span>{t("profile.phone")}</span>
     <input className="input" id="profile-phone" type="tel" inputMode="tel" autoComplete="tel" maxLength={30} placeholder={t("profile.phonePh")} value={v}
-      onChange={e => setV(e.target.value)} onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}
-      onBlur={async e => { const el = e.currentTarget; if(cleanPhone(v) === saved) return; if(await savePhone(v)) flashSaved(el); else { setV(saved); toast(t("profile.saveFail")); } }}/></label>;
+      onChange={e => setV(maskPhone(e.target.value))} onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}
+      onBlur={async e => { const el = e.currentTarget; if(cleanPhone(v) === saved || v === maskPhone(saved)) return; if(await savePhone(v)) flashSaved(el); else { setV(maskPhone(saved)); toast(t("profile.saveFail")); } }}/></label>;
 }
 
 // Data de nascimento no perfil: salva ao mudar (o grupo vê só o dia e o mês, na página Início).
@@ -479,31 +482,46 @@ function BirthdayField(){
 // Dia e mês de uma data de nascimento ("12 de março"), sem o ano.
 export const fmtBirthday = (v: string) => new Intl.DateTimeFormat(locale(), {day: "numeric", month: "long", timeZone: "UTC"}).format(new Date(v + "T00:00:00Z"));
 
-// Nome, celular e data de nascimento de quem já está na lista. O que a pessoa já preencheu no próprio perfil
-// aparece travado: só ela muda.
+// Rótulo das funções em "Quem pode entrar": com mais de um grupo, diz de qual grupo são.
+const rolesLabel = (count: number, group: string) => count > 1 ? t("people.rolesIn", {group}) : undefined;
+
+// Nome, celular, data de nascimento e funções de quem já está na lista. O admin muda tudo, mesmo o que a
+// pessoa preencheu no próprio perfil.
 function PersonEdit({r, onDone}: {r: Allowed; onDone: (saved: boolean) => void}){
   const [name, setName] = useState(r.profileName || r.name), [birthday, setBirthday] = useState(r.profileBirthday || r.birthday || "");
-  const [phone, setPhone] = useState(r.profilePhone || r.phone);
+  const [phone, setPhone] = useState(maskPhone(r.profilePhone || r.phone));
   const [busy, setBusy] = useState(false), lock = useLock();
-  const lockedName = !!r.profileName, lockedDate = !!r.profileBirthday, lockedPhone = !!r.profilePhone;
+  // Funções no grupo aberto, se a pessoa está nele (com mais de um grupo, o rótulo diz qual).
+  const g = useGroups(), group = g.groups.find(x => x.id === g.gid), member = group ? g.members.find(x => x.email === r.email) : undefined;
+  const [roles, setRoles] = useState<string[]>(() => member ? sortRoles(splitRoles(member.role)) : []);
+  // O admin muda nome, celular e data mesmo os que a pessoa preencheu no perfil.
   const save = (e: React.FormEvent) => { e.preventDefault(); lock(async () => {
     setBusy(true);
-    const ok = await setAllowedInfo(r.email, lockedName ? r.name : name, lockedDate ? (r.birthday || "") : birthday, lockedPhone ? r.phone : phone).finally(() => setBusy(false));
+    // Banco sem admin_set_person ainda: grava só na lista de acesso (o que a pessoa preencheu continua valendo).
+    const ok = await setPersonInfo(r.email, name, phone, birthday).then(done => done || setAllowedInfo(r.email, name, birthday, phone))
+      .then(async ok => { const v = joinRoles(roles); if(ok && group && member && v !== member.role) await setMemberRole(group.id, r.email, v); return ok; })
+      .finally(() => setBusy(false));
     toast(t(ok ? "people.infoSaved" : "profile.saveFail", {email: r.email}));
+    // Editou a si mesmo: "Meus dados" mostra o novo na hora (sem esperar entrar de novo).
+    const p = useAuth.getState().profile;
+    if(ok && p && r.email === useAuth.getState().email) useAuth.setState({profile: {...p, name: name.trim().slice(0, 80), phone: cleanPhone(phone), birthday: birthday || null}});
     if(ok) onDone(true);
   }); };
-  return <form className="people-edit" onSubmit={save}>
+  return <form className="people-edit member-edit" onSubmit={save}>
     <div className="people-add">
       <div className="field"><label htmlFor={"edit-name-" + r.email}>{t("profile.name")}</label>
-        <input className="input" id={"edit-name-" + r.email} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} disabled={lockedName} onChange={e => setName(e.target.value)} autoFocus={!lockedName}/></div>
+        <input className="input" id={"edit-name-" + r.email} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onChange={e => setName(capFirst(e.target.value))} autoFocus/></div>
       <div className="field phone"><label htmlFor={"edit-phone-" + r.email}>{t("profile.phone")}</label>
-        <input className="input" id={"edit-phone-" + r.email} type="tel" inputMode="tel" autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} disabled={lockedPhone} onChange={e => setPhone(e.target.value)}/></div>
+        <input className="input" id={"edit-phone-" + r.email} type="tel" inputMode="tel" autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} onChange={e => setPhone(maskPhone(e.target.value))}/></div>
       <div className="field birthday"><label htmlFor={"edit-birthday-" + r.email}>{t("profile.birthday")}</label>
-        <DateInput className="people-birthday" id={"edit-birthday-" + r.email} max={today()} clearable value={birthday} disabled={lockedDate} onChange={setBirthday}/></div>
-      <button type="button" className="btn ghost" onClick={() => onDone(false)}>{t("common.cancel")}</button>
-      <button className="btn primary" disabled={lockedName && lockedDate && lockedPhone} aria-busy={busy}>{busy ? <Spin/> : <Icon name="check" sm/>} {t("common.save")}</button>
+        <DateInput className="people-birthday" id={"edit-birthday-" + r.email} max={today()} clearable value={birthday} onChange={setBirthday}/></div>
     </div>
-    {(lockedName || lockedDate || lockedPhone) && <p className="sub people-edit-hint">{t("people.lockedHint")}</p>}
+    {group && member && <RolePicker value={roles} onChange={setRoles} label={rolesLabel(g.groups.length, group.name)}/>}
+    {/* Cancelar e Salvar por último, embaixo das funções (como no editar de Grupo → Membros). */}
+    <div className="member-roles-foot">
+      <button type="button" className="btn ghost sm" onClick={() => onDone(false)}>{t("common.cancel")}</button>
+      <button className="btn primary sm" aria-busy={busy}>{busy ? <Spin/> : <Icon name="check" sm/>} {t("common.save")}</button>
+    </div>
   </form>;
 }
 
@@ -518,40 +536,57 @@ export function PersonFields({idp, name, onName, email, onEmail, phone, onPhone,
   email: string; onEmail: (v: string) => void; phone: string; onPhone: (v: string) => void; birthday: string; onBirthday: (v: string) => void; check: ReturnType<typeof useEmailCheck>}){
   return <>
     <div className="field"><label htmlFor={idp + "-name"}>{t("profile.name")}</label>
-      <input className="input" id={idp + "-name"} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onChange={e => onName(e.target.value)}/></div>
+      <input className="input" id={idp + "-name"} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onChange={e => onName(capFirst(e.target.value))}/></div>
     <div className="field"><label htmlFor={idp + "-email"}>{t("auth.email")}</label>
       <input className="input" id={idp + "-email"} type="email" inputMode="email" autoComplete="off" placeholder={t("people.emailPh")} value={email}
         aria-invalid={check.bad} aria-describedby={check.bad ? idp + "-email-err" : undefined} onBlur={check.blur} onChange={e => onEmail(e.target.value)}/>
       {check.bad && <span className="field-error" id={idp + "-email-err"}>{t("auth.badEmail")}</span>}</div>
     <div className="field phone"><label htmlFor={idp + "-phone"}>{t("profile.phone")}</label>
-      <input className="input" id={idp + "-phone"} type="tel" inputMode="tel" autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} onChange={e => onPhone(e.target.value)}/></div>
+      <input className="input" id={idp + "-phone"} type="tel" inputMode="tel" autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} onChange={e => onPhone(maskPhone(e.target.value))}/></div>
     <div className="field birthday"><label htmlFor={idp + "-birthday"}>{t("profile.birthday")}</label>
       <DateInput className="people-birthday" id={idp + "-birthday"} max={today()} clearable value={birthday} onChange={onBirthday}/></div>
   </>;
 }
 
+type PeopleOrder = "az" | "new" | "old";
+// Busca (por nome ou e-mail) e ordem de uma lista de pessoas: por nome (A–Z), mais recentes ou mais antigos
+// primeiro (pela data em que entrou na lista); empate fica por nome. A ordem fica lembrada no aparelho, por lista.
+export function usePeopleFilter<T extends {email: string}>(rows: T[] | null, key: string, name: (r: T) => string, since: (r: T) => string){
+  const [q, setQ] = useState(""), nq = norm(q.trim());
+  const [order, setOrderState] = useState<PeopleOrder>(() => { try{ const v = localStorage.getItem(key); return v === "new" || v === "old" ? v : "az"; }catch(e){ return "az"; } });
+  const setOrder = (v: string) => { setOrderState(v as PeopleOrder); try{ localStorage.setItem(key, v); }catch(e){ /* sem armazenamento: só não lembra */ } };
+  const label = (r: T) => name(r) || r.email;
+  const byName = (a: T, b: T) => label(a).localeCompare(label(b), undefined, {sensitivity: "base"});
+  const sign = order === "new" ? -1 : 1;
+  const found = rows && nq ? rows.filter(r => norm(name(r)).includes(nq) || norm(r.email).includes(nq)) : rows;
+  const shown = found && [...found].sort((a, b) => order === "az" ? byName(a, b) : sign * since(a).localeCompare(since(b)) || byName(a, b));
+  return {q, setQ, nq, order, setOrder, shown};
+}
+// Campo de busca e a ordem, na mesma linha.
+export function PeopleTools({idp, f}: {idp: string; f: ReturnType<typeof usePeopleFilter<any>>}){
+  return <div className="people-tools">
+    <div className="search people-search"><Icon name="search" sm/><input type="search" className="input" id={idp + "-q"} placeholder={t("people.searchPh")}
+      aria-label={t("people.searchPh")} value={f.q} onChange={e => f.setQ(e.target.value)}/></div>
+    <Select id={idp + "-order"} className="people-order" aria={t("people.order")} value={f.order} onChange={f.setOrder}
+      options={[{value: "az", label: t("people.orderAz")}, {value: "new", label: t("people.orderNew")}, {value: "old", label: t("people.orderOld")}]}/></div>;
+}
+
 function People({me}: {me: string}){
   const [rows, setRows] = useState<Allowed[] | null>(null), fold = useFold("people");
-  const [email, setEmail] = useState(""), [name, setName] = useState(""), [birthday, setBirthday] = useState(""), [phone, setPhone] = useState(""), [asAdmin, setAsAdmin] = useState(false), [busy, setBusy] = useState(false);
   // pending: o e-mail da linha com uma mudança em andamento (os botões dela ficam desabilitados).
   const [pending, setPending] = useState("");
   // editing: o e-mail da linha com o nome e a data abertos para editar.
   const [editing, setEditing] = useState("");
-  const lock = useLock(), check = useEmailCheck(email);
-  // Busca na lista "Com acesso": por nome ou e-mail.
-  const [q, setQ] = useState(""), nq = norm(q.trim());
-  const shown = rows && nq ? rows.filter(r => norm(r.profileName || r.name).includes(nq) || norm(r.email).includes(nq)) : rows;
+  const lock = useLock();
+  // Busca e ordem da lista "Com acesso".
+  const filter = usePeopleFilter(rows, "acordia-people-order", r => r.profileName || r.name, r => r.created_at), {nq, shown} = filter;
   // Falhou: a lista fica vazia com o aviso e o botão de tentar de novo (antes ficava em "Carregando..." para sempre).
   const [failed, setFailed] = useState(false);
   const load = async () => { setFailed(false); const r = await listAllowed(); if(r) setRows(r); else { setRows(rows => rows || []); setFailed(true); } };
   useEffect(() => { load(); }, []);
-  const add = (e: React.FormEvent) => { e.preventDefault(); lock(async () => {
-    const v = email.trim().toLowerCase();
-    if(!validEmail(v)){ check.fail(); document.getElementById("people-email")?.focus(); return; }
-    setBusy(true); const ok = await addAllowed(v, asAdmin, name, birthday, phone).finally(() => setBusy(false));
-    if(!ok) return toast(t("profile.saveFail"));
-    toast(t("people.added", {email: v})); setEmail(""); setName(""); setBirthday(""); setPhone(""); setAsAdmin(false); check.reset(); await load();
-  }); };
+  const owner = useAuth(s => s.owner);
+  const editBtn = (r: Allowed) => <button className="icon-btn sm line" aria-label={t("people.edit")} title={t("people.edit")} aria-expanded={editing === r.email}
+    onClick={() => setEditing(editing === r.email ? "" : r.email)}><Icon name="edit" sm/></button>;
   const onRow = (r: Allowed, fn: () => Promise<unknown>) => lock(async () => { setPending(r.email); try{ await fn(); } finally{ setPending(""); } });
   const toggleAdmin = (r: Allowed) => onRow(r, async () => { if(await setAllowedAdmin(r.email, !r.is_admin)) await load(); else toast(t("profile.saveFail")); });
   const remove = async (r: Allowed) => {
@@ -562,37 +597,35 @@ function People({me}: {me: string}){
     <FoldHead folded={fold.folded} onToggle={fold.toggle} title={t("people.title")}/>
     <div className="card-top"><h2>{t("people.title")}</h2><p className="sub">{t("people.sub")}</p></div>
     <div className="card-body">
-    <form className="people-add-box" onSubmit={add} noValidate>
-      <h3 className="people-sub-h">{t("people.addTitle")}</h3>
-      <div className="people-add">
-      <PersonFields idp="people" name={name} onName={setName} email={email} onEmail={setEmail} phone={phone} onPhone={setPhone} birthday={birthday} onBirthday={setBirthday} check={check}/>
-      <label className="switch lead boxed"><span>{t("profile.admin")}</span><input type="checkbox" id="people-admin" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>
-      <button className="btn primary" disabled={!email.trim()} aria-busy={busy}>{busy ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
-      </div>
-    </form>
     <h3 className="people-sub-h">{t("people.listTitle")} {rows && rows.length > 0 && <span className="count-chip">{nq && shown ? shown.length + "/" + rows.length : rows.length}</span>}</h3>
-    {rows && rows.length > 0 && <div className="search people-search"><Icon name="search" sm/><input type="search" className="input" id="people-q" placeholder={t("people.searchPh")}
-      aria-label={t("people.searchPh")} value={q} onChange={e => setQ(e.target.value)}/></div>}
-    {/* Cabeçalho da lista, como numa tabela: marca onde as pessoas começam. */}
+    {rows && rows.length > 0 && <PeopleTools idp="people" f={filter}/>}
+    {/* Cabeçalho da lista, como numa tabela: marca onde as pessoas começam (no celular, só a faixa). */}
     {shown && shown.length > 0 && <div className="people-list-head" aria-hidden="true"><span>{t("people.colPerson")}</span><span>{t("people.colActions")}</span></div>}
     <ul className="people-list" id="people-list">
       {nq && shown && !shown.length && <li className="sub">{t("lib.noResults")}</li>}
       {failed && <li className="sub">{t("profile.loadFail")} <button type="button" className="link-btn" onClick={load}>{t("common.retry")}</button></li>}
       {shown === null ? <li className="sub">{t("auth.loading")}</li> : shown.map(r => {
         const nm = r.profileName || r.name, bd = r.profileBirthday || r.birthday, ph = r.profilePhone || r.phone;
-        return <li key={r.email}>
+        const openPerson = () => openDialog("member", {email: r.email, person: {name: nm, phone: ph, birthday: bd || null, photo: r.profilePhoto || ""}});
+        return <li key={r.email} className="member-open" onClick={e => { if(!(e.target as HTMLElement).closest(SKIP_OPEN)) openPerson(); }}>
         {/* O "Admin" fica logo depois do nome (ou do e-mail, para quem ainda não tem nome). */}
-        <span className="people-who"><Avatar person={{name: nm, email: r.email, photo: r.profilePhoto}}/><span className="people-id">
+        {/* Tocar na pessoa (foto ou texto) abre os detalhes, como em Grupo → Membros; o nome é o botão. */}
+        <span className="people-who">
+          <Avatar person={{name: nm, email: r.email, photo: r.profilePhoto}}/><span className="people-id">
           {/* Sempre as três linhas (nome, e-mail, celular), com um texto apagado no que falta: todas as pessoas
               ficam com a mesma altura. */}
-          <span className="people-name">{nm ? <b>{nm}</b> : <span className="people-missing">{t("people.noName")}</span>}{r.is_admin && <span className="chip accent">{t("profile.admin")}</span>}</span>
+          <span className="people-name"><button type="button" className="member-open-btn" aria-label={t("member.open", {name: nm || r.email})} onClick={openPerson}>
+            {nm ? <b>{nm}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{(r.is_owner || r.is_admin) && <span className="chip accent">{t(r.is_owner ? "profile.owner" : "profile.admin")}</span>}</span>
           <span className="sub people-email">{r.email}{bd && " · " + fmtBirthday(bd)}</span>
           {ph ? <PhoneLink phone={ph}/> : <span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}</span></span>
-        {r.email === me ? <span className="chip">{t("people.you")}</span> : <span className="people-actions">
+        {/* Na própria linha: só o editar (sem tirar o próprio admin nem o próprio acesso). O Dono, para os outros
+            admins, não tem ações: ninguém mexe nele. O toggle de admin só aparece para o Dono. */}
+        {r.email === me ? <span className="people-actions"><span className="chip current">{t("people.you")}</span>{editBtn(r)}</span>
+          : r.is_owner && !owner ? null : <span className="people-actions">
           {/* Admin liga/desliga direto na linha (desabilitado enquanto salva). */}
-          <label className="switch lead boxed people-admin" aria-busy={pending === r.email}><span>{t("profile.admin")}</span>
-            <input type="checkbox" checked={!!r.is_admin} disabled={pending === r.email} aria-label={t("people.adminAria", {email: r.email})} onChange={() => toggleAdmin(r)}/></label>
-          <button className="icon-btn sm line" aria-label={t("people.edit")} title={t("people.edit")} aria-expanded={editing === r.email} onClick={() => setEditing(editing === r.email ? "" : r.email)}><Icon name="edit" sm/></button>
+          {owner && <label className="switch lead boxed people-admin" aria-busy={pending === r.email}><span>{t("profile.admin")}</span>
+            <input type="checkbox" checked={!!r.is_admin} disabled={pending === r.email} aria-label={t("people.adminAria", {email: r.email})} onChange={() => toggleAdmin(r)}/></label>}
+          {editBtn(r)}
           <button className="icon-btn sm line danger" aria-label={t("people.remove")} title={t("people.remove")} onClick={() => remove(r)}><Icon name="trash" sm/></button></span>}
         {editing === r.email && <PersonEdit r={r} onDone={async saved => { setEditing(""); if(saved) await load(); }}/>}
       </li>; })}

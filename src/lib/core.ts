@@ -57,9 +57,10 @@ function normInterlude(line: string){
   const toks = line.replace(/[()|]/g," ").split(/\s+/).filter(Boolean);
   return /^\s*\(/.test(line) ? "( " + toks.join("  ") + " )" : null;
 }
-// Marcação de refrão: [Refrão], [Refrão 2x], [Coro], [Chorus], [Estribillo] (não [Pré-refrão]). Sozinha, marca o
-// bloco seguinte; com o fim marcado ([/Refrão], [Fim do refrão], [End of chorus]...), tudo até ele, mesmo com
-// linhas vazias no meio. Outra marcação ([Segunda Parte]) também encerra o refrão.
+// Marcação de refrão: [Refrão], [Refrão 2x], [Coro], [Chorus], [Estribillo] (não [Pré-refrão]). Vai até o fim
+// marcado ([/Refrão], [Fim do refrão], [End of chorus]...) ou, se a cifra é dividida em partes ([Primeira Parte],
+// [Ponte]...), até a próxima marcação, mesmo com linhas vazias no meio. Sem nada disso, marca só o bloco seguinte.
+// Outra marcação também encerra o refrão. Bloco com a mesma letra de um refrão (repetido sem marcação) também é.
 const CHORUS_TAG = /^\s*\[\s*(refr[ãa]o|coro|chorus|estribillo)(?![\p{L}])[^\]]*\]\s*$/iu;
 const CHORUS_END = /^\s*\[\s*(\/\s*(refr[ãa]o|coro|chorus|estribillo)|(fim|final|end|fin)\s+(d[oe]l?\s+|of\s+(the\s+)?)?(refr[ãa]o|coro|chorus|estribillo))(?![\p{L}])[^\]]*\]\s*$/iu;
 export function parseSong(text: string, plain?: boolean): ParsedSong {
@@ -69,10 +70,12 @@ export function parseSong(text: string, plain?: boolean): ParsedSong {
   // As marcações [Parte] saem da letra, mas fecham o bloco e dizem se o próximo é refrão.
   const lines = raw.slice(i).filter(l=>!/^\s*[eEBGDA]\|/.test(l)).map(cleanLine);
   const blocks: Block[] = [], chorus: boolean[] = [];
-  // inChorus: refrão aberto com o fim marcado mais adiante (atravessa as linhas vazias).
-  const hasEnd = lines.some(l => CHORUS_END.test(l));
+  // inChorus: refrão aberto que vai até a próxima marcação (atravessa as linhas vazias). Bloco só de cifra
+  // (interlúdio sem marcação) não entra.
+  // [/Refrão] e [Fim do refrão] também contam: não são marcação de refrão.
+  const hasEnd = lines.some(l => /^\s*\[.*\]\s*$/.test(l) && !CHORUS_TAG.test(l));
   let cur: Block = [], tagged = false, nextChorus = false, curChorus = false, inChorus = false;
-  const close = () => { if(cur.length){ blocks.push(cur); chorus.push(curChorus); cur = []; } };
+  const close = () => { if(cur.length){ blocks.push(cur); chorus.push(curChorus && (!inChorus || cur.some(it => it.lyric))); cur = []; } };
   for(let j=0;j<lines.length;j++){
     const l = lines[j];
     if(/^\s*\[.*\]\s*$/.test(l)){
@@ -92,8 +95,14 @@ export function parseSong(text: string, plain?: boolean): ParsedSong {
     } else cur.push({kind:"lyric",lyric:l});
   }
   close();
-  if(!tagged) markRepeated(blocks, chorus);
+  if(tagged) markChorusRepeats(blocks, chorus); else markRepeated(blocks, chorus);
   return {title, blocks, chorus};
+}
+// Com [Refrão]: o bloco de letra (2 linhas ou mais) igual a um refrão marcado é o refrão repetido.
+function markChorusRepeats(blocks: Block[], chorus: boolean[]){
+  const keys = blocks.map(b => { const k = lyricKey(b); return k.length >= 2 ? k.join("/") : ""; });
+  const ref = new Set(keys.filter((k, i) => k && chorus[i]));
+  keys.forEach((k, i) => { if(ref.has(k)) chorus[i] = true; });
 }
 // Sem [Refrão] no texto: o bloco de letra (2 linhas ou mais) que aparece de novo é o refrão.
 const lyricKey = (b: Block) => b.map(it => (it.lyric || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "")).filter(Boolean);

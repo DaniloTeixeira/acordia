@@ -2,6 +2,7 @@
 // ensaios e datas em que cada um não pode. As regras de quem vê e muda o quê ficam no banco
 // (supabase/migrations/20261017180000_grupos.sql). A última leitura fica guardada no aparelho para a
 // agenda abrir sem internet; mudar precisa de internet.
+import { norm } from "./util";
 import { create } from "zustand";
 import { cloud, useAuth, validBirthday, cleanPhone, uploadPhoto, cleanPhotos } from "./cloud";
 import { ROLES_MAX } from "./roles";
@@ -9,9 +10,10 @@ import type { GEvent, RosterRow, AttendanceRow, Unavail, Answer, Presence, Event
 
 // photo: link da foto do grupo (vazio: o app mostra as iniciais do nome). photo_round: marca redonda em vez
 // de quadrada (foto e iniciais).
-export interface Group { id: string; name: string; photo?: string; photo_round?: boolean }
+// stats: os números do card de cada grupo no Início (próximos eventos, repertórios e membros).
+export interface Group { id: string; name: string; photo?: string; photo_round?: boolean; stats?: {events: number; setlists: number; members: number} }
 // out_since/out_need: marcado pelo líder como fora dos cultos (desde quando e quantos ensaios faltam).
-export interface Member { email: string; is_admin: boolean; role: string; name: string; birthday?: string | null; photo?: string; phone?: string; out_since?: string | null; out_need?: number }
+export interface Member { email: string; is_admin: boolean; role: string; name: string; birthday?: string | null; photo?: string; phone?: string; out_since?: string | null; out_need?: number; created_at?: string }
 export interface GroupSetlist { id: string; group_id: string; source_id: string; name: string; songs: number; code: string; shared_by: string; updated_at: string }
 
 interface GroupState {
@@ -66,13 +68,26 @@ export function loadGroups(gid?: string): Promise<void> {
         .then(r => r.error ? cloud.from("groups").select("id,name").order("name") : r);
       if(g.error) throw g.error;
       const groups = g.data as Group[];
+      // Os números de cada grupo para os cards do Início (só as colunas de grupo; se falhar, o card fica sem eles).
+      const now = new Date().toISOString(), tally = (rows: {group_id: string}[] | null) => {
+        const m = new Map<string, number>(); (rows || []).forEach(r => m.set(r.group_id, (m.get(r.group_id) || 0) + 1)); return m;
+      };
+      const [cm, cs, ce] = await Promise.all([
+        cloud.from("group_members").select("group_id"),
+        cloud.from("group_setlists").select("group_id"),
+        cloud.from("group_events").select("group_id").gte("starts_at", now),
+      ]);
+      if(!cm.error && !cs.error && !ce.error){
+        const [nm, ns, ne] = [tally(cm.data), tally(cs.data), tally(ce.data)];
+        groups.forEach(x => x.stats = {members: nm.get(x.id) || 0, setlists: ns.get(x.id) || 0, events: ne.get(x.id) || 0});
+      }
       const want = gid || useGroups.getState().gid, cur = groups.find(x => x.id === want) ? want : groups[0]?.id || "";
       if(!cur){ useGroups.setState({...EMPTY, groups, loaded: true}); saveCache(); return; }
       const from = new Date(Date.now() - PAST_DAYS * 864e5).toISOString(), to = new Date(Date.now() + FUTURE_DAYS * 864e5).toISOString();
       const [mem, people, sets, evs, un] = await Promise.all([
         // Banco ainda sem a marcação de fora dos cultos (antes da migração subir): lê sem ela.
-        cloud.from("group_members").select("email,is_admin,role,out_since,out_need").eq("group_id", cur).order("email")
-          .then(r => r.error ? cloud.from("group_members").select("email,is_admin,role").eq("group_id", cur).order("email") : r),
+        cloud.from("group_members").select("email,is_admin,role,out_since,out_need,created_at").eq("group_id", cur).order("email")
+          .then(r => r.error ? cloud.from("group_members").select("email,is_admin,role,created_at").eq("group_id", cur).order("email") : r),
         cloud.rpc("group_people", {gid: cur}),
         cloud.from("group_setlists").select("id,group_id,source_id,name,songs,code,shared_by,updated_at").eq("group_id", cur).order("updated_at", {ascending: false}),
         cloud.from("group_events").select("id,group_id,kind,title,starts_at,call_at,place,notes,setlist_id,updated_at").eq("group_id", cur).gte("starts_at", from).lte("starts_at", to).order("starts_at"),
@@ -103,6 +118,8 @@ export function loadGroups(gid?: string): Promise<void> {
   })();
   return loading;
 }
+// Já existe um grupo com esse nome (sem diferenciar maiúsculas, acentos e espaços)? except: o próprio, ao renomear.
+export const groupNameTaken = (name: string, except = "") => !!norm(name) && useGroups.getState().groups.some(x => x.id !== except && norm(x.name) === norm(name));
 export function chooseGroup(gid: string){ useGroups.setState({gid}); return loadGroups(gid); }
 
 // Nome para mostrar: o do perfil, senão a parte do e-mail antes do @.
@@ -164,7 +181,8 @@ export async function removeGroupPhoto(gid: string){
 export const renameGroup =(gid: string, name: string) => run(() => cloud.from("groups").update({name: name.trim().slice(0, 80)}).eq("id", gid));
 export async function deleteGroup(gid: string){
   const ok = await run(() => cloud.from("groups").delete().eq("id", gid), false);
-  if(ok){ useGroups.setState({gid: ""}); await loadGroups(); }
+  // Excluir outro grupo (pelo card do Início) não troca o grupo aberto.
+  if(ok){ if(useGroups.getState().gid === gid) useGroups.setState({gid: ""}); await loadGroups(); }
   return ok;
 }
 export const addMember = (gid: string, email: string, admin: boolean, role: string, name = "", birthday = "", phone = "") => run(async () => {
@@ -174,6 +192,14 @@ export const addMember = (gid: string, email: string, admin: boolean, role: stri
   // Banco ainda sem a versão com celular, ou com nome e data (antes da migração subir): adiciona com o que der.
   if(r.error) r = await cloud.rpc("add_group_member", info);
   return r.error ? cloud.rpc("add_group_member", base) : r;
+});
+// Passa a liderança (um líder só por grupo): quem era vira membro e a pessoa escolhida vira líder. Banco ainda
+// sem set_group_leader (antes da migração subir): faz os dois passos à mão.
+export const setGroupLeader = (gid: string, email: string) => run(async () => {
+  const r = await cloud.rpc("set_group_leader", {gid, leader_email: email});
+  if(!r.error || !/set_group_leader|function/i.test(r.error.message || "")) return r;
+  const off = await cloud.from("group_members").update({is_admin: false}).eq("group_id", gid).eq("is_admin", true).neq("email", email);
+  return off.error ? off : cloud.from("group_members").update({is_admin: true}).eq("group_id", gid).eq("email", email);
 });
 export const setMemberAdmin = (gid: string, email: string, admin: boolean) => run(() => cloud.from("group_members").update({is_admin: admin}).eq("group_id", gid).eq("email", email));
 export const setMemberRole = (gid: string, email: string, role: string) => email === myEmail() && !amGroupAdmin()

@@ -75,7 +75,7 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] **Novo**: cria outro repertório. O anterior continua na Biblioteca.
 - [ ] **Palco**.
 - [ ] **Editar / Ver folha**: alterna os painéis no celular; no computador ficam lado a lado.
-- [ ] **Adicionar**: "Música com cifra", "Só a letra", "Da biblioteca" (escolha várias, com busca) e "Medley".
+- [ ] **Adicionar**: "Com cifra", "Só letra", "Biblioteca" (escolha várias, com busca) e "Medley".
 - [ ] **Cartão de cada música**:
   - **arrastar o cartão** para outro lugar (menos pelos botões e campos): no mouse, clicar e arrastar (só clicar
     abre e fecha); no celular, segurar ~¼ s e arrastar; Esc cancela; no teclado, Tab até o número e ↑ ↓;
@@ -104,6 +104,8 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] Folha A4 que se ajusta sozinha, com aviso quando não cabe, e "Página n de N".
 - [ ] Rótulo dos medleys, aviso de mudança de tom entre músicas e acorde de passagem.
 - [ ] Acordes clicáveis (abrem a janela do acorde).
+- [ ] Refrão destacado (fundo claro e rótulo REFRÃO): `[Refrão]` antes e `[/Refrão]` depois fazem um bloco só,
+      mesmo com várias estrofes. Sem marcação, o bloco de letra que se repete é o refrão.
 - [ ] **Imprimir** e **PDF**.
 - [ ] **Ajustes da folha**:
   - remover partes repetidas, mostrar o tom no título, avisar mudança de tom, permitir 2 páginas e desenhos do

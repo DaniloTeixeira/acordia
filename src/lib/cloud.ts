@@ -14,32 +14,32 @@ export type AuthStatus = "loading" | "out" | "denied" | "in";
 export interface Profile { id: string; email: string; name: string; birthday?: string | null; photo?: string; phone?: string }
 // name/birthday/phone: os informados por quem liberou o acesso; profileName/profileBirthday/profilePhone: os do
 // perfil da pessoa (vazios enquanto ela não entrou ou não preencheu). O perfil vale mais.
-export interface Allowed { email: string; is_admin: boolean; name: string; birthday: string | null; phone: string; profileName: string; profileBirthday: string | null; profilePhone: string; profilePhoto: string }
+export interface Allowed { email: string; is_admin: boolean; is_owner: boolean; name: string; birthday: string | null; phone: string; profileName: string; profileBirthday: string | null; profilePhone: string; profilePhoto: string; created_at: string }
 // error: o que deu errado na volta do Google ou de um link do e-mail, para a tela de entrar avisar.
 // recovery: voltou pelo link de "esqueci minha senha"; a tela pede a senha nova antes de abrir o app.
 // errorFrom: de onde veio a volta com erro ("google" ou um link do e-mail); errorDetail: o texto do Supabase.
-interface AuthState { status: AuthStatus; email: string; admin: boolean; profile: Profile | null; error: "" | "notAllowed" | "error"; errorFrom: "" | "google" | "link"; errorDetail: string; recovery: boolean }
-export const useAuth = create<AuthState>(() => ({status: "loading", email: "", admin: false, profile: null, error: "", errorFrom: "", errorDetail: "", recovery: false}));
+interface AuthState { status: AuthStatus; email: string; admin: boolean; owner: boolean; profile: Profile | null; error: "" | "notAllowed" | "error"; errorFrom: "" | "google" | "link"; errorDetail: string; recovery: boolean }
+export const useAuth = create<AuthState>(() => ({status: "loading", email: "", admin: false, owner: false, profile: null, error: "", errorFrom: "", errorDetail: "", recovery: false}));
 
 // Último "tem acesso?" que deu certo: sem internet, quem já entrou continua usando o app.
 const ACCESS = "acordia-access";
-function cachedAccess(email: string): {allowed: boolean; admin: boolean} | null {
+function cachedAccess(email: string): {allowed: boolean; admin: boolean; owner?: boolean} | null {
   try{ const v = JSON.parse(localStorage.getItem(ACCESS) || "null"); return v && v.email === email ? v : null; }catch(e){ return null; }
 }
-function cacheAccess(email: string, a: {allowed: boolean; admin: boolean} | null){
+function cacheAccess(email: string, a: {allowed: boolean; admin: boolean; owner?: boolean} | null){
   try{ if(a) localStorage.setItem(ACCESS, JSON.stringify({email, ...a})); else localStorage.removeItem(ACCESS); }catch(e){ /* sem armazenamento */ }
 }
 
 async function refresh(){
   const {data: {session}} = await cloud.auth.getSession();
-  if(!session){ useAuth.setState({status: "out", email: "", admin: false, profile: null}); return; }
+  if(!session){ useAuth.setState({status: "out", email: "", admin: false, owner: false, profile: null}); return; }
   const email = (session.user.email || "").toLowerCase();
   const {data, error} = await cloud.rpc("my_access");
-  const access = error ? cachedAccess(email) : data as {allowed: boolean; admin: boolean};
+  const access = error ? cachedAccess(email) : data as {allowed: boolean; admin: boolean; owner?: boolean};
   // Sem internet e sem resposta guardada: deixa entrar, o banco protege os dados de qualquer jeito.
   const a = access || {allowed: true, admin: false};
   if(!error) cacheAccess(email, a);
-  if(!a.allowed){ useAuth.setState({status: "denied", email, admin: false, profile: null}); return; }
+  if(!a.allowed){ useAuth.setState({status: "denied", email, admin: false, owner: false, profile: null}); return; }
   setPendingConfirm("");
   let prof = await cloud.from("profiles").select("id,email,name,birthday,phone,photo").eq("id", session.user.id).maybeSingle();
   // Banco ainda sem as colunas do celular ou da data de nascimento (antes da migração subir): lê sem elas.
@@ -52,7 +52,7 @@ async function refresh(){
   // Perfil sem nome: usa o da conta Google, para a lista de quem pode entrar e o grupo mostrarem quem é.
   const gName = googleName(session.user.user_metadata), name = saved?.name || gName;
   if(saved && !saved.name && gName) cloud.from("profiles").update({name}).eq("id", session.user.id).then(() => {}, () => {});
-  useAuth.setState({status: "in", email, admin: a.admin, profile: {...(saved || {id: session.user.id, email, name: ""}), name, photo}});
+  useAuth.setState({status: "in", email, admin: a.admin, owner: !!a.owner, profile: {...(saved || {id: session.user.id, email, name: ""}), name, photo}});
 }
 
 // ---------- foto do perfil ----------
@@ -183,7 +183,7 @@ export async function setNewPassword(password: string): Promise<string> {
 export async function signOut(){
   cacheAccess("", null);
   await cloud.auth.signOut();
-  useAuth.setState({status: "out", email: "", admin: false, profile: null, recovery: false});
+  useAuth.setState({status: "out", email: "", admin: false, owner: false, profile: null, recovery: false});
 }
 export async function saveName(name: string){
   const p = useAuth.getState().profile; if(!p) return false;
@@ -218,19 +218,21 @@ export async function savePhone(v: string){
 
 // ---------- lista de quem pode entrar (só admins) ----------
 export async function listAllowed(): Promise<Allowed[] | null> {
-  let [a, p]: {data: unknown; error: unknown}[] = await Promise.all([cloud.from("allowed_emails").select("email,is_admin,name,birthday,phone").order("email"),
+  let [a, p]: {data: unknown; error: unknown}[] = await Promise.all([cloud.from("allowed_emails").select("email,is_admin,is_owner,name,birthday,phone,created_at").order("email"),
     cloud.from("profiles").select("email,name,birthday,phone,photo")]);
   // Banco ainda sem as colunas do celular, do nome ou da data (antes da migração subir): lê sem elas.
   if(p.error) p = await cloud.from("profiles").select("email,name,birthday,phone");
-  if(a.error) a = await cloud.from("allowed_emails").select("email,is_admin,name,birthday").order("email");
+  // Banco ainda sem o Dono: lê sem ele.
+  if(a.error) a = await cloud.from("allowed_emails").select("email,is_admin,name,birthday,phone,created_at").order("email");
+  if(a.error) a = await cloud.from("allowed_emails").select("email,is_admin,name,birthday,created_at").order("email");
   if(p.error) p = await cloud.from("profiles").select("email,name,birthday");
-  if(a.error) a = await cloud.from("allowed_emails").select("email,is_admin").order("email");
+  if(a.error) a = await cloud.from("allowed_emails").select("email,is_admin,created_at").order("email");
   if(p.error) p = await cloud.from("profiles").select("email,name");
   if(a.error || p.error) return null;
   const prof = new Map((p.data as {email: string; name: string; birthday: string | null; phone?: string; photo?: string}[]).map(x => [x.email, x]));
-  return (a.data as Partial<Allowed>[]).map(r => ({email: r.email!, is_admin: !!r.is_admin, name: r.name || "", birthday: r.birthday || null, phone: r.phone || "",
+  return (a.data as Partial<Allowed>[]).map(r => ({email: r.email!, is_admin: !!r.is_admin, is_owner: !!r.is_owner, name: r.name || "", birthday: r.birthday || null, phone: r.phone || "",
     profileName: prof.get(r.email!)?.name || "", profileBirthday: prof.get(r.email!)?.birthday || null, profilePhone: prof.get(r.email!)?.phone || "",
-    profilePhoto: prof.get(r.email!)?.photo || ""}));
+    profilePhoto: prof.get(r.email!)?.photo || "", created_at: r.created_at || ""}));
 }
 // Nome, data e celular vazios não vão juntos, para não apagar o que já estava na lista.
 export async function addAllowed(email: string, admin: boolean, name = "", birthday = "", phone = ""){
@@ -248,6 +250,12 @@ export async function setAllowedInfo(email: string, name: string, birthday: stri
   let {error} = await cloud.from("allowed_emails").update(phone === undefined ? info : {...info, phone: cleanPhone(phone)}).eq("email", email);
   // Banco ainda sem a coluna do celular: salva o resto.
   if(error && phone !== undefined) ({error} = await cloud.from("allowed_emails").update(info).eq("email", email));
+  return !error;
+}
+// Admin: nome e celular valem também por cima do que a pessoa preencheu no perfil (admin_set_person). Banco ainda
+// sem a função: false, e quem chama volta ao setAllowedInfo (só a lista de acesso).
+export async function setPersonInfo(email: string, name: string, phone: string, birthday: string){
+  const {error} = await cloud.rpc("admin_set_person", {person_email: email, person_name: name, person_phone: cleanPhone(phone), person_birthday: validBirthday(birthday) || null});
   return !error;
 }
 export async function setAllowedAdmin(email: string, admin: boolean){

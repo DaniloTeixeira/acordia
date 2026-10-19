@@ -5,7 +5,7 @@ import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
 import { norm } from "../lib/util";
 import { useUI, toast, openDialog, type DialogProps } from "../state";
-import { current, isMedley, lastPlayKey, songItems, sheetSongs, libTargets, libTitle, inSetlist, addToSetlist, removeFromSetlist, type LibRef } from "../repertoire";
+import { current, isMedley, lastPlayKey, markOpened, songItems, sheetSongs, libTargets, libTitle, inSetlist, addToSetlist, removeFromSetlist, type LibRef } from "../repertoire";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
@@ -18,6 +18,7 @@ import { EarDialog } from "./EarDialog";
 import { EventDialog } from "./EventDialog";
 import { PhotoDialog } from "./PhotoDialog";
 import { MemberDialog } from "./MemberDialog";
+import { GroupDialog, NewGroupDialog } from "./GroupDialog";
 import type { SongType } from "../lib/types";
 
 const { data } = store;
@@ -34,11 +35,14 @@ export function Dialogs(){
     {d.chord && <ChordDialog {...d.chord}/>}
     {d.player && <PlayerDialog {...d.player}/>}
     {d.confirm && <ConfirmDialog {...d.confirm}/>}
+    {d.leader && <LeaderDialog {...d.leader}/>}
     {d.help && <HelpDialog {...d.help}/>}
     {d.ear && <EarDialog {...d.ear}/>}
     {d.event && <EventDialog {...d.event}/>}
     {d.photo && <PhotoDialog {...d.photo}/>}
     {d.member && <MemberDialog {...d.member}/>}
+    {d.group && <GroupDialog/>}
+    {d.newGroup && <NewGroupDialog/>}
   </>;
 }
 
@@ -90,6 +94,8 @@ function Picker(){
 // ---------- nova música / editar música ----------
 function SongDialog({song: s}: DialogProps["song"]){
   const isNew = !s;
+  // Abrir uma música conta para o "Continuar de onde parou" do Início.
+  useEffect(() => { if(s) markOpened("song", s.id); }, [s]);
   const [type, setType] = useState<SongType>(s ? s.type : "");
   const [text, setText] = useState(s ? s.text : ""), [key, setKey] = useState(s ? s.key : "");
   const [bpm, setBpm] = useState(s ? s.bpm : ""), [ref, setRef] = useState(s ? s.ref || "" : "");
@@ -211,8 +217,28 @@ function ConfirmDialog({title, message, confirm, resolve}: DialogProps["confirm"
   </Dialog>;
 }
 
+// ---------- novo líder do grupo ----------
+// Desligar o Líder pergunta antes quem fica no lugar; a troca só acontece ao confirmar.
+function LeaderDialog({group, current, options, allowNone, mine, resolve}: DialogProps["leader"]){
+  const opts = [...(allowNone ? [{value: "", label: t("group.noLeader")}] : []), ...options];
+  const [pick, setPick] = useState(opts[0]?.value ?? ""), ref = useRef(pick);
+  ref.current = pick;
+  return <Dialog name="leader" id="dlg-leader" labelledBy="leader-h" onClose={rv => resolve(rv === "ok" ? ref.current : null)}>
+    <form method="dialog" className="dlg">
+      <DialogHead id="leader-h" title={t("group.newLeaderTitle")} closeLabel={t("common.close")}/>
+      <div className="dlg-body">
+        <p id="leader-msg">{t(mine ? "group.newLeaderMine" : "group.newLeaderMsg", {group, current})}</p>
+        <div className="field"><span>{t("group.newLeader")}</span>
+          <Select id="leader-pick" aria={t("group.newLeader")} value={pick} onChange={setPick} options={opts}/></div>
+      </div>
+      <Foot><button className="btn ghost" value="cancel">{t("common.cancel")}</button>
+        <button className="btn primary" value="ok" id="leader-ok" disabled={!opts.length}>{t("group.passLead")}</button></Foot>
+    </form>
+  </Dialog>;
+}
+
 // ---------- guia "Como usar" de cada página ----------
-export const HELP_STEPS = {home: 3, medley: 7, library: 2, group: 6, study: 3, tools: 4} as const;
+export const HELP_STEPS = {home: 3, medley: 8, library: 2, group: 6, study: 3, tools: 4} as const;
 export function seenHelp(page: string){ const s = Object.assign({}, data.settings.seenHelp || {}) as Record<string, boolean>; if(!s[page]){ s[page] = true; store.setSetting("seenHelp", s); } }
 function HelpDialog({page}: DialogProps["help"]){
   useEffect(() => seenHelp(page), [page]);

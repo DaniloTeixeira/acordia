@@ -201,6 +201,23 @@ export function Stage(){
     const withBpm = list.find(s => +s.meta.bpm);
     if(withBpm && !metro.running) metro.set({bpm: +withBpm.meta.bpm});
   };
+  // Celular: passar o dedo para o lado troca de música (para a esquerda, a próxima; para a direita, a anterior).
+  // Vale só um gesto rápido e bem mais horizontal que vertical, com um dedo, para não brigar com a rolagem
+  // nem com o zoom de pinça.
+  const swipe = useRef<{x: number; y: number; at: number} | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    const p = e.touches[0];
+    swipe.current = e.touches.length === 1 ? {x: p.clientX, y: p.clientY, at: Date.now()} : null;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const s0 = swipe.current; swipe.current = null;
+    if(!s0 || e.touches.length || (listOpen && !wide())) return;
+    const p = e.changedTouches[0], dx = p.clientX - s0.x, dy = p.clientY - s0.y;
+    if(Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5 || Date.now() - s0.at > 700) return;
+    const dir = dx < 0 ? 1 : -1;
+    if(dir > 0 ? last >= src.length - 1 : first <= 0) return;
+    stepRef.current(dir);
+  };
   const onTap = (e: React.MouseEvent<HTMLDivElement>) => {
     if(getSelection()?.toString()) return;
     // No celular a lista fica por cima da cifra: tocar fora dela só fecha.
@@ -271,7 +288,8 @@ export function Stage(){
         </li>;
       })}</ol>
     </nav>}
-    <div className={"stage-scroll" + (fit ? " fit" : "")} id="stage-scroll" tabIndex={0} ref={scroll} onClick={onTap} onScroll={onScroll}>
+    <div className={"stage-scroll" + (fit ? " fit" : "")} id="stage-scroll" tabIndex={0} ref={scroll} onClick={onTap} onScroll={onScroll}
+      onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onTouchCancel={() => { swipe.current = null; }}>
       <div className="stage-content" id="stage-content" ref={content} style={{"--stage-fs": size + "px"} as React.CSSProperties} data-fit={fit || undefined}>
         {!src.length && <div className="empty-state"><strong>{t("stage.empty")}</strong><span>{t("stage.emptyText")}</span></div>}
         {src.slice(first, last + 1).map((s, k) => {

@@ -71,3 +71,17 @@ export function focusPlatform(ua: string, touchPoints = 0): "ios" | "android" | 
   if(/Android/.test(ua)) return "android";
   return "other";
 }
+
+// Depois de abrir um card (a animação de abrir leva ~0,25 s): rola só o necessário para ele ficar inteiro na tela,
+// abaixo da barra do topo (scroll-padding-top) e acima da barra de abas fixa do celular. Mais alto que a tela, o
+// começo dele fica no topo. Já visível, não rola.
+export function reveal(el: Element | null | undefined, delay = 300){
+  if(!el) return;
+  setTimeout(() => {
+    if(!el.isConnected) return;
+    const r = el.getBoundingClientRect(), top = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+    const tab = document.querySelector(".tabbar"), bottom = tab && getComputedStyle(tab).position === "fixed" ? tab.getBoundingClientRect().top - 8 : innerHeight - 8;
+    const dy = r.bottom > bottom ? Math.min(r.bottom - bottom, r.top - top) : r.top < top ? r.top - top : 0;
+    if(dy) scrollBy({top: dy, behavior: reduced() ? "auto" : "smooth"});
+  }, delay);
+}
