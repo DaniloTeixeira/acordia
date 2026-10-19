@@ -4987,6 +4987,16 @@ dialog.unsaved .dlg-foot::before {
   background: color-mix(in srgb, var(--surface) 25%, transparent);
   box-shadow: none;
   color: color-mix(in srgb, var(--ink) 75%, transparent);
+  /* Bem apagadas com a tela parada; rolando (.stage.scrolling) ou com o mouse em cima, aparecem. */
+  opacity: 0.35;
+  transition:
+    opacity var(--t) var(--ease),
+    background-color var(--t-fast);
+}
+.stage.scrolling .stage-nav :is(#stage-prev, #stage-next),
+.stage-nav :is(#stage-prev, #stage-next):hover,
+.stage-nav :is(#stage-prev, #stage-next):focus-visible {
+  opacity: 1;
 }
 .stage-nav #stage-prev {
   left: max(6px, env(safe-area-inset-left));
@@ -5000,8 +5010,9 @@ dialog.unsaved .dlg-foot::before {
   color: var(--ink);
 }
 .stage-nav #stage-prev:disabled,
-.stage-nav #stage-next:disabled {
-  opacity: 0.2;
+.stage-nav #stage-next:disabled,
+.stage.scrolling .stage-nav :is(#stage-prev, #stage-next):disabled {
+  opacity: 0.12;
 }
 .stage-nav #stage-prev .i,
 .stage-nav #stage-next .i {

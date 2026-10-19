@@ -98,6 +98,14 @@ export function Stage(){
     const el = sc.querySelector<HTMLElement>(`.stage-song[data-i="${n}"]`);
     sc.scrollTop = n === first || !el ? 0 : el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 12;
   });
+  // Rolando: as setas aparecem mais e voltam a ficar apagadas um pouco depois de parar.
+  const [scrolling, setScrolling] = useState(false), scrollTimer = useRef(0);
+  const onScroll = () => {
+    if(!scrolling) setScrolling(true);
+    clearTimeout(scrollTimer.current); scrollTimer.current = window.setTimeout(() => setScrolling(false), 1200);
+    track();
+  };
+  useEffect(() => () => clearTimeout(scrollTimer.current), []);
   // No medley, a música em cena acompanha a rolagem: a última cujo título passou do primeiro quarto da tela.
   const track = () => {
     const sc = scroll.current; if(!sc || last === first) return;
@@ -200,7 +208,7 @@ export function Stage(){
     const r = e.currentTarget.getBoundingClientRect(), y = (e.clientY - r.top) / r.height;
     if(y > 0.6) page(1); else if(y < 0.3) page(-1);
   };
-  return <div className={"stage" + (L ? " letra" : "") + (clean ? " clean" : "")} id="stage" role="dialog" aria-modal="true" aria-label={t("stage.aria")}>
+  return <div className={"stage" + (L ? " letra" : "") + (clean ? " clean" : "") + (scrolling ? " scrolling" : "")} id="stage" role="dialog" aria-modal="true" aria-label={t("stage.aria")}>
     {/* Só a cifra: dois botões discretos no canto, voltar e caber na tela. */}
     {clean && <div className="stage-clean-bar">
       <button className="icon-btn sm" id="stage-fit-clean" aria-pressed={fit} aria-label={t("stage.fit")} title={t("stage.fit")} onClick={toggleFit}><Icon name="fit" sm/></button>
@@ -263,7 +271,7 @@ export function Stage(){
         </li>;
       })}</ol>
     </nav>}
-    <div className={"stage-scroll" + (fit ? " fit" : "")} id="stage-scroll" tabIndex={0} ref={scroll} onClick={onTap} onScroll={track}>
+    <div className={"stage-scroll" + (fit ? " fit" : "")} id="stage-scroll" tabIndex={0} ref={scroll} onClick={onTap} onScroll={onScroll}>
       <div className="stage-content" id="stage-content" ref={content} style={{"--stage-fs": size + "px"} as React.CSSProperties} data-fit={fit || undefined}>
         {!src.length && <div className="empty-state"><strong>{t("stage.empty")}</strong><span>{t("stage.emptyText")}</span></div>}
         {src.slice(first, last + 1).map((s, k) => {
