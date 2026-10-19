@@ -7669,9 +7669,11 @@ dialog.event-dlg {
   width: 34px;
   height: 34px;
 }
-/* Na lista de membros, a linha das funções ocupa a largura toda: chips e lápis à esquerda, Líder e excluir à direita. */
+/* Na lista de membros, a linha das funções ocupa a largura toda: chips e lápis à esquerda, Líder e excluir à direita.
+   Os chips começam na coluna do nome, do e-mail e do celular (foto de 60 px + 10 px de espaço). */
 .members .member-roles:not(.editing) {
   flex: 1 1 100%;
+  padding-left: 70px;
 }
 .members .member-role-actions {
   margin-left: auto;
