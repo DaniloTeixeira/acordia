@@ -50,10 +50,11 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] **Sem acesso**: quem entra com um e-mail que não está na lista vê o aviso e o botão Sair.
 - [ ] **Perfil** (bolinha no topo):
   - foto do Google ou iniciais, nome editável, selo Admin e instrumento;
-  - **estado da nuvem**: "Tudo salvo", "Sincronizando…", mudanças esperando, sem internet ou erro, com
+  - **estado da nuvem** (só quando há algo a saber): "Sincronizando…", mudanças esperando, sem internet ou erro, com
     "Sincronizar agora";
   - **Sair**: tenta subir o que falta, avisa se algo vai se perder e apaga os dados deste aparelho.
-- [ ] **Quem pode entrar** (só admins): incluir e-mail, tornar ou tirar admin e tirar acesso.
+- [ ] **Usuários** (só admins, pela seção no Perfil): todos com acesso ao app, com busca e ordem; editar os dados,
+      tornar ou tirar admin (só o Dono) e tirar acesso.
 - [ ] **Músicas e repertórios na nuvem**, iguais em todos os aparelhos da conta:
   - funciona sem internet, e as mudanças sobem depois;
   - no primeiro login de um aparelho, o que já estava nele sobe para a conta;

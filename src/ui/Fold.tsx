@@ -1,4 +1,4 @@
-// Recolher um card da .profile-grid (Perfil, Grupo → Membros) para economizar rolagem. Só vale com os cards um
+// Recolher um card da .profile-grid (Grupo → Membros) para economizar rolagem. Só vale com os cards um
 // abaixo do outro: o cabeçalho clicável e o card fechado só existem dentro da container query do CSS; lado a
 // lado, o título normal do card aparece e todos ficam abertos. Fica guardado neste aparelho (localStorage), por card.
 import { useState } from "react";

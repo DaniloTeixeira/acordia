@@ -9,9 +9,10 @@ import { setLang, getLang, t, type Lang } from "./lib/i18n";
 import { vt, type VtKind } from "./lib/util";
 import type { Song } from "./lib/types";
 
-// "profile" e "group" não estão na barra de abas: o perfil abre pela bolinha, e o grupo pelo Início.
-export type View = "home" | "medley" | "library" | "group" | "study" | "tools" | "profile";
-export const VIEWS: View[] = ["home", "medley", "library", "group", "study", "tools", "profile"];
+// "profile", "people" e "group" não estão na barra de abas: o perfil abre pela bolinha, Usuários (só admin)
+// pelo Perfil, e o grupo pelo Início.
+export type View = "home" | "medley" | "library" | "group" | "study" | "tools" | "profile" | "people";
+export const VIEWS: View[] = ["home", "medley", "library", "group", "study", "tools", "profile", "people"];
 
 export interface ToastAction { label: string; run: () => void }
 export interface Toast { id: number; msg: string; action?: ToastAction; sticky?: boolean; out?: boolean }

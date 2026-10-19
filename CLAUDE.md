@@ -21,6 +21,12 @@ todas as migrações num Supabase vazio.
 - **Mobile first.** Quase todos usam no celular (referência: ~393px e 360px de largura). Toda tela começa pela
   largura de celular: sem scroll lateral, alvos de toque grandes, texto legível sem zoom; a tela larga é
   melhoria. Nada importante pode depender de hover ou tooltip (no toque não existem).
+- **Feedback sempre, em qualquer tela.** Toda ação mostra que está acontecendo, que deu certo e que falhou;
+  nada que vai à rede fica mudo. Carregando: `<Spin/>` + `aria-busy` no botão (desabilitado enquanto roda),
+  "Carregando…" na lista. Campo que grava ao sair dele: `useFieldSave` ([src/views/Account.tsx](src/views/Account.tsx))
+  mostra "Salvando…" com o spinner e depois o "✓ Salvo" (`flashSaved`). Falha: `toast` com o motivo e, quando
+  der, "Tentar de novo". Lista vazia ou que não carregou diz o porquê. Estado normal (tudo certo) não precisa
+  de aviso fixo.
 - **Hover mantém a cor do elemento.** Botão colorido (vermelho de parar, perigo etc.) continua da sua cor no
   `:hover`; use o `filter: brightness(.92)` compartilhado, nunca trocar o fundo. Elementos suaves (`.btn.soft`,
   chips) escurecem no tema claro e clareiam (`brightness(1.25)`) no escuro.
@@ -77,7 +83,7 @@ todas as migrações num Supabase vazio.
   no máximo um por grupo) > membro.
 - Só o Dono liga/desliga admin. Ninguém tira acesso/admin do Dono nem edita os dados dele. Quem é Dono só
   muda por SQL.
-- Cadastro de pessoas só em Grupo → Membros (Perfil → "Quem pode entrar" é só a lista).
+- Cadastro de pessoas só em Grupo → Membros (a página Usuários, só admin, aberta pelo Perfil, é só a lista).
 - A regra vale no banco (RLS, funções `security definer`, triggers); a interface só esconde. Toda permissão nova
   é garantida no SQL, não só no app.
 - O app é sempre com login: não reintroduzir caminho sem login nem `if(!cloud)`. Funcionalidades removidas de
@@ -126,6 +132,9 @@ Toda migração nova vai primeiro para o dev. Produção só depois que o usuár
 
 ## Git e PR
 
+- **Nunca commitar na `main`**, nem localmente. Antes de todo commit, `git rev-parse --abbrev-ref HEAD`: se
+  der `main`, criar a branch primeiro (o checkout pode ter mudado desde o começo da conversa, depois de um merge).
+  Se a branch atual já foi mergeada (PR fechada), criar uma nova a partir da `main` atualizada.
 - Branch a partir da `main`: `feat/<assunto>` ou `fix/<assunto>`. A `main` é protegida: só por PR com CI verde,
   **Squash and merge**. O merge publica, aplica migrações na produção e cria a tag `vAAAA.MM.DD-N`.
 - Mensagens de commit e PR em português, dizendo o que mudou para quem usa (ex.: "Um líder só por grupo; chip
