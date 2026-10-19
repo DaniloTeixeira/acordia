@@ -11,8 +11,8 @@ import { DateInput } from "../ui/DateInput";
 import { useFold, FoldHead } from "../ui/Fold";
 import { useGroups, loadGroups, setMemberRole, respond, outMark } from "../lib/groups";
 import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, fmtPhone } from "../lib/calendar";
-import { sortRoles } from "../lib/roles";
-import { MemberRoles, StatusChip, eventTitle, timeOf, longDay } from "./Group";
+import { sortRoles, joinRoles } from "../lib/roles";
+import { MemberRoles, RolePicker, StatusChip, eventTitle, timeOf, longDay } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
 
 const BASE = import.meta.env.BASE_URL;
@@ -546,14 +546,20 @@ function People({me}: {me: string}){
   const shown = rows && nq ? rows.filter(r => norm(r.profileName || r.name).includes(nq) || norm(r.email).includes(nq)) : rows;
   // Falhou: a lista fica vazia com o aviso e o botão de tentar de novo (antes ficava em "Carregando..." para sempre).
   const [failed, setFailed] = useState(false);
+  // Funções no cadastro: só com um grupo (é nele que a pessoa entra sozinha); com mais, ficam em Grupo → Membros.
+  const groups = useGroups(s => s.groups), only = groups.length === 1 ? groups[0] : null, [roles, setRoles] = useState<string[]>([]);
   const load = async () => { setFailed(false); const r = await listAllowed(); if(r) setRows(r); else { setRows(rows => rows || []); setFailed(true); } };
   useEffect(() => { load(); }, []);
   const add = (e: React.FormEvent) => { e.preventDefault(); lock(async () => {
     const v = email.trim().toLowerCase();
     if(!validEmail(v)){ check.fail(); document.getElementById("people-email")?.focus(); return; }
-    setBusy(true); const ok = await addAllowed(v, asAdmin, name, birthday, phone).finally(() => setBusy(false));
+    setBusy(true); const ok = await addAllowed(v, asAdmin, name, birthday, phone).then(async ok => {
+      // Com um grupo só, a pessoa já entra nele (on_allowed_join): as funções escolhidas vão junto.
+      if(ok && only && roles.length) await setMemberRole(only.id, v, joinRoles(roles));
+      return ok;
+    }).finally(() => setBusy(false));
     if(!ok) return toast(t("profile.saveFail"));
-    toast(t("people.added", {email: v})); setEmail(""); setName(""); setBirthday(""); setPhone(""); setAsAdmin(false); check.reset(); await load();
+    toast(t("people.added", {email: v})); setEmail(""); setName(""); setBirthday(""); setPhone(""); setRoles([]); setAsAdmin(false); check.reset(); await load();
   }); };
   const onRow = (r: Allowed, fn: () => Promise<unknown>) => lock(async () => { setPending(r.email); try{ await fn(); } finally{ setPending(""); } });
   const toggleAdmin = (r: Allowed) => onRow(r, async () => { if(await setAllowedAdmin(r.email, !r.is_admin)) await load(); else toast(t("profile.saveFail")); });
@@ -572,6 +578,7 @@ function People({me}: {me: string}){
       <label className="switch lead boxed"><span>{t("profile.admin")}</span><input type="checkbox" id="people-admin" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>
       <button className="btn primary" disabled={!email.trim()} aria-busy={busy}>{busy ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
       </div>
+      {only && <RolePicker value={roles} onChange={setRoles}/>}
     </form>
     <h3 className="people-sub-h">{t("people.listTitle")} {rows && rows.length > 0 && <span className="count-chip">{nq && shown ? shown.length + "/" + rows.length : rows.length}</span>}</h3>
     {rows && rows.length > 0 && <div className="search people-search"><Icon name="search" sm/><input type="search" className="input" id="people-q" placeholder={t("people.searchPh")}

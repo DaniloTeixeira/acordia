@@ -498,7 +498,7 @@ export function roleOptions(){
   return sortRoles(splitRoles([...ROLES.map(r => t("group.roles." + r)), ...g.members.map(m => m.role), ...g.roster.map(r => r.role)].join(",")));
 }
 // Botões para ligar e desligar cada função, e um campo para incluir outra.
-function RolePicker({value, onChange}: {value: string[]; onChange: (v: string[]) => void}){
+export function RolePicker({value, onChange}: {value: string[]; onChange: (v: string[]) => void}){
   const [other, setOther] = useState("");
   const has = (r: string) => value.some(x => x.toLocaleLowerCase() === r.toLocaleLowerCase());
   const opts = sortRoles(splitRoles([...roleOptions(), ...value].join(",")));
