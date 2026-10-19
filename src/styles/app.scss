@@ -7548,10 +7548,45 @@ dialog.event-dlg {
   min-width: 0;
   background: var(--accent-soft);
   border-color: transparent;
-  transition: filter var(--t-fast);
+  transition:
+    filter var(--t-fast),
+    transform var(--t-fast) var(--ease-out),
+    border-color var(--t-fast),
+    box-shadow var(--t-fast);
 }
-.home-group-card:has(.home-group-open:hover) {
-  filter: brightness(0.97);
+/* Hover bem visível (só com mouse): o card sobe um pouco, ganha contorno e sombra na cor de destaque e muda
+   de tom como os elementos suaves (escurece no claro, clareia no escuro); a seta anda para a direita. */
+@media (hover: hover) {
+  .home-group-card:has(.home-group-open:hover) {
+    filter: brightness(0.94);
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+  .home-group-open .chev-right {
+    transition: transform var(--t-fast) var(--ease-out);
+  }
+  .home-group-open:hover .chev-right {
+    transform: translateX(3px) rotate(-90deg);
+  }
+}
+@media (hover: hover) and (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .home-group-card:has(.home-group-open:hover) {
+    filter: brightness(1.25);
+  }
+}
+@media (hover: hover) {
+  :root[data-theme="dark"] .home-group-card:has(.home-group-open:hover) {
+    filter: brightness(1.25);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-group-card:has(.home-group-open:hover) {
+    transform: none;
+  }
+  .home-group-open:hover .chev-right {
+    transform: rotate(-90deg);
+  }
 }
 .home-group-open {
   flex: 1;
