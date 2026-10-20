@@ -60,7 +60,9 @@ export function ReplySeg({e, onEditing}: {e: GEvent; onEditing?: (v: boolean) =>
   const btn =(v: "yes" | "no", icon: string, label: string) =>
     <button type="button" className={"btn sm " + (v === "yes" ? "reply-yes" : "reply-no") + (shown === v ? " on" : "")} aria-pressed={shown === v} aria-busy={sent?.v === v} disabled={!!sent} onClick={() => pick(v)}>
       {sent?.v === v ? <Spin/> : <Icon name={icon} sm/>} {label}</button>;
-  return <div className="reply-btns" role="group" aria-label={t("group.myReply")}>{btn("yes", "check", t("group.confirm"))}{btn("no", "x", t("group.decline"))}</div>;
+  // Com os botões abertos a pedido (já tinha resposta), "Alterar resposta" vira "Cancelar" para voltar sem recarregar.
+  return <div className="reply-edit"><div className="reply-btns" role="group" aria-label={t("group.myReply")}>{btn("yes", "check", t("group.confirm"))}{btn("no", "x", t("group.decline"))}</div>
+    {cur && editing && !sent && <button type="button" className="link-btn" onClick={() => setEditing(false)}>{t("common.cancel")}</button>}</div>;
 }
 
 const { data } = store;
@@ -388,7 +390,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
     </div></div>
     <div className="event-more">
       {/* Cada pessoa: nome e situação em cima, as funções neste evento como chips embaixo. */}
-      {/* Ensaio é de todos: quem não foi escalado também aparece (sem resposta a dar), só com o nome. */}
+      {/* Ensaio é de todos: quem não foi escalado também aparece (sem resposta a dar), com o selo "Fora da escala". */}
       <div className="event-sec"><SecHead as="h3" className="people-sub-h">{t("group.roster")}</SecHead>
       {e.kind === "rehearsal" && g.members.length ? <ul className="quick-att roster-tbl">
         <li className="quick-att-head" aria-hidden="true"><span className="quick-att-when">{t("people.colPerson")}</span><span className="quick-att-ctl">{t("group.respCol")}</span></li>
@@ -398,7 +400,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
           <span className="quick-att-ctl"><StatusChip status={r.status} noIcon/></span></li>)}
         {g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).map(m => <li key={m.email}>
           <span className="quick-att-when"><b>{personName(m.email)}{m.email === me && <YouChip/>}</b></span>
-          <span className="quick-att-ctl"><span className="sub">—</span></span></li>)}</ul>
+          <span className="quick-att-ctl"><span className="chip">{t("group.status.off")}</span></span></li>)}</ul>
         : roster.length ? <ul className="roster">{rosterByPerson(roster).map(r => <li key={r.email} className={"st-" + r.status}>
         <span className="roster-who">{personName(r.email)}{r.email === me && <YouChip/>}</span>
         <StatusChip status={r.status}/>
@@ -417,16 +419,18 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
         {e.kind === "rehearsal" && canCheckIn(e) && pastNow && myMark && !editIn && busy !== "in" && <div className={"reply-done " + (myIn ? "yes" : "no")} role="status">
           <span className="reply-badge"><Icon name={myIn ? "check" : "x"} sm/> {t(myIn ? "group.att.present" : "group.att.absent")}</span>
           <button type="button" className="link-btn" onClick={() => setEditIn(true)}>{t("group.changeReply")}</button></div>}
-        {e.kind === "rehearsal" && canCheckIn(e) && pastNow && (!myMark || editIn || busy === "in") && <div className="reply-btns" role="group" aria-label={t("group.myReply")}>
+        {e.kind === "rehearsal" && canCheckIn(e) && pastNow && (!myMark || editIn || busy === "in") && <div className="reply-edit"><div className="reply-btns" role="group" aria-label={t("group.myReply")}>
           {([["present", "check", "group.checkInPast", "reply-yes"], ["absent", "x", "group.notThere", "reply-no"]] as const).map(([v, icon, key, cls]) =>
             <button key={v} type="button" className={"btn sm " + cls} aria-busy={busy === "in:" + v} disabled={busy.startsWith("in:")}
               onClick={() => myAtt?.status === v ? setEditIn(false) : act("in:" + v, () => setMyAttendance(e.id, v), "group.saved").then(() => setEditIn(false))}>
-              {busy === "in:" + v ? <Spin/> : <Icon name={icon} sm/>} {t(key)}</button>)}</div>}
+              {busy === "in:" + v ? <Spin/> : <Icon name={icon} sm/>} {t(key)}</button>)}</div>
+          {myMark && editIn && !busy && <button type="button" className="link-btn" onClick={() => setEditIn(false)}>{t("common.cancel")}</button>}</div>}
         {e.kind === "rehearsal" && canCheckIn(e) && !pastNow && myIn && !editIn && busy !== "in" && <div className="reply-done yes" role="status">
           <span className="reply-badge"><Icon name="check" sm/> {t("group.att.present")}</span>
           <button type="button" className="link-btn" onClick={() => setEditIn(true)}>{t("group.changeReply")}</button></div>}
-        {e.kind === "rehearsal" && canCheckIn(e) && !pastNow && (!myIn || editIn || busy === "in") && <button className="btn sm soft" aria-busy={busy === "in"} disabled={busy === "in"}
-          onClick={() => act("in", () => checkIn(e.id, !myIn), myIn ? "group.saved" : "group.checkedIn").then(() => setEditIn(false))}>{busy === "in" ? <Spin/> : <Icon name={myIn ? "x" : "user"} sm/>} {t(myIn ? "group.uncheckIn" : Date.now() > d.getTime() ? "group.checkInPast" : "group.checkIn")}</button>}
+        {e.kind === "rehearsal" && canCheckIn(e) && !pastNow && (!myIn || editIn || busy === "in") && <div className="reply-edit"><button className="btn sm soft" aria-busy={busy === "in"} disabled={busy === "in"}
+          onClick={() => act("in", () => checkIn(e.id, !myIn), myIn ? "group.saved" : "group.checkedIn").then(() => setEditIn(false))}>{busy === "in" ? <Spin/> : <Icon name={myIn ? "x" : "user"} sm/>} {t(myIn ? "group.uncheckIn" : Date.now() > d.getTime() ? "group.checkInPast" : "group.checkIn")}</button>
+          {myIn && editIn && !busy && <button type="button" className="link-btn" onClick={() => setEditIn(false)}>{t("common.cancel")}</button>}</div>}
       </div>
       </div>}
       {e.kind === "rehearsal" && canEdit && Date.now() >= d.getTime() - 12 * 3600 * 1000 && <Attendance e={e}/>}

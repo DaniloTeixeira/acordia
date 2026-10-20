@@ -186,7 +186,8 @@ também libera o acesso ao app para eles).
 - [ ] **Presença nos ensaios**: "Cheguei" (de 12 h antes do início em diante; em ensaio que já começou o membro escolhe entre "Estive" e "Não estive", ou volta a sem marcação; pode mudar mesmo se o líder marcou) e a chamada de quem lidera
       (presente, falta, justificada), que vale por cima do "Cheguei".
       Em Membros, o botão de check na linha da pessoa marca presença ou falta dos últimos ensaios sem abrir a agenda.
-      A lista do ensaio é uma tabela (pessoa e resposta) com todos os membros ativos, escalados ou não.
+      A lista do ensaio é uma tabela zebrada (pessoa e resposta, só texto colorido) com todos os membros ativos; quem não foi escalado aparece como "Fora da escala".
+      Ao alterar a resposta, o link "Alterar resposta" vira "Cancelar" no mesmo lugar e a linha mantém a altura.
 - [ ] **Adicionar ao calendário** (.ics): todas as suas escalas de uma vez (botão no card "Suas próximas escalas"), com lembrete 1 dia e 2 h antes.
 - [ ] **Repertórios do grupo**: quem lidera compartilha um repertório seu (compartilhar de novo atualiza);
       todos abrem ("Salvar e abrir" ou "Atualizar") ou vão direto ao **Palco**.

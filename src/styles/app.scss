@@ -9223,7 +9223,10 @@ dialog.member-dlg {
   font-size: 0.86rem;
 }
 /* Depois de responder: selo verde (confirmou) ou vermelho (não vai) e o link "Alterar resposta" ao lado. */
-.reply-done {
+/* Botões abertos para alterar: o "Cancelar" ocupa o lugar do "Alterar resposta" (mesma linha, ponta direita). */
+.reply-done,
+.reply-edit {
+  min-height: 40px; /* selo e botões na mesma altura: o card não muda de tamanho ao alternar */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -9231,7 +9234,8 @@ dialog.member-dlg {
   flex-wrap: wrap;
   width: 100%;
 }
-.reply-done .link-btn {
+.reply-done .link-btn,
+.reply-edit .link-btn {
   font-size: 0.78rem;
 }
 .reply-badge {
@@ -9421,7 +9425,12 @@ dialog.member-dlg {
 .roster-tbl .quick-att-when { flex-direction: column; align-items: flex-start; gap: 2px; }
 .roster-tbl .quick-att-ctl { min-width: 0; }
 .roster-tbl .quick-att-ctl { padding-left: 6px; padding-right: 6px; }
-.roster-tbl .quick-att-ctl .chip { background: transparent; padding: 2px 7px; font-weight: 500; white-space: nowrap; }
+.roster-tbl .quick-att-ctl .chip { background: transparent; border: 0; box-shadow: none; padding: 2px 0; font-weight: 500; white-space: nowrap; }
+.roster-tbl .quick-att-ctl .chip:not([class*="st-"]) { color: var(--muted); }
+/* Zebrado leve (a 1ª linha da lista fica lisa; o cabeçalho é o 1º li). Usa --surface-2, que já tem a versão escura. */
+/* Vale para toda tabela .quick-att (escala do ensaio e atalho de presença em Membros). Cabeçalho com um tom próprio (acento sobre o fundo), mais forte que as listras. O seletor repete o de .quick-att-head para vencer. */
+:is(.people-list, .event-more, .member-manage) .quick-att li.quick-att-head { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+.quick-att li:nth-child(odd):not(.quick-att-head) { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
 @media (max-width: 420px) {
   .roster-tbl .quick-att-ctl .chip svg { display: none; }
 }
@@ -9438,9 +9447,9 @@ dialog.member-dlg {
 .event-cover .select-btn { width: auto; min-width: min(250px, 100%); max-width: 100%; height: 36px; min-height: 0; box-sizing: border-box; border-radius: var(--r-full); padding-left: 16px; }
 /* Tela larga: o selo da resposta ("Você não vai" + Alterar resposta) e a lista de substituto ficam lado a lado. */
 @media (min-width: 900px) {
-  .event-actions { align-items: center; }
+  .event-actions { align-items: center; min-height: 40px; } /* os blocos viram display: contents: a altura fixa vai na linha */
   /* O selo e o link viram itens da própria linha: selo, substituto e, na ponta direita, "Alterar resposta". */
-  .event-actions > .reply-done { display: contents; }
+  .event-actions > :is(.reply-done, .reply-edit) { display: contents; }
   /* Escolha da resposta: os botões do tamanho do texto, não esticados pela linha. */
   .event-actions > .reply-btns { width: auto; }
   .event-actions > .reply-btns .btn { flex: 0 0 auto; min-height: 34px; padding: 0 22px; }
@@ -9448,7 +9457,7 @@ dialog.member-dlg {
     .event-actions > .reply-btns .btn { min-height: 40px; }
   }
   .event-actions > .reply-done .reply-badge { order: 0; min-height: 36px; padding: 0 14px; font-size: 0.84rem; }
-  .event-actions > .reply-done .link-btn { order: 2; margin-left: auto; }
+  .event-actions > :is(.reply-done, .reply-edit) .link-btn { order: 2; margin-left: auto; }
   .event-actions > .event-cover { order: 1; }
 }
 /* Celular estreito: as abas ocupam a linha toda e a lista de quem cobre vai para baixo delas, também na largura toda e
