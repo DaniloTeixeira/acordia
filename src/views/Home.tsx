@@ -15,17 +15,12 @@ import { peekCurrent, openMedley, songItems, isMedley, recentItems, type Recent 
 import { Icon } from "../ui/Icon";
 import { Spin } from "./Account";
 import { sortRoles } from "../lib/roles";
-import { useGroupRefresh, ReplySeg, openGroup, eventTitle, fmt, timeOf, longDay, useSquareBadge, PersonAvatar, GroupMark, GroupPhotoButton } from "./Group";
+import { useGroupRefresh, ReplySeg, openGroup, eventTitle, fmt, timeOf, longDay, useSquareBadge, relDay, PersonAvatar, GroupMark, GroupPhotoButton } from "./Group";
+import { SecHead } from "../ui/SecHead";
+import { LinkCard, IconMark } from "../ui/LinkCard";
+import { YouChip } from "../ui/YouChip";
 
 const { data } = store;
-
-// "hoje", "amanhã", "em 3 dias" (no idioma do app).
-function relDay(iso: string){
-  const [y, m, d] = dayKey(new Date(iso)).split("-").map(Number), [ty, tm, td] = dayKey(new Date()).split("-").map(Number);
-  const days = Math.round((Date.UTC(y, m - 1, d) - Date.UTC(ty, tm - 1, td)) / 864e5);
-  return new Intl.RelativeTimeFormat(locale(), {numeric: "auto"}).format(days, "day");
-}
-
 
 export function Home(){
   useData();
@@ -62,8 +57,8 @@ export function Home(){
       {needs.length > 0 && <Block id="home-needs" className="home-needs" wide={topWide === "needs"} title={t("home.needsSub")} count={needs.length}>
         <ul className="my-next-list">{needs.map(e => <EventRow key={e.id} e={e} chip={<span className="event-chips"><span className="chip st-no">{tn("group.needSub", needsCover(rosterOf(e)).length)}</span></span>}/>)}</ul>
       </Block>}
-      {waiting.length > 0 && <Block id="home-waiting" className="home-needs home-waiting" wide={topWide === "waiting"} title={t("home.pendingTitle")} count={waiting.length}>
-        <ul className="my-next-list">{waiting.map(e => <EventRow key={e.id} e={e} chip={<span className="chip st-pending">{tn("home.pending", pendingReplies(rosterOf(e)).length)}</span>}/>)}</ul>
+      {waiting.length > 0 && <Block id="home-waiting" className="home-needs home-waiting" wide={topWide === "waiting"} title={t("home.pendingTitle")} count={waiting.length} link={{label: t("home.seeAgenda"), run: () => openGroup("agenda")}}>
+        <ul className="home-waiting-list">{waiting.map(e => <WaitingItem key={e.id} e={e}/>)}</ul>
       </Block>}
       {/* A semana sempre; embaixo, as outras escalas da pessoa (a primeira já está em destaque). */}
       <Block id="home-scales-block" wide title={t(rest.length ? "home.myScales" : "home.week")} count={rest.length ? mine.length : 0} link={{label: t("home.seeAgenda"), run: () => openGroup("agenda")}}>
@@ -91,7 +86,7 @@ function Block({id, className = "", wide, icon, title, count, link, action, chil
   link?: {label: string; run: () => void}; action?: ReactNode; children: ReactNode}){
   return <section className={"card home-block " + className + (wide ? " wide" : "")} id={id} aria-labelledby={id + "-h"}>
     <div className="home-block-head">
-      <h2 id={id + "-h"}>{icon && <Icon name={icon} sm/>}{title}{!!count && <span className="count-chip">{count}</span>}</h2>
+      <SecHead id={id + "-h"}>{icon && <Icon name={icon} sm/>}{title}{!!count && <span className="count-chip">{count}</span>}</SecHead>
       {link && <button type="button" className="link-btn" onClick={link.run}>{link.label} <Icon name="chev" sm className="chev-right"/></button>}
       {action}
     </div>
@@ -124,12 +119,33 @@ function ScaleRow({e, leader}: {e: GEvent; leader: boolean}){
   </li>;
 }
 
-function EventRow({e, chip}: {e: GEvent; chip: ReactNode}){
+function EventRow({e, chip, extra}: {e: GEvent; chip: ReactNode; extra?: ReactNode}){
   const d = new Date(e.starts_at), sq = useSquareBadge<HTMLSpanElement>();
   return <li><button className="home-row" onClick={() => openGroup("agenda", e.id)}>
     <span className="date-badge" ref={sq.badge}><small>{fmt({weekday: "short"}).format(d)}</small><b>{d.getDate()}</b><small>{fmt({month: "short"}).format(d)}</small></span>
-    <span className="my-next-what" ref={sq.what}><b>{eventTitle(e)}</b><span className="sub">{timeOf(e.starts_at)}{e.place && " · " + e.place}</span></span>
+    <span className="my-next-what" ref={sq.what}><b>{eventTitle(e)}</b><span className="sub">{timeOf(e.starts_at)}{e.place && " · " + e.place} · {relDay(e.starts_at)}</span>{extra}</span>
     {chip}</button></li>;
+}
+
+// Um evento com gente sem resposta, num bloco que preenche o card: em cima a data, o título e o selo; embaixo
+// quem falta (primeiros nomes, em lista de marcadores pequena) e quantos já confirmaram.
+function WaitingItem({e}: {e: GEvent}){
+  const g = useGroups(), d = new Date(e.starts_at), sq = useSquareBadge<HTMLSpanElement>();
+  const roster = g.roster.filter(r => r.event_id === e.id), people = [...new Set(roster.map(r => r.email))];
+  const yes = people.filter(p => roster.some(r => r.email === p && r.status === "yes")).length;
+  const list = pendingReplies(roster), names = list.map(p => personName(p).split(" ")[0]);
+  /* MOCK-TEMPORARIO */ names.splice(0, names.length, ...["Zaqueu", "Rebeca", "Vitor", "Mariana", "Gabriel", "Letícia", "Fernando", "Priscila", "Matheus", "Ana Beatriz"]);
+  return <li className="home-waiting-item">
+    <button type="button" className="home-row" onClick={() => openGroup("agenda", e.id)}>
+      <span className="date-badge" ref={sq.badge}><small>{fmt({weekday: "short"}).format(d)}</small><b>{d.getDate()}</b><small>{fmt({month: "short"}).format(d)}</small></span>
+      <span className="my-next-what" ref={sq.what}><b>{eventTitle(e)}</b><span className="sub">{timeOf(e.starts_at)}{e.place && " · " + e.place} · {relDay(e.starts_at)}</span></span>
+      <span className="chip st-yes home-waiting-replies"><Icon name="users" sm/> {t("home.replies", {yes, total: people.length})}</span>
+    </button>
+    <div className="home-waiting-box">
+      <span className="home-waiting-count">{tn("home.pending", list.length)}</span>
+      <ul className="home-waiting-who">{names.map((n, i) => <li key={i}>{n}</li>)}</ul>
+    </div>
+  </li>;
 }
 
 // Aniversariantes do grupo nos próximos 7 dias (só dia e mês; a idade não aparece). O bloco fica sempre, com um aviso
@@ -141,7 +157,7 @@ function Birthdays({list, wide}: {list: {email: string; in: number; day: number;
     {list.length === 0 ? <div className="empty-state home-empty"><Icon name="gift"/><span>{t("home.noBirthdays")}</span></div>
     : <ul className="birthday-list">{list.map(p => <li key={p.email} className={p.in === 0 ? "today" : ""}>
       <PersonAvatar email={p.email}/>
-      <span className="birthday-who"><b>{personName(p.email)}{p.email === me && " " + t("group.you")}</b>
+      <span className="birthday-who"><b>{personName(p.email)}{p.email === me && <YouChip/>}</b>
         <span className="sub">{fmt({day: "numeric", month: "long", timeZone: "UTC"}).format(new Date(Date.UTC(2000, p.month - 1, p.day)))}</span></span>
       <span className={"chip" + (p.in === 0 ? " accent" : "")}>{p.in === 0 ? t("home.birthdayToday") : when(p.in)}</span>
     </li>)}</ul>}
@@ -183,32 +199,20 @@ function StudyBlock({list, wide}: {list: StudyItem[]; wide: boolean}){
   const g = useGroups();
   return <Block id="home-study" wide={wide} title={t("home.setlists")}
     link={g.setlists.length ? {label: t("home.seeAll"), run: () => openGroup("setlists")} : undefined}>
-    <ul className="my-next-list">{list.map(x => x.kind === "group" ? <GroupSetRow key={"g" + x.set.id} set={x.set}/> : <RecentRow key={x.r.kind + x.r.id} r={x.r}/>)}</ul>
+    <ul className="home-groups">{list.map(x => x.kind === "group" ? <GroupSetRow key={"g" + x.set.id} set={x.set}/> : <RecentRow key={x.r.kind + x.r.id} r={x.r}/>)}</ul>
   </Block>;
 }
 function GroupSetRow({set}: {set: GroupSetlist}){
-  return <li className="home-set">
-    <button type="button" className="home-row" onClick={() => openGroupSetlist(set)}>
-      <span className="date-badge"><Icon name="music"/></span>
-      <span className="my-next-what"><b>{set.name}</b><span className="sub">{tn("song", set.songs)}</span></span></button>
-  </li>;
+  return <LinkCard mark={<IconMark name="music"/>} title={set.name} sub={tn("song", set.songs)} onClick={() => openGroupSetlist(set)}/>;
 }
 function RecentRow({r}: {r: Recent}){
   if(r.kind === "song"){
     const s = data.songs.get(r.id)!;
-    return <li className="home-set">
-      <button type="button" className="home-row" onClick={() => openDialog("song", {song: s})}>
-        <span className="date-badge"><Icon name="music"/></span>
-        <span className="my-next-what"><b>{s.title}</b><span className="sub">{t("home.kind.song")} · {ago(r.at)}</span></span></button>
-    </li>;
+    return <LinkCard mark={<IconMark name="music"/>} title={s.title} sub={t("home.kind.song") + " · " + ago(r.at)} onClick={() => openDialog("song", {song: s})}/>;
   }
   const m = data.medleys.get(r.id)!, blocks = isMedley(m);
-  const open = () => { openMedley(m.id); go("medley"); };
-  return <li className="home-set">
-    <button type="button" className="home-row" onClick={open}>
-      <span className="date-badge"><Icon name={blocks ? "link" : "list"}/></span>
-      <span className="my-next-what"><b>{m.name}</b><span className="sub">{tn("song", songItems(m).length)} · {ago(r.at)}</span></span></button>
-  </li>;
+  return <LinkCard mark={<IconMark name={blocks ? "link" : "list"}/>} title={m.name} sub={tn("song", songItems(m).length) + " · " + ago(r.at)}
+    onClick={() => { openMedley(m.id); go("medley"); }}/>;
 }
 
 // Os grupos (só com mais de um ou para o admin): tocar abre o grupo. O aberto agora usa os números já carregados.
@@ -221,23 +225,18 @@ function Groups({upcoming, wide}: {upcoming: number; wide: boolean}){
   const ordered = [...g.groups.filter(x => x.id === pinned), ...g.groups.filter(x => x.id !== pinned)];
   const many = g.groups.length > 1;
   return <Block id="home-group" className="home-group" wide={wide} title={tn("home.groups", g.groups.length)} count={many ? g.groups.length : 0}
-    action={admin && <button className="btn ghost sm" id="home-new-group" onClick={() => openDialog("newGroup", {})}><Icon name="plus" sm/> {t("group.newGroupTitle")}</button>}>
+    action={admin && <button type="button" className="link-btn" id="home-new-group" onClick={() => openDialog("newGroup", {})}><Icon name="plus" sm/> {t("group.newGroupTitle")}</button>}>
     <ul className="home-groups">{ordered.map(x => {
       const cur = x.id === g.gid, st = cur ? {events: upcoming, members: g.members.length} : x.stats;
       const pin = pinned === x.id;
-      return <li key={x.id} className="card home-group-card">
-        {admin ? <GroupPhotoButton group={x}/> : <GroupMark group={x}/>}
-        <button className="home-group-open" id={"home-group-" + x.id} onClick={() => { if(!cur) chooseGroup(x.id); openGroup("agenda"); }}>
-          <span className="home-group-what"><b>{x.name}</b>
-            {st && <span className="sub">{tn("home.events", st.events)} · {tn("profile.members", st.members)}</span>}</span>
-          <Icon name="chev" sm className="chev-right"/>
-        </button>
-        {/* Fixar (no canto de baixo à direita) só faz sentido com mais de um grupo; excluir fica em editar o grupo. */}
-        {many && <span className="home-group-acts">
+      return <LinkCard key={x.id} id={"home-group-" + x.id} mark={admin ? <GroupPhotoButton group={x}/> : <GroupMark group={x}/>} title={x.name}
+        sub={st && tn("home.events", st.events) + " · " + tn("profile.members", st.members)}
+        onClick={() => { if(!cur) chooseGroup(x.id); openGroup("agenda"); }}
+        /* Fixar (no canto de baixo à direita) só faz sentido com mais de um grupo; excluir fica em editar o grupo. */
+        acts={many && <span className="home-group-acts">
           <button type="button" className="icon-btn sm line home-group-pin" aria-pressed={pin}
             aria-label={t(pin ? "group.unpin" : "group.pin") + ": " + x.name} onClick={() => togglePin(x.id)}><Icon name="pin" sm/></button>
-        </span>}
-      </li>;
+        </span>}/>;
     })}</ul>
   </Block>;
 }

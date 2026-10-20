@@ -14,7 +14,7 @@ export type AuthStatus = "loading" | "out" | "denied" | "in";
 export interface Profile { id: string; email: string; name: string; birthday?: string | null; photo?: string; phone?: string }
 // name/birthday/phone: os informados por quem liberou o acesso; profileName/profileBirthday/profilePhone: os do
 // perfil da pessoa (vazios enquanto ela não entrou ou não preencheu). O perfil vale mais.
-export interface Allowed { email: string; is_admin: boolean; is_owner: boolean; name: string; birthday: string | null; phone: string; profileName: string; profileBirthday: string | null; profilePhone: string; profilePhoto: string; created_at: string }
+export interface Allowed { email: string; is_admin: boolean; is_owner: boolean; name: string; birthday: string | null; phone: string; profileName: string; profileBirthday: string | null; profilePhone: string; profilePhoto: string; created_at: string; joined: boolean }
 // error: o que deu errado na volta do Google ou de um link do e-mail, para a tela de entrar avisar.
 // recovery: voltou pelo link de "esqueci minha senha"; a tela pede a senha nova antes de abrir o app.
 // errorFrom: de onde veio a volta com erro ("google" ou um link do e-mail); errorDetail: o texto do Supabase.
@@ -232,7 +232,7 @@ export async function listAllowed(): Promise<Allowed[] | null> {
   const prof = new Map((p.data as {email: string; name: string; birthday: string | null; phone?: string; photo?: string}[]).map(x => [x.email, x]));
   return (a.data as Partial<Allowed>[]).map(r => ({email: r.email!, is_admin: !!r.is_admin, is_owner: !!r.is_owner, name: r.name || "", birthday: r.birthday || null, phone: r.phone || "",
     profileName: prof.get(r.email!)?.name || "", profileBirthday: prof.get(r.email!)?.birthday || null, profilePhone: prof.get(r.email!)?.phone || "",
-    profilePhoto: prof.get(r.email!)?.photo || "", created_at: r.created_at || ""}));
+    profilePhoto: prof.get(r.email!)?.photo || "", created_at: r.created_at || "", joined: prof.has(r.email!)}));
 }
 // Nome, data e celular vazios não vão juntos, para não apagar o que já estava na lista.
 export async function addAllowed(email: string, admin: boolean, name = "", birthday = "", phone = ""){
@@ -262,7 +262,12 @@ export async function setAllowedAdmin(email: string, admin: boolean){
   const {error} = await cloud.from("allowed_emails").update({is_admin: admin}).eq("email", email);
   return !error;
 }
+// Exclui a pessoa do sistema: acesso, grupos e a conta de login (admin_delete_user). Banco ainda sem a função:
+// só tira o acesso, como antes.
 export async function removeAllowed(email: string){
+  const r = await cloud.rpc("admin_delete_user", {person_email: email});
+  if(!r.error) return true;
+  if(!/admin_delete_user|schema cache/i.test(r.error.message)) return false;
   const {error} = await cloud.from("allowed_emails").delete().eq("email", email);
   return !error;
 }

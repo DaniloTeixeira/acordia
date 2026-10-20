@@ -5,6 +5,7 @@ import { useState } from "react";
 import { t } from "../lib/i18n";
 import { Icon } from "./Icon";
 import { reveal } from "../lib/util";
+import { SecHead } from "./SecHead";
 
 const KEY = "acordia.fold.";
 
@@ -20,5 +21,5 @@ export function useFold(id: string){
 // Cabeçalho do card um abaixo do outro: o título inteiro é o botão (padrão de acordeão: h2 com um botão dentro).
 export function FoldHead({folded, onToggle, title}: {folded: boolean; onToggle: () => void; title: string}){
   return <h2 className="fold-head"><button type="button" aria-expanded={!folded} title={t(folded ? "card.expand" : "card.collapse", {title})} onClick={e => { if(folded) reveal(e.currentTarget.closest(".card")); onToggle(); }}>
-    <span>{title}</span><span className="fold-chev"><Icon name="chev" sm className={"event-chev" + (folded ? "" : " up")}/></span></button></h2>;
+    <SecHead as="span">{title}</SecHead><span className="fold-chev"><Icon name="chev" sm className={"event-chev" + (folded ? "" : " up")}/></span></button></h2>;
 }

@@ -27,6 +27,9 @@ import { useFold, FoldHead } from "../ui/Fold";
 import { SKIP_OPEN, StreakChip, useLock, Spin, Avatar, PersonFields, useEmailCheck, pickPhoto, PhoneLink, fmtBirthday, today, usePeopleFilter, PeopleTools } from "./Account";
 import { DateInput } from "../ui/DateInput";
 import { useMedia } from "../ui/hooks";
+import { SecHead } from "../ui/SecHead";
+import { YouChip } from "../ui/YouChip";
+import { BackLink } from "../ui/BackLink";
 
 // Confirmar / Não posso de uma escala (Início e Perfil). Tocar na resposta ativa desfaz (volta a "sem resposta").
 // A escolhida já fica marcada, com o spinner, enquanto grava; se falhar, volta ao valor real e avisa.
@@ -63,6 +66,12 @@ export const LIB_TABS: Tab[] = ["setlists", "songs", "medleys"];
 
 // ---------- datas ----------
 export const fmt = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(locale(), o);
+// "hoje", "amanhã", "em 3 dias" (no idioma do app).
+export function relDay(iso: string){
+  const [y, m, d] = dayKey(new Date(iso)).split("-").map(Number), [ty, tm, td] = dayKey(new Date()).split("-").map(Number);
+  const days = Math.round((Date.UTC(y, m - 1, d) - Date.UTC(ty, tm - 1, td)) / 864e5);
+  return new Intl.RelativeTimeFormat(locale(), {numeric: "auto"}).format(days, "day");
+}
 export const timeOf = (iso: string) => fmt({hour: "2-digit", minute: "2-digit"}).format(new Date(iso));
 export const eventTitle = (e: Pick<GEvent, "title" | "kind">) => e.title || t("group.kind." + e.kind);
 export const longDay = (d: Date) => fmt({weekday: "long", day: "numeric", month: "long"}).format(d);
@@ -137,15 +146,18 @@ function downloadICS(events: GEvent[], name: string){
   saveBlob(new Blob([ics], {type: "text/calendar"}), name.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "").toLowerCase() + ".ics");
 }
 
-// Ao abrir a página e ao voltar para o app, busca o que mudou no grupo.
+// Ao abrir a página, ao voltar para o app e a cada 30s com a tela à vista, busca o que mudou no grupo
+// (resposta de escala, presença, evento novo), já que não há atualização em tempo real.
+const REFRESH_MS = 30000;
 export function useGroupRefresh(){
   const status = useAuth(s => s.status);
   useEffect(() => {
     if(status !== "in") return;
     loadGroups();
     const wake = () => { if(!document.hidden) loadGroups(); };
+    const tick = setInterval(wake, REFRESH_MS);
     document.addEventListener("visibilitychange", wake);
-    return () => document.removeEventListener("visibilitychange", wake);
+    return () => { clearInterval(tick); document.removeEventListener("visibilitychange", wake); };
   }, [status]);
 }
 // Abre a página do grupo numa aba; sem aba, na Agenda (o que o membro mais consulta).
@@ -168,7 +180,7 @@ export function Group(){
   const tab: Tab = (["agenda", "setlists", "songs", "medleys", "members"] as const).find(v => v === data.settings.groupTab) || "agenda";
   // Quem lidera tem o lápis ao lado do nome: abre a janela com a foto, o nome e (admin do app) outro grupo e excluir.
   const head = (sub: string, actions?: React.ReactNode) => <div className="view-head"><div>
-    <button className="back-link" id="group-back" onClick={() => tab === "members" ? go("more") : go("home")}><Icon name="back" sm/><span>{t(tab === "members" ? "nav.more" : "nav.home")}</span></button>
+    <BackLink id="group-back" label={t("common.back")} onClick={() => tab === "members" ? go("more") : go("home")}/>
     <div className="group-title">{group && (admin ? <GroupPhotoButton group={group}/> : <GroupMark group={group}/>)}
       <div>{group && <span className="group-kicker">{t(tab === "members" ? "group.membersTab" : tab === "agenda" ? "group.agenda" : "lib.title")}</span>}<h1 id="group-h">{group ? group.name : t("group.title")}{canEdit && <button type="button" className="icon-btn sm line group-edit-btn" id="group-edit"
         aria-label={t("group.edit")} title={t("group.edit")} onClick={() => openDialog("group", {})}><Icon name="edit" sm/></button>}</h1><p className="sub">{sub}</p></div></div></div>
@@ -222,13 +234,13 @@ function Agenda({canEdit}: {canEdit: boolean}){
   const list = sel ? (byDay.get(sel) || []) : showPast ? past : upcoming;
   const weekdays = Array.from({length: 7}, (_, i) => fmt({weekday: "narrow"}).format(new Date(2024, 0, 7 + i)));
   return <div className="agenda">
-    {mine.length > 0 && <div className="card my-next"><h2>{t("group.myNext")}</h2>
+    {mine.length > 0 && <div className="card my-next"><SecHead>{t("group.myNext")}</SecHead>
       <ul className="my-next-list">{mine.slice(0, 4).map(e => <MyNextRow key={e.id} e={e}/>)}</ul>
       <p className="sub my-next-hint">{t("group.addToCalHint")}</p>
     </div>}
     <div className="agenda-grid">
       <div className="card cal" aria-labelledby="cal-h">
-        <h2 id="cal-h">{t("group.calendar")}</h2>
+        <SecHead id="cal-h">{t("group.calendar")}</SecHead>
         <div className="cal-head">
           <button className="icon-btn sm" aria-label={t("group.prevMonth")} onClick={() => shift(-1)}><Icon name="chev" sm className="chev-left"/></button>
           <b>{fmt({month: "long", year: "numeric"}).format(new Date(month.y, month.m, 1))}</b>
@@ -251,7 +263,7 @@ function Agenda({canEdit}: {canEdit: boolean}){
         <div className="cal-legend"><span><i className="service"/>{t("group.kind.service")}</span><span><i className="rehearsal"/>{t("group.kind.rehearsal")}</span><span><i className="off"/>{t("group.unavailable")}</span></div>
       </div>
       <div className="card agenda-list">
-        <h2 className="people-sub-h agenda-list-h">{t("group.events")}</h2>
+        <SecHead className="people-sub-h agenda-list-h">{t("group.events")}</SecHead>
         {sel ? <DayBar day={sel} off={myOff.has(sel)} canEdit={canEdit} onClear={() => setSel("")}/>
           : <Seg className="block" id="agenda-when" aria={t("group.agenda")} value={showPast ? "past" : "next"} onChange={v => setShowPast(v === "past")}
             options={[{v: "past", label: t("group.past")}, {v: "next", label: t("group.upcoming")}]}/>}
@@ -291,7 +303,7 @@ function DayBar({day, off, canEdit, onClear}: {day: string; off: boolean; canEdi
   return <div className="day-bar card">
     <b>{longDay(date)}</b>
     <div className="day-actions">
-      {future && <label className="switch lead boxed" title={t("group.unavailableHint")}><span>{busy && <Spin/>}{t("group.cantThisDay")}</span><input type="checkbox" id="group-off" checked={off} onChange={toggle}/></label>}
+      {future && <label className="switch lead boxed" title={t("group.unavailableHint")}><span>{busy && <Spin/>}{t("group.cantThisDay")}</span><input type="checkbox" id="group-off" checked={busy ? !off : off} disabled={busy} aria-busy={busy} onChange={toggle}/></label>}
       {canEdit && <button className="btn ghost sm" onClick={() => openDialog("event", {id: null, day})}><Icon name="plus" sm/> {t("group.newEvent")}</button>}
       <button className="icon-btn sm" aria-label={t("group.allDays")} title={t("group.allDays")} onClick={onClear}><Icon name="x" sm/></button>
     </div>
@@ -352,13 +364,14 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
     {pendingCheckIn(e, [me], g.attendance).length > 0 && <span className="chip st-pending"><Icon name="dot" sm/> {t("group.att.pending")}</span>}
   </>;
   return <li ref={ref} className={"card event " + e.kind + (myStatus === "no" ? " declined" : "")}>
-    <div className="event-sec"><h3 className="people-sub-h">{t("group.details")}</h3>
+    <div className="event-sec"><SecHead as="h3" className="people-sub-h">{t("group.details")}</SecHead>
     <div className="event-info">
     <div className="event-top">
       <span className="date-badge" ref={sq.badge}><small>{fmt({weekday: "short"}).format(d)}</small><b>{d.getDate()}</b><small>{fmt({month: "short"}).format(d)}</small></span>
       <div className="event-what" ref={sq.what}>
         <b>{eventTitle(e)}</b>
         <span className="sub">{timeOf(e.starts_at)}{e.call_at && " · " + t("group.callAt", {time: timeOf(e.call_at)})}{e.place && " · " + e.place}</span>
+        <span className="sub">{relDay(e.starts_at)}{roster.length > 0 && " · " + tn("group.people", new Set(roster.map(r => r.email)).size)}</span>
         <span className="event-chips beside">{chips}</span>
       </div>
     </div>
@@ -367,25 +380,25 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
     <div className="event-more">
       {/* Cada pessoa: nome e situação em cima, as funções neste evento como chips embaixo. */}
       {/* Ensaio é de todos: quem não foi escalado também aparece (sem resposta a dar), só com o nome. */}
-      <div className="event-sec"><h3 className="people-sub-h">{t("group.roster")}</h3>
+      <div className="event-sec"><SecHead as="h3" className="people-sub-h">{t("group.roster")}</SecHead>
       {e.kind === "rehearsal" && g.members.length ? <ul className="quick-att roster-tbl">
         <li className="quick-att-head" aria-hidden="true"><span className="quick-att-when">{t("people.colPerson")}</span><span className="quick-att-ctl">{t("group.respCol")}</span></li>
         {rosterByPerson(roster).map(r => <li key={r.email}>
-          <span className="quick-att-when"><b>{personName(r.email)}{r.email === me && " " + t("group.you")}</b>
+          <span className="quick-att-when"><b>{personName(r.email)}{r.email === me && <YouChip/>}</b>
             {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}</span>
-          <span className="quick-att-ctl"><StatusChip status={r.status}/></span></li>)}
+          <span className="quick-att-ctl"><StatusChip status={r.status} noIcon/></span></li>)}
         {g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).map(m => <li key={m.email}>
-          <span className="quick-att-when"><b>{personName(m.email)}{m.email === me && " " + t("group.you")}</b></span>
+          <span className="quick-att-when"><b>{personName(m.email)}{m.email === me && <YouChip/>}</b></span>
           <span className="quick-att-ctl"><span className="sub">—</span></span></li>)}</ul>
         : roster.length ? <ul className="roster">{rosterByPerson(roster).map(r => <li key={r.email} className={"st-" + r.status}>
-        <span className="roster-who">{personName(r.email)}{r.email === me && " " + t("group.you")}</span>
+        <span className="roster-who">{personName(r.email)}{r.email === me && <YouChip/>}</span>
         <StatusChip status={r.status}/>
         {r.roles.length > 0 && <span className="roster-chips">{sortRoles(r.roles).map(x => <span key={x} className="chip role">{x}</span>)}</span>}
         {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}</li>)}</ul>
         : <p className="sub">{t("group.noRoster")}</p>}</div>
-      {e.notes && <div className="event-sec"><h3 className="people-sub-h">{t("group.notes")}</h3><p className="event-notes">{e.notes}</p></div>}
+      {e.notes && <div className="event-sec"><SecHead as="h3" className="people-sub-h">{t("group.notes")}</SecHead><p className="event-notes">{e.notes}</p></div>}
       {/* A resposta vem depois de ver o evento e quem está na escala: primeiro entender, depois responder. */}
-      {(reply || (e.kind === "rehearsal" && canCheckIn(e))) && <div className="event-sec"><h3 className="people-sub-h">{t("group.myReply")}</h3><div className="event-actions">
+      {(reply || (e.kind === "rehearsal" && canCheckIn(e))) && <div className="event-sec"><SecHead as="h3" className="people-sub-h">{t("group.myReply")}</SecHead><div className="event-actions">
         {reply}
         {canReply && myStatus === "no" && <label className="event-cover">
           <Select value={myCover} options={coverOpts} aria={t("group.coverAsk")} disabled={busy === "cover"} onChange={pickCover}/>{busy === "cover" && <Spin/>}</label>}
@@ -472,11 +485,11 @@ function Members({canEdit}: {canEdit: boolean}){
   return <div className="profile-grid">
     <div className={"card people-card" + fold.cls}>
       <FoldHead folded={fold.folded} onToggle={fold.toggle} title={t("group.membersTab")}/>
-      <h2>{t("group.membersTab")}</h2>
+      <SecHead>{t("group.membersTab")}</SecHead>
       <div className="card-body">
       {canEdit && <><p className="sub">{t("group.addSub")}</p>
         <form className="member-add people-add-box" onSubmit={add} noValidate>
-          <h3 className="people-sub-h">{t("group.addTitle")}</h3>
+          <SecHead as="h3" className="people-sub-h">{t("group.addTitle")}</SecHead>
           {outside.length > 0 && <Select id="member-pick" className="member-pick" aria={t("group.pickUser")} value={outside.some(a => a.email === email) ? email : ""} onChange={pickUser}
             options={[{value: "", label: t("group.pickUser")}, ...outside.map(a => ({value: a.email, label: (a.profileName || a.name) ? (a.profileName || a.name) + " · " + a.email : a.email}))]}/>}
           <div className="people-add">
@@ -489,7 +502,7 @@ function Members({canEdit}: {canEdit: boolean}){
             <button className="btn primary" disabled={!email.trim()} aria-busy={busy === "add"}>{busy === "add" ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
           </div>
         </form></>}
-      <h3 className="people-sub-h">{t("group.listTitle")} <span className="count-chip">{filter.nq ? shown.length + "/" + g.members.length : g.members.length}</span></h3>
+      <SecHead as="h3" className="people-sub-h">{t("group.listTitle")} <span className="count-chip">{filter.nq ? shown.length + "/" + g.members.length : g.members.length}</span></SecHead>
       {g.members.length > 0 && <PeopleTools idp="members" f={filter}/>}
       {/* Cabeçalho como o da lista "Com acesso" do Perfil. */}
       {shown.length > 0 && <div className="people-list-head" aria-hidden="true"><span>{t("people.colPerson")}</span><span>{t("people.colActions")}</span></div>}
@@ -504,7 +517,7 @@ function Members({canEdit}: {canEdit: boolean}){
           <span className="people-who">
             <PersonAvatar email={m.email}/><span className="people-id">
             <span className="people-name"><button type="button" className="member-open-btn" aria-label={t("member.open", {name: m.name || m.email})}
-              onClick={() => openDialog("member", {email: m.email})}>{m.name ? <b>{m.name}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{m.is_admin && <span className="chip leader">{t("group.leader")}</span>}{m.email === me && <span className="chip current">{t("people.you")}</span>}{!isActive(m) && <span className="chip">{t("group.inactive")}</span>}</span>
+              onClick={() => openDialog("member", {email: m.email})}>{m.name ? <b>{m.name}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{m.is_admin && <span className="chip leader">{t("group.leader")}</span>}{m.email === me && <YouChip/>}{!isActive(m) && <span className="chip">{t("group.inactive")}</span>}</span>
             <span className="sub people-email">{m.email}{m.birthday && " · " + fmtBirthday(m.birthday)}</span>
             {m.phone ? <PhoneLink phone={m.phone}/> : <span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}</span></span>
           {/* Escalas no mês primeiro; a situação nos ensaios (em dia, faltas seguidas, fora) por último. */}
@@ -611,7 +624,7 @@ export function MemberManage({m}: {m: Member}){
   const showLead = canEdit && (m.is_admin || !leaderNow), showAct = canEdit && !self && !m.is_admin;
   if(!canEdit) return null;
   return <div className="member-manage">
-    <h3 className="people-sub-h">{t("member.manage")}</h3>
+    <SecHead as="h3" className="people-sub-h">{t("member.manage")}</SecHead>
     <div className="member-manage-btns">
       {canEdit && <button type="button" className="btn ghost" aria-pressed={panel === "att"} onClick={() => open("att")}><Icon name="calendar" sm/> {t("group.attMenu")}</button>}
       {canEdit && !self && <button type="button" className="btn ghost" aria-pressed={panel === "out"} onClick={() => open("out")}><Icon name="lock" sm/> {t(sd.out ? "group.outMenuOn" : "group.outMenu")}</button>}
@@ -649,7 +662,7 @@ function QuickAttendance({email, onDone}: {email: string; onDone: () => void}){
   };
   return <div className="people-edit quick-att-box">
     <div className="quick-att-top">
-      <p className="people-sub-h quick-att-hint">{t("group.attQuickHelp", {name: personName(email)})}</p>
+      <SecHead as="p" className="people-sub-h quick-att-hint">{t("group.attQuickHelp", {name: personName(email)})}</SecHead>
       <button type="button" className="icon-btn sm" aria-label={t("common.close")} onClick={onDone}><Icon name="x" sm/></button>
     </div>
     {list.length ? <ul className="quick-att"><li className="quick-att-head" aria-hidden="true"><span className="quick-att-when">{t("group.kind.rehearsal")}</span><span className="quick-att-ctl">{t("group.attQuickCol")}</span></li>{list.map(e => { const a = g.attendance.find(x => x.event_id === e.id && x.email === email);

@@ -14,7 +14,7 @@ Lista completa, tela por tela, para testar e decidir o que fica. Marque `[x]` no
 
 ### Em todas as telas
 - [ ] **Navegação** entre Início, Agenda, Biblioteca (Repertórios, Músicas e Medleys) e Mais (Membros, Estudo e Ferramentas): barra de abas no celular. No computador o trilho
-      lateral mostra tudo direto (Início, Agenda, Biblioteca, Membros, Estudo e Ferramentas), sem o Mais. Cada página tem endereço próprio, então o "voltar" do navegador (e do mouse) funciona e fecha primeiro a janela ou o Palco abertos. O repertório aberto conta como Grupo e o voltar leva aos Repertórios. Tocar de novo na
+      lateral mostra tudo direto (Início, Agenda, Biblioteca, Membros, Estudo e Ferramentas), sem o Mais. No celular, Membros, Estudo e Ferramentas têm o link "Voltar" no topo, que leva ao Mais. Cada página tem endereço próprio, então o "voltar" do navegador (e do mouse) funciona e fecha primeiro a janela ou o Palco abertos. O repertório aberto conta como Grupo e o voltar leva aos Repertórios. Tocar de novo na
       página atual volta ao topo.
 - [ ] **Tema** claro ou escuro. Até a primeira escolha, segue o aparelho.
 - [ ] **Idioma**: português, inglês e espanhol. O inicial vem do navegador ou do fuso horário.
@@ -53,8 +53,9 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
   - **estado da nuvem** (só quando há algo a saber): "Sincronizando…", mudanças esperando, sem internet ou erro, com
     "Sincronizar agora";
   - **Sair**: tenta subir o que falta, avisa se algo vai se perder e apaga os dados deste aparelho.
-- [ ] **Membros** do app (só admins, pelo card no Perfil; é a lista de todos com acesso, separada da aba Membros do Grupo, onde se cadastra): todos com acesso ao app, com busca e ordem; editar os dados,
-      tornar ou tirar admin (só o Dono) e tirar acesso.
+- [ ] **Usuários** do app (só admins, pelo card no Perfil; é a lista de todos com acesso, com ou sem grupo, separada da aba Membros do Grupo, onde se cadastra): todos com acesso ao app, com busca e ordem; editar os dados,
+      tornar ou tirar admin (só o Dono, com confirmação ao dar) e excluir a pessoa do sistema (acesso, grupos e conta de login). A lista mostra só a pessoa
+      (nome, chips, e-mail, celular; "Não entrou" para quem ainda não criou a conta); as ações ficam na janela de detalhes, em "Acesso ao app".
 - [ ] **Músicas e repertórios na nuvem**, iguais em todos os aparelhos da conta:
   - funciona sem internet, e as mudanças sobem depois;
   - no primeiro login de um aparelho, o que já estava nele sobe para a conta;
