@@ -193,6 +193,7 @@ também libera o acesso ao app para eles).
 - [ ] **Membros**: nome, e-mail, funções (várias, como Vocal e Violão; cada um edita as suas), selo Líder, **frequência nos ensaios** (6 meses)
       e escalas no mês. Quem lidera inclui, torna líder e tira do grupo; admins do app renomeiam, criam e
       excluem grupos.
+- [ ] **Em pausa**: quem falta a 8 ensaios seguidos fica em pausa até participar de 4. No cadastro de Membros, a chave "Em pausa" já inclui a pessoa em pausa (para quem está há mais de 8 ensaios sem participar).
 - [ ] **Sem internet**: mostra a última versão baixada; mudar precisa de internet.
 
 ### Estudo
