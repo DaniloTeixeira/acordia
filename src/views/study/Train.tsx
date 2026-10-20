@@ -154,7 +154,7 @@ function QuizView({quiz, full, active, answer, advance, quit, setPick}: {quiz: Q
         <button className="btn primary" id="tr-next" ref={nextBtn} disabled={!quiz.answered} onClick={advance}>{quiz.i + 1 >= ROUND ? t("train.finish") : t("train.next")}</button></div>
     </div>
     {/* Trocar de treino fica embaixo do card, longe dos botões de resposta. */}
-    <button className="btn ghost sm back tr-quit" id="tr-quit" onClick={quit}><Icon name="back" sm/> {t("train.change")}</button>
+    <button className="back-link tr-quit" id="tr-quit" onClick={quit}><Icon name="back" sm/> {t("train.change")}</button>
   </>;
 }
 
@@ -163,7 +163,7 @@ function Summary({right, prev, isBest, again, setup}: {right: number; prev: numb
   const btn = useRef<HTMLButtonElement>(null);
   useEffect(() => { btn.current?.focus({preventScroll: true}); }, []);
   return <>
-    <button className="btn ghost sm back" id="tr-setup" onClick={setup}><Icon name="back" sm/> {t("train.change")}</button>
+    <button className="back-link" id="tr-setup" onClick={setup}><Icon name="back" sm/> {t("train.change")}</button>
     <div className="card summary" style={{maxWidth: 720}}>
       <div className="big">{Math.round(pct * 100)}%</div>
       <h2>{t("train.result", {right, total: ROUND})}</h2>

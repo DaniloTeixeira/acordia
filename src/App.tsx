@@ -13,14 +13,14 @@ import { TIMBRES, getTimbre } from "./lib/audio";
 import { chooseTimbre } from "./views/InstrumentSelect";
 import { openNear, toggler } from "./ui/popover";
 import { Repertoire } from "./views/Repertoire";
-import { Library } from "./views/Library";
 import { Study } from "./views/study/Study";
 import { Tools } from "./views/Tools";
 import { Stage } from "./views/Stage";
 import { Dialogs, HELP_STEPS, seenHelp } from "./dialogs/Dialogs";
 import { AuthScreen, Avatar, Profile, PeoplePage } from "./views/Account";
 import { useAuth } from "./lib/cloud";
-import { Group } from "./views/Group";
+import { Group, openGroup, LIB_TABS } from "./views/Group";
+import { More } from "./views/More";
 import { Home } from "./views/Home";
 import { ThemeButton } from "./ui/theme";
 export { applyTheme, theme } from "./ui/theme";
@@ -108,9 +108,35 @@ function useInstall(){
   return {show, run};
 }
 
-// O Grupo abre pelo Início e Usuários pelo Perfil (e contam como eles na navegação).
-const NAV: [View, string, string][] = [["home", "home", "nav.home"], ["medley", "music", "nav.medley"], ["library", "library", "nav.library"], ["study", "study", "nav.study"], ["tools", "metro", "nav.tools"]];
-const navOf = (v: View): View => v === "group" ? "home" : v === "people" ? "profile" : v;
+// Quatro destinos, cada um uma tela só: Início (o que vem aí e a resposta da escala), Agenda, Biblioteca (repertórios,
+// músicas e medleys) e Mais (Membros, Estudo e Ferramentas). Agenda e Biblioteca são a página do Grupo em modos
+// diferentes. O repertório aberto conta como Biblioteca; Membros conta como Mais; Usuários conta como Perfil.
+type NavId = "home" | "agenda" | "library" | "more";
+const NAV: {id: NavId; icon: string; label: string; run: () => void}[] = [
+  {id: "home", icon: "home", label: "nav.home", run: () => go("home")},
+  {id: "agenda", icon: "calendar", label: "group.agenda", run: () => openGroup("agenda")},
+  // Volta para a lista em que a pessoa estava (repertórios, músicas ou medleys).
+  {id: "library", icon: "library", label: "lib.title", run: () => openGroup(LIB_TABS.find(v => v === data.settings.groupTab) || "setlists")},
+  {id: "more", icon: "more", label: "nav.more", run: () => go("more")},
+];
+// No trilho da tela larga há espaço: o que o Mais agrupa no celular aparece direto, cada um no seu item.
+const RAIL: {id: string; icon: string; label: string; run: () => void}[] = [
+  ...NAV.filter(n => n.id !== "more"),
+  {id: "members", icon: "users", label: "group.membersTab", run: () => openGroup("members")},
+  {id: "study", icon: "study", label: "nav.study", run: () => go("study")},
+  {id: "tools", icon: "metro", label: "nav.tools", run: () => go("tools")},
+];
+function railOf(v: View, groupTab: unknown, nav: string): string{
+  if(v === "study" || v === "tools") return v;
+  if(v === "group" && groupTab === "members") return "members";
+  return nav === "more" ? "" : nav;
+}
+function navOf(v: View, groupTab: unknown): NavId | "profile" | ""{
+  if(v === "profile" || v === "people") return "profile";
+  if(v === "medley") return "library";
+  if(v === "group") return groupTab === "members" ? "more" : (LIB_TABS as unknown[]).includes(groupTab) ? "library" : "agenda";
+  return v === "home" ? "home" : v === "more" || v === "study" || v === "tools" ? "more" : "";
+}
 
 // Itens do trilho com o fundo do ativo deslizando entre eles (as variáveis --y e --h posicionam o fundo no CSS).
 function NavList({children}: {children: ReactNode}){
@@ -127,7 +153,6 @@ export function App(){
   // Abas do celular com largura pelo rótulo: o traço da aba ativa mede a aba de verdade.
   const tabbar = useRef<HTMLElement>(null);
   useIndicator(tabbar, '.tab[aria-current="page"]');
-  const songCount = [...data.songs.values()].filter(s => s.title).length;
   // Na primeira visita a uma página, um aviso discreto oferece o guia "Como usar". Ele é daquela página:
   // some ao trocar de página ou ao abrir o Palco (no celular, ficaria por cima da cifra).
   useEffect(() => {
@@ -139,7 +164,9 @@ export function App(){
   }, [view, stageOpen]);
   const brand = (tagline: boolean) => <a className="brand" href="./" onClick={e => { e.preventDefault(); go("home"); }}>
     <img className="logo-on-light" src={BASE + "icons/icon.svg"} alt=""/><img className="logo-on-dark" src={BASE + "icons/icon-light.svg"} alt=""/><span><b className="brand-name">Acordia</b>{tagline && <small>{t("app.tagline")}</small>}</span></a>;
-  const current = (v: View) => navOf(view) === v ? "page" as const : undefined;
+  const nav = navOf(view, data.settings.groupTab);
+  const current = (v: string) => nav === v ? "page" as const : undefined;
+  const rail = railOf(view, data.settings.groupTab, nav);
   const auth = useAuth(s => s.status), recovery = useAuth(s => s.recovery), helpable = view in HELP_STEPS;
   // A dica e o rótulo da ajuda dizem de qual página é ("Como usar o Repertório").
   const helpKey = helpable ? `help.${view}.title` : "help.button";
@@ -151,8 +178,8 @@ export function App(){
     <div className="shell">
       <aside className="rail" aria-label={t("nav.nav")}>
         {brand(true)}
-        <NavList>{NAV.map(([v, ic, label]) => <button key={v} className="nav-item" data-nav={v} aria-current={current(v)} onClick={() => go(v)}>
-          <Icon name={ic}/><span>{t(label)}</span>{v === "library" && <span className="count" data-count="songs">{songCount || ""}</span>}</button>)}</NavList>
+        <NavList>{RAIL.map(n => <button key={n.id} className="nav-item" data-nav={n.id} aria-current={rail === n.id ? "page" : undefined} onClick={n.run}>
+          <Icon name={n.icon}/><span>{t(n.label)}</span></button>)}</NavList>
         <div className="rail-foot">
           <button className="nav-item" data-install hidden={!install.show} onClick={install.run}><Icon name="phone"/><span>{t("nav.install")}</span></button>
           <VolumeButton rail/>
@@ -173,17 +200,17 @@ export function App(){
       <main id="main">
         {view === "home" && <Home/>}
         {view === "medley" && <Repertoire/>}
-        {view === "library" && <Library/>}
         {view === "study" && <Study/>}
         {view === "group" && <Group/>}
         {view === "tools" && <Tools/>}
+        {view === "more" && <More/>}
         {view === "profile" && <Profile/>}
         {view === "people" && <PeoplePage/>}
       </main>
       <button className="help-fab" id="help-fab" hidden={!helpable} data-tip-key={helpKey} data-tip-side="left" aria-label={t(helpKey)} onClick={() => openDialog("help", {page: view})}><Icon name="question"/></button>
       <nav className="tabbar" ref={tabbar} aria-label={t("nav.nav")}>
-        {NAV.map(([v, ic, label]) => <button key={v} className="tab" data-nav={v} aria-current={current(v)} onClick={() => go(v)}>
-          <span className="pill"><Icon name={ic}/></span><span>{t(label)}</span></button>)}
+        {NAV.map(n => <button key={n.id} className="tab" data-nav={n.id} aria-current={current(n.id)} onClick={n.run}>
+          <span className="pill"><Icon name={n.icon}/></span><span>{t(n.label)}</span></button>)}
       </nav>
     </div>
     {stageOpen && <Stage/>}

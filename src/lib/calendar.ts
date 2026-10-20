@@ -241,3 +241,8 @@ export function rosterByPerson(rows: Pick<RosterRow, "email" | "role" | "status"
 export function needsCover(rows: Pick<RosterRow, "email" | "status" | "cover">[]): string[] {
   return [...new Set(rows.filter(r => r.status === "no" && !r.cover).map(r => r.email))];
 }
+// Quem está escalado e ainda não respondeu (nenhuma linha dele com sim ou não), uma vez por pessoa.
+export function pendingReplies(rows: Pick<RosterRow, "email" | "status">[]): string[] {
+  const answered = new Set(rows.filter(r => r.status !== "pending").map(r => r.email));
+  return [...new Set(rows.map(r => r.email))].filter(e => !answered.has(e));
+}

@@ -1,4 +1,5 @@
-// Biblioteca: músicas salvas, repertórios e medleys, com busca e filtros.
+// Músicas, repertórios e medleys do grupo, com busca e filtros. Aparecem nas abas Músicas e Repertórios do
+// Grupo (LibraryList); quem não lidera o grupo só vê, abre e estuda, sem botões de mudar.
 import { useDeferredValue, useState } from "react";
 import { isChordLine, sanitizeItem } from "../lib/core";
 import { t, tn, locale } from "../lib/i18n";
@@ -11,14 +12,11 @@ import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
 import { openRef } from "./Repertoire";
 import type { Medley, Song, Item } from "../lib/types";
+import { isAutoSetlist } from "../lib/syncrules";
 
 const { data } = store;
 const songsN = (n: number) => tn("song", n), medleysN = (n: number) => tn("medley", n);
 type Tab = "songs" | "setlists" | "medleys";
-// Aba com que a Biblioteca abre da próxima vez: a última escolhida, para o voltar cair onde a pessoa estava
-// (o "voltar" do repertório abre nos repertórios).
-let nextTab: Tab = "songs";
-export function openLibrary(tab: Tab){ nextTab = tab; go("library"); }
 
 function excerpt(s: Song){
   return s.text.split("\n").slice(1).map(l=>l.trim()).filter(l=>l && !isChordLine(l) && !/^\[.*\]$/.test(l)).slice(0, 2).join(" / ");
@@ -122,29 +120,23 @@ function EmptyCard({icon, title, text}: {icon: string; title: string; text?: str
   return <li className="empty-state" style={{gridColumn: "1/-1"}}><Icon name={icon}/><strong>{title}</strong>{text && <span>{text}</span>}</li>;
 }
 
-export function Library(){
+// Lista de músicas (tab "songs") ou de repertórios ("setlists", com os medleys numa seção logo abaixo, quando houver).
+export function LibraryList({tab: base, canEdit}: {tab: "songs" | "setlists" | "medleys"; canEdit: boolean}){
   useData();
-  const [tab, setTabState] = useState<Tab>(nextTab);
-  const setTab = (v: Tab) => { nextTab = v; setTabState(v); };
+  // O repertório vazio que o app cria sozinho no aparelho de quem só lê não é do grupo: não aparece.
+  const meds = [...data.medleys.values()].filter(m => canEdit || !isAutoSetlist(m)), setlists = meds.filter(m => !isMedley(m)), blocks = meds.filter(isMedley);
+  const tab: Tab = base;
   // Ordem por aba: músicas e medleys de A a Z (procura pelo nome), repertórios pelos mais recentes (o próximo culto).
   const [sorts, setSorts] = useState<Record<Tab, string>>({songs: "az", setlists: "recent", medleys: "az"});
   const sort = sorts[tab], setSort = (v: string) => setSorts(x => ({...x, [tab]: v}));
   const view = data.settings.libView === "rows" ? "rows" : "cards";
   const [query, setQuery] = useState("");
   const q = norm(useDeferredValue(query));
-  const all = [...data.songs.values()].filter(s=>s.title), meds = [...data.medleys.values()];
-  const setlists = meds.filter(m => !isMedley(m)), blocks = meds.filter(isMedley);
-  return <section className="view" id="view-library" data-view="library" aria-labelledby="lib-h">
-    <div className="view-head">
-      <div><h1 id="lib-h">{t("lib.title")}</h1><p className="sub" id="lib-sub">{t("lib.sub", {songs: songsN(all.length), medleys: medleysN(setlists.length)})}</p></div>
-      <div className="actions">
-        <button className="btn primary" id="lib-new" onClick={() => openDialog("song", {song: null})}><Icon name="plus"/><span>{t("lib.new")}</span></button>
-      </div>
-    </div>
+  const all = [...data.songs.values()].filter(s=>s.title);
+  return <div className="group-lib">
     <div className="lib-tabs-row">
-      <Seg id="lib-tabs" aria={t("lib.tabsAria")} value={tab} onChange={setTab} options={[
-        {v: "songs", label: t("lib.songs", {n: all.length})}, {v: "setlists", label: t("lib.setlists", {n: setlists.length})}, {v: "medleys", label: t("lib.mblocks", {n: blocks.length})}]}/>
-      {/* Cards ou linhas: vale para as três abas e fica guardado no aparelho. */}
+      <span/>
+      {/* Cards ou linhas: vale para as abas e fica guardado no aparelho. */}
       <Seg className="view-seg" id="lib-view" aria={t("lib.viewAria")} value={view} onChange={v => store.setSetting("libView", v)}
         options={[{v: "cards", label: <Icon name="grid" sm/>, aria: t("lib.viewCards"), tip: "lib.viewCards"}, {v: "rows", label: <Icon name="list" sm/>, aria: t("lib.viewRows"), tip: "lib.viewRows"}]}/>
     </div>
@@ -152,38 +144,44 @@ export function Library(){
       <div className="search"><Icon name="search" sm/><input type="search" className="input" id="lib-q" placeholder={t("lib.search")} aria-label={t("lib.searchAria")} value={query} onChange={e => setQuery(e.target.value)}/></div>
       <Select id="lib-sort" style={{width: "auto"}} aria={t("lib.sortAria")} value={sort} onChange={setSort}
         options={[{value: "az", label: t("lib.az")}, {value: "recent", label: t("lib.recent")}, {value: "old", label: t("lib.old")}]}/>
-</div>
+    </div>
     <ul className={"cards" + (view === "rows" ? " rows" : "")} id="lib-list">
-      {tab === "songs" ? <SongCards all={all} q={q} sort={sort}/> : <MedleyCards rows={tab === "medleys" ? blocks : setlists} blocks={tab === "medleys"} setlists={setlists} q={q} sort={sort}/>}
+      {tab === "songs" ? <SongCards all={all} q={q} sort={sort} canEdit={canEdit}/> : <MedleyCards rows={tab === "medleys" ? blocks : setlists} blocks={tab === "medleys"} setlists={setlists} q={q} sort={sort} canEdit={canEdit}/>}
     </ul>
-  </section>;
+  </div>;
+}
+// Abre um repertório do grupo. Quem não lidera cai direto na folha.
+export function openSetlist(id: string, canEdit: boolean){
+  if(!canEdit) store.setSetting("pane", "sheet");
+  openMedley(id);
+  return go("medley");
 }
 
-function SongCards({all, q, sort}: {all: Song[]; q: string; sort: string}){
+function SongCards({all, q, sort, canEdit}: {all: Song[]; q: string; sort: string; canEdit: boolean}){
   const u = usage();
   const rows = activeFirst(all.filter(s => !q || norm(s.title).includes(q) || norm(s.text).includes(q))
     .sort(sort === "az" ? (a,b)=>a.title.localeCompare(b.title, locale()) : byDate(sort)));
-  if(!rows.length) return all.length ? <EmptyCard icon="search" title={t("lib.noResults")} text={t("lib.noResultsText")}/> : <EmptyCard icon="library" title={t("lib.empty")} text={t("lib.emptyText")}/>;
+  if(!rows.length) return all.length ? <EmptyCard icon="search" title={t("lib.noResults")} text={t("lib.noResultsText")}/> : <EmptyCard icon="library" title={t("lib.empty")} text={t(canEdit ? "lib.emptyText" : "lib.emptyMember")}/>;
   return <>{rows.map((s, idx) => {
     const n = u.get(s.id) || 0, na = (s.arrangements || []).length;
     const key = s.type === "letra" ? "" : songKey(s);
     const del = async () => { if(await confirmDialog({title: t("confirm.songTitle"), message: t(n ? "confirm.songUsed" : "confirm.song", {title: s.title, medleys: medleysN(n)})})) deleteSong(s); };
-    return <li key={s.id} className={"lib-card" + (s.disabled ? " off" : "")} style={{animationDelay: Math.min(idx, 12) * 25 + "ms"}} onClick={cardClick(() => openDialog("song", {song: s}))}>
+    return <li key={s.id} className={"lib-card" + (s.disabled ? " off" : "")} style={{animationDelay: Math.min(idx, 12) * 25 + "ms"}} onClick={canEdit ? cardClick(() => openDialog("song", {song: s})) : undefined}>
       <h3>{s.title}</h3>
       <div className="meta">{s.disabled && <OffChip song/>}{s.type === "letra" ? <span className="chip">{t("item.lyricsOnly")}</span> : key ? <span className="chip accent">{t("lib.key", {key})}</span> : null}
         {s.bpm && <span className="chip">{t("sheet.bpm", {n:s.bpm})}</span>}{na > 0 && <span className="chip">{tn("arr.count", na)}</span>}{n > 0 && <span className="chip">{medleysN(n)}</span>}
         <span className="when">{ago(s.updatedAt)}</span></div>
       <p className="excerpt">{excerpt(s)}</p>
-      <div className="foot"><span className="when foot-when" aria-hidden="true">{ago(s.updatedAt)}</span>{s.disabled ? <span style={{marginRight: "auto"}}/> : <AddButton r={{kind: "song", id: s.id}}/>}
+      <div className="foot"><span className="when foot-when" aria-hidden="true">{ago(s.updatedAt)}</span>{s.disabled || !canEdit ? <span style={{marginRight: "auto"}}/> : <AddButton r={{kind: "song", id: s.id}}/>}
         {s.ref && <button className="icon-btn sm ref-btn" data-a="ref" aria-label={t("ref.listen")} title={t("ref.listen")} onClick={() => openRef(s.ref!, s.title)}><Icon name="play" sm/></button>}
-        <button className="icon-btn sm" data-a="edit" aria-label={t("common.edit")} title={t("common.edit")} onClick={() => openDialog("song", {song: s})}><Icon name="edit" sm/></button>
+        {canEdit && <><button className="icon-btn sm" data-a="edit" aria-label={t("common.edit")} title={t("common.edit")} onClick={() => openDialog("song", {song: s})}><Icon name="edit" sm/></button>
         <OnOffButton x={s}/>
-        <button className="icon-btn sm danger" data-a="del" aria-label={t("common.delete")} title={t("common.delete")} onClick={del}><Icon name="trash" sm/></button></div>
+        <button className="icon-btn sm danger" data-a="del" aria-label={t("common.delete")} title={t("common.delete")} onClick={del}><Icon name="trash" sm/></button></>}</div>
     </li>;
   })}</>;
 }
 
-function MedleyCards({rows: source, blocks, setlists, q, sort}: {rows: Medley[]; blocks: boolean; setlists: Medley[]; q: string; sort: string}){
+function MedleyCards({rows: source, blocks, setlists, q, sort, canEdit}: {rows: Medley[]; blocks: boolean; setlists: Medley[]; q: string; sort: string; canEdit: boolean}){
   const curId = peekCurrent()?.id;
   const titlesOf = (m: Medley) => songItems(m).map(x => (data.songs.get(x.it.songId) || {title: ""}).title).filter(Boolean);
   const rows = activeFirst(withCopiesAfter(source.filter(m => !q || norm(m.name).includes(q) || titlesOf(m).some(x => norm(x).includes(q))).sort(sort === "az" ? (a,b)=>a.name.localeCompare(b.name, locale()) : byDate(sort))));
@@ -198,27 +196,26 @@ function MedleyCards({rows: source, blocks, setlists, q, sort}: {rows: Medley[];
     const dup = () => {
       const copyItem = (i: Item) => i.type === "medley" ? Object.assign(store.newMedleyItem(i.medleyId), {moment: i.moment || ""}) : store.newItem(i.songId, sanitizeItem(i));
       const c = store.createMedley(copyName(m.name), m.items.map(copyItem), m.options, m.kind);
-      openMedley(c.id);
-      const tr = go("medley");
+      const tr = openSetlist(c.id, true);
       (tr ? tr.updateCallbackDone : Promise.resolve()).catch(()=>{}).then(() => requestAnimationFrame(() => { const n = document.querySelector<HTMLInputElement>("#medley-name"); n?.focus(); n?.select(); }));
       toast(t("lib.created", {name: c.name}));
     };
-    const open = () => { openMedley(m.id); go("medley"); };
+    const open = () => openSetlist(m.id, canEdit);
     return <li key={m.id} className={"lib-card" + (m.disabled ? " off" : "")} style={{animationDelay: Math.min(idx, 12) * 25 + "ms"}} onClick={cardClick(open)}>
       <h3>{m.name}</h3>
       <div className="meta">{/* "Aberto": o repertório que a aba Repertório mostra. Medley: o botão Adicionar já diz em quais repertórios ele está
           (o chip com o repertório fica só para o desativado, que não tem o botão). */}
-        {m.disabled && <OffChip/>}{!blocks && m.id === curId && <span className="chip current">{t("lib.current")}</span>}
+        {m.disabled && <OffChip/>}{canEdit && !blocks && m.id === curId && <span className="chip current">{t("lib.current")}</span>}
         {usedIn > 0 && m.disabled && <span className="chip accent owner-chip" data-tip={owners.map(x => x.name).join(" · ")}><Icon name="list" sm/><span>{owners[0].name}</span>{usedIn > 1 && <b>+{usedIn - 1}</b>}</span>}<span className="chip accent">{songsN(titles.length)}</span>
         <span className="when">{ago(m.updatedAt)}</span></div>
       <p className="excerpt">{titles.join(" · ") || t("lib.emptyMedley")}</p>
       <div className="foot"><span className="when foot-when" aria-hidden="true">{ago(m.updatedAt)}</span>
         {/* Medley: Adicionar ao repertório (como nas músicas) e Abrir. */}
-        {blocks && !m.disabled && <AddButton r={{kind: "medley", id: m.id}}/>}
-        <button className={"btn sm " + (blocks && !m.disabled ? "ghost" : "soft")} data-a="open" onClick={open}>{t("common.open")}</button>
-        {m.items.length > 0 && <button className="icon-btn sm" data-a="dup" aria-label={t("common.duplicate")} title={t("common.duplicate")} onClick={dup}><Icon name="copy" sm/></button>}
+        {canEdit && blocks && !m.disabled && <AddButton r={{kind: "medley", id: m.id}}/>}
+        <button className={"btn sm " + (canEdit && blocks && !m.disabled ? "ghost" : "soft")} data-a="open" onClick={open}>{t("common.open")}</button>
+        {canEdit && <>{m.items.length > 0 && <button className="icon-btn sm" data-a="dup" aria-label={t("common.duplicate")} title={t("common.duplicate")} onClick={dup}><Icon name="copy" sm/></button>}
         <OnOffButton x={m}/>
-        <button className="icon-btn sm danger" data-a="del" aria-label={t("common.delete")} title={t("common.delete")} onClick={del}><Icon name="trash" sm/></button></div>
+        <button className="icon-btn sm danger" data-a="del" aria-label={t("common.delete")} title={t("common.delete")} onClick={del}><Icon name="trash" sm/></button></>}</div>
     </li>;
   })}</>;
 }

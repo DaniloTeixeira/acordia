@@ -47,14 +47,15 @@
   --surface-3: #e4e9f5;
   --ink: #0f172a;
   --ink-2: #334155;
-  --muted: #64748b;
-  --line: #e2e8f0;
-  --line-strong: #cbd5e1;
-  --accent: #2f6bf0;
-  --accent-hover: #2457d6;
+  --muted: #56657c;
+  --line: #d5dce8;
+  --line-strong: #b4bfcf;
+  --accent: #2a63e6;
+  --accent-hover: #2150cc;
   --accent-ink: #ffffff;
   --accent-soft: #e6edfe;
   --accent-soft-ink: #1f4fc4;
+  --reply-soft: #d0dcfb;
   --accent-grad: linear-gradient(135deg, #2f6bf0, #6a3bf2);
   --accent-grad-hover: linear-gradient(135deg, #2457d6, #5a2be0);
   --brand-grad: linear-gradient(90deg, #1593d6, #2f6bf0 50%, #7b2ff5);
@@ -131,6 +132,7 @@
     --accent-ink: #0b0f1c;
     --accent-soft: #1b2852;
     --accent-soft-ink: #b4c8ff;
+    --reply-soft: #1b2852;
     --accent-grad: linear-gradient(135deg, #6e9bff, #a57bff);
     --accent-grad-hover: linear-gradient(135deg, #8db2ff, #b994ff);
     --brand-grad: linear-gradient(90deg, #3bd5fa, #4c82f5 50%, #9a5cf8);
@@ -203,7 +205,8 @@
   --accent-ink: #0b0f1c;
   --accent-soft: #1b2852;
   --accent-soft-ink: #b4c8ff;
-  --accent-grad: linear-gradient(135deg, #6e9bff, #a57bff);
+  --reply-soft: #1b2852;
+--accent-grad: linear-gradient(135deg, #6e9bff, #a57bff);
   --accent-grad-hover: linear-gradient(135deg, #8db2ff, #b994ff);
   --brand-grad: linear-gradient(90deg, #3bd5fa, #4c82f5 50%, #9a5cf8);
   --grad-1: #3bd5fa;
@@ -1008,6 +1011,26 @@ select.input {
 .seg.block button {
   flex: 1;
 }
+/* Abas da Biblioteca: cada uma cresce conforme o texto (base auto), para "Repertórios (1)" não vazar da pílula.
+   No celular o espaço e a letra diminuem e, se ainda faltar, o texto corta com reticências. */
+#group-tabs button {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 599px) {
+  #group-tabs button {
+    padding-inline: 8px;
+    font-size: 0.82rem;
+  }
+}
+@media (max-width: 360px) {
+  #group-tabs button {
+    padding-inline: 5px;
+    font-size: 0.78rem;
+  }
+}
 
 /* ---------- shell ---------- */
 .shell {
@@ -1321,8 +1344,18 @@ main {
   font-size: 0.85rem;
   color: var(--muted);
 }
+// Nome do repertório para quem só lê (sem campo de editar), no mesmo tamanho do campo.
+.title-read {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
 @media (max-width: 899px) {
-  .title-input {
+  .title-input,
+  .title-read {
     font-size: 1.35rem;
   }
   .view-head .actions .btn {
@@ -2675,7 +2708,7 @@ textarea.song-text {
 .key-box-sub {
   font-size: max(0.82rem, 7.5cqw);
   font-weight: 700;
-  color: var(--ok-vivid);
+  color: var(--ok);
 }
 .key-box.out .key-box-sub {
   color: var(--bad);
@@ -3181,11 +3214,39 @@ textarea.song-text {
   color: var(--muted);
 }
 
-/* treino: voltar, modos de resposta */
-.back {
+/* Voltar (Grupo, Usuários, repertório, treino): só seta e texto, sem cara de botão.
+   O hover passa para a cor do texto e a seta anda para a esquerda; a altura mínima mantém o alvo de toque. */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
   margin: 16px 0 12px;
-  padding-left: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--t-fast);
 }
+.back-link .i {
+  transition: transform var(--t-fast) var(--ease);
+}
+.back-link:hover {
+  color: var(--ink);
+}
+.back-link:hover .i {
+  transform: translateX(-3px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .back-link:hover .i {
+    transform: none;
+  }
+}
+/* treino: modos de resposta */
 .setup-row {
   display: flex;
   gap: 16px 32px;
@@ -3197,10 +3258,10 @@ textarea.song-text {
   gap: 8px;
   min-width: 240px;
 }
-.quiz .back {
+.quiz .back-link {
   margin: 0;
 }
-.back.tr-quit {
+.back-link.tr-quit {
   margin: 12px 0 0;
 }
 .note-grid {
@@ -4023,9 +4084,9 @@ a.btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 0 6px -10px;
+  margin: 0 0 6px;
 }
-.ctx .back {
+.ctx .back-link {
   margin: 0;
 }
 /* Louvor | Pós-pregação: à direita na linha do tipo da música; no medley, acima da lista. */
@@ -6528,6 +6589,20 @@ dialog.ear-dlg {
   /* Traço na primeira linha do título (não no meio quando quebra em duas). */
   margin-top: calc((1lh - 1.05em) / 2);
 }
+/* Seções de dentro de um card com título (Detalhes, Escala, Observações, Sua resposta do evento; Adicionar membro e
+   a lista de Membros): um ponto no gradiente em vez do traço, e letra menor, para não competirem com o título do card. */
+.event-sec > .people-sub-h,
+.people-card:not(.people-page) .people-sub-h {
+  font-size: 0.86rem;
+}
+.event-sec > .people-sub-h::before,
+.people-card:not(.people-page) .people-sub-h::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-top: 0;
+  align-self: center;
+}
 /* Texto de ajuda das seções do Perfil: colado no que explica, menor e sem negrito, para não parecer título. */
 .profile-sec small.sub {
   margin-top: 2px;
@@ -7137,11 +7212,16 @@ dialog.ear-dlg {
     grid-template-columns: 1fr;
   }
 }
+/* Eventos num card, como o Calendário e "Suas próximas escalas"; os cards de evento dentro dele ficam sem sombra. */
 .agenda-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
   min-width: 0;
+  padding: 14px;
+}
+.agenda-list .card {
+  box-shadow: none;
 }
 .my-next {
   display: flex;
@@ -7152,15 +7232,20 @@ dialog.ear-dlg {
   margin: 0;
   font-size: 1rem;
 }
-/* Selo da data quadrado e do tamanho do bloco de texto (título, hora, chips e botão); o tamanho vem de useSquareBadge. */
-.my-next-list .date-badge {
+/* Selo da data quadrado e do tamanho do bloco de texto (título, hora, chips e botão); o tamanho vem de useSquareBadge.
+   As linhas de evento do Início usam o mesmo selo da Agenda. */
+.my-next-list .date-badge,
+.home-row .date-badge {
   align-self: flex-start;
   flex: none;
+  padding: 12px 0;
 }
-.my-next-list .date-badge b {
+.my-next-list .date-badge b,
+.home-row .date-badge b {
   font-size: 1.9rem;
 }
-.my-next-list .date-badge small {
+.my-next-list .date-badge small,
+.home-row .date-badge small {
   font-size: 0.85rem;
 }
 .my-next-hint {
@@ -7171,13 +7256,15 @@ dialog.ear-dlg {
   align-self: flex-start;
   margin-top: 8px;
 }
-@media (max-width: 420px) {
-  .my-next-ics {
-    height: auto;
-    white-space: normal;
-    text-align: left;
-    border-radius: var(--r-md);
-    padding-block: 6px;
+/* No celular o botão vai para a linha de baixo do evento (fora do bloco de texto) e ocupa a largura toda. */
+@media (max-width: 599px) {
+  .my-next-list li {
+    flex-wrap: wrap;
+  }
+  .my-next-list li > .my-next-ics {
+    flex: 1 1 100%;
+    margin-top: 0;
+    justify-content: center;
   }
 }
 .my-next-list {
@@ -7219,6 +7306,7 @@ dialog.ear-dlg {
   justify-content: center;
   width: 52px;
   flex-shrink: 0;
+  box-sizing: border-box;
   padding: 4px 0;
   border-radius: var(--r-md);
   background: var(--accent-soft);
@@ -7242,6 +7330,15 @@ dialog.ear-dlg {
 /* Calendário do mês */
 .cal {
   padding: 14px;
+}
+/* Títulos das seções da Agenda (Calendário e Eventos), no mesmo tamanho de "Suas próximas escalas". */
+.cal > h2 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+.agenda-list-h {
+  margin: 0;
+  font-size: 1rem;
 }
 .cal-head {
   display: flex;
@@ -7418,13 +7515,18 @@ dialog.ear-dlg {
   align-self: center;
   width: 64px;
   height: 64px;
-  padding: 0;
+  padding: 12px 0;
+  /* O selo de "Suas próximas escalas" fica com 88px (cresce com o título, hora e funções ao lado); aqui o texto ao
+     lado é mais baixo, então o mínimo garante o mesmo tamanho e o mesmo respiro em volta do dia. */
+  min-width: 88px;
+  min-height: 88px;
 }
+/* Mesmo selo de "Suas próximas escalas": mesma fonte e respiro, então o mesmo tamanho. */
 .event-top .date-badge b {
-  font-size: 1.5rem;
+  font-size: 1.9rem;
 }
 .event-top .date-badge small {
-  font-size: 0.72rem;
+  font-size: 0.85rem;
 }
 .event-what {
   flex: 1;
@@ -7441,6 +7543,17 @@ dialog.ear-dlg {
   flex-wrap: wrap;
   gap: 4px;
   margin-top: 6px;
+}
+.event-chips:empty,
+.event-chips.below {
+  display: none;
+}
+/* Celular: os chips saem do lado da data (coluna estreita) e vão para uma linha própria embaixo, com a largura
+   toda do card; cada chip estica para preencher a linha. */
+@media (max-width: 599px) {
+  .event-chips.beside { display: none; }
+  .event-chips.below:not(:empty) { display: flex; margin-top: 0; }
+  .event-chips.below .chip { flex: 1 1 auto; justify-content: center; text-align: center; }
 }
 .chip.kind-rehearsal {
   background: var(--ok-soft);
@@ -7938,23 +8051,8 @@ dialog.member-dlg {
   gap: 2px;
   text-decoration: none;
 }
-/* As fileiras que rolam de lado vão até a borda do bloco (o próximo cartão aparece cortado nela). */
-.home-block .home-scroll {
-  margin: 0 -18px;
-  padding: 2px 18px 4px;
-  scroll-padding-inline: 18px;
-}
-/* Celular: os cartões internos (escalas, continuar, atalhos) ocupam a largura toda, um embaixo do outro,
-   em vez da fileira que rola de lado. */
+/* Celular: os atalhos ocupam a largura toda, um embaixo do outro. */
 @media (max-width: 600px) {
-  .home-block .home-scroll {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin: 0;
-    padding: 0;
-    overflow: visible;
-  }
   .home-block .home-tiles {
     grid-template-columns: 1fr;
   }
@@ -8142,52 +8240,6 @@ dialog.member-dlg {
     display: block;
   }
 }
-/* Continuar de onde parou: cartões menores que os das escalas. */
-.home-recent {
-  grid-auto-columns: min(240px, 72%);
-}
-.recent-card {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--surface-2);
-}
-.recent-kind {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--muted);
-}
-.recent-name {
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.recent-meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  font-size: 0.82rem;
-}
-.recent-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: auto;
-  padding-top: 6px;
-}
-.recent-actions .btn {
-  flex: 1;
-}
 /* Ferramentas rápidas: grade 2 × 2. */
 .home-tools {
   display: flex;
@@ -8267,20 +8319,17 @@ dialog.member-dlg {
   color: var(--accent);
   border-color: var(--accent);
 }
-/* Cards de dentro dos blocos do Início (grupo, escala, Continuar): a mesma base, fundo um tom acima do bloco,
-   borda fina, canto médio e sem sombra. O destaque de cada um é um detalhe só (a marca do grupo, a cor do tipo
-   do evento), não um fundo diferente. */
-.home-group-card,
-.home-scroll .scale-card {
+/* Cards dos grupos no Início: fundo um tom acima do bloco, borda fina, canto médio e sem sombra. O destaque é
+   um detalhe só (a marca do grupo), não um fundo diferente. */
+.home-group-card {
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--surface-2);
   box-shadow: none;
 }
-/* Hover dos cards que abrem algo: contorno na cor de destaque e sombra. */
-.home-group-card:has(.home-group-open:hover),
-.home-scroll .scale-card:hover {
+/* Hover do card que abre o grupo: contorno na cor de destaque e sombra. */
+.home-group-card:has(.home-group-open:hover) {
   border-color: var(--accent);
   box-shadow: var(--shadow-md, var(--shadow-sm));
 }
@@ -8348,18 +8397,6 @@ dialog.member-dlg {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.home-group-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 14px;
-  font-size: 0.85rem;
-  color: var(--ink-2);
-}
-.home-group-stats > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
 .count-chip {
   display: inline-grid;
   place-items: center;
@@ -8372,36 +8409,8 @@ dialog.member-dlg {
   font-size: 0.78rem;
   font-weight: 700;
 }
-/* Contador do título da lista de membros: na cor de destaque, para o número saltar à vista. */
-.people-sub-h .count-chip {
-  min-width: 22px;
-  height: 22px;
-  padding: 0 5px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-size: 0.9rem;
-  font-weight: 800;
-}
 .home-empty {
   padding: 24px 20px;
-}
-/* Escalas: cartões lado a lado que rolam de lado (o próximo aparece cortado, convidando a rolar). */
-.home-scroll {
-  list-style: none;
-  margin: 0 -16px;
-  padding: 2px 16px 8px;
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: min(320px, 82%);
-  gap: 12px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: thin;
-  overscroll-behavior-x: contain;
-}
-.home-scroll > li {
-  scroll-snap-align: start;
-  display: flex;
 }
 .scale-card {
   flex: 1;
@@ -8416,48 +8425,10 @@ dialog.member-dlg {
     border-color var(--t-fast),
     box-shadow var(--t-fast);
 }
-/* Escalas do Início: a base dos cards do Início e uma faixa à esquerda no degradê da marca (o tipo do evento
-   já aparece no título). Só no Início: .scale-card também é o cartão das escalas musicais do Estudo. */
-.home-scroll .scale-card {
-  position: relative;
-  overflow: hidden;
-  padding-left: 18px;
-}
-.home-scroll .scale-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 4px;
-  background: var(--accent-grad);
-  pointer-events: none;
-}
 /* No cartão (coluna) o flex-basis: 100% das funções viraria altura e esticaria os chips até ficarem redondos. */
 .scale-card .roster-chips {
   flex-basis: auto;
   align-items: flex-start;
-}
-.scale-when {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--ink-2);
-}
-.scale-when > span:first-child::first-letter {
-  text-transform: uppercase;
-}
-.scale-title {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.scale-rel {
-  font-size: 0.85rem;
 }
 .scale-people {
   display: flex;
@@ -8474,32 +8445,7 @@ dialog.member-dlg {
   background: var(--surface-3, var(--surface-2));
   color: var(--ink-2);
 }
-.scale-stats {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
-  font-size: 0.88rem;
-  color: var(--ink-2);
-}
-.scale-stats > span:not(.chip) {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-.scale-stats .ok {
-  color: var(--ok);
-}
-.scale-stats .bad {
-  color: var(--bad);
-}
-.scale-stats .chip {
-  margin-left: auto;
-}
 .home-needs,
-.home-agenda,
 .home-birthdays {
   display: flex;
   flex-direction: column;
@@ -8507,6 +8453,22 @@ dialog.member-dlg {
 }
 .home-needs {
   border-color: color-mix(in srgb, var(--bad) 35%, var(--line));
+}
+/* Faltam respostas: o mesmo bloco, sem o contorno vermelho (ainda não é problema). */
+.home-needs.home-waiting {
+  border-color: var(--line);
+}
+/* Novo evento (líder) embaixo da semana: largura toda no celular, alvo de toque grande. */
+.home-new-event {
+  align-self: flex-start;
+}
+@media (max-width: 599px) {
+  .home-new-event {
+    align-self: stretch;
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
 }
 .home-row {
   display: flex;
@@ -8527,6 +8489,9 @@ dialog.member-dlg {
 .home-row:hover {
   background: var(--surface-2);
 }
+.home-row > .event-chips {
+  margin: 0 0 0 auto;
+}
 /* Celular: o chip (ex.: "1 não pode ir · falta substituto") ia ao lado do texto e espremia o título e a hora.
    Ele desce para a linha de baixo, alinhado à esquerda do cartão. Nas escalas o chip de status também
    fica à esquerda quando quebra de linha, em vez de sozinho na direita. */
@@ -8534,18 +8499,25 @@ dialog.member-dlg {
   .home-row {
     flex-wrap: wrap;
   }
+  /* Cabe ao lado do selo da data (~88px + o espaço entre eles); só o chip desce. */
   .home-row .my-next-what {
-    flex: 1 1 calc(100% - 64px);
+    flex: 1 1 calc(100% - 112px);
   }
   .home-row > .chip {
     margin-left: 0;
   }
-  .scale-stats .chip {
-    margin-left: 0;
+  /* "Precisam de substituto": o chip igual ao da Agenda, na largura toda do card. */
+  .home-row > .event-chips {
+    flex: 1 1 100%;
+  }
+  .home-row > .event-chips .chip {
+    flex: 1 1 auto;
+    justify-content: center;
+    text-align: center;
   }
 }
 #group-back {
-  margin: 0 0 16px -8px;
+  margin: 0 0 12px;
 }
 /* Funções do membro: chips com o lápis; editando, os botões de cada função ocupam a linha inteira. */
 .member-add {
@@ -8886,8 +8858,69 @@ dialog.member-dlg {
   font-weight: 600;
   color: var(--ink);
 }
-.profile-next-actions .link-btn {
+/* "Ver agenda" no canto superior direito, na linha do título. */
+.profile-next-title .link-btn {
   margin-left: auto;
+}
+/* Confirmar / Não posso (Início e Perfil): dois botões finos que dividem a largura, como o "Novo evento". */
+.reply-btns {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+.reply-btns .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+  min-height: 40px;
+}
+/* Depois de responder: selo verde (confirmou) ou vermelho (não vai) e o link "Alterar resposta" ao lado. */
+.reply-done {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.reply-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.reply-done.no .reply-badge {
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+/* Confirmar verde e Não posso vermelho, sempre, só com contorno (mais suave); marcado fica cheio. */
+.reply-btns .btn.reply-yes {
+  background: transparent;
+  color: var(--ok);
+  box-shadow: inset 0 0 0 1.5px var(--ok);
+}
+.reply-btns .btn.reply-no {
+  background: transparent;
+  color: var(--bad);
+  box-shadow: inset 0 0 0 1.5px var(--bad);
+}
+.reply-btns .btn.reply-yes.on {
+  background: var(--ok);
+  color: var(--bg);
+}
+.reply-btns .btn.reply-no.on {
+  background: var(--bad);
+  color: var(--bg);
+}
+.reply-btns .btn:disabled {
+  opacity: 1;
+  cursor: progress;
 }
 /* Nome, celular e nascimento lado a lado; quando quebram, os da linha crescem até ocupar a largura toda. */
 .profile-pair {
@@ -9037,9 +9070,12 @@ dialog.member-dlg {
 .event-cover { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; flex: 0 1 auto; max-width: 100%; font-size: 0.88rem; color: var(--ink-2); }
 .event-cover > span { white-space: nowrap; }
 .event-cover .select-btn { width: auto; max-width: 100%; height: 42px; min-height: 0; box-sizing: border-box; border-radius: var(--r-full); padding-left: 16px; }
-/* Celular estreito: as abas ocupam a linha toda e a lista de quem cobre vai para baixo delas. */
+/* Celular estreito: as abas ocupam a linha toda e a lista de quem cobre vai para baixo delas, também na largura toda e
+   um pouco mais afastada, para não parecer parte das abas. */
 @media (max-width: 420px) {
   .event-reply { flex-basis: 100%; max-width: none; }
+  .event-cover { flex-basis: 100%; flex-wrap: nowrap; margin-top: 6px; }
+  .event-cover .select-btn { flex: 1 1 auto; min-width: 0; }
 }
 
 /* Chips do cabeçalho do evento (tipo, situação, falta substituto): só contorno fino na cor do texto, sem fundo cheio. */
@@ -9047,4 +9083,133 @@ dialog.member-dlg {
   background: transparent;
   font-weight: 500;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 35%, transparent);
+  /* No celular a coluna ao lado da data é estreita: chip longo ("1 não pode ir · falta substituto") quebra a linha
+     dentro do contorno em vez de passar da borda do card. */
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  border-radius: 12px;
+}
+
+/* Mais: lista de destinos que ficam fora da barra de abas. Alvo de toque grande, uma coluna no celular. */
+.more-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  max-width: 640px;
+}
+.more-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 68px;
+  padding: 12px 14px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color var(--t-fast);
+}
+.more-item:hover {
+  border-color: var(--accent);
+}
+.more-what {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Início: próximo compromisso em destaque (resposta e Estudar no próprio cartão) e repertórios do grupo. */
+.home-next {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.next-when {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: baseline;
+}
+.next-when b {
+  text-transform: capitalize;
+}
+.next-title {
+  font-size: 1.3rem;
+  line-height: 1.2;
+}
+.next-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.next-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.home-set {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.home-set .home-row {
+  flex: 1;
+  min-width: 0;
+}
+/* Celular: o nome do repertório quebra em até duas linhas em vez de cortar. */
+@media (max-width: 599px) {
+  .home-set .my-next-what b {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow-wrap: anywhere;
+  }
+}
+/* Outras escalas do Início: a linha do evento e, embaixo, Confirmar / Não posso na largura toda. */
+.my-next-list li.home-scale {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.home-scale + .home-scale {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.home-scale .roster-chips {
+  margin-top: 4px;
+}
+/* Para o líder: quantos já confirmaram (verde quando todos). */
+.home-replies {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+  color: var(--ink-2);
+}
+.home-replies.ok {
+  color: var(--ok);
+}
+
+/* Música aberta no repertório: solo, BPM e referência dentro de "Mais detalhes" (alvo de toque de 44 px). */
+.item-more > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+/* Medleys numa seção embaixo dos repertórios (no lugar de uma segunda fileira de abas). */
+.lib-sub-h {
+  margin: 24px 0 10px;
+  font-size: 1rem;
 }

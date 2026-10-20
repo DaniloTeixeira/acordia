@@ -13,8 +13,8 @@ presença nos ensaios, e repertórios compartilhados.
 Lista completa, tela por tela, para testar e decidir o que fica. Marque `[x]` no que já foi conferido.
 
 ### Em todas as telas
-- [ ] **Navegação** entre Início, Repertório, Biblioteca, Estudo e Ferramentas (o Grupo abre pelo Início): trilho lateral no computador, barra de
-      abas no celular. Cada página tem endereço próprio, então o "voltar" do navegador funciona. Tocar de novo na
+- [ ] **Navegação** entre Início, Agenda, Biblioteca (Repertórios, Músicas e Medleys) e Mais (Membros, Estudo e Ferramentas): barra de abas no celular. No computador o trilho
+      lateral mostra tudo direto (Início, Agenda, Biblioteca, Membros, Estudo e Ferramentas), sem o Mais. Cada página tem endereço próprio, então o "voltar" do navegador (e do mouse) funciona e fecha primeiro a janela ou o Palco abertos. O repertório aberto conta como Grupo e o voltar leva aos Repertórios. Tocar de novo na
       página atual volta ao topo.
 - [ ] **Tema** claro ou escuro. Até a primeira escolha, segue o aparelho.
 - [ ] **Idioma**: português, inglês e espanhol. O inicial vem do navegador ou do fuso horário.
@@ -53,7 +53,7 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
   - **estado da nuvem** (só quando há algo a saber): "Sincronizando…", mudanças esperando, sem internet ou erro, com
     "Sincronizar agora";
   - **Sair**: tenta subir o que falta, avisa se algo vai se perder e apaga os dados deste aparelho.
-- [ ] **Usuários** (só admins, pela seção no Perfil): todos com acesso ao app, com busca e ordem; editar os dados,
+- [ ] **Membros** do app (só admins, pelo card no Perfil; é a lista de todos com acesso, separada da aba Membros do Grupo, onde se cadastra): todos com acesso ao app, com busca e ordem; editar os dados,
       tornar ou tirar admin (só o Dono) e tirar acesso.
 - [ ] **Músicas e repertórios na nuvem**, iguais em todos os aparelhos da conta:
   - funciona sem internet, e as mudanças sobem depois;
@@ -61,22 +61,29 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
   - se a mesma coisa mudou em dois lugares, vale a mudança mais recente.
 
 ### Início
-- [ ] Primeira página depois de entrar: "Olá, nome" e a data de hoje.
-- [ ] **Cartão do grupo**: nome, próximos eventos, repertórios e membros; leva à agenda. Com mais de um grupo,
-      escolhe qual.
-- [ ] **Minhas escalas**: cartões que rolam de lado, com dia, hora, "amanhã"/"em 3 dias", função, quem está
-      escalado, quantos confirmaram, quantos não podem, quantas músicas e a sua resposta. Tocar abre o evento na
-      agenda.
-- [ ] **Precisam de substituto** (só quem lidera): eventos em que alguém disse que não pode.
-- [ ] **Agenda do grupo**: os próximos eventos em que a pessoa não está.
-- [ ] **Continuar de onde parou**: abre o último repertório, ou direto no Palco.
+- [ ] Primeira página depois de entrar: "Olá, nome" e a data de hoje. No computador os blocos ficam em duas colunas
+      (quando sobra um, ele ocupa a linha toda); no celular, em uma, na mesma ordem.
+- [ ] **Próximo compromisso** em destaque, com **Confirmar / Não posso** e **Estudar repertório** (abre a folha) ou Palco, sem sair do Início.
+- [ ] **Precisam de substituto** (só quem lidera): ao lado do destaque, os eventos em que alguém disse que
+      não pode.
+- [ ] **Próximos 7 dias**: a semana com um ponto nos dias com evento (destacado quando a pessoa está escalada).
+      Embaixo, **Minhas escalas**: as outras escalas em linhas (data, título, hora, "em 3 dias", função) com
+      Confirmar / Não posso. Tocar abre o evento na agenda.
+- [ ] Quem lidera vê "3 de 5 confirmaram" no próximo compromisso e em cada escala, o bloco **Faltam respostas**
+      (os próximos eventos com gente que ainda não respondeu) e o botão **Novo evento** embaixo da semana.
+- [ ] **Para estudar**, ao lado de **Grupos**: os repertórios do grupo (menos o do próximo compromisso) e o que a
+      pessoa abriu por último, até cinco.
+- [ ] **Grupos** (com mais de um grupo, ou para o admin): nome, próximos eventos e membros; leva à agenda.
+      Fixar põe um grupo em primeiro. O admin cria um grupo novo por aqui.
+- [ ] **Aniversariantes** do grupo nos próximos 7 dias, por último. O card fica sempre, com um aviso quando
+      ninguém faz aniversário na semana.
 
 ### Repertório
 - [ ] **Nome editável** e subtítulo com o número de músicas e a transposição.
-- [ ] **Novo**: cria outro repertório. O anterior continua na Biblioteca.
+- [ ] **Novo**: cria outro repertório. O anterior continua salvo.
 - [ ] **Palco**.
 - [ ] **Editar / Ver folha**: alterna os painéis no celular; no computador ficam lado a lado.
-- [ ] **Adicionar**: "Com cifra", "Só letra", "Biblioteca" (escolha várias, com busca) e "Medley".
+- [ ] **Adicionar**: "Adicionar música" (cole a cifra ou a letra; dentro da música dá para trocar para "Só letra"), "Biblioteca" (escolha várias, com busca) e "Medley".
 - [ ] **Cartão de cada música**:
   - **arrastar o cartão** para outro lugar (menos pelos botões e campos): no mouse, clicar e arrastar (só clicar
     abre e fecha); no celular, segurar ~¼ s e arrastar; Esc cancela; no teclado, Tab até o número e ↑ ↓;
@@ -90,7 +97,7 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
       define uma vez para todas as músicas dele. Pós-pregação aparece como chip no cartão e na folha/Palco.
 - [ ] **Medley**: bloco de músicas emendadas dentro do repertório, com o chip "Medley · N músicas | Editar" e
       "Voltar para…".
-- [ ] **Voltar para Biblioteca** e **Excluir** (lixeira) no topo do repertório.
+- [ ] **Voltar para Repertórios** e **Excluir** (lixeira) no topo do repertório.
 - [ ] **Montar cifra** (tirar de ouvido):
   - quadradinhos acima de cada linha da letra, onde vai um acorde (C, Am, G7) ou um grau (1, 4, 5, 2m, IV,
     bVII…);
@@ -128,8 +135,11 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] Toque embaixo avança, toque em cima volta.
 - [ ] Atalhos: setas / PageDown / espaço avançam e voltam, + e − mudam a fonte, Esc sai.
 
-### Biblioteca
-- [ ] Abas **Músicas**, **Repertórios** e **Medleys**, com busca.
+### Músicas e repertórios do grupo
+Tudo é do grupo, nas abas **Repertórios** e **Músicas** do Grupo: todos os membros veem e baixam para o aparelho
+(abre sem internet); só quem lidera o grupo e os admins do app criam, editam e excluem. Quem só lê abre o repertório
+direto na folha, sem Editar, e não vê os botões de mudar.
+- [ ] Abas **Repertórios** (com **Medleys** ao lado quando houver) e **Músicas**, com busca.
 - [ ] Músicas: busca e ordem A–Z ou Recentes.
 - [ ] **Cartão de música**: tom, BPM, em quantos repertórios está, trecho da letra e quando foi
       editada; Adicionar ao repertório, ▶, Editar e Excluir.

@@ -1,7 +1,7 @@
 // Rode com: npm test
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, rehearsalStanding, canCheckIn, pendingCheckIn, waNumber, waLink, fmtPhone, maskPhone, capFirst, toICS, splitEvents, dayKey, upcomingBirthdays, rosterByPerson, needsCover, streakLevel, type GEvent, type RosterRow } from "../src/lib/calendar";
+import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, rehearsalStanding, canCheckIn, pendingCheckIn, waNumber, waLink, fmtPhone, maskPhone, capFirst, toICS, splitEvents, dayKey, upcomingBirthdays, rosterByPerson, needsCover, pendingReplies, streakLevel, type GEvent, type RosterRow } from "../src/lib/calendar";
 
 const ev = (id: string, starts: Date, kind: GEvent["kind"] = "service"): GEvent =>
   ({id, group_id: "g", kind, title: id, starts_at: starts.toISOString(), call_at: null, place: "", notes: "", setlist_id: null});
@@ -183,6 +183,12 @@ test("needsCover: quem disse não e ainda não indicou quem cobre, uma vez por p
   const rows = [{email: "a", status: "no" as const}, {email: "a", status: "no" as const}, {email: "b", status: "no" as const, cover: "c"}, {email: "d", status: "yes" as const}];
   assert.deepEqual(needsCover(rows), ["a"]);
   assert.deepEqual(rosterByPerson([{email: "b", role: "", status: "no", reason: "", cover: "c"}]), [{email: "b", roles: [], status: "no", reason: "", cover: "c"}]);
+});
+
+test("pendingReplies: quem não disse sim nem não, uma vez por pessoa", () => {
+  const rows = [r("e", "a"), r("e", "a"), r("e", "b", "yes"), r("e", "c", "no"), r("e", "d", "pending"), r("e", "d", "yes")];
+  assert.deepEqual(pendingReplies(rows), ["a"]);
+  assert.deepEqual(pendingReplies([]), []);
 });
 
 test("streakLevel: neutro até 2 faltas, laranja na 3ª e vermelho na 7ª", () => {
