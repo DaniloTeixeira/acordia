@@ -336,7 +336,7 @@ function PhotoActions(){
 export function Profile(){
   const {profile, admin, owner, email} = useAuth();
   return <section className="view" id="view-profile" data-view="profile" aria-labelledby="profile-h">
-    <div className="view-head"><div><h1 id="profile-h">{t("profile.title")}</h1><p className="sub">{email}</p></div></div>
+    <div className="view-head"><div><h1 id="profile-h">{t("profile.title")}</h1></div></div>
     <div className="profile-panel">
       <div className="card profile-top wide">
         <div className="profile-who"><PhotoButton/><div><span className="people-name"><b>{profile?.name || email}</b>{(owner || admin) && <span className={"chip " + (owner ? "owner" : "accent")}>{t(owner ? "profile.owner" : "profile.admin")}</span>}</span><span className="sub">{email}</span>
@@ -429,7 +429,7 @@ function SignOut(){
     if(left && !await confirmDialog({title: t("sync.leaveTitle"), message: tn("sync.leaveMsg", left), confirm: t("auth.signOut")})){ setBusy(false); return; }
     forgetLocal(); await signOut();
   });
-  return <button className="btn ghost" id="profile-out" aria-busy={busy} onClick={leave}>{busy ? <Spin/> : <Icon name="back" sm/>} {t("auth.signOut")}</button>;
+  return <button className="link-btn" id="profile-out" aria-busy={busy} disabled={busy} onClick={leave}>{busy ? <Spin/> : <Icon name="back" sm/>} {t("auth.signOut")}</button>;
 }
 
 // No grupo aberto, se a pessoa é membro dele (só assim existem as seções de frequência e da próxima escala).
