@@ -6900,7 +6900,15 @@ dialog.ear-dlg {
 /* Sair no fim da página, à esquerda, com um respiro depois do último card. */
 .profile-out {
   display: flex;
-  margin-top: 28px;
+  margin-top: 20px;
+}
+/* link discreto com seta, à esquerda, mas com área de toque de 44px */
+.profile-out .link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding-right: 16px;
 }
 .profile-who {
   display: flex;

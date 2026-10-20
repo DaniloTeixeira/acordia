@@ -13,7 +13,7 @@ presença nos ensaios, e repertórios compartilhados.
 Lista completa, tela por tela, para testar e decidir o que fica. Marque `[x]` no que já foi conferido.
 
 ### Em todas as telas
-- [ ] **Navegação** entre Início, Agenda, Biblioteca (Repertórios, Músicas e Medleys) e Mais (Membros, Estudo e Ferramentas): barra de abas no celular. No computador o trilho
+- [ ] **Navegação** entre Início, Agenda, Biblioteca (Repertórios, Músicas e Medleys) e Mais (Membros, Usuários só para admin, Estudo e Ferramentas): barra de abas no celular. No computador o trilho
       lateral mostra tudo direto (Início, Agenda, Biblioteca, Membros, Estudo e Ferramentas), sem o Mais. No celular, Membros, Estudo e Ferramentas têm o link "Voltar" no topo, que leva ao Mais. Cada página tem endereço próprio, então o "voltar" do navegador (e do mouse) funciona e fecha primeiro a janela ou o Palco abertos. O repertório aberto conta como Grupo e o voltar leva aos Repertórios. Tocar de novo na
       página atual volta ao topo.
 - [ ] **Tema** claro ou escuro. Até a primeira escolha, segue o aparelho.
