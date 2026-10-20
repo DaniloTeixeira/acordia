@@ -81,12 +81,13 @@ test("regra dos ensaios: 8 faltas seguidas tiram dos cultos até 4 presenças", 
   assert.deepEqual(rehearsalStanding("x", evs.slice(0, 5), att({3: "present", 4: "present"}), now, mark(3, 2)), {out: false, streak: 0, need: 0, called: 5});
 });
 
-test("Cheguei: só em ensaio, de 12 h antes a 12 h depois", () => {
+test("Cheguei: só em ensaio, a partir de 12 h antes, sem limite depois", () => {
   const at = new Date(2026, 9, 18, 19).getTime();
   const e = ev("e", new Date(at), "rehearsal");
   assert.ok(canCheckIn(e, at));
   assert.ok(canCheckIn(e, at - 11 * 3600e3));
-  assert.ok(!canCheckIn(e, at + 13 * 3600e3));
+  assert.ok(!canCheckIn(e, at - 13 * 3600e3));
+  assert.ok(canCheckIn(e, at + 7 * 24 * 3600e3));
   assert.ok(!canCheckIn({...e, kind: "service"}, at));
 });
 
