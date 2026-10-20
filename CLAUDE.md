@@ -77,6 +77,16 @@ todas as migrações num Supabase vazio.
 - Reaproveitar `common.*` (Salvar, Cancelar, Excluir...) antes de criar chave nova. Guia "Como usar" de cada
   página fica em `help.<página>.*`.
 - Português do Brasil, frases curtas e diretas; o mesmo tom em inglês e espanhol.
+- **Chips e rótulos curtos** (chip, aba, título de coluna): uma ideia só, o mais curto que continua claro, sem frase.
+  - Estado em uma ou duas palavras, com inicial maiúscula: "Acessou" / "Não acessou", "Confirmado", "Inativo".
+    Nada de "Já", "Ainda", "nos", "de" quando o sentido não muda.
+  - Falta de algo é "Sem X": "Sem grupo", "Sem função", "Sem resposta", "sem substituto".
+  - Quantidade e frequência com barra: "1/8 faltas consecutivas", "3 escalas/mês". Separador de duas partes é " · ":
+    "Pausa · 4 ensaios restantes".
+  - Mesma coisa, mesmo nome em todas as telas (o mesmo texto vem da mesma chave). Nomes de função (Vocal, Bateria) ficam como estão.
+  - Sem ícone dentro do chip de texto. A gravidade vem da cor (verde `st-yes`, laranja `st-pending`, vermelho `st-no`),
+    nunca de uma palavra a mais. Reaproveitar `common.*` e as chaves existentes antes de criar.
+  - Ao criar texto novo ou mexer em um existente, aplicar esse padrão e procurar o mesmo texto em outros lugares (`grep` na chave).
 
 ## Permissões
 
@@ -84,7 +94,7 @@ todas as migrações num Supabase vazio.
   no máximo um por grupo) > membro.
 - Só o Dono liga/desliga admin. Ninguém tira acesso/admin do Dono nem edita os dados dele. Quem é Dono só
   muda por SQL.
-- Cadastro de pessoas só em Grupo → Membros (a página Usuários, só admin, aberta pelo Perfil, é só a lista).
+- Cadastro de pessoas em Grupo → Membros (já entra no grupo) ou na página Usuários (só admin, aberta pelo Perfil; entra só com acesso ao app, sem grupo).
 - A regra vale no banco (RLS, funções `security definer`, triggers); a interface só esconde. Toda permissão nova
   é garantida no SQL, não só no app.
 - O app é sempre com login: não reintroduzir caminho sem login nem `if(!cloud)`. Funcionalidades removidas de

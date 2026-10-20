@@ -3,14 +3,14 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { t, tn, locale } from "../lib/i18n";
 import { Select } from "../ui/Select";
-import { useAuth, savePhone, cleanPhone, signIn, signUp, resendConfirmation, pendingConfirm, setPendingConfirm, forgotPassword, setNewPassword, signInWithGoogle, signOut, saveName, saveBirthday, listAllowed, setAllowedInfo, setPersonInfo, setAllowedAdmin, removeAllowed, validEmail, initials, ownPhoto, removePhoto, type Allowed } from "../lib/cloud";
+import { useAuth, savePhone, cleanPhone, signIn, signUp, resendConfirmation, pendingConfirm, setPendingConfirm, forgotPassword, setNewPassword, signInWithGoogle, signOut, saveName, saveBirthday, listAllowed, addAllowed, setAllowedInfo, setPersonInfo, setAllowedAdmin, removeAllowed, validEmail, initials, ownPhoto, removePhoto, type Allowed } from "../lib/cloud";
 import { DEFAULT_POLICY, missing, passes, fromError, isPwned, type PwPolicy, type PwRule } from "../lib/password";
 import { reduced, flashSaved, norm } from "../lib/util";
 import { toast, confirmDialog, openDialog, closeDialog, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { DateInput } from "../ui/DateInput";
 import { FieldLabel } from "../ui/FieldLabel";
-import { useGroups, loadGroups, chooseGroup, setMemberRole, outMark } from "../lib/groups";
+import { useGroups, loadGroups, chooseGroup, setMemberRole, outMark, listGroupedEmails } from "../lib/groups";
 import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, streakLevel, fmtPhone, maskPhone } from "../lib/calendar";
 import { sortRoles, joinRoles, splitRoles } from "../lib/roles";
 import { MemberRoles, RolePicker, ReplySeg, GroupMark, eventTitle, timeOf, longDay, openGroup } from "./Group";
@@ -692,7 +692,7 @@ function PeopleLink(){
         {noBirthday > 0 && <li className="warn"><Icon name="gift" sm/> {tn("people.statNoBirthday", noBirthday)}</li>}
         {!noPhone && !noBirthday && <li className="ok"><Icon name="check" sm/> {t("people.statComplete")}</li>}
       </ul></>}
-    <button type="button" className="btn primary sm" id="profile-people" onClick={() => go("people")}><Icon name="users" sm/> {t("people.see")} <Icon name="chev" sm className="chev-right"/></button>
+    <button type="button" className="btn primary sm" id="profile-people" onClick={() => go("people")}><Icon name="id" sm/> {t("people.see")} <Icon name="chev" sm className="chev-right"/></button>
   </section>;
 }
 
@@ -738,9 +738,37 @@ function People({me}: {me: string}){
   const filter = usePeopleFilter(rows, "acordia-people-order", r => r.profileName || r.name, r => r.created_at), {nq, shown} = filter;
   // Falhou: a lista fica vazia com o aviso e o botão de tentar de novo (antes ficava em "Carregando..." para sempre).
   const [failed, setFailed] = useState(false);
-  const load = async () => { setFailed(false); const r = await listAllowed(); if(r) setRows(r); else { setRows(rows => rows || []); setFailed(true); } };
+  // Quem está em algum grupo (null: não deu para ler, então ninguém é marcado "Sem grupo").
+  const [grouped, setGrouped] = useState<Set<string> | null>(null);
+  const load = async () => {
+    setFailed(false);
+    const [r, gr] = await Promise.all([listAllowed(), listGroupedEmails()]);
+    setGrouped(gr);
+    if(r) setRows(r); else { setRows(rows => rows || []); setFailed(true); }
+  };
   useEffect(() => { load(); }, []);
+  // Cadastro sem grupo: só entra na lista de acesso (a pessoa pode ser escalada em um grupo depois).
+  const [aEmail, setAEmail] = useState(""), [aName, setAName] = useState(""), [aBirthday, setABirthday] = useState(""), [aPhone, setAPhone] = useState(""), [adding, setAdding] = useState(false), lock = useLock(), check = useEmailCheck(aEmail);
+  const add = (ev: React.FormEvent) => { ev.preventDefault(); lock(async () => {
+    const v = aEmail.trim().toLowerCase();
+    if(!validEmail(v)){ check.fail(); document.getElementById("people-add-email")?.focus(); return; }
+    // Já tem acesso: addAllowed faria upsert e apagaria o que está marcado (admin); avisa em vez de gravar.
+    if(rows?.some(r => r.email === v)) return toast(t("people.alreadyHas", {email: v}));
+    setAdding(true); const ok = await addAllowed(v, false, aName, aBirthday, aPhone).finally(() => setAdding(false));
+    if(!ok) return toast(t("profile.saveFail"));
+    toast(t("people.added", {email: v})); setAEmail(""); setAName(""); setABirthday(""); setAPhone(""); check.reset(); load();
+  }); };
   return <div className="card people-card people-page">
+    <p className="sub">{t("people.addSub")}</p>
+    <form className="member-add people-add-box" onSubmit={add} noValidate>
+      <SecHead as="h3" className="people-sub-h">{t("people.addTitle")}</SecHead>
+      <div className="people-add">
+        <PersonFields idp="people-add" name={aName} onName={setAName} email={aEmail} onEmail={setAEmail} phone={aPhone} onPhone={setAPhone} birthday={aBirthday} onBirthday={setABirthday} check={check}/>
+      </div>
+      <div className="member-roles-foot">
+        <button className="btn primary" aria-busy={adding} disabled={adding}>{adding ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
+      </div>
+    </form>
     <SecHead as="h3" className="people-sub-h">{t("people.listTitle")} {rows && rows.length > 0 && <span className="count-chip">{nq && shown ? shown.length + "/" + rows.length : rows.length}</span>}</SecHead>
     {rows && rows.length > 0 && <PeopleTools idp="people" f={filter}/>}
     {/* Cabeçalho da lista, como numa tabela: marca onde as pessoas começam (no celular, só a faixa). */}
@@ -750,7 +778,8 @@ function People({me}: {me: string}){
       {failed && <li className="sub">{t("profile.loadFail")} <button type="button" className="link-btn" onClick={load}>{t("common.retry")}</button></li>}
       {shown === null ? <li className="sub">{t("auth.loading")}</li> : shown.map(r => {
         const nm = r.profileName || r.name, bd = r.profileBirthday || r.birthday, ph = r.profilePhone || r.phone;
-        const openPerson = () => openDialog("member", {email: r.email, person: {name: nm, phone: ph, birthday: bd || null, photo: r.profilePhoto || ""}, manage: {row: r, onChanged: load}});
+        const noGroup = !!grouped && !grouped.has(r.email);
+        const openPerson = () => openDialog("member", {email: r.email, person: {name: nm, phone: ph, birthday: bd || null, photo: r.profilePhoto || ""}, manage: {row: r, onChanged: load, noGroup}});
         return <li key={r.email} className="member-open" onClick={e => { if(!(e.target as HTMLElement).closest(SKIP_OPEN)) openPerson(); }}>
         {/* O "Admin" fica logo depois do nome (ou do e-mail, para quem ainda não tem nome). */}
         {/* Tocar na pessoa (foto ou texto) abre os detalhes, como em Grupo → Membros; o nome é o botão. */}
@@ -759,9 +788,11 @@ function People({me}: {me: string}){
           {/* Sempre as três linhas (nome, e-mail, celular), com um texto apagado no que falta: todas as pessoas
               ficam com a mesma altura. */}
           <span className="people-name"><button type="button" className="member-open-btn" aria-label={t("member.open", {name: nm || r.email})} onClick={openPerson}>
-            {nm ? <b>{nm}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{(r.is_owner || r.is_admin) && <span className={"chip " + (r.is_owner ? "owner" : "accent")}>{t(r.is_owner ? "profile.owner" : "profile.admin")}</span>}{r.email === me && <YouChip/>}{!r.joined && <span className="chip pending">{t("people.notJoined")}</span>}</span>
+            {nm ? <b>{nm}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{(r.is_owner || r.is_admin) && <span className={"chip " + (r.is_owner ? "owner" : "accent")}>{t(r.is_owner ? "profile.owner" : "profile.admin")}</span>}{r.email === me && <YouChip/>}</span>
           <span className="sub people-email">{r.email}{bd && " · " + fmtBirthday(bd)}</span>
           {ph ? <PhoneLink phone={ph}/> : <span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}</span></span>
+        {/* Situação do acesso e do grupo numa linha própria, na mesma posição dos chips da lista de Membros. */}
+        <span className="member-roles">{r.joined ? <span className="chip st-yes">{t("people.joined")}</span> : <span className="chip">{t("people.notJoined")}</span>}{noGroup && <span className="chip st-pending">{t("people.noGroup")}</span>}</span>
         {/* Chevron: indica que a linha inteira abre os detalhes. */}
         <span className="member-open-hint" aria-hidden="true">›</span>
       </li>; })}
