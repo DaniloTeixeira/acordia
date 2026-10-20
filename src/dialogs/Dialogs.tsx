@@ -8,7 +8,6 @@ import { useUI, toast, openDialog, type DialogProps } from "../state";
 import { current, isMedley, lastPlayKey, markOpened, songItems, sheetSongs, libTargets, libTitle, inSetlist, addToSetlist, removeFromSetlist, type LibRef } from "../repertoire";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
-import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
 import { keyOptions } from "../views/Repertoire";
 import { ChordDialog } from "./ChordDialog";
@@ -96,10 +95,13 @@ function SongDialog({song: s}: DialogProps["song"]){
   const isNew = !s;
   // Abrir uma música conta para o "Continuar de onde parou" do Início.
   useEffect(() => { if(s) markOpened("song", s.id); }, [s]);
-  const [type, setType] = useState<SongType>(s ? s.type : "");
   const [text, setText] = useState(s ? s.text : ""), [key, setKey] = useState(s ? s.key : "");
   const [bpm, setBpm] = useState(s ? s.bpm : ""), [ref, setRef] = useState(s ? s.ref || "" : "");
-  const start = useRef([text, type, key, bpm, ref].join("\u0000"));
+  // O tipo não é escolhido: com texto e sem nenhum acorde, é só letra; senão, com cifra.
+  const hasChords = (x: string) => parseSong(x).blocks.some(b => b.some(it => it.chord));
+  const typeOf = (x: string): SongType => x.trim() && !hasChords(x) ? "letra" : "";
+  const type = typeOf(text);
+  const start = useRef([text, key, bpm, ref].join("\u0000"));
   const vals = useRef({text, type, key, bpm, ref}); vals.current = {text, type, key, bpm, ref};
   const close = (rv: string) => {
     if(rv !== "ok") return;
@@ -110,11 +112,10 @@ function SongDialog({song: s}: DialogProps["song"]){
     toast(t(isNew ? "song.saved" : "song.updated"));
   };
   // Com alterações, clicar fora não descarta o texto.
-  const dirty = () => { const v = vals.current; return [v.text, v.type, v.key, v.bpm, v.ref].join("\u0000") !== start.current; };
-  const hasChords = (x: string) => parseSong(x).blocks.some(b => b.some(it => it.chord));
+  const dirty = () => { const v = vals.current; return [v.text, v.key, v.bpm, v.ref].join("\u0000") !== start.current; };
   const ear = () => openDialog("ear", {text, songKey: key, onApply: (nt, k) => {
     setText(nt);
-    if(hasChords(nt)){ setType(""); if(!key && detectKey(parseSong(nt)) !== k) setKey(k); }
+    if(hasChords(nt)){ if(!key && detectKey(parseSong(nt)) !== k) setKey(k); }
   }});
   // Transpor reescreve a cifra no texto; com tom automático, o tom acompanha sozinho.
   const shiftKey = (d: number) => {
@@ -129,8 +130,8 @@ function SongDialog({song: s}: DialogProps["song"]){
     <form method="dialog" className="dlg">
       <DialogHead id="song-h" title={t(isNew ? "song.newTitle" : "song.editTitle")} closeLabel={t("common.close")}/>
       <div className="dlg-body">
-        <div className="type-row"><Seg className="sm" id="song-type" aria={t("song.typeAria")} value={type} onChange={setType} options={[{v: "", label: t("item.withChords")}, {v: "letra", label: t("item.lyricsOnly")}]}/>
-          <button type="button" className="btn soft sm" id="song-ear" data-tip-key="tip.ear" disabled={!songTitle(text)} onClick={ear}><Icon name="music" sm/> {t("ear.open")}</button></div>
+        {/* Montar cifra é para música nova, a partir da letra; editar uma música existente não precisa dele. */}
+        {isNew && <div className="type-row"><button type="button" className="btn soft sm" id="song-ear" data-tip-key="tip.ear" disabled={!songTitle(text)} onClick={ear}><Icon name="music" sm/> {t("ear.open")}</button></div>}
         <textarea className="input song-text" id="song-text" spellCheck={false} aria-label={t("song.textAria")} placeholder={t(type === "letra" ? "item.phLyrics" : "item.phChords")} value={text} onChange={e => setText(e.target.value)}/>
         <div className="fields">
           <div className="field wide" hidden={!shownKey}><span>{t("song.transpose")}</span><span className="tr-ctl">

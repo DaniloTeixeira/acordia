@@ -72,8 +72,8 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
       Confirmar / Não posso. Tocar abre o evento na agenda.
 - [ ] Quem lidera vê "3 de 5 confirmaram" no próximo compromisso e em cada escala, o bloco **Faltam respostas**
       (os próximos eventos com gente que ainda não respondeu) e o botão **Novo evento** embaixo da semana.
-- [ ] **Para estudar**, ao lado de **Grupos**: os repertórios do grupo (menos o do próximo compromisso) e o que a
-      pessoa abriu por último, até cinco.
+- [ ] **Para estudar**, ao lado de **Grupos**: só os repertórios do grupo ligados a um evento que ainda vai acontecer (menos o do próximo
+      compromisso), até cinco; sem nenhum, o bloco some.
 - [ ] **Grupos** (com mais de um grupo, ou para o admin): nome, próximos eventos e membros; leva à agenda.
       Fixar põe um grupo em primeiro. O admin cria um grupo novo por aqui.
 - [ ] **Aniversariantes** do grupo nos próximos 7 dias, por último. O card fica sempre, com um aviso quando
@@ -84,13 +84,13 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] **Novo**: cria outro repertório. O anterior continua salvo.
 - [ ] **Palco**.
 - [ ] **Editar / Ver folha**: alterna os painéis no celular; no computador ficam lado a lado.
-- [ ] **Adicionar**: "Adicionar música" (cole a cifra ou a letra; dentro da música dá para trocar para "Só letra"), "Biblioteca" (escolha várias, com busca) e "Medley".
+- [ ] **Adicionar**: "Adicionar música" (cole a cifra ou a letra; o tipo "Só letra" é detectado sozinho: texto sem nenhum acorde), "Biblioteca" (escolha várias, com busca) e "Medley".
 - [ ] **Cartão de cada música**:
   - **arrastar o cartão** para outro lugar (menos pelos botões e campos): no mouse, clicar e arrastar (só clicar
     abre e fecha); no celular, segurar ~¼ s e arrastar; Esc cancela; no teclado, Tab até o número e ↑ ↓;
   - tirar do repertório (com Desfazer);
   - chips: tom → tom para tocar, BPM e solo;
-  - tipo "Com cifra" ou "Só letra";
+  - tipo detectado sozinho ("Só letra" quando não há acorde);
   - texto: título na primeira linha, depois cifra e letra;
   - os mesmos campos no repertório e no medley: **Tom** (automático ou um dos 24), Solo, BPM e link de
     **Referência** (▶ para ouvir).
@@ -146,7 +146,7 @@ direto na folha, sem Editar, e não vê os botões de mudar.
       editada; Adicionar ao repertório, ▶, Editar e Excluir.
 - [ ] **Cartão de repertório/medley**: Abrir, **Duplicar** ("(cópia)") e Excluir.
 - [ ] **Janela da música**:
-  - tipo e Montar cifra;
+  - Montar cifra (só em música nova);
   - **Transpor a cifra** (−/+), que reescreve os acordes;
   - tom, BPM e referência;
   - com alterações, clicar fora não descarta o texto.
@@ -193,6 +193,7 @@ também libera o acesso ao app para eles).
 - [ ] **Membros**: nome, e-mail, funções (várias, como Vocal e Violão; cada um edita as suas), selo Líder, **frequência nos ensaios** (6 meses)
       e escalas no mês. Quem lidera inclui, torna líder e tira do grupo; admins do app renomeiam, criam e
       excluem grupos.
+- [ ] **Em pausa**: quem falta a 8 ensaios seguidos fica em pausa até participar de 4. No cadastro de Membros, a chave "Em pausa" já inclui a pessoa em pausa (para quem está há mais de 8 ensaios sem participar).
 - [ ] **Sem internet**: mostra a última versão baixada; mudar precisa de internet.
 
 ### Estudo

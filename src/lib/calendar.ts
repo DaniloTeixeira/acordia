@@ -79,11 +79,11 @@ export function attendanceRate(email: string, events: GEvent[], att: AttendanceR
   return {present, total};
 }
 
-// Regra da equipe: quem falta a 8 ensaios seguidos fica fora dos cultos até participar de 4 ensaios.
+// Regra da equipe: quem falta a 8 ensaios seguidos fica em pausa até participar de 4 ensaios.
 // Conta os ensaios com a chamada fechada e que tiveram chamada, em ordem; falta justificada não conta nem
 // para a sequência nem para a volta. Os 4 da volta não precisam ser seguidos.
-// streak: faltas seguidas até agora (fora dos cultos, zera); need: ensaios que faltam para voltar.
-// mark: o líder marcou a pessoa fora dos cultos (faltas de antes do app); a partir de "since" ela
+// streak: faltas seguidas até agora (em pausa, zera); need: ensaios que faltam para voltar.
+// mark: o líder marcou a pessoa em pausa (faltas de antes do app); a partir de "since" ela
 // está fora e precisa de "need" ensaios para voltar, como se tivesse chegado à 8ª falta ali.
 export const MISS_LIMIT = 8, COMEBACK = 4;
 // Quanto o chip de faltas seguidas deve chamar atenção: 0 até 2 faltas é neutro (null); da 3ª em diante vai

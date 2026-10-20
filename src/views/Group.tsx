@@ -16,7 +16,7 @@ import { copyName, LibraryList } from "./Library";
 import { saveBlob } from "../lib/pdf";
 import { reduced } from "../lib/util";
 import { splitRoles, joinRoles, toggleRole, sortRoles } from "../lib/roles";
-import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone, capFirst, type GEvent, type Presence } from "../lib/calendar";
+import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone,type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, loadGroups, createGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
   deleteEvent, respond, setCover, checkIn, markAttendance, setUnavailable, personName, personPhoto, amGroupAdmin, setMemberOut, outMark, isActive, setMemberActive, type GroupSetlist, type Member, type Group } from "../lib/groups";
 import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, go } from "../state";
@@ -28,6 +28,8 @@ import { SKIP_OPEN, StreakChip, useLock, Spin, Avatar, PersonFields, useEmailChe
 import { DateInput } from "../ui/DateInput";
 import { useMedia } from "../ui/hooks";
 import { SecHead } from "../ui/SecHead";
+import { PhoneInput } from "../ui/PhoneInput";
+import { NameInput } from "../ui/NameInput";
 import { YouChip } from "../ui/YouChip";
 import { BackLink } from "../ui/BackLink";
 
@@ -207,13 +209,16 @@ export function Group(){
 }
 
 function NewGroup(){
-  const [name, setName] = useState(""), [busy, setBusy] = useState(false), lock = useLock();
-  return <form className="people-add group-new" onSubmit={e => { e.preventDefault(); if(!name.trim()) return; lock(async () => {
+  const [name, setName] = useState(""), [busy, setBusy] = useState(false), [tried, setTried] = useState(false), lock = useLock();
+  // Botão sempre ativo: vazio avisa embaixo do campo e leva o foco para ele.
+  const bad = tried && !name.trim();
+  return <form className="people-add group-new" onSubmit={e => { e.preventDefault(); if(!name.trim()){ setTried(true); document.getElementById("group-name-new")?.focus(); return; } lock(async () => {
     setBusy(true); const ok = await createGroup(name).finally(() => setBusy(false));
-    toast(t(ok ? "group.created" : "profile.saveFail", {name: name.trim()})); if(ok) setName("");
-  }); }}>
-    <input className="input" id="group-name-new" maxLength={80} placeholder={t("group.namePh")} aria-label={t("group.name")} value={name} onChange={e => setName(e.target.value)}/>
-    <button className="btn primary" disabled={!name.trim()} aria-busy={busy}>{busy ? <Spin/> : <Icon name="plus" sm/>} {t("group.create")}</button>
+    toast(t(ok ? "group.created" : "profile.saveFail", {name: name.trim()})); if(ok){ setName(""); setTried(false); }
+  }); }} noValidate>
+    <input className="input" id="group-name-new" maxLength={80} placeholder={t("group.namePh")} aria-label={t("group.name")} value={name} aria-invalid={bad} aria-describedby={bad ? "group-name-new-err" : undefined} onChange={e => setName(e.target.value)}/>
+    {bad && <span className="field-error" id="group-name-new-err">{t("group.needName")}</span>}
+    <button className="btn primary" aria-busy={busy}>{busy ? <Spin/> : <Icon name="plus" sm/>} {t("group.create")}</button>
   </form>;
 }
 
@@ -459,7 +464,7 @@ function Attendance({e}: {e: GEvent}){
 // ---------- membros ----------
 function Members({canEdit}: {canEdit: boolean}){
   const g = useGroups(), me = useAuth(s => s.email), appAdmin = useAuth(s => s.admin);
-  const [email, setEmail] = useState(""), [name, setName] = useState(""), [birthday, setBirthday] = useState(""), [phone, setPhone] = useState(""), [roles, setRoles] = useState<string[]>([]), [asAdmin, setAsAdmin] = useState(false), [busy, setBusy] = useState(""), lock = useLock(), check = useEmailCheck(email);
+  const [email, setEmail] = useState(""), [name, setName] = useState(""), [birthday, setBirthday] = useState(""), [phone, setPhone] = useState(""), [roles, setRoles] = useState<string[]>([]), [asAdmin, setAsAdmin] = useState(false), [asOut, setAsOut] = useState(false), [busy, setBusy] = useState(""), lock = useLock(), check = useEmailCheck(email);
   // Um líder só por grupo: o cadastro só pergunta "Líder" quando o grupo ainda não tem.
   const leaderNow = g.members.find(m => m.is_admin);
   const load = monthLoad(dayKey(new Date()), g.events, g.roster);
@@ -477,7 +482,12 @@ function Members({canEdit}: {canEdit: boolean}){
     if(!validEmail(v)){ check.fail(); document.getElementById("member-email")?.focus(); return; }
     setBusy("add"); const ok = await addMember(g.gid, v, asAdmin && !leaderNow, joinRoles(roles), name, birthday, phone).finally(() => setBusy(""));
     if(!ok) return toast(t("profile.saveFail"));
-    toast(t("group.memberAdded", {email: v})); setEmail(""); setName(""); setBirthday(""); setPhone(""); setRoles([]); setAsAdmin(false); check.reset();
+    // Quem já está há muitos ensaios sem aparecer entra marcado em pausa (a volta conta daqui para frente).
+    if(asOut && !(asAdmin && !leaderNow)){
+      if(!await setMemberOut(g.gid, v, COMEBACK)) toast(t("profile.saveFail"));
+      else toast(t("group.outSaved"));
+    }
+    toast(t("group.memberAdded", {email: v})); setEmail(""); setName(""); setBirthday(""); setPhone(""); setRoles([]); setAsAdmin(false); setAsOut(false); check.reset();
   }); };
   const fold = useFold("group-members");
   // Busca e ordem, como na lista "Com acesso" do Perfil (recentes: pela data em que entrou no grupo).
@@ -496,10 +506,13 @@ function Members({canEdit}: {canEdit: boolean}){
             <PersonFields idp="member" name={name} onName={setName} email={email} onEmail={setEmail} phone={phone} onPhone={setPhone} birthday={birthday} onBirthday={setBirthday} check={check}/>
             {!leaderNow && <label className="switch lead boxed"><span>{t("group.leader")}</span><input type="checkbox" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>}
           </div>
+          {!(asAdmin && !leaderNow) && <div className="member-add-out">
+            <label className="switch lead boxed"><span>{t("group.addOut")}</span><input type="checkbox" checked={asOut} onChange={e => setAsOut(e.target.checked)}/></label>
+            <small className="sub">{t("group.addOutHelp", {max: MISS_LIMIT})}</small></div>}
           <RolePicker value={roles} onChange={setRoles}/>
           {/* Adicionar por último, embaixo das funções. */}
           <div className="member-roles-foot">
-            <button className="btn primary" disabled={!email.trim()} aria-busy={busy === "add"}>{busy === "add" ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
+            <button className="btn primary" aria-busy={busy === "add"}>{busy === "add" ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
           </div>
         </form></>}
       <SecHead as="h3" className="people-sub-h">{t("group.listTitle")} <span className="count-chip">{filter.nq ? shown.length + "/" + g.members.length : g.members.length}</span></SecHead>
@@ -565,9 +578,9 @@ function MemberEdit({m, full, onDone, inline}: {m: Member; full: boolean; onDone
     : {onSubmit: save})}>
     {full && <div className="people-add">
       <div className="field"><label htmlFor={id + "-name"}>{t("profile.name")}</label>
-        <input className="input" id={id + "-name"} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onChange={e => setName(capFirst(e.target.value))} autoFocus/></div>
+        <NameInput className="input" id={id + "-name"} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onValue={setName} autoFocus/></div>
       <div className="field phone"><label htmlFor={id + "-phone"}>{t("profile.phone")}</label>
-        <input className="input" id={id + "-phone"} type="tel" inputMode="tel" autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} onChange={e => setPhone(maskPhone(e.target.value))}/></div>
+        <PhoneInput className="input" id={id + "-phone"} autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} onValue={setPhone}/></div>
       <div className="field birthday"><label htmlFor={id + "-birthday"}>{t("profile.birthday")}</label>
         <DateInput className="people-birthday" id={id + "-birthday"} max={today()} clearable value={birthday} onChange={setBirthday}/></div>
     </div>}
@@ -580,8 +593,8 @@ function MemberEdit({m, full, onDone, inline}: {m: Member; full: boolean; onDone
 }
 
 // Tudo o que se faz com uma pessoa do grupo, na janela de detalhes (a linha da lista só abre a janela):
-// chamada, fora dos cultos, líder, ativar/desativar e remover (editar os dados é o lápis da própria janela).
-// Presença e fora dos cultos abrem o painel logo abaixo dos botões; as demais rodam na hora e mostram o resultado num aviso.
+// chamada, em pausa, líder, ativar/desativar e remover (editar os dados é o lápis da própria janela).
+// Presença e em pausa abrem o painel logo abaixo dos botões; as demais rodam na hora e mostram o resultado num aviso.
 // Lixeira sozinha no canto do cabeçalho da janela do membro: a única ação destrutiva fica longe das outras.
 export function MemberRemove({m, onGone}: {m: Member; onGone: () => void}){
   const g = useGroups(), me = useAuth(s => s.email), [busy, setBusy] = useState(false), lock = useLock();
@@ -674,7 +687,7 @@ function QuickAttendance({email, onDone}: {email: string; onDone: () => void}){
   </div>;
 }
 
-// Marcar à mão como fora dos cultos (quem já faltou antes do app): a partir de agora, precisa de N
+// Marcar à mão como em pausa (quem já faltou antes do app): a partir de agora, precisa de N
 // ensaios para voltar; cada presença na chamada desconta um. Marcado, dá para mudar o número ou tirar.
 function OutEdit({m, status, marked, need, busy, onSave, onCancel}: {m: Member; status: React.ReactNode; marked: boolean; need: number; busy: boolean; onSave: (need: number) => void; onCancel: () => void}){
   const [k, setK] = useState(need);
