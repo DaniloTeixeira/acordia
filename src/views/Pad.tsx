@@ -6,6 +6,7 @@ import { toast } from "../state";
 import { pad, PAD_STYLES, type PadState } from "../pad";
 import { Icon } from "../ui/Icon";
 import { Range } from "../ui/Range";
+import { SecHead } from "../ui/SecHead";
 
 function usePad(){
   const [s, setS] = useState<PadState>(pad.state);
@@ -22,7 +23,7 @@ export function PadUI(){
   const on = s.playing || s.loading;
   return <div className="pad-layout">
   <div className="card metro pad">
-    <div className="card-head"><h2>{t("pad.title")}</h2><p className="sub">{t("pad.sub")}</p></div>
+    <div className="card-head"><SecHead>{t("pad.title")}</SecHead><p className="sub">{t("pad.sub")}</p></div>
     <div className="metro-read pad-read" aria-live="polite"><b>{key}</b>
       {s.loading ? <small>{t("pad.loading")}</small>
         : s.playing ? <small className="pad-playing"><Icon name="music" sm/><span>{t("pad.playing")}</span></small>

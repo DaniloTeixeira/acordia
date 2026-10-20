@@ -53,6 +53,7 @@ todas as migrações num Supabase vazio.
 - [src/views/](src/views/) páginas, [src/dialogs/](src/dialogs/) janelas, [src/ui/](src/ui/) peças reutilizáveis
   (`Dialog`, `Select`, `Seg`, `Fold`, `DateInput`, `Range`, `Icon`, `Toasts`). Usar as peças existentes antes de
   criar outra.
+- **Padrão repetido vira peça única.** Se algo é igual (ou segue o mesmo padrão) em mais de um lugar, centralizar em um componente de [src/ui/](src/ui/) com o CSS em um só lugar, para qualquer ajuste ser feito uma vez. Antes de repetir marcação ou CSS, procurar a peça existente; se não houver, criar. Exemplo: título de seção com o traço em gradiente (e contador ou texto de apoio) é sempre `<SecHead>` ([src/ui/SecHead.tsx](src/ui/SecHead.tsx)); o traço só é desenhado em `.sec-bar` no `app.scss`, nunca com `::before` ou margem própria em cada tela.
 - **Janela nova:** acrescentar o nome e os dados em `DialogProps` ([src/state.ts](src/state.ts)), renderizar em
   [src/dialogs/Dialogs.tsx](src/dialogs/Dialogs.tsx) (`{d.nome && <X {...d.nome}/>}`), abrir com
   `openDialog("nome", dados)`. Dentro: `<Dialog name id labelledBy dirty?>` + `<form method="dialog" className="dlg">`

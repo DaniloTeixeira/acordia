@@ -7,7 +7,7 @@ import { Icon } from "../ui/Icon";
 export function More(){
   const items = [
     {id: "members", icon: "users", title: t("group.membersTab"), sub: t("more.membersSub"), run: () => openGroup("members")},
-    {id: "study", icon: "study", title: t("nav.study"), sub: t("study.sub"), run: () => go("study")},
+    {id: "study", icon: "study", title: t("nav.study"), sub: t("more.studySub"), run: () => go("study")},
     {id: "tools", icon: "metro", title: t("nav.tools"), sub: t("tools.sub"), run: () => go("tools")},
   ];
   return <section className="view" id="view-more" data-view="more" aria-labelledby="more-h">

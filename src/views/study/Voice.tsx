@@ -9,6 +9,7 @@ import { useData, toast } from "../../state";
 import { voiceSongs, applyVoiceKey, setSongHigh } from "../../repertoire";
 import { Icon } from "../../ui/Icon";
 import { Select } from "../../ui/Select";
+import { SecHead } from "../../ui/SecHead";
 
 const { data } = store;
 const midiOf = (f: number) => 69 + 12 * Math.log2(f / 440);
@@ -83,7 +84,7 @@ function VoiceRange(){
   const songs = v && v.high ? voiceSongs() : [];
   return <>
     <div className="card voice-card">
-      <h2>{t("voice.rangeTitle")}</h2>
+      <SecHead>{t("voice.rangeTitle")}</SecHead>
       <p className="sub">{t("voice.rangeD")}</p>
       <div className="study-row">
         <label className="field inst-field"><span>{t("voice.singer")}</span><input className="input" id="vr-name" list="vr-names" maxLength={40} autoComplete="off" value={name}
@@ -120,7 +121,7 @@ function VoiceRange(){
     </div>
     {/* Tom sugerido para cada música do repertório aberto, a partir da nota mais aguda da melodia. */}
     {v && v.high && <div className="card voice-card">
-      <h2>{t("voice.keysTitle", {name: singer})}</h2>
+      <SecHead>{t("voice.keysTitle", {name: singer})}</SecHead>
       <p className="sub">{t("voice.keysD")}</p>
       {songs.length ? <div className="voice-keys">{songs.map(s => {
         const sug = s.high ? transposeKey(s.key, voiceShift(s.high, v.high!)) : "";

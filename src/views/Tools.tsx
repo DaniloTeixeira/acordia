@@ -4,7 +4,8 @@ import { detectPitch, noteFromFreq, nearestString, midiName } from "../lib/tuner
 import { INSTRUMENTS, isInstrument } from "../lib/instruments";
 import { t } from "../lib/i18n";
 import * as store from "../lib/store";
-import { useData, toast } from "../state";
+import { useData, toast, go } from "../state";
+import { BackLink } from "../ui/BackLink";
 import { metro } from "../metro";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
@@ -23,7 +24,9 @@ export function Tools(){
   useEffect(() => () => metro.stop(), []);
   useEffect(() => { if(tab !== "metro") metro.stop(); }, [tab]);
   return <section className="view" id="view-tools" data-view="tools" aria-labelledby="tools-h">
-    <div className="view-head"><div><h1 id="tools-h">{t("tools.title")}</h1><p className="sub">{t("tools.sub")}</p></div></div>
+    <div className="view-head"><div>
+      <BackLink id="tools-back" label={t("common.back")} onClick={() => go("more")} mobileOnly/>
+      <h1 id="tools-h">{t("tools.title")}</h1><p className="sub">{t("tools.sub")}</p></div></div>
     <Seg id="tools-tabs" aria={t("tools.title")} value={tab} onChange={v => store.setSetting("toolsTab", v)}
       options={[{v: "metro", label: t("tools.metro")}, {v: "tuner", label: t("tools.tuner")}, {v: "pad", label: t("tools.pad")}]}/>
     <div id="tools-metro" hidden={tab !== "metro"}>{tab === "metro" && <MetronomeUI/>}</div>

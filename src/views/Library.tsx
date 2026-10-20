@@ -134,16 +134,13 @@ export function LibraryList({tab: base, canEdit}: {tab: "songs" | "setlists" | "
   const q = norm(useDeferredValue(query));
   const all = [...data.songs.values()].filter(s=>s.title);
   return <div className="group-lib">
-    <div className="lib-tabs-row">
-      <span/>
-      {/* Cards ou linhas: vale para as abas e fica guardado no aparelho. */}
-      <Seg className="view-seg" id="lib-view" aria={t("lib.viewAria")} value={view} onChange={v => store.setSetting("libView", v)}
-        options={[{v: "cards", label: <Icon name="grid" sm/>, aria: t("lib.viewCards"), tip: "lib.viewCards"}, {v: "rows", label: <Icon name="list" sm/>, aria: t("lib.viewRows"), tip: "lib.viewRows"}]}/>
-    </div>
     <div className="lib-toolbar">
       <div className="search"><Icon name="search" sm/><input type="search" className="input" id="lib-q" placeholder={t("lib.search")} aria-label={t("lib.searchAria")} value={query} onChange={e => setQuery(e.target.value)}/></div>
       <Select id="lib-sort" style={{width: "auto"}} aria={t("lib.sortAria")} value={sort} onChange={setSort}
         options={[{value: "az", label: t("lib.az")}, {value: "recent", label: t("lib.recent")}, {value: "old", label: t("lib.old")}]}/>
+      {/* Cards ou linhas: vale para as abas e fica guardado no aparelho. Na linha da ordem, também no celular. */}
+      <Seg className="view-seg" id="lib-view" aria={t("lib.viewAria")} value={view} onChange={v => store.setSetting("libView", v)}
+        options={[{v: "cards", label: <Icon name="grid" sm/>, aria: t("lib.viewCards"), tip: "lib.viewCards"}, {v: "rows", label: <Icon name="list" sm/>, aria: t("lib.viewRows"), tip: "lib.viewRows"}]}/>
     </div>
     <ul className={"cards" + (view === "rows" ? " rows" : "")} id="lib-list">
       {tab === "songs" ? <SongCards all={all} q={q} sort={sort} canEdit={canEdit}/> : <MedleyCards rows={tab === "medleys" ? blocks : setlists} blocks={tab === "medleys"} setlists={setlists} q={q} sort={sort} canEdit={canEdit}/>}

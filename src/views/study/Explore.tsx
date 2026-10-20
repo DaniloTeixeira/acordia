@@ -13,6 +13,7 @@ import { useTooWide } from "../../ui/hooks";
 import { InstrumentSelect, TimbreSelect } from "../InstrumentSelect";
 import { instrument } from "../Repertoire";
 import { studyState, setStudy, OCT_MAX } from "./Study";
+import { SecHead } from "../../ui/SecHead";
 
 function FnLegend({field, fnName}: {field: FieldChord[]; fnName: Record<string, string>}){
   const by = (f: string) => field.filter(c => c.fn === f);
@@ -123,7 +124,7 @@ export function Explore(){
             <span className="oct-dots" aria-hidden="true">{Array.from({length: OCT_MAX * 2 + 1}, (_, i) => <i key={i} className={i - OCT_MAX === oct ? "on" : ""}/>)}</span></span>
           {octBtn(1)}
         </div></div>}
-        <label className="switch lead boxed" style={{marginLeft: "auto"}}>{t("study.sevenths")}<input type="checkbox" id="st-7" checked={st.sevenths} disabled={!field.length && !st.sevenths} onChange={e => setStudy({sevenths: e.target.checked})}/></label>
+        <label className="switch lead boxed study-sevenths">{t("study.sevenths")}<input type="checkbox" id="st-7" checked={st.sevenths} disabled={!field.length && !st.sevenths} onChange={e => setStudy({sevenths: e.target.checked})}/></label>
       </div>
       <div className="field roots-field"><span id="st-root-h">{t("study.pickRoot")}</span>
         <div className="roots" role="group" aria-labelledby="st-root-h">{Array.from({length:12}, (_, pc) =>
@@ -131,7 +132,7 @@ export function Explore(){
     </div>
     <div className="card scale-card">
       <div className="scale-head">
-        <div><h2>{t("study.scaleOf", {root, scale: t("scale." + st.scaleId).toLowerCase()})}</h2><p className="sub">{t(sc.minor ? "study.relMajor" : "study.relMinor", {key: relKey})}</p></div>
+        <div><SecHead>{t("study.scaleOf", {root, scale: t("scale." + st.scaleId).toLowerCase()})}</SecHead><p className="sub">{t(sc.minor ? "study.relMajor" : "study.relMinor", {key: relKey})}</p></div>
         <div className="scale-actions">
           <button className="btn primary sm" id="st-play" onClick={playScale}><Icon name="play" sm/> {t("study.play")}</button>
         </div>
@@ -155,7 +156,7 @@ export function Explore(){
       </div>
     </div>
     <div className="card">
-      <div className="scale-head" style={{marginBottom: 12}}><div><h2>{t("study.field")}</h2><p className="sub">{field.length ? t("study.fieldHint") : t("study.noField")}</p></div></div>
+      <div className="scale-head" style={{marginBottom: 12}}><div><SecHead>{t("study.field")}</SecHead><p className="sub">{field.length ? t("study.fieldHint") : t("study.noField")}</p></div></div>
       {field.length > 0 && <>
         <div className="field-grid">{field.map((c, i) => <button key={i} className="chord-card" data-i={i} style={{animationDelay: i*30 + "ms"}}
           onClick={() => { flash(c.pcs.map(p => base + p)); openDialog("chord", {symbol: c.name, songKey: keyLabel}); }}>

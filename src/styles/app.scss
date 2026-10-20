@@ -83,6 +83,8 @@
   --bad: #b91c1c;
   --bad-soft: #fee2e2;
   --warn: #9a3412;
+  --owner-grad: linear-gradient(135deg, #fde68a, #f59e0b);
+  --owner-ink: #451a03;
   --warn-soft: #fff1e8;
   --role-soft: #f1e8fd;
   --role-ink: #6b2fb3;
@@ -160,6 +162,8 @@
     --bad: #f87171;
     --bad-soft: #3a1717;
     --warn: #fdba74;
+    --owner-grad: linear-gradient(135deg, #fde68a, #f59e0b);
+    --owner-ink: #451a03;
     --warn-soft: #2a1c12;
     --role-soft: #3a2159;
     --role-ink: #dcc2ff;
@@ -225,6 +229,8 @@
   --bad: #f87171;
   --bad-soft: #3a1717;
   --warn: #fdba74;
+  --owner-grad: linear-gradient(135deg, #fde68a, #f59e0b);
+  --owner-ink: #451a03;
   --warn-soft: #2a1c12;
   --role-soft: #3a2159;
   --role-ink: #dcc2ff;
@@ -823,11 +829,13 @@ select.input {
   padding: 0 12px 0 10px;
   border-radius: var(--r-full);
 }
-.people-actions .icon-btn.sm {
-  width: 34px;
-  height: 34px;
-}
 /* Chave menor na linha, na altura dos ícones de editar e excluir. */
+/* Admin ligado: a pílula inteira ganha a cor de destaque, para o estado ler de longe. */
+.switch.boxed.people-admin:has(input:checked) {
+  background: var(--accent-soft);
+  color: var(--accent-soft-ink);
+  border-color: var(--accent);
+}
 .switch.people-admin input {
   width: 30px;
   height: 18px;
@@ -1410,6 +1418,46 @@ main {
 .chip.current {
   background: var(--accent-grad);
   color: var(--accent-ink);
+}
+/* Criador (o Dono do app): dourado com brilho passando, para se destacar do Admin e do Líder. */
+.chip.owner {
+  background: var(--owner-grad);
+  color: var(--owner-ink);
+  font-weight: 700;
+  box-shadow: 0 0 6px color-mix(in srgb, #f59e0b 40%, transparent);
+}
+/* "Não entrou": a pessoa está na lista de acesso mas ainda não criou a conta. Contorno tracejado, sem preenchimento. */
+.chip.pending {
+  background: transparent;
+  color: var(--muted);
+  border: 1px dashed var(--line-strong);
+  padding: 1px 8px; /* o contorno de 1px entra na conta: mesma altura dos outros chips */
+}
+/* Acesso ao app na janela de detalhes: o texto e os botões afastados (os botões usam a grade de .member-manage-btns,
+   do mesmo formato dos de Gerenciar). */
+.member-access {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.member-access-since {
+  margin-bottom: 2px;
+}
+/* Em Acesso ao app os botões são menores: largura do conteúdo, lado a lado (quebram de linha se faltar espaço), com o
+   mesmo formato (cantos --r-md) dos de Gerenciar. */
+.member-access .member-manage-btns {
+  display: flex;
+  flex-wrap: wrap;
+}
+.member-access .member-manage-btns .btn,
+.member-access .member-manage-btns .switch.boxed.people-admin {
+  min-height: 36px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--r-md);
+}
+.member-access .member-manage-btns .switch.boxed.people-admin {
+  justify-content: center;
 }
 /* Líder do grupo: o chip que mais chama atenção, logo depois do nome. Fundo com o gradiente e uma borda
    gradiente mais forte girando em volta, sempre. A borda ocupa 2 px do
@@ -2032,13 +2080,31 @@ textarea.song-text {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 12px;
 }
-/* Modo linhas: uma linha compacta por item (nome e chips à esquerda, ações à direita), sem o trecho.
-   Só a partir de 600px: no celular a linha empilhava e ficava igual ao card, então lá é sempre card. */
+/* Modo linhas: item compacto, sem o trecho. No celular empilha (nome, chips, botões) mas bem mais baixo que o
+   card, para caber mais itens na tela; a partir de 600px vira uma linha (nome e chips à esquerda, ações à direita). */
+.cards.rows {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+.cards.rows .lib-card {
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+}
+.cards.rows .lib-card .excerpt {
+  display: none;
+}
+.cards.rows .lib-card .foot {
+  margin-top: 0;
+}
+.cards.rows .lib-card .meta .when {
+  display: none;
+}
+.cards.rows .lib-card .foot .foot-when {
+  display: inline;
+  margin-left: auto;
+}
 @media (min-width: 600px) {
-  .cards.rows {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 8px;
-  }
   .cards.rows .lib-card {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -2077,36 +2143,21 @@ textarea.song-text {
 .lib-card .foot .foot-when {
   display: none;
 }
-/* Abas à esquerda e cards | linhas à direita, na mesma linha e na mesma altura (as abas encolhem e rolam
-   se faltar espaço). */
-.lib-tabs-row {
-  display: flex;
-  align-items: stretch;
-  justify-content: space-between;
-  gap: 10px;
-}
-.lib-tabs-row > #lib-tabs {
-  min-width: 0;
-}
-.lib-tabs-row > .view-seg {
+/* Troca cards | linhas na linha da busca e da ordem; vai para a ponta direita. */
+.lib-toolbar > .view-seg {
   flex-shrink: 0;
+  margin-left: auto;
 }
-/* Celular: as abas ocupam a linha toda (sem rolar para o lado) e a troca cards/linhas some (é sempre card). */
+.lib-toolbar > .view-seg button {
+  display: inline-flex;
+  align-items: center;
+}
+/* Celular: as abas ocupam a linha toda (sem rolar para o lado). */
 @media (max-width: 599px) {
-  .lib-tabs-row > .view-seg {
-    display: none;
-  }
-  .lib-tabs-row > #lib-tabs {
-    flex: 1 1 100%;
-  }
   #lib-tabs button {
     flex: 1;
     padding-inline: 6px;
   }
-}
-.lib-tabs-row > .view-seg button {
-  display: inline-flex;
-  align-items: center;
 }
 .lib-card {
   cursor: pointer;
@@ -2267,6 +2318,16 @@ textarea.song-text {
 .study-row .input {
   width: auto;
   min-width: 200px;
+}
+/* Tétrades: na tela larga vai para o fim da linha; no celular fica à esquerda, com mais espaço dos campos. */
+.study-sevenths {
+  margin-left: auto;
+}
+@media (max-width: 899px) {
+  .study-sevenths {
+    margin-left: 0;
+    margin-top: 6px;
+  }
 }
 .scale-card {
   display: flex;
@@ -2788,13 +2849,24 @@ textarea.song-text {
   }
   .key-box-sub {
     grid-area: s;
+    grid-column: 1 / -1;
     align-self: end;
     white-space: nowrap;
   }
   .key-box-fn {
     grid-area: f;
+    grid-column: 1 / -1;
     align-self: start;
     white-space: nowrap;
+  }
+  /* Sem chip de função (ex.: a dica "toque uma tecla"), o texto ocupa as duas linhas e fica centrado na altura da nota e na largura do card, como o título (a nota fica à esquerda, por baixo). */
+  .key-box:not(:has(.key-box-fn.fn)) .key-box-sub {
+    grid-area: 2 / 1 / span 2 / -1;
+    max-width: 60%;
+    align-self: center;
+    white-space: normal;
+    text-align: center;
+    justify-self: center;
   }
 }
 /* Tecla tocando: as pretas num âmbar mais escuro, para não virarem um bloco só com as brancas ao arrastar. */
@@ -3234,6 +3306,11 @@ textarea.song-text {
 }
 .back-link .i {
   transition: transform var(--t-fast) var(--ease);
+}
+@media (min-width: 900px) {
+  .back-link.back-mobile {
+    display: none;
+  }
 }
 .back-link:hover {
   color: var(--ink);
@@ -6547,20 +6624,32 @@ dialog.ear-dlg {
   flex-direction: column;
   gap: 14px;
 }
-/* Título de todo card de seção (Início, Perfil, Grupo, Estudo, Pads; e o cabeçalho que recolhe o card no
-   celular): o traço no gradiente antes do texto, como nos subtítulos abaixo. Ficam de fora os cards de itens
-   (música, repertório, evento), o resultado do Treino e as janelas. O tamanho de cada título não muda. */
-.card:not(.summary) > h2:not(.fold-head),
-.card > .card-top > h2,
-.card > .card-head > h2,
-.card .scale-head h2,
-.fold-head > button > span:first-child {
+/* Título com traço (componente SecHead): o traço no gradiente antes do texto, em todo card de seção (Início,
+   Perfil, Grupo, Estudo, Pads, cabeçalho que recolhe o card) e nos subtítulos das listas. É o único lugar que
+   desenha o traço: ele ocupa a altura de uma linha do título (1lh) e se centraliza nela, então acompanha o
+   tamanho da letra e fica na primeira linha quando o título quebra em duas. O tamanho de cada título não muda. */
+.sec-h {
   display: flex;
   align-items: flex-start;
   gap: 8px;
 }
+.sec-bar {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  align-self: flex-start;
+  width: 4px;
+  height: 1lh;
+}
+.sec-bar::before {
+  content: "";
+  flex: 1;
+  height: 0.85em;
+  border-radius: 2px;
+  background: var(--accent-grad);
+}
 /* Títulos das seções do perfil (funções, frequência, próxima escala), das listas de pessoas (adicionar,
-   com acesso, membros do grupo) e o traço dos blocos do Início: maiores, na cor do texto e com um traço no gradiente da marca, para não se
+   com acesso, membros do grupo) e os rótulos do cartão do membro: maiores, na cor do texto, para não se
    confundirem com o rótulo dos campos (Nome, Celular...). */
 .people-sub-h,
 .member-dlg .field > span:first-child {
@@ -6572,36 +6661,18 @@ dialog.ear-dlg {
   font-weight: 700;
   color: var(--ink);
 }
-.people-sub-h::before,
-.home-block-head h2::before,
-.card:not(.summary) > h2:not(.fold-head)::before,
-.card > .card-top > h2::before,
-.card > .card-head > h2::before,
-.card .scale-head h2::before,
-.fold-head > button > span:first-child::before,
-.member-dlg .field > span:first-child::before {
-  content: "";
-  width: 4px;
-  height: 1.05em;
-  border-radius: 2px;
-  background: var(--accent-grad);
-  flex-shrink: 0;
-  /* Traço na primeira linha do título (não no meio quando quebra em duas). */
-  margin-top: calc((1lh - 1.05em) / 2);
-}
 /* Seções de dentro de um card com título (Detalhes, Escala, Observações, Sua resposta do evento; Adicionar membro e
    a lista de Membros): um ponto no gradiente em vez do traço, e letra menor, para não competirem com o título do card. */
 .event-sec > .people-sub-h,
 .people-card:not(.people-page) .people-sub-h {
   font-size: 0.86rem;
 }
-.event-sec > .people-sub-h::before,
-.people-card:not(.people-page) .people-sub-h::before {
+:is(.event-sec > .people-sub-h, .people-card:not(.people-page) .people-sub-h) > .sec-bar {
   width: 7px;
+}
+:is(.event-sec > .people-sub-h, .people-card:not(.people-page) .people-sub-h) > .sec-bar::before {
   height: 7px;
   border-radius: 50%;
-  margin-top: 0;
-  align-self: center;
 }
 /* Texto de ajuda das seções do Perfil: colado no que explica, menor e sem negrito, para não parecer título. */
 .profile-sec small.sub {
@@ -6713,10 +6784,10 @@ dialog.ear-dlg {
   color: var(--ok);
 }
 /* Meus grupos: cada grupo num card interno (como o da próxima escala), lado a lado enquanto cabem (com um
-   grupo só, ele não estica até a largura toda); o card todo abre o grupo (alvo grande no celular). Hover como o dos cards do Início: contorno na cor de destaque e sombra. */
+   grupo só, ele estica até a largura toda: auto-fit); o card todo abre o grupo (alvo grande no celular). Hover como o dos cards do Início: contorno na cor de destaque e sombra. */
 .profile-group-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
   gap: 8px;
   margin: 0;
   padding: 0;
@@ -6727,6 +6798,7 @@ dialog.ear-dlg {
   align-items: center;
   gap: 12px;
   width: 100%;
+  height: 100%;
   min-height: 60px;
   padding: 10px 14px;
   border: 1px solid var(--line);
@@ -6747,6 +6819,15 @@ dialog.ear-dlg {
 .profile-group-open .group-mark {
   width: 40px;
   height: 40px;
+}
+/* Grupo único: o card também cresce na altura (foto maior e mais respiro), já que sobra espaço. */
+.profile-group-list > li:only-child > .profile-group-open {
+  min-height: 88px;
+  padding: 16px 18px;
+}
+.profile-group-list > li:only-child .group-mark {
+  width: 56px;
+  height: 56px;
 }
 .profile-group-what {
   display: flex;
@@ -6921,24 +7002,6 @@ dialog.ear-dlg {
   align-items: center;
   gap: 10px;
 }
-.people-actions {
-  margin-left: auto;
-}
-/* Um abaixo do outro (celular), os botões que descem para a linha de baixo ficam à esquerda; na mesma linha, o
-   bloco do nome estica e eles continuam no canto direito. Entre a pessoa e a linha dos botões, um pouco mais de
-   espaço (12 px em vez de 8). */
-@container (max-width: 735.98px) {
-  .people-actions {
-    margin-left: 0;
-  }
-  .people-list li {
-    row-gap: 12px;
-  }
-  /* No celular os botões descem para baixo de cada pessoa: os rótulos somem e fica só a faixa. */
-  .people-list-head > span {
-    display: none;
-  }
-}
 .people-email {
   min-width: 0;
   overflow: hidden;
@@ -6949,11 +7012,7 @@ dialog.ear-dlg {
 .people-who .chip {
   flex-shrink: 0;
 }
-.people-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+
 .google-btn {
   background: var(--surface);
   color: var(--ink);
@@ -7255,6 +7314,11 @@ dialog.ear-dlg {
 .my-next-ics {
   align-self: flex-start;
   margin-top: 8px;
+}
+/* Mesma altura do desktop no celular: o botão já ocupa a largura toda, então o alvo de toque é grande o bastante
+   e a regra de toque de `.btn.sm` (40px) só deixava o card mais alto. */
+.btn.sm.my-next-ics {
+  min-height: 34px;
 }
 /* No celular o botão vai para a linha de baixo do evento (fora do bloco de texto) e ocupa a largura toda. */
 @media (max-width: 599px) {
@@ -7749,11 +7813,18 @@ dialog.event-dlg {
     grid-column: 1 / -1;
   }
 }
-.roster-h {
-  margin: 4px 0 0;
-  font-size: 0.95rem;
+/* O modal do evento tem dois cards (detalhes e escala), cada um com o título de barra gradiente. */
+.event-dlg-card {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.event-dlg-card > .people-sub-h {
+  margin: 0;
   align-items: baseline;
 }
 .roster-edit {
@@ -7769,6 +7840,73 @@ dialog.event-dlg {
   grid-template-columns: 1fr auto;
   gap: 8px;
   align-items: center;
+}
+/* Cada pessoa da escala é um cartão: nome em destaque, funções embaixo. */
+.roster-card {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.roster-who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  min-width: 0;
+  text-align: start;
+}
+/* Pessoa já escolhida: nome e X numa linha e as funções (chips) na linha de baixo, em qualquer largura. */
+.roster-card.set {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 8px;
+}
+.roster-card.set .roster-row {
+  display: contents;
+}
+.roster-card.set .roster-roles,
+.roster-card.set .roster-warn {
+  grid-column: 1 / -1;
+}
+.roster-who strong {
+  overflow-wrap: anywhere;
+}
+.roster-who .sub {
+  font-size: 0.8rem;
+}
+.role-chip.add {
+  border-style: dashed;
+}
+/* Chips menores só na escala do evento (as cores continuam as do sistema). */
+.roster-card .role-chips {
+  gap: 4px;
+}
+.roster-card .role-chip {
+  min-height: 0;
+  padding: 2px 9px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+  font: 600 0.74rem/1.4 var(--font-ui);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+/* Marcado = o mesmo chip roxo de função da tela de Membros (.chip.role). */
+.roster-card .role-chip[aria-pressed="true"] {
+  background: var(--role-soft);
+  color: var(--role-ink);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent);
+}
+.roster-card .role-chip.add {
+  padding: 1px 8px;
+  border: 1px dashed var(--line-strong);
+  box-shadow: none;
+}
+.roster-card .role-input.sm {
+  min-height: 0;
+  padding: 1px 8px;
+  font-size: 0.74rem;
 }
 /* Funções da pessoa no evento: botões de marcar, mais de um ao mesmo tempo. */
 .roster-roles {
@@ -7797,6 +7935,11 @@ dialog.event-dlg {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+.roster-add .btn {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 0.82rem;
 }
 /* Membros (a foto tem o tamanho da lista "Com acesso", em .people-who .avatar) */
 .members .people-who {
@@ -7863,12 +8006,6 @@ dialog.event-dlg {
   transition: color var(--t);
   pointer-events: none;
 }
-/* Na lista do Perfil as ações ocupam o meio da direita: o chevron vai para o canto de baixo. */
-.people-list:not(.members) .member-open-hint {
-  top: auto;
-  bottom: 10px;
-  transform: none;
-}
 /* Janela de detalhes do membro */
 .member-dlg-who {
   display: flex;
@@ -7922,15 +8059,22 @@ dialog.member-dlg {
 }
 .member-manage-btns {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+/* Celular: Desativar fica sozinho na última linha, largura toda. */
+@media (max-width: 599px) {
+  .member-manage-btns .btn.member-deact {
+    grid-column: 1 / -1;
+  }
 }
 .member-manage-btns .btn {
   justify-content: center;
   min-width: 0;
-  min-height: 44px;
+  min-height: 36px;
   height: auto;
-  padding-block: 8px;
+  padding-block: 6px;
+  font-size: 13px;
   text-align: center;
   white-space: normal;
   border-radius: var(--r-md);
@@ -8296,7 +8440,7 @@ dialog.member-dlg {
   padding: 0;
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
 }
 .home-groups > .home-group-card {
   max-width: none;
@@ -8458,6 +8602,83 @@ dialog.member-dlg {
 .home-needs.home-waiting {
   border-color: var(--line);
 }
+/* Faltam respostas: cada evento é um bloco que cresce para preencher o card (um evento só ocupa a altura toda). */
+.home-waiting-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+.home-waiting-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2, transparent);
+}
+/* Seção interna do bloco: uma linha fina separa o resumo (quantos faltam) dos nomes de quem falta. */
+.home-waiting-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+/* chip "1 de 4 confirmaram" no canto de cima à direita, sempre numa linha só (o título é que cede o espaço). */
+.home-waiting-replies {
+  flex: none;
+  align-self: flex-start;
+  white-space: nowrap;
+}
+/* Celular: o chip desce para a linha de baixo e ocupa a largura toda, com o texto centralizado, na altura normal do chip. */
+@media (max-width: 599px) {
+  .home-row > .chip.home-waiting-replies {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}
+.home-waiting-count {
+  color: var(--warn);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+/* Nomes em marcadores, pequenos e na cor de apoio; em colunas para não alongar o card. */
+.home-waiting-who {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 2px 12px;
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+/* O marcador é desenhado dentro do item (não o ::marker de fora), senão o overflow dos nomes cortados o esconde. */
+.home-waiting-who li::before {
+  content: "•";
+  margin-right: 6px;
+  color: var(--warn);
+}
+/* Celular: sempre duas colunas, qualquer que seja a largura (nomes longos cortam com reticências). */
+@media (max-width: 599px) {
+  .home-waiting-who {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .home-waiting-who li {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
 /* Novo evento (líder) embaixo da semana: largura toda no celular, alvo de toque grande. */
 .home-new-event {
   align-self: flex-start;
@@ -8516,7 +8737,9 @@ dialog.member-dlg {
     text-align: center;
   }
 }
-#group-back {
+/* Voltar dentro do cabeçalho da página (Grupo, Estudo, Ferramentas): colado no topo, sem a margem de cima. */
+.view-head .back-link,
+.back-link.back-mobile {
   margin: 0 0 12px;
 }
 /* Funções do membro: chips com o lápis; editando, os botões de cada função ocupam a linha inteira. */
@@ -8607,6 +8830,21 @@ dialog.member-dlg {
 /* O menu "⋯" fica no canto de cima à direita da linha, na altura do nome; o nome reserva a folga do botão. */
 .people-list.members > li {
   position: relative;
+}
+/* Celular: a linha mostra só as funções e os avisos que pedem atenção. "Em dia nos ensaios" (estado normal) e
+   "N escalas no mês" ficam na janela de detalhes, para a lista não ficar poluída. */
+@media (max-width: 599px) {
+  .members .member-roles:not(.editing) .chip.st-yes,
+  .members .member-roles:not(.editing) .chip.accent {
+    display: none;
+  }
+  .members .member-roles:not(.editing) {
+    gap: 5px;
+  }
+  .members .member-roles:not(.editing) .chip {
+    font-size: 0.72rem;
+    padding-inline: 8px;
+  }
 }
 .members .member-role-actions {
   position: absolute;
@@ -8715,7 +8953,7 @@ dialog.member-dlg {
 /* Nome um pouco maior que o resto da linha (e o "Sem nome" junto, para as linhas terem a mesma altura). */
 .people-name b,
 .people-name > .member-open-btn > .people-missing {
-  font-size: 1.07rem;
+  font-size: 1.12rem;
 }
 .people-name .chip {
   flex-shrink: 0;
@@ -8883,15 +9121,18 @@ dialog.member-dlg {
   flex-wrap: wrap;
   width: 100%;
 }
+.reply-done .link-btn {
+  font-size: 0.78rem;
+}
 .reply-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 36px;
-  padding: 0 14px;
+  min-height: 26px;
+  padding: 0 10px;
   border-radius: 999px;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.78rem;
   background: var(--ok-soft);
   color: var(--ok);
 }
@@ -8997,6 +9238,7 @@ dialog.member-dlg {
   :is(.people-list, .event-more, .member-manage) .quick-att .seg button { min-width: 0; padding-left: 9px; padding-right: 9px; }
 }
 .quick-att-when .sub { font-size: 0.8rem; }
+.quick-att-when .chip.you, .birthday-who .chip.you, .roster-who .chip.you { margin-left: 6px; vertical-align: 1px; }
 .quick-att .seg button { min-height: 28px; padding-top: 3px; padding-bottom: 3px; font-size: 0.82rem; }
 /* Presente fica verde e Falta laranja (os mesmos tons do "em dia" e do "pendente"), para ler o resultado sem ler a palavra. */
 .quick-att .seg:has([data-v="present"][aria-pressed="true"]) { --seg-thumb: color-mix(in srgb, var(--ok) 12%, transparent); }
@@ -9023,7 +9265,6 @@ dialog.member-dlg {
 .quick-att-foot { display: flex; justify-content: flex-end; padding-top: 4px; }
 .quick-att-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .quick-att-top .quick-att-hint { flex: 1; min-width: 0; margin: 0; align-items: flex-start; font-size: 1rem; font-weight: 700; line-height: 1.35; color: var(--ink); }
-.quick-att-top .quick-att-hint::before { margin-top: 0.15em; height: 1.05em; }
 .quick-att-top .icon-btn { flex-shrink: 0; }
 .quick-att-hint { font-size: 0.95rem; padding: 4px 0 2px; color: var(--ink); }
 .quick-att-ctl { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; align-self: stretch; padding: 5px 8px 5px 12px; border-left: 1px solid var(--line); }
@@ -9042,6 +9283,15 @@ dialog.member-dlg {
 .chip.role,
 .chip:is(.st-yes, .st-no, .st-pending) {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent);
+}
+
+/* Chip de função: só contorno, em roxo mais vivo que o tom de --role-ink. Vale em todo lugar que mostra função. */
+.chip.role,
+.member-roles .chip.role:not(.leader, .current),
+.roster-card .role-chip[aria-pressed="true"] {
+  background: transparent;
+  color: color-mix(in srgb, var(--role-ink) 75%, #a45cff);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #a45cff 80%, var(--role-ink));
 }
 
 /* Lista do ensaio na agenda (mesma tabela do atalho de presença): nome com as funções ao lado, resposta à direita. */
@@ -9105,7 +9355,7 @@ dialog.member-dlg {
   display: flex;
   align-items: center;
   gap: 14px;
-  min-height: 68px;
+  min-height: 76px;
   padding: 12px 14px;
   text-align: left;
   font: inherit;
@@ -9153,25 +9403,6 @@ dialog.member-dlg {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-}
-.home-set {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.home-set .home-row {
-  flex: 1;
-  min-width: 0;
-}
-/* Celular: o nome do repertório quebra em até duas linhas em vez de cortar. */
-@media (max-width: 599px) {
-  .home-set .my-next-what b {
-    white-space: normal;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow-wrap: anywhere;
-  }
 }
 /* Outras escalas do Início: a linha do evento e, embaixo, Confirmar / Não posso na largura toda. */
 .my-next-list li.home-scale {

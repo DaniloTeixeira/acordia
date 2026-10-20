@@ -6,7 +6,7 @@ import { Select } from "../ui/Select";
 import { useAuth, savePhone, cleanPhone, signIn, signUp, resendConfirmation, pendingConfirm, setPendingConfirm, forgotPassword, setNewPassword, signInWithGoogle, signOut, saveName, saveBirthday, listAllowed, setAllowedInfo, setPersonInfo, setAllowedAdmin, removeAllowed, validEmail, initials, ownPhoto, removePhoto, type Allowed } from "../lib/cloud";
 import { DEFAULT_POLICY, missing, passes, fromError, isPwned, type PwPolicy, type PwRule } from "../lib/password";
 import { reduced, flashSaved, norm } from "../lib/util";
-import { toast, confirmDialog, openDialog, go } from "../state";
+import { toast, confirmDialog, openDialog, closeDialog, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { DateInput } from "../ui/DateInput";
 import { useGroups, loadGroups, chooseGroup, setMemberRole, outMark } from "../lib/groups";
@@ -14,6 +14,8 @@ import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, streakLevel, f
 import { sortRoles, joinRoles, splitRoles } from "../lib/roles";
 import { MemberRoles, RolePicker, ReplySeg, GroupMark, eventTitle, timeOf, longDay, openGroup } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
+import { SecHead } from "../ui/SecHead";
+import { YouChip } from "../ui/YouChip";
 
 const BASE = import.meta.env.BASE_URL;
 // Logo sem o fundo (as barras em gradiente servem nos dois temas), o nome com o gradiente da marca e o slogan.
@@ -334,7 +336,7 @@ export function Profile(){
     <div className="view-head"><div><h1 id="profile-h">{t("profile.title")}</h1><p className="sub">{email}</p></div></div>
     <div className="profile-panel">
       <div className="card profile-top wide">
-        <div className="profile-who"><PhotoButton/><div><span className="people-name"><b>{profile?.name || email}</b>{(owner || admin) && <span className="chip accent">{t(owner ? "profile.owner" : "profile.admin")}</span>}</span><span className="sub">{email}</span>
+        <div className="profile-who"><PhotoButton/><div><span className="people-name"><b>{profile?.name || email}</b>{(owner || admin) && <span className={"chip " + (owner ? "owner" : "accent")}>{t(owner ? "profile.owner" : "profile.admin")}</span>}</span><span className="sub">{email}</span>
           <PhotoActions/></div></div>
         {/* À direita, no pé do card: o estado da nuvem (só quando há algo) antes das escalas. */}
         <div className="profile-side"><SyncStatus/><MySoon/></div>
@@ -397,7 +399,7 @@ const fmtMonth = (v: string) => new Intl.DateTimeFormat(locale(), {month: "long"
 // Card de uma seção do Perfil: título com o traço no degradê e o conteúdo embaixo. wide: a linha toda.
 function Sec({id, title, wide, className = "", children}: {id: string; title: string; wide?: boolean; className?: string; children: ReactNode}){
   return <section className={"card profile-sec " + className + (wide ? " wide" : "")} id={id} aria-labelledby={id + "-h"}>
-    <h2 id={id + "-h"}>{title}</h2>{children}</section>;
+    <SecHead id={id + "-h"}>{title}</SecHead>{children}</section>;
 }
 
 // Estado da nuvem: sincronizando, mudanças esperando, sem internet ou erro. Com tudo salvo (quase sempre),
@@ -555,7 +557,9 @@ const rolesLabel = (count: number, group: string) => count > 1 ? t("people.roles
 
 // Nome, celular, data de nascimento e funções de quem já está na lista. O admin muda tudo, mesmo o que a
 // pessoa preencheu no próprio perfil.
-function PersonEdit({r, onDone}: {r: Allowed; onDone: (saved: boolean) => void}){
+// inline: dentro de outra janela com formulário (a de detalhes): sem <form> aninhado, para o Enter e o Salvar nunca
+// fecharem a janela; o Enter dos campos salva.
+export function PersonEdit({r, onDone, inline}: {r: Allowed; onDone: (saved: boolean) => void; inline?: boolean}){
   const [name, setName] = useState(r.profileName || r.name), [birthday, setBirthday] = useState(r.profileBirthday || r.birthday || "");
   const [phone, setPhone] = useState(maskPhone(r.profilePhone || r.phone));
   const [busy, setBusy] = useState(false), lock = useLock();
@@ -563,7 +567,7 @@ function PersonEdit({r, onDone}: {r: Allowed; onDone: (saved: boolean) => void})
   const g = useGroups(), group = g.groups.find(x => x.id === g.gid), member = group ? g.members.find(x => x.email === r.email) : undefined;
   const [roles, setRoles] = useState<string[]>(() => member ? sortRoles(splitRoles(member.role)) : []);
   // O admin muda nome, celular e data mesmo os que a pessoa preencheu no perfil.
-  const save = (e: React.FormEvent) => { e.preventDefault(); lock(async () => {
+  const save = (e?: React.SyntheticEvent) => { e?.preventDefault(); lock(async () => {
     setBusy(true);
     // Banco sem admin_set_person ainda: grava só na lista de acesso (o que a pessoa preencheu continua valendo).
     const ok = await setPersonInfo(r.email, name, phone, birthday).then(done => done || setAllowedInfo(r.email, name, birthday, phone))
@@ -575,7 +579,10 @@ function PersonEdit({r, onDone}: {r: Allowed; onDone: (saved: boolean) => void})
     if(ok && p && r.email === useAuth.getState().email) useAuth.setState({profile: {...p, name: name.trim().slice(0, 80), phone: cleanPhone(phone), birthday: birthday || null}});
     if(ok) onDone(true);
   }); };
-  return <form className="people-edit member-edit" onSubmit={save}>
+  const Root = inline ? "div" : "form";
+  return <Root className="people-edit member-edit" {...(inline
+    ? {onKeyDown: (e: React.KeyboardEvent) => { if(e.key === "Enter" && !e.defaultPrevented && (e.target as HTMLElement).tagName === "INPUT"){ e.preventDefault(); save(); } }}
+    : {onSubmit: save})}>
     <div className="people-add">
       <div className="field"><label htmlFor={"edit-name-" + r.email}>{t("profile.name")}</label>
         <input className="input" id={"edit-name-" + r.email} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onChange={e => setName(capFirst(e.target.value))} autoFocus/></div>
@@ -588,9 +595,9 @@ function PersonEdit({r, onDone}: {r: Allowed; onDone: (saved: boolean) => void})
     {/* Cancelar e Salvar por último, embaixo das funções (como no editar de Grupo → Membros). */}
     <div className="member-roles-foot">
       <button type="button" className="btn ghost sm" onClick={() => onDone(false)}>{t("common.cancel")}</button>
-      <button className="btn primary sm" aria-busy={busy}>{busy ? <Spin/> : <Icon name="check" sm/>} {t("common.save")}</button>
+      <button type={inline ? "button" : "submit"} className="btn primary sm" aria-busy={busy} onClick={inline ? () => save() : undefined}>{busy ? <Spin/> : <Icon name="check" sm/>} {t("common.save")}</button>
     </div>
-  </form>;
+  </Root>;
 }
 
 // Validação do e-mail ao adicionar uma pessoa (como no login): aparece ao sair do campo ou ao tentar
@@ -669,7 +676,8 @@ function PeopleLink(){
   const admins = recent.filter(r => r.is_owner || r.is_admin).length;
   const noPhone = recent.filter(r => !(r.profilePhone || r.phone)).length, noBirthday = recent.filter(r => !(r.profileBirthday || r.birthday)).length;
   return <section className="card profile-sec profile-people" id="profile-users" aria-labelledby="profile-users-h">
-    <h2 id="profile-users-h">{t("people.title")}{recent.length > 0 && <span className="count-chip">{recent.length}</span>}</h2>
+    <SecHead id="profile-users-h">{t("people.title")}{recent.length > 0 && <span className="count-chip">{recent.length}</span>}</SecHead>
+    <p className="sub people-hint">{t("people.hint")}</p>
     {rows === null ? <span className="sub">{t("auth.loading")}</span> : recent.length > 0 && <>
       <span className="scale-people" aria-hidden="true">{recent.slice(0, 8).map(r => <Avatar key={r.email} person={{name: r.profileName || r.name, email: r.email, photo: r.profilePhoto}}/>)}
         {recent.length > 8 && <span className="avatar more">+{recent.length - 8}</span>}</span>
@@ -683,39 +691,61 @@ function PeopleLink(){
   </section>;
 }
 
+// Gerenciar a pessoa pelo app (dentro da janela de detalhes aberta na página Usuários): admin (só o Dono), editar os
+// dados e excluir do app. A regra vale no banco; aqui só se esconde. Quem é Dono só aparece para o próprio Dono.
+export const canManageApp = (row: Allowed, me: string, owner: boolean) => !(row.is_owner && row.email !== me && !owner);
+export function AppAccess({row, onChanged}: {row: Allowed; onChanged: () => void}){
+  const {email: me, owner} = useAuth(), lock = useLock();
+  const [admin, setAdmin] = useState(row.is_admin), [busy, setBusy] = useState("");
+  const self = row.email === me;
+  if(!canManageApp(row, me, owner)) return null;
+  // Dar admin é sensível: pede confirmação. Tirar é direto.
+  const toggleAdmin = async () => {
+    if(!admin && !await confirmDialog({title: t("people.adminGrantTitle"), message: t("people.adminGrantMsg", {email: row.email}), confirm: t("people.adminGrant")})) return;
+    lock(async () => {
+      setBusy("admin");
+      const ok = await setAllowedAdmin(row.email, !admin).finally(() => setBusy(""));
+      if(ok){ setAdmin(!admin); onChanged(); } else toast(t("profile.saveFail"));
+    });
+  };
+  const remove = async () => {
+    if(!await confirmDialog({title: t("people.removeTitle"), message: t("people.removeMsg", {email: row.email}), confirm: t("people.remove")})) return;
+    lock(async () => {
+      setBusy("remove");
+      const ok = await removeAllowed(row.email).finally(() => setBusy(""));
+      if(ok){ toast(t("people.removed", {email: row.email})); onChanged(); loadGroups(); closeDialog("member"); } else toast(t("profile.saveFail"));
+    });
+  };
+  return <div className="field member-access"><SecHead as="span">{t("people.access")}</SecHead>
+    {row.created_at && <span className="sub member-access-since">{t("people.since", {date: new Intl.DateTimeFormat(locale(), {day: "numeric", month: "long", year: "numeric"}).format(new Date(row.created_at))})}{!row.joined && " · " + t("people.notJoinedHint")}</span>}
+    <div className="member-manage-btns">
+      {owner && !self && !row.is_owner && <label className="switch lead boxed people-admin" aria-busy={busy === "admin"}><span>{t("profile.admin")}</span>
+        <input type="checkbox" checked={admin} disabled={!!busy} aria-label={t("people.adminAria", {email: row.email})} onChange={toggleAdmin}/></label>}
+      {!self && !row.is_owner && <button type="button" className="btn ghost danger" aria-busy={busy === "remove"} disabled={!!busy} onClick={remove}>
+        {busy === "remove" ? <Spin/> : <Icon name="trash" sm/>} {t("people.remove")}</button>}
+    </div>
+  </div>;
+}
+
 function People({me}: {me: string}){
   const [rows, setRows] = useState<Allowed[] | null>(null);
-  // pending: o e-mail da linha com uma mudança em andamento (os botões dela ficam desabilitados).
-  const [pending, setPending] = useState("");
-  // editing: o e-mail da linha com o nome e a data abertos para editar.
-  const [editing, setEditing] = useState("");
-  const lock = useLock();
   // Busca e ordem da lista "Com acesso".
   const filter = usePeopleFilter(rows, "acordia-people-order", r => r.profileName || r.name, r => r.created_at), {nq, shown} = filter;
   // Falhou: a lista fica vazia com o aviso e o botão de tentar de novo (antes ficava em "Carregando..." para sempre).
   const [failed, setFailed] = useState(false);
   const load = async () => { setFailed(false); const r = await listAllowed(); if(r) setRows(r); else { setRows(rows => rows || []); setFailed(true); } };
   useEffect(() => { load(); }, []);
-  const owner = useAuth(s => s.owner);
-  const editBtn = (r: Allowed) => <button className="icon-btn sm line" aria-label={t("people.edit")} title={t("people.edit")} aria-expanded={editing === r.email}
-    onClick={() => setEditing(editing === r.email ? "" : r.email)}><Icon name="edit" sm/></button>;
-  const onRow = (r: Allowed, fn: () => Promise<unknown>) => lock(async () => { setPending(r.email); try{ await fn(); } finally{ setPending(""); } });
-  const toggleAdmin = (r: Allowed) => onRow(r, async () => { if(await setAllowedAdmin(r.email, !r.is_admin)) await load(); else toast(t("profile.saveFail")); });
-  const remove = async (r: Allowed) => {
-    if(!await confirmDialog({title: t("people.removeTitle"), message: t("people.removeMsg", {email: r.email}), confirm: t("people.remove")})) return;
-    onRow(r, async () => { if(await removeAllowed(r.email)){ toast(t("people.removed", {email: r.email})); await load(); loadGroups(); } else toast(t("profile.saveFail")); });
-  };
   return <div className="card people-card people-page">
-    <h3 className="people-sub-h">{t("people.listTitle")} {rows && rows.length > 0 && <span className="count-chip">{nq && shown ? shown.length + "/" + rows.length : rows.length}</span>}</h3>
+    <SecHead as="h3" className="people-sub-h">{t("people.listTitle")} {rows && rows.length > 0 && <span className="count-chip">{nq && shown ? shown.length + "/" + rows.length : rows.length}</span>}</SecHead>
     {rows && rows.length > 0 && <PeopleTools idp="people" f={filter}/>}
     {/* Cabeçalho da lista, como numa tabela: marca onde as pessoas começam (no celular, só a faixa). */}
-    {shown && shown.length > 0 && <div className="people-list-head" aria-hidden="true"><span>{t("people.colPerson")}</span><span>{t("people.colActions")}</span></div>}
+    {shown && shown.length > 0 && <div className="people-list-head" aria-hidden="true"><span>{t("people.colPerson")}</span></div>}
     <ul className="people-list" id="people-list" ref={filter.listRef}>
       {nq && shown && !shown.length && <li className="sub">{t("lib.noResults")}</li>}
       {failed && <li className="sub">{t("profile.loadFail")} <button type="button" className="link-btn" onClick={load}>{t("common.retry")}</button></li>}
       {shown === null ? <li className="sub">{t("auth.loading")}</li> : shown.map(r => {
         const nm = r.profileName || r.name, bd = r.profileBirthday || r.birthday, ph = r.profilePhone || r.phone;
-        const openPerson = () => openDialog("member", {email: r.email, person: {name: nm, phone: ph, birthday: bd || null, photo: r.profilePhoto || ""}});
+        const openPerson = () => openDialog("member", {email: r.email, person: {name: nm, phone: ph, birthday: bd || null, photo: r.profilePhoto || ""}, manage: {row: r, onChanged: load}});
         return <li key={r.email} className="member-open" onClick={e => { if(!(e.target as HTMLElement).closest(SKIP_OPEN)) openPerson(); }}>
         {/* O "Admin" fica logo depois do nome (ou do e-mail, para quem ainda não tem nome). */}
         {/* Tocar na pessoa (foto ou texto) abre os detalhes, como em Grupo → Membros; o nome é o botão. */}
@@ -724,21 +754,11 @@ function People({me}: {me: string}){
           {/* Sempre as três linhas (nome, e-mail, celular), com um texto apagado no que falta: todas as pessoas
               ficam com a mesma altura. */}
           <span className="people-name"><button type="button" className="member-open-btn" aria-label={t("member.open", {name: nm || r.email})} onClick={openPerson}>
-            {nm ? <b>{nm}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{(r.is_owner || r.is_admin) && <span className="chip accent">{t(r.is_owner ? "profile.owner" : "profile.admin")}</span>}</span>
+            {nm ? <b>{nm}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{(r.is_owner || r.is_admin) && <span className={"chip " + (r.is_owner ? "owner" : "accent")}>{t(r.is_owner ? "profile.owner" : "profile.admin")}</span>}{r.email === me && <YouChip/>}{!r.joined && <span className="chip pending">{t("people.notJoined")}</span>}</span>
           <span className="sub people-email">{r.email}{bd && " · " + fmtBirthday(bd)}</span>
           {ph ? <PhoneLink phone={ph}/> : <span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}</span></span>
-        {/* Na própria linha: só o editar (sem tirar o próprio admin nem o próprio acesso). O Dono, para os outros
-            admins, não tem ações: ninguém mexe nele. O toggle de admin só aparece para o Dono. */}
-        {r.email === me ? <span className="people-actions"><span className="chip current">{t("people.you")}</span>{editBtn(r)}</span>
-          : r.is_owner && !owner ? null : <span className="people-actions">
-          {/* Admin liga/desliga direto na linha (desabilitado enquanto salva). */}
-          {owner && <label className="switch lead boxed people-admin" aria-busy={pending === r.email}><span>{t("profile.admin")}</span>
-            <input type="checkbox" checked={!!r.is_admin} disabled={pending === r.email} aria-label={t("people.adminAria", {email: r.email})} onChange={() => toggleAdmin(r)}/></label>}
-          {editBtn(r)}
-          <button className="icon-btn sm line danger" aria-label={t("people.remove")} title={t("people.remove")} onClick={() => remove(r)}><Icon name="trash" sm/></button></span>}
         {/* Chevron: indica que a linha inteira abre os detalhes. */}
         <span className="member-open-hint" aria-hidden="true">›</span>
-        {editing === r.email && <PersonEdit r={r} onDone={async saved => { setEditing(""); if(saved) await load(); }}/>}
       </li>; })}
     </ul>
   </div>;

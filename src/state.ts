@@ -8,6 +8,7 @@ import * as store from "./lib/store";
 import { setLang, getLang, t, type Lang } from "./lib/i18n";
 import { vt, type VtKind } from "./lib/util";
 import type { Song } from "./lib/types";
+import type { Allowed } from "./lib/cloud";
 
 // A barra de abas tem Início, Grupo e Mais. O repertório (medley) fica dentro do Grupo; o perfil abre pela
 // bolinha e Usuários (só admin) pelo Perfil.
@@ -39,7 +40,8 @@ export interface DialogProps {
   // Recortar a foto escolhida (src: link local da imagem, URL.createObjectURL): a do perfil ou, com gid, a do grupo.
   photo: {src: string; gid?: string};
   // Detalhes de uma pessoa (só leitura): do grupo aberto ou, fora dele, com os dados da lista de acesso.
-  member: {email: string; person?: {name: string; phone: string; birthday: string | null; photo: string}};
+  // manage: aberto pela página Usuários, traz a linha da lista de acesso e o que fazer quando algo muda nela.
+  member: {email: string; person?: {name: string; phone: string; birthday: string | null; photo: string}; manage?: {row: Allowed; onChanged: () => void}};
   // Editar o grupo aberto (foto, nome, excluir) e criar outro grupo.
   group: Record<string, never>;
   newGroup: Record<string, never>;
