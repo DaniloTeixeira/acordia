@@ -5,13 +5,11 @@
 import type { ReactNode } from "react";
 import * as store from "../lib/store";
 import { t, tn, locale } from "../lib/i18n";
-import { ago } from "../lib/util";
 import { useAuth } from "../lib/cloud";
 import { dayKey, eventDay, splitEvents, upcomingBirthdays, needsCover, pendingReplies, type GEvent } from "../lib/calendar";
 import { useGroups, chooseGroup, personName, amGroupAdmin, type GroupSetlist } from "../lib/groups";
-import { useData, go, openDialog } from "../state";
+import { useData, openDialog } from "../state";
 import { openGroupSetlist } from "./Group";
-import { peekCurrent, openMedley, songItems, isMedley, recentItems, type Recent } from "../repertoire";
 import { Icon } from "../ui/Icon";
 import { Spin } from "./Account";
 import { sortRoles } from "../lib/roles";
@@ -20,7 +18,6 @@ import { SecHead } from "../ui/SecHead";
 import { LinkCard, IconMark } from "../ui/LinkCard";
 import { YouChip } from "../ui/YouChip";
 
-const { data } = store;
 
 export function Home(){
   useData();
@@ -181,38 +178,22 @@ function WeekStrip({upcoming}: {upcoming: GEvent[]}){
   })}</ol>;
 }
 
-// O que estudar, num bloco só: os repertórios do grupo (menos o do próximo compromisso, que já tem o "Estudar")
-// e depois o que a pessoa abriu por último. Repertório do grupo aberto vira uma cópia local (ou é o original de
-// quem publicou): essa não entra de novo pelos recentes. Até 5 linhas.
-type StudyItem = {kind: "group"; set: GroupSetlist} | {kind: "recent"; r: Recent};
-function studyList(skip?: string | null): StudyItem[] {
-  const g = useGroups.getState();
-  const sets = g.setlists.filter(x => x.id !== skip).slice(0, 3);
-  const fromGroup = new Set(g.setlists.map(x => x.source_id));
-  const cur = peekCurrent(), recent = recentItems();
-  if(!recent.length && cur && cur.items.length) recent.push({kind: "medley", id: cur.id, at: cur.updatedAt || 0});
-  const inGroup = (id: string) => { const m = data.medleys.get(id)!; return fromGroup.has(m.id) || !!m.sourceId && fromGroup.has(m.sourceId); };
-  const own = recent.filter(r => r.kind === "song" ? data.songs.has(r.id) : data.medleys.has(r.id) && !inGroup(r.id));
-  return [...sets.map(set => ({kind: "group" as const, set})), ...own.map(r => ({kind: "recent" as const, r}))].slice(0, 5);
+// O que estudar: só os repertórios do grupo ligados a um evento que ainda vai acontecer (menos o do próximo
+// compromisso, que já tem o "Estudar"), na ordem dos eventos. Repertório sem evento futuro não é para o ensaio. Até 5 linhas.
+function studyList(skip?: string | null): GroupSetlist[] {
+  const g = useGroups.getState(), ids: string[] = [];
+  for(const e of splitEvents(g.events).upcoming) if(e.setlist_id && e.setlist_id !== skip && !ids.includes(e.setlist_id)) ids.push(e.setlist_id);
+  return ids.map(id => g.setlists.find(x => x.id === id)).filter((x): x is GroupSetlist => !!x).slice(0, 5);
 }
-function StudyBlock({list, wide}: {list: StudyItem[]; wide: boolean}){
+function StudyBlock({list, wide}: {list: GroupSetlist[]; wide: boolean}){
   const g = useGroups();
   return <Block id="home-study" wide={wide} title={t("home.setlists")}
     link={g.setlists.length ? {label: t("home.seeAll"), run: () => openGroup("setlists")} : undefined}>
-    <ul className="home-groups">{list.map(x => x.kind === "group" ? <GroupSetRow key={"g" + x.set.id} set={x.set}/> : <RecentRow key={x.r.kind + x.r.id} r={x.r}/>)}</ul>
+    <ul className="home-groups">{list.map(x => <GroupSetRow key={x.id} set={x}/>)}</ul>
   </Block>;
 }
 function GroupSetRow({set}: {set: GroupSetlist}){
   return <LinkCard mark={<IconMark name="music"/>} title={set.name} sub={tn("song", set.songs)} onClick={() => openGroupSetlist(set)}/>;
-}
-function RecentRow({r}: {r: Recent}){
-  if(r.kind === "song"){
-    const s = data.songs.get(r.id)!;
-    return <LinkCard mark={<IconMark name="music"/>} title={s.title} sub={t("home.kind.song") + " · " + ago(r.at)} onClick={() => openDialog("song", {song: s})}/>;
-  }
-  const m = data.medleys.get(r.id)!, blocks = isMedley(m);
-  return <LinkCard mark={<IconMark name={blocks ? "link" : "list"}/>} title={m.name} sub={tn("song", songItems(m).length) + " · " + ago(r.at)}
-    onClick={() => { openMedley(m.id); go("medley"); }}/>;
 }
 
 // Os grupos (só com mais de um ou para o admin): tocar abre o grupo. O aberto agora usa os números já carregados.

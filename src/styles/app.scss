@@ -309,6 +309,10 @@
   ):hover:not(:disabled, [aria-pressed="true"])::before {
   opacity: 1;
 }
+/* A borda do cartão é do clique no cartão: sobre um botão dele (como o "⋯") ou com o menu aberto, apaga. */
+.lib-card:is(:has(:is(button, a):hover), :has([aria-expanded="true"]))::before {
+  opacity: 0;
+}
 
 /* Barras deslizantes: gradiente do logo até a bolinha (--f vem de js/range.js). */
 input[type="range"] {
@@ -2087,22 +2091,33 @@ textarea.song-text {
   gap: 8px;
 }
 .cards.rows .lib-card {
-  gap: 6px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "title foot";
+  align-items: center;
+  gap: 6px 8px;
   padding: 10px 12px;
   border-radius: var(--r-md);
+}
+.cards.rows .lib-card h3 {
+  grid-area: title;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* No celular são duas linhas: o nome em cima e as ações embaixo; chips e "há x minutos" ficam para o card ou a tela larga. */
+.cards.rows .lib-card .meta {
+  display: none;
 }
 .cards.rows .lib-card .excerpt {
   display: none;
 }
 .cards.rows .lib-card .foot {
+  grid-area: foot;
   margin-top: 0;
 }
-.cards.rows .lib-card .meta .when {
-  display: none;
-}
 .cards.rows .lib-card .foot .foot-when {
-  display: inline;
-  margin-left: auto;
+  display: none;
 }
 @media (min-width: 600px) {
   .cards.rows .lib-card {
@@ -2116,8 +2131,11 @@ textarea.song-text {
   }
   .cards.rows .lib-card h3 {
     grid-area: title;
+    white-space: normal;
+    overflow: visible;
   }
   .cards.rows .lib-card .meta {
+    display: flex;
     grid-area: meta;
   }
   .cards.rows .lib-card .excerpt {
@@ -2127,26 +2145,47 @@ textarea.song-text {
     grid-area: foot;
     margin-top: 0;
   }
-  .cards.rows .lib-card .foot .btn {
-    margin-right: 8px;
-  }
   /* "Há x minutos" sai da linha dos chips e vai para junto dos botões, centrado na altura deles. */
   .cards.rows .lib-card .meta .when {
     display: none;
   }
   .cards.rows .lib-card .foot .foot-when {
     display: inline;
-    margin-right: 12px;
+  }
+  /* Colunas fixas no rodapé (quando | adicionar | ações), para o "há x dias" e os ícones ficarem no mesmo lugar em todas as linhas. */
+  .cards.rows .lib-card .foot {
+    display: grid;
+    grid-template-columns: 6.5rem auto auto;
+    column-gap: 8px;
+    align-items: center;
+  }
+  .cards.rows .lib-card .foot .foot-when {
+    grid-column: 1;
+    text-align: right;
+    padding-right: 16px;
+  }
+  .cards.rows .lib-card .foot :is(.btn, .chip-btn) {
+    grid-column: 2;
+    width: 10.5rem;
+    max-width: none;
+    justify-content: center;
+  }
+  .cards.rows .lib-card .foot .foot-acts {
+    grid-column: 3;
+  }
+  .cards.rows .lib-card .foot .act-gap {
+    display: block;
+    width: 34px;
+    height: 34px;
   }
 }
 /* A cópia do "há x minutos" junto dos botões só aparece no modo linhas. */
 .lib-card .foot .foot-when {
   display: none;
 }
-/* Troca cards | linhas na linha da busca e da ordem; vai para a ponta direita. */
+/* Troca cards | linhas fica colada no botão de ordem. */
 .lib-toolbar > .view-seg {
   flex-shrink: 0;
-  margin-left: auto;
 }
 .lib-toolbar > .view-seg button {
   display: inline-flex;
@@ -2238,12 +2277,39 @@ textarea.song-text {
   gap: 4px;
   margin-top: auto;
 }
-.lib-card .foot .btn {
-  margin-right: auto;
+.lib-card .foot .act-gap {
+  display: none;
+}
+/* Canto direito do rodapé: ações (menu "⋯" no celular, ícones soltos na tela larga) e o caret que abre o card. */
+.lib-card .foot .foot-acts {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+/* No celular o menu "⋯" fica no canto esquerdo do rodapé e o caret que abre o card, no direito. */
+.lib-card .foot .foot-acts.narrow {
+  display: contents;
+}
+/* O "há x dias" sai da linha dos chips e vai para o rodapé, encostado na seta (à direita). */
+.lib-card:has(.foot-acts.narrow) .meta .when {
+  display: none;
+}
+.lib-card .foot:has(.foot-acts.narrow) .foot-when {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  line-height: 1;
+  /* A fonte deixa mais espaço embaixo da linha: sobe o texto 2px para ele ficar na altura do ícone. */
+  padding-bottom: 4px;
+  order: 1;
+  margin-left: auto;
+}
+.lib-card .foot .foot-acts.narrow [data-a="open"] {
+  order: 2;
 }
 /* "No repertório atual" é um botão (tira, ou abre a lista de repertórios) com cara de chip. */
 .lib-card .foot .chip-btn {
-  margin-right: auto;
   min-width: 0;
   max-width: 60%;
   border: none;
@@ -2261,10 +2327,6 @@ textarea.song-text {
 /* Colorido (gradiente): o hover mantém a cor e só escurece um pouco. */
 .lib-card .foot .chip-btn:hover {
   filter: brightness(0.92);
-}
-/* Dois botões de texto (medley: Adicionar e Abrir) ficam juntos à esquerda; o último empurra os ícones. */
-.lib-card .foot :is(.btn, .chip.current):has(+ .btn) {
-  margin-right: 4px;
 }
 .lib-card .when {
   font-size: 0.75rem;
@@ -8644,6 +8706,16 @@ dialog.member-dlg {
     justify-content: center;
   }
 }
+/* Mesmo tamanho do botão pequeno (`.btn.sm`) no celular e no desktop. */
+.home-row > .chip.home-waiting-replies {
+  min-height: 34px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  font-size: 0.85rem;
+  border-radius: var(--r-full);
+  /* Sem o contorno dos chips de status: só o fundo suave, como o botão "Adicionar ao calendário" da outra tela. */
+  box-shadow: none;
+}
 .home-waiting-count {
   color: var(--warn);
   font-size: 0.75rem;
@@ -9339,6 +9411,18 @@ dialog.member-dlg {
   white-space: normal;
   overflow-wrap: anywhere;
   border-radius: 12px;
+}
+/* Chip "não pode ir · falta substituto": tamanho do botão pequeno (`.btn.sm`) e fundo suave, igual no celular e no desktop. */
+.event-chips .chip.st-no {
+  min-height: 34px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: var(--r-full);
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  box-shadow: none;
 }
 
 /* Mais: lista de destinos que ficam fora da barra de abas. Alvo de toque grande, uma coluna no celular. */
