@@ -1424,26 +1424,14 @@ main {
   background: var(--owner-grad);
   color: var(--owner-ink);
   font-weight: 700;
-  font-size: 0.68rem;
-  line-height: 1.1;
-  padding: 1px 8px;
   box-shadow: 0 0 6px color-mix(in srgb, #f59e0b 40%, transparent);
-}
-/* "Você" (<YouChip/>): do mesmo tamanho do chip do Criador, em qualquer tela. */
-.chip.current.you,
-.people-name .chip.current {
-  font-size: 0.68rem;
-  line-height: 1.1;
-  padding: 1px 8px;
 }
 /* "Não entrou": a pessoa está na lista de acesso mas ainda não criou a conta. Contorno tracejado, sem preenchimento. */
 .chip.pending {
   background: transparent;
   color: var(--muted);
   border: 1px dashed var(--line-strong);
-  padding: 1px 7px;
-  font-size: 0.68rem;
-  line-height: 1.1;
+  padding: 1px 8px; /* o contorno de 1px entra na conta: mesma altura dos outros chips */
 }
 /* Acesso ao app na janela de detalhes: o texto e os botões afastados (os botões usam a grade de .member-manage-btns,
    do mesmo formato dos de Gerenciar). */
@@ -8071,15 +8059,22 @@ dialog.member-dlg {
 }
 .member-manage-btns {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+/* Celular: Desativar fica sozinho na última linha, largura toda. */
+@media (max-width: 599px) {
+  .member-manage-btns .btn.member-deact {
+    grid-column: 1 / -1;
+  }
 }
 .member-manage-btns .btn {
   justify-content: center;
   min-width: 0;
-  min-height: 44px;
+  min-height: 36px;
   height: auto;
-  padding-block: 8px;
+  padding-block: 6px;
+  font-size: 13px;
   text-align: center;
   white-space: normal;
   border-radius: var(--r-md);
@@ -9288,6 +9283,15 @@ dialog.member-dlg {
 .chip.role,
 .chip:is(.st-yes, .st-no, .st-pending) {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent);
+}
+
+/* Chip de função: só contorno, em roxo mais vivo que o tom de --role-ink. Vale em todo lugar que mostra função. */
+.chip.role,
+.member-roles .chip.role:not(.leader, .current),
+.roster-card .role-chip[aria-pressed="true"] {
+  background: transparent;
+  color: color-mix(in srgb, var(--role-ink) 75%, #a45cff);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #a45cff 80%, var(--role-ink));
 }
 
 /* Lista do ensaio na agenda (mesma tabela do atalho de presença): nome com as funções ao lado, resposta à direita. */

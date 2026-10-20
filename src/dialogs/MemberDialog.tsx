@@ -3,7 +3,7 @@
 // Aberta pela página Usuários, também traz o acesso ao app (admin, editar dados, excluir).
 import { useState } from "react";
 import { t, tn } from "../lib/i18n";
-import { useGroups, personPhoto, outMark, amGroupAdmin } from "../lib/groups";
+import { useGroups, personPhoto, outMark, amGroupAdmin, isActive } from "../lib/groups";
 import { attendanceRate, rehearsalStanding, monthLoad, dayKey, MISS_LIMIT, COMEBACK } from "../lib/calendar";
 import { splitRoles, sortRoles } from "../lib/roles";
 import { useAuth } from "../lib/cloud";
@@ -44,6 +44,7 @@ export function MemberDialog({email, person, manage}: DialogProps["member"]){
             {info.phone ? <PhoneLink phone={info.phone}/> : <span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}
             <span className="member-chips">
               {m?.is_admin && <span className="chip accent">{t("group.leader")}</span>}
+              {m && !isActive(m) && <span className="chip">{t("group.inactive")}</span>}
               {load > 0 && <span className="chip" title={t("group.loadHint")}>{tn("group.load", load)}</span>}
             </span>
           </span>
@@ -79,7 +80,7 @@ export function MemberDialog({email, person, manage}: DialogProps["member"]){
             const rows = g.roster.filter(r => r.event_id === e.id && r.email === email);
             return <li key={e.id}><b>{eventTitle(e)}</b>
               <span className="sub">{longDay(new Date(e.starts_at))} · {timeOf(e.starts_at)}{e.place && " · " + e.place}</span>
-              <span className="member-chips">{sortRoles(rows.map(r => r.role).filter(Boolean)).map(r => <span key={r} className="chip role">{r}</span>)}<StatusChip status={rows[0]?.status || "pending"}/></span></li>;
+              <span className="member-chips">{sortRoles(rows.map(r => r.role).filter(Boolean)).map(r => <span key={r} className="chip role">{r}</span>)}<StatusChip status={rows[0]?.status || "pending"} noIcon/></span></li>;
           })}</ul> : <span className="sub">{t("member.nextNone")}</span>}</div>
         <MemberManage m={m}/>
         </>}
