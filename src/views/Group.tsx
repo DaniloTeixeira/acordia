@@ -16,7 +16,7 @@ import { copyName, LibraryList } from "./Library";
 import { saveBlob } from "../lib/pdf";
 import { reduced } from "../lib/util";
 import { splitRoles, joinRoles, toggleRole, sortRoles } from "../lib/roles";
-import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone, capFirst, type GEvent, type Presence } from "../lib/calendar";
+import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone,type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, loadGroups, createGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
   deleteEvent, respond, setCover, checkIn, markAttendance, setUnavailable, personName, personPhoto, amGroupAdmin, setMemberOut, outMark, isActive, setMemberActive, type GroupSetlist, type Member, type Group } from "../lib/groups";
 import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, go } from "../state";
@@ -28,6 +28,8 @@ import { SKIP_OPEN, StreakChip, useLock, Spin, Avatar, PersonFields, useEmailChe
 import { DateInput } from "../ui/DateInput";
 import { useMedia } from "../ui/hooks";
 import { SecHead } from "../ui/SecHead";
+import { PhoneInput } from "../ui/PhoneInput";
+import { NameInput } from "../ui/NameInput";
 import { YouChip } from "../ui/YouChip";
 import { BackLink } from "../ui/BackLink";
 
@@ -576,9 +578,9 @@ function MemberEdit({m, full, onDone, inline}: {m: Member; full: boolean; onDone
     : {onSubmit: save})}>
     {full && <div className="people-add">
       <div className="field"><label htmlFor={id + "-name"}>{t("profile.name")}</label>
-        <input className="input" id={id + "-name"} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onChange={e => setName(capFirst(e.target.value))} autoFocus/></div>
+        <NameInput className="input" id={id + "-name"} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onValue={setName} autoFocus/></div>
       <div className="field phone"><label htmlFor={id + "-phone"}>{t("profile.phone")}</label>
-        <input className="input" id={id + "-phone"} type="tel" inputMode="tel" autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} onChange={e => setPhone(maskPhone(e.target.value))}/></div>
+        <PhoneInput className="input" id={id + "-phone"} autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} onValue={setPhone}/></div>
       <div className="field birthday"><label htmlFor={id + "-birthday"}>{t("profile.birthday")}</label>
         <DateInput className="people-birthday" id={id + "-birthday"} max={today()} clearable value={birthday} onChange={setBirthday}/></div>
     </div>}

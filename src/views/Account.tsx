@@ -11,11 +11,13 @@ import { Icon } from "../ui/Icon";
 import { DateInput } from "../ui/DateInput";
 import { FieldLabel } from "../ui/FieldLabel";
 import { useGroups, loadGroups, chooseGroup, setMemberRole, outMark } from "../lib/groups";
-import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, streakLevel, fmtPhone, maskPhone, capFirst } from "../lib/calendar";
+import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, streakLevel, fmtPhone, maskPhone } from "../lib/calendar";
 import { sortRoles, joinRoles, splitRoles } from "../lib/roles";
 import { MemberRoles, RolePicker, ReplySeg, GroupMark, eventTitle, timeOf, longDay, openGroup } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
 import { SecHead } from "../ui/SecHead";
+import { PhoneInput } from "../ui/PhoneInput";
+import { NameInput } from "../ui/NameInput";
 import { YouChip } from "../ui/YouChip";
 
 const BASE = import.meta.env.BASE_URL;
@@ -523,8 +525,8 @@ function NameField(){
   const [v, setV] = useState(saved), f = useFieldSave();
   useEffect(() => setV(saved), [saved]);
   return <label className="field"><span>{t("profile.name")}</span>{f.status}
-    <input className="input" id="profile-name" maxLength={80} autoComplete="name" value={v} aria-busy={f.saving}
-      onChange={e => setV(capFirst(e.target.value))} onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}
+    <NameInput className="input" id="profile-name" maxLength={80} autoComplete="name" value={v} aria-busy={f.saving}
+      onValue={setV} onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}
       onBlur={e => { if(v.trim() !== saved) f.run(e.currentTarget, () => saveName(v)); }}/></label>;
 }
 
@@ -534,8 +536,8 @@ function PhoneField(){
   const [v, setV] = useState(maskPhone(saved)), f = useFieldSave();
   useEffect(() => setV(maskPhone(saved)), [saved]);
   return <label className="field"><span>{t("profile.phone")}</span>{f.status}
-    <input className="input" id="profile-phone" type="tel" inputMode="tel" autoComplete="tel" maxLength={30} placeholder={t("profile.phonePh")} value={v} aria-busy={f.saving}
-      onChange={e => setV(maskPhone(e.target.value))} onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}
+    <PhoneInput className="input" id="profile-phone" autoComplete="tel" maxLength={30} placeholder={t("profile.phonePh")} value={v} aria-busy={f.saving}
+      onValue={setV} onKeyDown={e => { if(e.key === "Enter") e.currentTarget.blur(); }}
       onBlur={async e => { if(cleanPhone(v) === saved || v === maskPhone(saved)) return; if(!await f.run(e.currentTarget, () => savePhone(v))) setV(maskPhone(saved)); }}/></label>;
 }
 
@@ -586,9 +588,9 @@ export function PersonEdit({r, onDone, inline}: {r: Allowed; onDone: (saved: boo
     : {onSubmit: save})}>
     <div className="people-add">
       <div className="field"><label htmlFor={"edit-name-" + r.email}>{t("profile.name")}</label>
-        <input className="input" id={"edit-name-" + r.email} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onChange={e => setName(capFirst(e.target.value))} autoFocus/></div>
+        <NameInput className="input" id={"edit-name-" + r.email} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onValue={setName} autoFocus/></div>
       <div className="field phone"><label htmlFor={"edit-phone-" + r.email}>{t("profile.phone")}</label>
-        <input className="input" id={"edit-phone-" + r.email} type="tel" inputMode="tel" autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} onChange={e => setPhone(maskPhone(e.target.value))}/></div>
+        <PhoneInput className="input" id={"edit-phone-" + r.email} autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} onValue={setPhone}/></div>
       <div className="field birthday"><label htmlFor={"edit-birthday-" + r.email}>{t("profile.birthday")}</label>
         <DateInput className="people-birthday" id={"edit-birthday-" + r.email} max={today()} clearable value={birthday} onChange={setBirthday}/></div>
     </div>
@@ -614,13 +616,13 @@ export function PersonFields({idp, name, onName, email, onEmail, phone, onPhone,
   email: string; onEmail: (v: string) => void; phone: string; onPhone: (v: string) => void; birthday: string; onBirthday: (v: string) => void; check: ReturnType<typeof useEmailCheck>}){
   return <>
     <div className="field"><label htmlFor={idp + "-name"}>{t("profile.name")}</label>
-      <input className="input" id={idp + "-name"} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onChange={e => onName(capFirst(e.target.value))}/></div>
+      <NameInput className="input" id={idp + "-name"} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onValue={onName}/></div>
     <div className="field"><FieldLabel htmlFor={idp + "-email"} required>{t("auth.email")}</FieldLabel>
       <input className="input" id={idp + "-email"} type="email" inputMode="email" autoComplete="off" placeholder={t("people.emailPh")} value={email}
         aria-required="true" aria-invalid={check.bad} aria-describedby={check.bad ? idp + "-email-err" : undefined} onBlur={check.blur} onChange={e => onEmail(e.target.value)}/>
       {check.bad && <span className="field-error" id={idp + "-email-err"}>{t(check.empty ? "auth.needEmail" : "auth.badEmail")}</span>}</div>
     <div className="field phone"><label htmlFor={idp + "-phone"}>{t("profile.phone")}</label>
-      <input className="input" id={idp + "-phone"} type="tel" inputMode="tel" autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} onChange={e => onPhone(maskPhone(e.target.value))}/></div>
+      <PhoneInput className="input" id={idp + "-phone"} autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} onValue={onPhone}/></div>
     <div className="field birthday"><label htmlFor={idp + "-birthday"}>{t("profile.birthday")}</label>
       <DateInput className="people-birthday" id={idp + "-birthday"} max={today()} clearable value={birthday} onChange={onBirthday}/></div>
   </>;

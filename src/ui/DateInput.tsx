@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { t, locale } from "../lib/i18n";
 import { monthGrid, dayKey } from "../lib/calendar";
 import { Icon } from "./Icon";
+import { MaskInput } from "./MaskInput";
 import { placeNear, toggler } from "./popover";
 
 const parse = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) ? new Date(+v.slice(0, 4), +v.slice(5, 7) - 1, +v.slice(8, 10)) : null;
@@ -92,9 +93,9 @@ export function DateInput({value, onChange, id, className = "", aria, max, disab
   };
   return <>
     <span ref={box} className={"date-field " + className}>
-      <input ref={field} id={id} className="input date-input" inputMode="numeric" autoComplete="off" placeholder={hint} maxLength={10}
-        aria-label={aria} disabled={disabled} value={text}
-        onChange={e => { const v = mask(e.target.value, order); setText(v); commit(v, false); }}
+      <MaskInput ref={field} id={id} className="input date-input" inputMode="numeric" autoComplete="off" placeholder={hint} maxLength={10}
+        aria-label={aria} disabled={disabled} value={text} mask={raw => mask(raw, order)} sig={/\d/}
+        onValue={v => { setText(v); commit(v, false); }}
         onBlur={e => commit(mask(e.target.value, order), true)} onKeyDown={e => { if(e.key === "Enter"){ e.preventDefault(); commit(text, true); } }}/>
       <button type="button" ref={btn} className="icon-btn sm date-cal" aria-haspopup="dialog" aria-expanded={open} aria-label={t("date.pick")} title={t("date.pick")}
         disabled={disabled} onPointerDown={tg.onPointerDown} onClick={tg.onClick}><Icon name="calendar" sm/></button>
