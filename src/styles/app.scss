@@ -8761,6 +8761,12 @@ dialog.member-dlg {
     align-self: flex-start;
   }
 }
+/* Funções é item de dentro de "Adicionar membro": título menor, em negrito, sem o ponto do subtítulo de seção. */
+.role-picker .lbl {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--ink);
+}
 .role-picker {
   display: flex;
   flex-direction: column;

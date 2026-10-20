@@ -717,7 +717,7 @@ export function RolePicker({value, onChange, label}: {value: string[]; onChange:
   const opts = sortRoles(splitRoles([...roleOptions(), ...value].join(",")));
   const add = () => { const r = other.trim().replace(/,/g, " "); if(r && !has(r)) onChange([...value, r]); setOther(""); };
   return <div className="role-picker">
-    <SecHead as="h3" className="people-sub-h">{label || t("group.roles")}</SecHead>
+    <span className="lbl">{label || t("group.roles")}</span>
     <div className="role-chips" role="group" aria-label={t("group.roles")}>{opts.map(r =>
       <button type="button" key={r} className="role-chip" aria-pressed={has(r)} onClick={() => onChange(toggleRole(value, r))}>{has(r) && <Icon name="check" sm/>}{r}</button>)}</div>
     <div className="role-other">
