@@ -253,6 +253,12 @@ export const respond = (eventId: string, answer: Answer, reason = "") => run(() 
 // Quem disse "não posso" indica quem cobre a vaga (vazio tira a indicação).
 export const setCover = (eventId: string, email: string) => run(() => cloud.rpc("set_event_cover", {eid: eventId, cover: email}));
 export const checkIn = (eventId: string, on: boolean) => run(() => cloud.rpc("check_in", {eid: eventId, on_: on}));
+// A própria presença ou falta (null volta a "sem marcação"). Banco sem a função nova: presente e desfazer ainda
+// funcionam pelo check_in; marcar falta só existe com a migração.
+export async function setMyAttendance(eventId: string, status: "present" | "absent" | null){
+  if(await run(() => cloud.rpc("set_my_attendance", {eid: eventId, st: status || ""}))) return true;
+  return status === "absent" ? false : checkIn(eventId, status === "present");
+}
 // Chamada feita pelo admin; null tira a marcação.
 export const markAttendance = (eventId: string, email: string, status: Presence | null) => status
   ? run(() => cloud.from("event_attendance").upsert({event_id: eventId, email, status, by_admin: true, marked_at: new Date().toISOString()}))

@@ -4509,6 +4509,7 @@ a.btn {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   width: 100%;
   padding: 10px 12px;
   border: none;
@@ -4766,6 +4767,9 @@ dialog.nudge {
   cursor: default;
 }
 .select-pop {
+  /* Largura pelo item mais longo, com respiro entre o texto e o check do escolhido. */
+  width: max-content;
+  min-width: 220px;
   overflow-y: auto;
   max-width: min(340px, calc(100vw - 16px));
 }
@@ -9208,13 +9212,15 @@ dialog.member-dlg {
 .reply-btns {
   display: flex;
   gap: 8px;
-  width: 100%;
+  width: auto;
 }
 .reply-btns .btn {
-  flex: 1 1 0;
+  flex: 0 0 auto;
   min-width: 0;
   justify-content: center;
-  min-height: 40px;
+  min-height: 36px;
+  padding: 0 16px;
+  font-size: 0.86rem;
 }
 /* Depois de responder: selo verde (confirmou) ou vermelho (não vai) e o link "Alterar resposta" ao lado. */
 .reply-done {
@@ -9429,12 +9435,27 @@ dialog.member-dlg {
 /* Rótulo ao lado da lista (e não em cima): em cima ele deixava a linha mais alta e empurrava as abas para longe do título da seção. */
 .event-cover { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; flex: 0 1 auto; max-width: 100%; font-size: 0.88rem; color: var(--ink-2); }
 .event-cover > span { white-space: nowrap; }
-.event-cover .select-btn { width: auto; max-width: 100%; height: 42px; min-height: 0; box-sizing: border-box; border-radius: var(--r-full); padding-left: 16px; }
+.event-cover .select-btn { width: auto; min-width: min(250px, 100%); max-width: 100%; height: 36px; min-height: 0; box-sizing: border-box; border-radius: var(--r-full); padding-left: 16px; }
+/* Tela larga: o selo da resposta ("Você não vai" + Alterar resposta) e a lista de substituto ficam lado a lado. */
+@media (min-width: 900px) {
+  .event-actions { align-items: center; }
+  /* O selo e o link viram itens da própria linha: selo, substituto e, na ponta direita, "Alterar resposta". */
+  .event-actions > .reply-done { display: contents; }
+  /* Escolha da resposta: os botões do tamanho do texto, não esticados pela linha. */
+  .event-actions > .reply-btns { width: auto; }
+  .event-actions > .reply-btns .btn { flex: 0 0 auto; min-height: 34px; padding: 0 22px; }
+  @media (pointer: coarse) {
+    .event-actions > .reply-btns .btn { min-height: 40px; }
+  }
+  .event-actions > .reply-done .reply-badge { order: 0; min-height: 36px; padding: 0 14px; font-size: 0.84rem; }
+  .event-actions > .reply-done .link-btn { order: 2; margin-left: auto; }
+  .event-actions > .event-cover { order: 1; }
+}
 /* Celular estreito: as abas ocupam a linha toda e a lista de quem cobre vai para baixo delas, também na largura toda e
    um pouco mais afastada, para não parecer parte das abas. */
 @media (max-width: 420px) {
   .event-reply { flex-basis: 100%; max-width: none; }
-  .event-cover { flex-basis: 100%; flex-wrap: nowrap; margin-top: 6px; }
+  .event-cover { flex-basis: 100%; flex-wrap: nowrap; }
   .event-cover .select-btn { flex: 1 1 auto; min-width: 0; }
 }
 
@@ -9566,3 +9587,6 @@ dialog.member-dlg {
   margin: 24px 0 10px;
   font-size: 1rem;
 }
+
+.not-scaled{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:10px 2px 0;line-height:1.4}
+.not-scaled .chip{white-space:normal;border-radius:14px;padding:8px 12px;font-size:0.82rem;line-height:1.4;text-align:left}

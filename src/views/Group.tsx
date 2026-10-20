@@ -18,7 +18,7 @@ import { reduced } from "../lib/util";
 import { splitRoles, joinRoles, toggleRole, sortRoles } from "../lib/roles";
 import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone,type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, loadGroups, createGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
-  deleteEvent, respond, setCover, checkIn, markAttendance, setUnavailable, personName, personPhoto, amGroupAdmin, setMemberOut, outMark, isActive, setMemberActive, type GroupSetlist, type Member, type Group } from "../lib/groups";
+  deleteEvent, respond, setCover, checkIn, setMyAttendance, markAttendance, setUnavailable, personName, personPhoto, amGroupAdmin, setMemberOut, outMark, isActive, setMemberActive, type GroupSetlist, type Member, type Group } from "../lib/groups";
 import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
@@ -35,7 +35,7 @@ import { BackLink } from "../ui/BackLink";
 
 // Confirmar / Não posso de uma escala (Início e Perfil). Tocar na resposta ativa desfaz (volta a "sem resposta").
 // A escolhida já fica marcada, com o spinner, enquanto grava; se falhar, volta ao valor real e avisa.
-export function ReplySeg({e}: {e: GEvent}){
+export function ReplySeg({e, onEditing}: {e: GEvent; onEditing?: (v: boolean) => void}){
   const g = useGroups(), me = useAuth(s => s.email);
   const st = g.roster.find(r => r.event_id === e.id && r.email === me)?.status, cur = st === "yes" || st === "no" ? st : "";
   const [sent, setSent] = useState<{v: "yes" | "no"; to: "yes" | "no" | ""} | null>(null);
@@ -49,9 +49,11 @@ export function ReplySeg({e}: {e: GEvent}){
     setEditing(false);
     toast(t(ok ? (to === "yes" ? "group.confirmed" : to === "no" ? "group.declined" : "group.saved") : "profile.saveFail"));
   };
-  const shown = sent ? sent.to : cur;
+  // Só a escolha em andamento fica marcada: ao mudar a resposta os dois botões aparecem iguais, um por estado.
+  const shown = sent?.to;
   // Já respondeu: os botões somem e ficam o selo com a resposta e o link para mudar (os botões voltam ao tocar nele).
   const [editing, setEditing] = useState(false);
+  useEffect(() => { onEditing?.(editing); }, [editing]);
   if(cur && !sent && !editing) return <div className={"reply-done " + cur} role="status">
     <span className="reply-badge"><Icon name={cur === "yes" ? "check" : "x"} sm/> {t(cur === "yes" ? "group.replyYes" : "group.replyNo")}</span>
     <button type="button" className="link-btn" onClick={() => setEditing(true)}>{t("group.changeReply")}</button></div>;
@@ -338,7 +340,7 @@ export function useSquareBadge<W extends HTMLElement = HTMLDivElement>(){
 function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
   const sq = useSquareBadge();
   const g = useGroups(), me = useAuth(s => s.email);
-  const [busy, setBusy] = useState("");
+  const [busy, setBusy] = useState(""), [editIn, setEditIn] = useState(false), [editReply, setEditReply] = useState(false);
   const lock = useLock(), ref = useRef<HTMLLIElement>(null);
   // O evento que veio do Início aparece aberto e na tela; depois o pedido é esquecido.
   useEffect(() => {
@@ -349,7 +351,8 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
   const roster = g.roster.filter(r => r.event_id === e.id), mineRows = roster.filter(r => r.email === me), myStatus = mineRows[0]?.status;
   const set = g.setlists.find(s => s.id === e.setlist_id);
   const d = new Date(e.starts_at), isPast = d.getTime() < Date.now() - 6 * 3600 * 1000;
-  const att = g.attendance.filter(a => a.event_id === e.id), myAtt = att.find(a => a.email === me);
+  const att = g.attendance.filter(a => a.event_id === e.id), myAtt = att.find(a => a.email === me), myIn = myAtt?.status === "present";
+  const pastNow = Date.now() > d.getTime(), myMark = myAtt?.status === "present" || myAtt?.status === "absent";
   const needs = needsCover(roster), myCover = mineRows[0]?.cover || "";
   const act = (key: string, fn: () => Promise<boolean>, ok?: string) => lock(async () => { setBusy(key); const r = await fn().finally(() => setBusy("")); toast(t(r ? ok || "group.saved" : "profile.saveFail")); return r; });
   // Resposta de quem está na escala: o mesmo ReplySeg do Início e do Perfil (botões verde/vermelho, depois o selo).
@@ -357,7 +360,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
   // Quem disse "não posso" pode indicar quem cobre; é só um aviso para o grupo.
   const coverOpts = [{value: "", label: t("group.coverNone")}, ...g.members.filter(m => isActive(m) && m.email !== me).map(m => ({value: m.email, label: personName(m.email)}))];
   const pickCover = (v: string) => act("cover", () => setCover(e.id, v));
-  const reply = canReply && <ReplySeg e={e}/>;
+  const reply = canReply && <ReplySeg e={e} onEditing={setEditReply}/>;
   // Os mesmos chips em dois lugares: ao lado da data na tela larga e, no celular, numa linha própria embaixo,
   // com a largura toda do card (ao lado da data não cabem). O CSS mostra um ou outro.
   const chips = <>
@@ -366,6 +369,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
     {set && <span className="chip"><Icon name="music" sm/> {set.name}</span>}
     {canEdit && needs.length > 0 && !isPast && <span className="chip st-no">{tn("group.needSub", needs.length)}</span>}
     {e.kind === "rehearsal" && myAtt?.status === "present" && <span className="chip st-yes"><Icon name="check" sm/> {t("group.att.present")}</span>}
+    {e.kind === "rehearsal" && myAtt?.status === "absent" && <span className="chip st-no"><Icon name="x" sm/> {t("group.att.absent")}</span>}
     {pendingCheckIn(e, [me], g.attendance).length > 0 && <span className="chip st-pending"><Icon name="dot" sm/> {t("group.att.pending")}</span>}
   </>;
   return <li ref={ref} className={"card event " + e.kind + (myStatus === "no" ? " declined" : "")}>
@@ -400,15 +404,29 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
         <StatusChip status={r.status}/>
         {r.roles.length > 0 && <span className="roster-chips">{sortRoles(r.roles).map(x => <span key={x} className="chip role">{x}</span>)}</span>}
         {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}</li>)}</ul>
-        : <p className="sub">{t("group.noRoster")}</p>}</div>
+        : <p className="sub">{t("group.noRoster")}</p>}
+      {/* Quem não foi escalado não tem resposta a dar: avisa o porquê, senão parece que os botões sumiram. */}
+      {e.kind === "rehearsal" && !isPast && mineRows.length === 0 && g.members.some(m => m.email === me && isActive(m)) && <div className="not-scaled" role="note"><span className="chip st-pending"><span><b>{t("group.notScaled")}.</b> {t("group.notScaledWhy")}</span></span></div>}</div>
       {e.notes && <div className="event-sec"><SecHead as="h3" className="people-sub-h">{t("group.notes")}</SecHead><p className="event-notes">{e.notes}</p></div>}
       {/* A resposta vem depois de ver o evento e quem está na escala: primeiro entender, depois responder. */}
       {(reply || (e.kind === "rehearsal" && canCheckIn(e))) && <div className="event-sec"><SecHead as="h3" className="people-sub-h">{t("group.myReply")}</SecHead><div className="event-actions">
         {reply}
-        {canReply && myStatus === "no" && <label className="event-cover">
+        {canReply && myStatus === "no" && !editReply && <label className="event-cover">
           <Select value={myCover} options={coverOpts} aria={t("group.coverAsk")} disabled={busy === "cover"} onChange={pickCover}/>{busy === "cover" && <Spin/>}</label>}
-        {e.kind === "rehearsal" && canCheckIn(e) && !(myAtt && myAtt.by_admin) && <button className={"btn sm" + (myAtt ? " primary" : " soft")} aria-pressed={!!myAtt} aria-busy={busy === "in"}
-          onClick={() => act("in", () => checkIn(e.id, !myAtt), myAtt ? "group.saved" : "group.checkedIn")}>{busy === "in" ? <Spin/> : <Icon name="user" sm/>} {t(Date.now() > d.getTime() ? "group.checkInPast" : "group.checkIn")}</button>}
+        {/* Ensaio que já começou: três estados, presente, falta ou sem marcação (um botão por marcação, como na resposta). */}
+        {e.kind === "rehearsal" && canCheckIn(e) && pastNow && myMark && !editIn && busy !== "in" && <div className={"reply-done " + (myIn ? "yes" : "no")} role="status">
+          <span className="reply-badge"><Icon name={myIn ? "check" : "x"} sm/> {t(myIn ? "group.att.present" : "group.att.absent")}</span>
+          <button type="button" className="link-btn" onClick={() => setEditIn(true)}>{t("group.changeReply")}</button></div>}
+        {e.kind === "rehearsal" && canCheckIn(e) && pastNow && (!myMark || editIn || busy === "in") && <div className="reply-btns" role="group" aria-label={t("group.myReply")}>
+          {([["present", "check", "group.checkInPast", "reply-yes"], ["absent", "x", "group.notThere", "reply-no"]] as const).map(([v, icon, key, cls]) =>
+            <button key={v} type="button" className={"btn sm " + cls} aria-busy={busy === "in:" + v} disabled={busy.startsWith("in:")}
+              onClick={() => myAtt?.status === v ? setEditIn(false) : act("in:" + v, () => setMyAttendance(e.id, v), "group.saved").then(() => setEditIn(false))}>
+              {busy === "in:" + v ? <Spin/> : <Icon name={icon} sm/>} {t(key)}</button>)}</div>}
+        {e.kind === "rehearsal" && canCheckIn(e) && !pastNow && myIn && !editIn && busy !== "in" && <div className="reply-done yes" role="status">
+          <span className="reply-badge"><Icon name="check" sm/> {t("group.att.present")}</span>
+          <button type="button" className="link-btn" onClick={() => setEditIn(true)}>{t("group.changeReply")}</button></div>}
+        {e.kind === "rehearsal" && canCheckIn(e) && !pastNow && (!myIn || editIn || busy === "in") && <button className="btn sm soft" aria-busy={busy === "in"} disabled={busy === "in"}
+          onClick={() => act("in", () => checkIn(e.id, !myIn), myIn ? "group.saved" : "group.checkedIn").then(() => setEditIn(false))}>{busy === "in" ? <Spin/> : <Icon name={myIn ? "x" : "user"} sm/>} {t(myIn ? "group.uncheckIn" : Date.now() > d.getTime() ? "group.checkInPast" : "group.checkIn")}</button>}
       </div>
       </div>}
       {e.kind === "rehearsal" && canEdit && Date.now() >= d.getTime() - 12 * 3600 * 1000 && <Attendance e={e}/>}
