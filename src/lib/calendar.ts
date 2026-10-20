@@ -119,11 +119,12 @@ export function rehearsalStanding(email: string, events: GEvent[], att: Attendan
   return s;
 }
 
-// "Cheguei" vale de 12 h antes a 12 h depois do início (a mesma regra do banco, em check_in).
+// "Cheguei" vale a partir de 12 h antes do início, sem limite depois, para ajustar ensaios passados
+// (a mesma regra do banco, em check_in).
 export const CHECKIN_MS = 12 * 3600 * 1000;
 export function canCheckIn(e: Pick<GEvent, "kind" | "starts_at">, now = Date.now()){
   const at = new Date(e.starts_at).getTime();
-  return e.kind === "rehearsal" && now >= at - CHECKIN_MS && now <= at + CHECKIN_MS;
+  return e.kind === "rehearsal" && now >= at - CHECKIN_MS;
 }
 
 // Quem ainda não tem marcação num ensaio que já começou e está com a chamada aberta: o líder avisa

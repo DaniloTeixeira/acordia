@@ -183,7 +183,7 @@ também libera o acesso ao app para eles).
       **quem cobre** a vaga (só um aviso para o grupo); quem lidera vê "não pode ir · falta substituto" enquanto ninguém foi indicado.
 - [ ] **Membro ativo ou inativo**: em Membros, quem lidera deixa alguém inativo (olho cortado) sem tirar do grupo.
       O inativo some da escala e da chamada dos ensaios, mas o histórico fica; reativar é pelo mesmo botão. O líder não fica inativo.
-- [ ] **Presença nos ensaios**: "Cheguei" (de 12 h antes a 12 h depois do início) e a chamada de quem lidera
+- [ ] **Presença nos ensaios**: "Cheguei" (de 12 h antes do início em diante; em ensaio passado vira "Eu estava presente") e a chamada de quem lidera
       (presente, falta, justificada), que vale por cima do "Cheguei".
       Em Membros, o botão de check na linha da pessoa marca presença ou falta dos últimos ensaios sem abrir a agenda.
       A lista do ensaio é uma tabela (pessoa e resposta) com todos os membros ativos, escalados ou não.
