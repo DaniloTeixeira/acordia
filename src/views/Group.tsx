@@ -36,7 +36,9 @@ export function ReplySeg({e}: {e: GEvent}){
   const [sent, setSent] = useState<{v: "yes" | "no"; to: "yes" | "no" | ""} | null>(null);
   const pick = async (v: "yes" | "no") => {
     if(sent) return;
-    const to: "yes" | "no" | "" = cur === v ? "" : v;
+    // Tocar na resposta já marcada só fecha a edição; antes ela voltava a "sem resposta" e os botões ficavam iguais.
+    if(cur === v){ setEditing(false); return; }
+    const to: "yes" | "no" | "" = v;
     setSent({v, to});
     const ok = await respond(e.id, to || "pending").finally(() => setSent(null));
     setEditing(false);
@@ -49,7 +51,7 @@ export function ReplySeg({e}: {e: GEvent}){
     <span className="reply-badge"><Icon name={cur === "yes" ? "check" : "x"} sm/> {t(cur === "yes" ? "group.replyYes" : "group.replyNo")}</span>
     <button type="button" className="link-btn" onClick={() => setEditing(true)}>{t("group.changeReply")}</button></div>;
   const btn =(v: "yes" | "no", icon: string, label: string) =>
-    <button type="button" className={"btn sm " + (shown !== v ? "soft" : v === "yes" ? "primary" : "danger armed")} aria-pressed={shown === v} aria-busy={sent?.v === v} disabled={!!sent} onClick={() => pick(v)}>
+    <button type="button" className={"btn sm " + (v === "yes" ? "reply-yes" : "reply-no") + (shown === v ? " on" : "")} aria-pressed={shown === v} aria-busy={sent?.v === v} disabled={!!sent} onClick={() => pick(v)}>
       {sent?.v === v ? <Spin/> : <Icon name={icon} sm/>} {label}</button>;
   return <div className="reply-btns" role="group" aria-label={t("group.myReply")}>{btn("yes", "check", t("group.confirm"))}{btn("no", "x", t("group.decline"))}</div>;
 }
@@ -333,22 +335,12 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
   const att = g.attendance.filter(a => a.event_id === e.id), myAtt = att.find(a => a.email === me);
   const needs = needsCover(roster), myCover = mineRows[0]?.cover || "";
   const act = (key: string, fn: () => Promise<boolean>, ok?: string) => lock(async () => { setBusy(key); const r = await fn().finally(() => setBusy("")); toast(t(r ? ok || "group.saved" : "profile.saveFail")); return r; });
-  // Resposta de quem está na escala: abas Confirmar / Não posso; tocar na aba ativa volta para "sem resposta".
-  // A aba escolhida já fica marcada, com o spinner, enquanto grava (e volta ao valor real se falhar).
-  const canReply = mineRows.length > 0 && !isPast, cur = myStatus === "yes" || myStatus === "no" ? myStatus : "";
-  const [sent, setSent] = useState<{v: "yes" | "no"; to: "yes" | "no" | ""} | null>(null);
-  const pick = (v: "yes" | "no") => {
-    if(sent) return;
-    const to: "yes" | "no" | "" = cur === v ? "" : v;
-    setSent({v, to});
-    act(v, () => respond(e.id, to || "pending"), to === "yes" ? "group.confirmed" : to === "no" ? "group.declined" : "group.saved").finally(() => setSent(null));
-  };
-  const tab = (v: "yes" | "no", icon: string, label: string) => ({v, label: <>{sent?.v === v ? <Spin/> : <Icon name={icon} sm/>}<span>{label}</span></>});
+  // Resposta de quem está na escala: o mesmo ReplySeg do Início e do Perfil (botões verde/vermelho, depois o selo).
+  const canReply = mineRows.length > 0 && !isPast;
   // Quem disse "não posso" pode indicar quem cobre; é só um aviso para o grupo.
   const coverOpts = [{value: "", label: t("group.coverNone")}, ...g.members.filter(m => isActive(m) && m.email !== me).map(m => ({value: m.email, label: personName(m.email)}))];
   const pickCover = (v: string) => act("cover", () => setCover(e.id, v));
-  const reply = canReply && <Seg<"yes" | "no" | ""> className="event-reply" aria={t("group.myReply")} value={sent ? sent.to : cur} disabled={!!sent}
-    options={[tab("yes", "check", t("group.confirm")), tab("no", "x", t("group.decline"))]} onChange={v => v && pick(v)}/>;
+  const reply = canReply && <ReplySeg e={e}/>;
   // Os mesmos chips em dois lugares: ao lado da data na tela larga e, no celular, numa linha própria embaixo,
   // com a largura toda do card (ao lado da data não cabem). O CSS mostra um ou outro.
   const chips = <>

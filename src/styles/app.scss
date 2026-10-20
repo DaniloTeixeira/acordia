@@ -47,11 +47,11 @@
   --surface-3: #e4e9f5;
   --ink: #0f172a;
   --ink-2: #334155;
-  --muted: #64748b;
-  --line: #e2e8f0;
-  --line-strong: #cbd5e1;
-  --accent: #2f6bf0;
-  --accent-hover: #2457d6;
+  --muted: #56657c;
+  --line: #d5dce8;
+  --line-strong: #b4bfcf;
+  --accent: #2a63e6;
+  --accent-hover: #2150cc;
   --accent-ink: #ffffff;
   --accent-soft: #e6edfe;
   --accent-soft-ink: #1f4fc4;
@@ -2708,7 +2708,7 @@ textarea.song-text {
 .key-box-sub {
   font-size: max(0.82rem, 7.5cqw);
   font-weight: 700;
-  color: var(--ok-vivid);
+  color: var(--ok);
 }
 .key-box.out .key-box-sub {
   color: var(--bad);
@@ -8899,9 +8899,24 @@ dialog.member-dlg {
   background: var(--bad-soft);
   color: var(--bad);
 }
-/* Confirmar sem estar marcado: azul-claro um pouco mais escuro que o .soft padrão, para se destacar do cartão. */
-.reply-btns .btn.soft {
-  background: var(--reply-soft);
+/* Confirmar verde e Não posso vermelho, sempre, só com contorno (mais suave); marcado fica cheio. */
+.reply-btns .btn.reply-yes {
+  background: transparent;
+  color: var(--ok);
+  box-shadow: inset 0 0 0 1.5px var(--ok);
+}
+.reply-btns .btn.reply-no {
+  background: transparent;
+  color: var(--bad);
+  box-shadow: inset 0 0 0 1.5px var(--bad);
+}
+.reply-btns .btn.reply-yes.on {
+  background: var(--ok);
+  color: var(--bg);
+}
+.reply-btns .btn.reply-no.on {
+  background: var(--bad);
+  color: var(--bg);
 }
 .reply-btns .btn:disabled {
   opacity: 1;
