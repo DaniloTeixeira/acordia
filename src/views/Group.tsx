@@ -8,11 +8,13 @@ import { useAuth, validEmail, listAllowed, initials, setPersonInfo, setAllowedIn
 import { decodeMedley, type IncomingMedley, type IncomingSong } from "../lib/share";
 import { songTitle, sanitizeItem } from "../lib/core";
 import { norm } from "../lib/util";
-import { current, openMedley } from "../repertoire";
+import { current, openMedley, isMedley } from "../repertoire";
+import { isAutoSetlist } from "../lib/syncrules";
+import { newMedley } from "./Repertoire";
 import type { Item } from "../lib/types";
-import { copyName } from "./Library";
+import { copyName, LibraryList } from "./Library";
 import { saveBlob } from "../lib/pdf";
-import { ago, reduced } from "../lib/util";
+import { reduced } from "../lib/util";
 import { splitRoles, joinRoles, toggleRole, sortRoles } from "../lib/roles";
 import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone, capFirst, type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, loadGroups, createGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
@@ -24,9 +26,38 @@ import { Select } from "../ui/Select";
 import { useFold, FoldHead } from "../ui/Fold";
 import { SKIP_OPEN, StreakChip, useLock, Spin, Avatar, PersonFields, useEmailCheck, pickPhoto, PhoneLink, fmtBirthday, today, usePeopleFilter, PeopleTools } from "./Account";
 import { DateInput } from "../ui/DateInput";
+import { useMedia } from "../ui/hooks";
+
+// Confirmar / Não posso de uma escala (Início e Perfil). Tocar na resposta ativa desfaz (volta a "sem resposta").
+// A escolhida já fica marcada, com o spinner, enquanto grava; se falhar, volta ao valor real e avisa.
+export function ReplySeg({e}: {e: GEvent}){
+  const g = useGroups(), me = useAuth(s => s.email);
+  const st = g.roster.find(r => r.event_id === e.id && r.email === me)?.status, cur = st === "yes" || st === "no" ? st : "";
+  const [sent, setSent] = useState<{v: "yes" | "no"; to: "yes" | "no" | ""} | null>(null);
+  const pick = async (v: "yes" | "no") => {
+    if(sent) return;
+    const to: "yes" | "no" | "" = cur === v ? "" : v;
+    setSent({v, to});
+    const ok = await respond(e.id, to || "pending").finally(() => setSent(null));
+    setEditing(false);
+    toast(t(ok ? (to === "yes" ? "group.confirmed" : to === "no" ? "group.declined" : "group.saved") : "profile.saveFail"));
+  };
+  const shown = sent ? sent.to : cur;
+  // Já respondeu: os botões somem e ficam o selo com a resposta e o link para mudar (os botões voltam ao tocar nele).
+  const [editing, setEditing] = useState(false);
+  if(cur && !sent && !editing) return <div className={"reply-done " + cur} role="status">
+    <span className="reply-badge"><Icon name={cur === "yes" ? "check" : "x"} sm/> {t(cur === "yes" ? "group.replyYes" : "group.replyNo")}</span>
+    <button type="button" className="link-btn" onClick={() => setEditing(true)}>{t("group.changeReply")}</button></div>;
+  const btn =(v: "yes" | "no", icon: string, label: string) =>
+    <button type="button" className={"btn sm " + (shown !== v ? "soft" : v === "yes" ? "primary" : "danger armed")} aria-pressed={shown === v} aria-busy={sent?.v === v} disabled={!!sent} onClick={() => pick(v)}>
+      {sent?.v === v ? <Spin/> : <Icon name={icon} sm/>} {label}</button>;
+  return <div className="reply-btns" role="group" aria-label={t("group.myReply")}>{btn("yes", "check", t("group.confirm"))}{btn("no", "x", t("group.decline"))}</div>;
+}
 
 const { data } = store;
-export type Tab = "agenda" | "setlists" | "members";
+export type Tab = "agenda" | "setlists" | "songs" | "medleys" | "members";
+// A Biblioteca é a mesma página em três modos (repertórios, músicas e medleys).
+export const LIB_TABS: Tab[] = ["setlists", "songs", "medleys"];
 
 // ---------- datas ----------
 export const fmt = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(locale(), o);
@@ -47,6 +78,8 @@ export async function openGroupSetlist(s: GroupSetlist, stage = false){
   const id = own && !own.sourceId ? own.id : saveIncoming(med);
   // Um repertório vazio aberto (ex.: primeiro acesso) não precisa ficar sobrando.
   const prev = current(); if(prev.id !== id && !prev.items.length) store.deleteMedley(prev.id);
+  // Quem abre pelo grupo quer estudar: cai na folha (leitura), não na edição.
+  store.setSetting("pane", "sheet");
   openMedley(id); go("medley");
   if(stage) useUI.setState({stageOpen: true});
 }
@@ -113,8 +146,8 @@ export function useGroupRefresh(){
     return () => document.removeEventListener("visibilitychange", wake);
   }, [status]);
 }
-// Abre a página do grupo numa aba; sem aba, em Membros.
-export function openGroup(tab: Tab = "members", eventId = ""){
+// Abre a página do grupo numa aba; sem aba, na Agenda (o que o membro mais consulta).
+export function openGroup(tab: Tab = "agenda", eventId = ""){
   store.setSetting("groupTab", tab);
   useUI.setState({eventFocus: eventId});
   go("group");
@@ -127,12 +160,15 @@ export function Group(){
   const g = useGroups();
   const group = g.groups.find(x => x.id === g.gid);
   const canEdit = !!group && amGroupAdmin();
-  const tab: Tab = (["agenda", "setlists", "members"] as const).find(v => v === data.settings.groupTab) || "members";
+  // Números das abas da Biblioteca (quem só lê não conta o repertório vazio que o app cria sozinho no aparelho).
+  const meds = [...data.medleys.values()].filter(m => canEdit || !isAutoSetlist(m));
+  const libCount = {songs: [...data.songs.values()].filter(s => s.title).length, setlists: meds.filter(m => !isMedley(m)).length, medleys: meds.filter(isMedley).length};
+  const tab: Tab = (["agenda", "setlists", "songs", "medleys", "members"] as const).find(v => v === data.settings.groupTab) || "agenda";
   // Quem lidera tem o lápis ao lado do nome: abre a janela com a foto, o nome e (admin do app) outro grupo e excluir.
   const head = (sub: string, actions?: React.ReactNode) => <div className="view-head"><div>
-    <button className="btn ghost sm back" id="group-back" onClick={() => go("home")}><Icon name="back" sm/><span>{t("nav.home")}</span></button>
+    <button className="back-link" id="group-back" onClick={() => tab === "members" ? go("more") : go("home")}><Icon name="back" sm/><span>{t(tab === "members" ? "nav.more" : "nav.home")}</span></button>
     <div className="group-title">{group && (admin ? <GroupPhotoButton group={group}/> : <GroupMark group={group}/>)}
-      <div>{group && <span className="group-kicker">{t("group.title")}</span>}<h1 id="group-h">{group ? group.name : t("group.title")}{canEdit && <button type="button" className="icon-btn sm line group-edit-btn" id="group-edit"
+      <div>{group && <span className="group-kicker">{t(tab === "members" ? "group.membersTab" : tab === "agenda" ? "group.agenda" : "lib.title")}</span>}<h1 id="group-h">{group ? group.name : t("group.title")}{canEdit && <button type="button" className="icon-btn sm line group-edit-btn" id="group-edit"
         aria-label={t("group.edit")} title={t("group.edit")} onClick={() => openDialog("group", {})}><Icon name="edit" sm/></button>}</h1><p className="sub">{sub}</p></div></div></div>
     {actions && <div className="actions">{actions}</div>}</div>;
   if(!group) return <section className="view" id="view-group" data-view="group" aria-labelledby="group-h">
@@ -143,12 +179,15 @@ export function Group(){
   </section>;
   return <section className="view" id="view-group" data-view="group" aria-labelledby="group-h">
     {head(tn("group.members", g.members.length) + (g.error ? " · " + t("group.offline") : ""), <>
+      {canEdit && tab === "setlists" && <button className="btn primary" id="group-new-setlist" onClick={() => newMedley()}><Icon name="plus" sm/><span>{t("group.newSetlist")}</span></button>}
+      {canEdit && tab === "songs" && <button className="btn primary" id="group-new-song" onClick={() => openDialog("song", {song: null})}><Icon name="plus" sm/><span>{t("lib.new")}</span></button>}
       {canEdit && tab === "agenda" && <button className="btn primary" id="group-new-event" onClick={() => openDialog("event", {id: null, day: dayKey(new Date())})}><Icon name="plus" sm/><span>{t("group.newEvent")}</span></button>}
     </>)}
-    <Seg id="group-tabs" className="block" aria={t("group.title")} value={tab} onChange={v => store.setSetting("groupTab", v)}
-      options={[{v: "members", label: t("group.membersTab")}, {v: "agenda", label: t("group.agenda")}, {v: "setlists", label: t("group.setlists")}]}/>
+    {/* Agenda e Biblioteca estão na barra de baixo (Membros, em Mais): só a Biblioteca tem abas, as suas três listas. */}
+    {LIB_TABS.includes(tab) && <Seg id="group-tabs" className="block" aria={t("lib.tabsAria")} value={tab} onChange={v => store.setSetting("groupTab", v)}
+      options={[{v: "setlists", label: t("lib.setlists", {n: libCount.setlists})}, {v: "songs", label: t("lib.songs", {n: libCount.songs})}, {v: "medleys", label: t("lib.mblocks", {n: libCount.medleys})}]}/>}
     {tab === "agenda" && <Agenda canEdit={canEdit}/>}
-    {tab === "setlists" && <Setlists canEdit={canEdit}/>}
+    {tab !== "agenda" && tab !== "members" && <LibraryList key={tab} tab={tab} canEdit={canEdit}/>}
     {tab === "members" && <Members canEdit={canEdit}/>}
   </section>;
 }
@@ -186,7 +225,8 @@ function Agenda({canEdit}: {canEdit: boolean}){
       <p className="sub my-next-hint">{t("group.addToCalHint")}</p>
     </div>}
     <div className="agenda-grid">
-      <div className="card cal" aria-label={t("group.calendar")}>
+      <div className="card cal" aria-labelledby="cal-h">
+        <h2 id="cal-h">{t("group.calendar")}</h2>
         <div className="cal-head">
           <button className="icon-btn sm" aria-label={t("group.prevMonth")} onClick={() => shift(-1)}><Icon name="chev" sm className="chev-left"/></button>
           <b>{fmt({month: "long", year: "numeric"}).format(new Date(month.y, month.m, 1))}</b>
@@ -208,7 +248,8 @@ function Agenda({canEdit}: {canEdit: boolean}){
         </div>
         <div className="cal-legend"><span><i className="service"/>{t("group.kind.service")}</span><span><i className="rehearsal"/>{t("group.kind.rehearsal")}</span><span><i className="off"/>{t("group.unavailable")}</span></div>
       </div>
-      <div className="agenda-list">
+      <div className="card agenda-list">
+        <h2 className="people-sub-h agenda-list-h">{t("group.events")}</h2>
         {sel ? <DayBar day={sel} off={myOff.has(sel)} canEdit={canEdit} onClear={() => setSel("")}/>
           : <Seg className="block" id="agenda-when" aria={t("group.agenda")} value={showPast ? "past" : "next"} onChange={v => setShowPast(v === "past")}
             options={[{v: "past", label: t("group.past")}, {v: "next", label: t("group.upcoming")}]}/>}
@@ -225,11 +266,15 @@ function MyNextRow({e}: {e: GEvent}){
   const rows = g.roster.filter(r => r.event_id === e.id && r.email === me);
   // O status (confirmado / não pode) fica só no card do evento, em "Sua resposta"; aqui são data, hora e funções.
   const d = new Date(e.starts_at), roles = sortRoles(rows.map(r => r.role).filter(Boolean)), sq = useSquareBadge();
-  // O selo da data cresce até a altura do bloco inteiro (título, hora, funções e botão) e fica quadrado.
+  // No celular o botão desce para a linha de baixo, na largura toda; na tela larga fica sob as funções.
+  const narrow = useMedia("(max-width: 599px)");
+  const ics = <button className="btn soft sm my-next-ics" onClick={() => downloadICS([e], eventTitle(e))}><Icon name="calendar" sm/> {t("group.addAllToCal")}</button>;
+  // O selo da data cresce até a altura do bloco de texto ao lado e fica quadrado.
   return <li><span className="date-badge" ref={sq.badge}><small>{fmt({weekday: "short"}).format(d)}</small><b>{d.getDate()}</b><small>{fmt({month: "short"}).format(d)}</small></span>
     <div className="my-next-what" ref={sq.what}><b>{eventTitle(e)}</b><span className="sub">{timeOf(e.starts_at)}{roles.length === 0 && " · " + t("group.onRoster")}</span>
       <span className="my-next-chips">{roles.map(x => <span key={x} className="chip role">{x}</span>)}</span>
-      <button className="btn soft sm my-next-ics" onClick={() => downloadICS([e], eventTitle(e))}><Icon name="calendar" sm/> {t("group.addAllToCal")}</button></div></li>;
+      {!narrow && ics}</div>
+    {narrow && ics}</li>;
 }
 
 export function StatusChip({status, noIcon}: {status: string; noIcon?: boolean}){
@@ -253,12 +298,17 @@ function DayBar({day, off, canEdit, onClear}: {day: string; off: boolean; canEdi
 
 // Quadro da data do evento: quadrado com o lado igual à altura do cabeçalho (título, hora e chips).
 // Só com CSS a largura é calculada antes da altura esticar, e o quadro ficava retangular.
-function useSquareBadge(){
-  const what = useRef<HTMLDivElement>(null), badge = useRef<HTMLSpanElement>(null);
+export function useSquareBadge<W extends HTMLElement = HTMLDivElement>(){
+  const what = useRef<W>(null), badge = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
     const w = what.current, b = badge.current; if(!w || !b) return;
-    // O lado é a altura do texto ao lado; mede de novo quando o texto muda de tamanho, a tela gira ou a fonte termina de carregar.
-    const fit = () => { const h = Math.max(52, Math.ceil(w.getBoundingClientRect().height)) + "px"; b.style.width = h; b.style.height = h; };
+    // O lado é a altura do texto ao lado, mas nunca menor que o próprio selo com o respiro em cima e embaixo (o padding
+    // do CSS) nem que 64px; mede de novo quando o texto muda de tamanho, a tela gira ou a fonte termina de carregar.
+    const fit = () => {
+      b.style.height = "auto";
+      const h = Math.max(64, Math.ceil(b.getBoundingClientRect().height), Math.ceil(w.getBoundingClientRect().height)) + "px";
+      b.style.width = h; b.style.height = h;
+    };
     fit();
     const ro = typeof ResizeObserver === "function" ? new ResizeObserver(fit) : null; ro?.observe(w);
     window.addEventListener("resize", fit); document.fonts?.ready.then(fit);
@@ -299,6 +349,16 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
   const pickCover = (v: string) => act("cover", () => setCover(e.id, v));
   const reply = canReply && <Seg<"yes" | "no" | ""> className="event-reply" aria={t("group.myReply")} value={sent ? sent.to : cur} disabled={!!sent}
     options={[tab("yes", "check", t("group.confirm")), tab("no", "x", t("group.decline"))]} onChange={v => v && pick(v)}/>;
+  // Os mesmos chips em dois lugares: ao lado da data na tela larga e, no celular, numa linha própria embaixo,
+  // com a largura toda do card (ao lado da data não cabem). O CSS mostra um ou outro.
+  const chips = <>
+    {/* Sem título (ou com título igual ao tipo), o tipo já é o título: o chip só aparece quando o evento tem nome próprio. */}
+    {e.title && e.title.trim().toLowerCase() !== t("group.kind." + e.kind).toLowerCase() && <span className={"chip kind-" + e.kind}>{t("group.kind." + e.kind)}</span>}
+    {set && <span className="chip"><Icon name="music" sm/> {set.name}</span>}
+    {canEdit && needs.length > 0 && !isPast && <span className="chip st-no">{tn("group.needSub", needs.length)}</span>}
+    {e.kind === "rehearsal" && myAtt?.status === "present" && <span className="chip st-yes"><Icon name="check" sm/> {t("group.att.present")}</span>}
+    {pendingCheckIn(e, [me], g.attendance).length > 0 && <span className="chip st-pending"><Icon name="dot" sm/> {t("group.att.pending")}</span>}
+  </>;
   return <li ref={ref} className={"card event " + e.kind + (myStatus === "no" ? " declined" : "")}>
     <div className="event-sec"><h3 className="people-sub-h">{t("group.details")}</h3>
     <div className="event-info">
@@ -307,16 +367,10 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
       <div className="event-what" ref={sq.what}>
         <b>{eventTitle(e)}</b>
         <span className="sub">{timeOf(e.starts_at)}{e.call_at && " · " + t("group.callAt", {time: timeOf(e.call_at)})}{e.place && " · " + e.place}</span>
-        <span className="event-chips">
-          {/* Sem título (ou com título igual ao tipo), o tipo já é o título: o chip só aparece quando o evento tem nome próprio. */}
-          {e.title && e.title.trim().toLowerCase() !== t("group.kind." + e.kind).toLowerCase() && <span className={"chip kind-" + e.kind}>{t("group.kind." + e.kind)}</span>}
-          {set && <span className="chip"><Icon name="music" sm/> {set.name}</span>}
-          {canEdit && needs.length > 0 && !isPast && <span className="chip st-no">{tn("group.needSub", needs.length)}</span>}
-          {e.kind === "rehearsal" && myAtt?.status === "present" && <span className="chip st-yes"><Icon name="check" sm/> {t("group.att.present")}</span>}
-          {pendingCheckIn(e, [me], g.attendance).length > 0 && <span className="chip st-pending"><Icon name="dot" sm/> {t("group.att.pending")}</span>}
-        </span>
+        <span className="event-chips beside">{chips}</span>
       </div>
     </div>
+    <span className="event-chips below">{chips}</span>
     </div></div>
     <div className="event-more">
       {/* Cada pessoa: nome e situação em cima, as funções neste evento como chips embaixo. */}
@@ -394,24 +448,6 @@ function Attendance({e}: {e: GEvent}){
           aria-label={t("group.waOne", {name: personName(m.email)})} title={t("group.waOne", {name: personName(m.email)})}><Icon name="chat" sm/></a>}</span>
         <Seg className="sm" aria={t("group.attendance") + ": " + personName(m.email)} value={(a?.status || "") as Presence | ""} onChange={v => mark(m.email, v === a?.status ? "" : v)}
           options={[{v: "present", label: t("group.att.present")}, {v: "absent", label: t("group.att.absent")}]}/></li>; })}</ul>
-  </div>;
-}
-
-// ---------- repertórios do grupo ----------
-// Os repertórios dos admins entram aqui sozinhos (publish.ts), sempre na versão mais nova.
-function Setlists({canEdit}: {canEdit: boolean}){
-  const g = useGroups();
-  return <div className="group-setlists">
-    {canEdit && <p className="note info">{t("group.autoShare")}</p>}
-    {g.setlists.length ? <ul className="cards">{g.setlists.map(s => <li key={s.id} className="lib-card" onClick={() => openGroupSetlist(s)}>
-      <h3>{s.name}</h3>
-      <div className="meta"><span className="chip">{tn("song", s.songs)}</span></div>
-      <span className="when">{t("group.sharedBy", {name: personName(s.shared_by), when: ago(new Date(s.updated_at).getTime())})}</span>
-      <div className="foot group-set-foot" onClick={ev => ev.stopPropagation()}>
-        <button className="btn ghost sm" onClick={() => openGroupSetlist(s)}><Icon name="music" sm/> {t("group.openSetlist")}</button>
-        <button className="btn ghost sm" onClick={() => openGroupSetlist(s, true)}><Icon name="stage" sm/> {t("medley.stage")}</button>
-      </div>
-    </li>)}</ul> : <div className="card empty-state"><Icon name="music"/><strong>{t("group.noSetlists")}</strong><span>{t(canEdit ? "group.noSetlistsAdmin" : "group.noSetlistsSub")}</span></div>}
   </div>;
 }
 

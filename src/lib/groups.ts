@@ -50,6 +50,8 @@ export const amGroupAdmin = () => {
   const {admin} = useAuth.getState(), me = myEmail();
   return admin || useGroups.getState().members.some(m => m.email === me && m.is_admin);
 };
+// Pode mudar músicas e repertórios do grupo (líder ou admin do app)? Redesenha quando isso muda.
+export function useCanEdit(){ useGroups(s => s.members); useAuth(s => s.admin); useAuth(s => s.email); return amGroupAdmin(); }
 
 // ---------- leitura ----------
 // Eventos de até 6 meses atrás (frequência) até 1 ano à frente.

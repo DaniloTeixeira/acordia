@@ -1,9 +1,10 @@
-// Sincroniza músicas e repertórios com a nuvem (Supabase). O aparelho continua sendo de onde a tela
-// lê, e funciona sem internet: cada mudança entra numa fila (guardada nas preferências do aparelho)
+// Sincroniza as músicas e os repertórios do GRUPO com a nuvem (Supabase): quem lidera o grupo (ou o admin do
+// app) envia, todos os membros baixam. O aparelho continua sendo de onde a tela lê, e funciona sem internet: cada mudança entra numa fila (guardada nas preferências do aparelho)
 // e sobe quando dá. Primeiro baixa o que mudou em outros aparelhos desde a última vez, depois envia a
 // fila. Vale a mudança mais recente (regras em syncrules.ts).
 import { create } from "zustand";
 import { cloud, useAuth } from "./cloud";
+import { useGroups, loadGroups, amGroupAdmin } from "./groups";
 import * as store from "./store";
 import { decide, qkey, isAutoSetlist, type Queue, type Remote } from "./syncrules";
 import type { Song, Medley } from "./types";
@@ -12,8 +13,10 @@ export type SyncState = "off" | "idle" | "syncing" | "offline" | "error";
 export const useSync = create<{state: SyncState; pending: number; last: number}>(() => ({state: "off", pending: 0, last: 0}));
 
 // Preferências do aparelho: a fila, de quem são os dados guardados aqui e até onde já baixou.
-const QUEUE = "syncQueue", OWNER = "syncUser", PULLED = "syncPulledAt";
-const TABLE = {s: "songs", m: "medleys"} as const;
+// OWNER guarda o grupo de quem são os dados deste aparelho.
+const QUEUE = "syncQueue", OWNER = "syncGroup", PULLED = "syncPulledAt";
+const TABLE = {s: "group_songs", m: "group_medleys"} as const;
+// user é o id do grupo sincronizado ("" = desligada).
 let user = "", timer: ReturnType<typeof setTimeout> | undefined, tick: ReturnType<typeof setInterval> | undefined;
 let running: Promise<void> | null = null, again = false;
 
@@ -23,37 +26,40 @@ const pulled = (): {s: string; m: string} => { const v = store.data.settings[PUL
 
 // Cada mudança feita aqui vai para a fila e sobe logo depois (várias seguidas viram um envio só).
 store.watchChanges((kind, id, op) => {
-  if(!user) return;
+  // Quem não lidera o grupo só baixa: o que mudar aqui fica só neste aparelho e não vai para a fila.
+  if(!user || !amGroupAdmin()) return;
   const q = queue(); q[qkey(kind, id)] = {op, at: Date.now()}; saveQueue(q);
   schedule();
 });
 function schedule(ms = 1500){ clearTimeout(timer); timer = setTimeout(() => { syncNow(); }, ms); }
 
-// Liga e desliga sozinha conforme a pessoa entra e sai da conta.
+// Liga e desliga sozinha conforme a pessoa entra e sai da conta e o grupo dela carrega.
 export function initSync(){
   const check = () => {
-    const {status, profile} = useAuth.getState();
-    if(status === "in" && profile && profile.id !== user) startSync(profile.id);
+    const {status} = useAuth.getState(), g = useGroups.getState(), gid = g.gid;
+    // O grupo ainda não carregou nesta sessão: carrega (uma vez; se falhar, a tela do Grupo oferece tentar de novo).
+    if(status === "in" && !gid && !g.loaded && !g.loading && !g.error) loadGroups();
+    if(status === "in" && gid && gid !== user){ if(user) stopSync(); startSync(gid); }
     else if(status !== "in" && user) stopSync();
   };
-  useAuth.subscribe(check); check();
+  useAuth.subscribe(check); useGroups.subscribe(check); check();
 }
 
-function startSync(uid: string){
+function startSync(gid: string){
   const owner = (store.data.settings[OWNER] as string) || "";
-  if(owner !== uid){
-    // Os dados guardados aqui eram de outra conta: saem, e os desta conta descem da nuvem.
-    if(owner){ store.wipeLibrary(); saveQueue({}); store.setSetting(PULLED, {s: "", m: ""}); }
+  if(owner !== gid){
+    // Os dados guardados aqui eram de outro grupo (ou de antes dos grupos): saem, e os deste grupo descem da nuvem.
+    if(owner || !amGroupAdmin()){ store.wipeLibrary(); saveQueue({}); store.setSetting(PULLED, {s: "", m: ""}); }
     else {
-      // Primeiro login neste aparelho: o que já estava salvo aqui sobe para a conta.
+      // Quem lidera, no primeiro uso do grupo neste aparelho: o que já estava salvo aqui sobe para o grupo.
       const q: Queue = {};
       store.data.songs.forEach(s => { q[qkey("s", s.id)] = {op: "put", at: s.updatedAt || Date.now()}; });
       store.data.medleys.forEach(m => { if(!isAutoSetlist(m)) q[qkey("m", m.id)] = {op: "put", at: m.updatedAt || Date.now()}; });
       saveQueue(q); store.setSetting(PULLED, {s: "", m: ""});
     }
-    store.setSetting(OWNER, uid);
+    store.setSetting(OWNER, gid);
   }
-  user = uid;
+  user = gid;
   useSync.setState({state: "idle", pending: Object.keys(queue()).length});
   addEventListener("online", wake); document.addEventListener("visibilitychange", wake);
   tick = setInterval(() => { if(!document.hidden) syncNow(); }, 120000);
@@ -92,13 +98,15 @@ export function syncNow(): Promise<void> {
 // Envia a fila em lotes. Só tira da fila o que não mudou de novo durante o envio.
 async function push(){
   const q = queue(), keys = Object.keys(q); if(!keys.length) return;
+  // Perdeu a liderança: o que sobrou na fila não pode subir.
+  if(!amGroupAdmin()){ saveQueue({}); return; }
   for(const kind of ["s", "m"] as const){
     const rows = keys.filter(k => k.startsWith(kind + ":")).map(k => {
       const id = k.slice(2), e = q[k], obj = kind === "s" ? store.data.songs.get(id) : store.data.medleys.get(id);
       return e.op === "del" || !obj ? {id, data: null, updated_at: e.at, deleted: true} : {id, data: obj, updated_at: obj.updatedAt || e.at, deleted: false};
     });
     for(let i = 0; i < rows.length; i += 200){
-      const {error} = await cloud.rpc("sync_push", {kind: TABLE[kind], rows: rows.slice(i, i + 200)});
+      const {error} = await cloud.rpc("group_sync_push", {gid: user, kind: kind === "s" ? "songs" : "medleys", rows: rows.slice(i, i + 200)});
       if(error) throw error;
     }
   }
@@ -113,7 +121,7 @@ async function pull(){
   const received = new Set<string>(); let got = 0;
   for(const kind of ["s", "m"] as const){
     for(;;){
-      let req = cloud.from(TABLE[kind]).select("id,data,updated_at,deleted,server_at").order("server_at").limit(500);
+      let req = cloud.from(TABLE[kind]).select("id,data,updated_at,deleted,server_at").eq("group_id", user).order("server_at").limit(500);
       if(marks[kind]) req = req.gt("server_at", marks[kind]);
       const {data, error} = await req;
       if(error) throw error;

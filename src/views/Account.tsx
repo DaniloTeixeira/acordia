@@ -9,10 +9,10 @@ import { reduced, flashSaved, norm } from "../lib/util";
 import { toast, confirmDialog, openDialog, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { DateInput } from "../ui/DateInput";
-import { useGroups, loadGroups, chooseGroup, setMemberRole, respond, outMark } from "../lib/groups";
+import { useGroups, loadGroups, chooseGroup, setMemberRole, outMark } from "../lib/groups";
 import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, streakLevel, fmtPhone, maskPhone, capFirst } from "../lib/calendar";
 import { sortRoles, joinRoles, splitRoles } from "../lib/roles";
-import { MemberRoles, RolePicker, StatusChip, GroupMark, eventTitle, timeOf, longDay, openGroup } from "./Group";
+import { MemberRoles, RolePicker, ReplySeg, GroupMark, eventTitle, timeOf, longDay, openGroup } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
 
 const BASE = import.meta.env.BASE_URL;
@@ -453,31 +453,23 @@ function MyAttendance(){
 
 // O próximo evento do grupo aberto em que a pessoa está escalada, com Confirmar e Não posso ali mesmo.
 function MyNext(){
-  const {g, me, ok} = useMyGroup(), [busy, setBusy] = useState(""), lock = useLock();
+  const {g, me, ok} = useMyGroup();
   if(!ok) return null;
   // Um evento que começou há pouco ainda conta como o "próximo" (a pessoa pode estar a caminho).
   const soon = Date.now() - 3 * 3600 * 1000;
   const next = g.events.filter(e => new Date(e.starts_at).getTime() > soon && g.roster.some(r => r.event_id === e.id && r.email === me))
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at))[0];
-  const rows = next ? g.roster.filter(r => r.event_id === next.id && r.email === me) : [], st = rows[0]?.status || "pending";
+  const rows = next ? g.roster.filter(r => r.event_id === next.id && r.email === me) : [];
   const roles = sortRoles(rows.map(r => r.role).filter(Boolean));
-  const answer = (v: "yes" | "no") => lock(async () => {
-    const to = st === v ? "pending" : v; setBusy(v);
-    const ok = await respond(next!.id, to).finally(() => setBusy(""));
-    toast(t(!ok ? "profile.saveFail" : to === "yes" ? "group.confirmed" : to === "no" ? "group.declined" : "group.saved"));
-  });
   return <Sec id="profile-next" className="profile-next" title={t("profile.next")}>
     {next ? <div className="profile-next-box">
       {/* A situação ao lado do título; embaixo da data, "Suas funções:" e os chips na mesma linha. */}
-      <div className="profile-next-what"><span className="profile-next-title"><b>{eventTitle(next)}</b><StatusChip status={st}/></span>
+      <div className="profile-next-what"><span className="profile-next-title"><b>{eventTitle(next)}</b>
+          <button className="link-btn" onClick={() => openGroup("agenda")}>{t("profile.seeAgenda")}</button></span>
         <span className="sub">{longDay(new Date(next.starts_at))} · {timeOf(next.starts_at)}{next.place && " · " + next.place}</span>
         {roles.length > 0 && <div className="profile-next-roles"><span className="profile-next-label">{t("profile.nextRoles")}</span>
           <span className="profile-next-chips">{roles.map(r => <span key={r} className="chip role">{r}</span>)}</span></div>}</div>
-      <div className="profile-next-actions">
-        <button className={"btn sm" + (st === "yes" ? " primary" : " ghost")} aria-pressed={st === "yes"} aria-busy={busy === "yes"} onClick={() => answer("yes")}>{busy === "yes" ? <Spin/> : <Icon name="check" sm/>} {t("group.confirm")}</button>
-        <button className={"btn sm" + (st === "no" ? " danger armed" : " ghost")} aria-pressed={st === "no"} aria-busy={busy === "no"} onClick={() => answer("no")}>{busy === "no" ? <Spin/> : <Icon name="x" sm/>} {t("group.decline")}</button>
-        <button className="link-btn" onClick={() => openGroup("agenda")}>{t("profile.seeAgenda")}</button>
-      </div>
+      <ReplySeg e={next}/>
     </div> : <span className="sub">{t("profile.nextNone")} <button className="link-btn" onClick={() => openGroup("agenda")}>{t("profile.seeAgenda")}</button></span>}
   </Sec>;
 }
@@ -662,7 +654,7 @@ export function PeoplePage(){
   if(!admin) return null;
   return <section className="view" id="view-people" data-view="people" aria-labelledby="people-h">
     <div className="view-head"><div>
-      <button className="btn ghost sm back" id="people-back" onClick={() => go("profile")}><Icon name="back" sm/><span>{t("profile.title")}</span></button>
+      <button className="back-link" id="people-back" onClick={() => go("profile")}><Icon name="back" sm/><span>{t("profile.title")}</span></button>
       <h1 id="people-h">{t("people.title")}</h1><p className="sub">{t("people.sub")}</p></div></div>
     <People me={email}/>
   </section>;

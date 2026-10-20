@@ -8,6 +8,17 @@ export function useSynced(value: string): [string, (v: string) => void] {
   return [v, setV];
 }
 
+// Se a media query vale agora; redesenha quando muda (tela girou, janela mudou de largura).
+export function useMedia(query: string): boolean {
+  const [on, setOn] = useState(() => matchMedia(query).matches);
+  useEffect(() => {
+    const mq = matchMedia(query), f = () => setOn(mq.matches);
+    f(); mq.addEventListener("change", f);
+    return () => mq.removeEventListener("change", f);
+  }, [query]);
+  return on;
+}
+
 // Celular em pé com o teclado (ou o braço) mais largo que a tela: vale sugerir deitar o aparelho.
 // dep: o que muda o conteúdo (outro exercício, outra oitava), para medir de novo.
 export function useTooWide(ref: RefObject<HTMLElement | null>, dep?: unknown): boolean {

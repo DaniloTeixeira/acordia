@@ -12,9 +12,10 @@ import { Seg } from "../ui/Seg";
 import { Select, type Options } from "../ui/Select";
 import { useSynced } from "../ui/hooks";
 import { useDragSort } from "../ui/dragSort";
-import { useGroups, loadGroups } from "../lib/groups";
+import { useGroups, loadGroups, useCanEdit } from "../lib/groups";
 import { Sheet, SheetPane, copySheet, sheetMode } from "./Sheet";
-import { confirmDeleteMedley, openLibrary } from "./Library";
+import { confirmDeleteMedley } from "./Library";
+import { openGroup } from "./Group";
 import type { Medley, MedleyItem, SongItem, Song, Moment } from "../lib/types";
 
 const { data } = store;
@@ -100,42 +101,43 @@ export function Repertoire(){
   useData();
   // Membros do grupo para a lista de quem faz o solo (usa a cópia do aparelho se já houver).
   useEffect(() => { if(!useGroups.getState().loaded) loadGroups(); }, []);
-  const pane = data.settings.pane === "sheet" ? "sheet" : "edit";
+  // Quem não lidera o grupo só lê: fica na folha, sem editar, excluir ou criar.
+  const canEdit = useCanEdit();
+  const pane = !canEdit || data.settings.pane === "sheet" ? "sheet" : "edit";
   const m = current(), back = data.medleys.get(data.settings.returnTo as string);
+  const leave = () => openGroup("setlists");
   const n = songItems(m).length, off = m.options.transpose || 0;
   const sub = (n ? t("medley.saved", {songs: songsN(n)}) : t("medley.startHint")) + (off ? " · " + t("medley.transposed", {n: (off > 0 ? "+" : "") + off}) : "");
   return <section className="view" id="view-medley" data-view="medley" aria-labelledby="medley-name">
     <div className="view-head">
       <div className="title-wrap">
-        {/* Medley volta para o repertório de onde veio; o resto volta para a lista na Biblioteca. */}
+        {/* Medley volta para o repertório de onde veio; o resto volta para os Repertórios do Grupo. */}
         <div className="ctx" id="medley-ctx">
-          <button className="btn ghost sm back" id="ctx-back" onClick={() => { if(isMedley(m) && back) openMedley(back.id); else openLibrary(isMedley(m) ? "medleys" : "setlists"); }}>
-            <Icon name="back" sm/><span id="ctx-back-label">{t("ctx.back", {name: isMedley(m) && back ? back.name : t("nav.library")})}</span></button>
+          <button className="back-link" id="ctx-back" onClick={() => { if(isMedley(m) && back) openMedley(back.id); else leave(); }}>
+            <Icon name="back" sm/><span id="ctx-back-label">{t("ctx.back", {name: isMedley(m) && back ? back.name : t("group.setlists")})}</span></button>
           {isMedley(m) && <span className="chip accent"><Icon name="link" sm/><span>{t("ctx.medley")}</span></span>}
         </div>
-        <MedleyName key={m.id} m={m}/>
+        {canEdit ? <MedleyName key={m.id} m={m}/> : <h1 id="medley-name" className="title-read">{m.name}</h1>}
         <p className="sub" id="medley-sub">{sub}</p>
       </div>
       <div className="actions">
-        <button className="icon-btn danger line" id="btn-del-medley" aria-label={t("common.delete")} title={t("common.delete")} onClick={async () => {
+        {canEdit && <><button className="icon-btn danger line" id="btn-del-medley" aria-label={t("common.delete")} title={t("common.delete")} onClick={async () => {
           // Medley volta para o repertório de onde veio; repertório vai para a Biblioteca.
-          if(await confirmDeleteMedley(m) && !(isMedley(m) && back)) openLibrary(isMedley(m) ? "medleys" : "setlists");
+          if(await confirmDeleteMedley(m) && !(isMedley(m) && back)) leave();
         }}><Icon name="trash"/></button>
-        <button className="btn ghost" id="btn-new-medley" data-tip-key="tip.new" aria-label={t("medley.new")} onClick={newMedley}><Icon name="plus"/><span className="label-lg">{t("medley.new")}</span></button>
+        <button className="btn ghost" id="btn-new-medley" data-tip-key="tip.new" aria-label={t("medley.new")} onClick={() => newMedley()}><Icon name="plus"/><span className="label-lg">{t("medley.new")}</span></button></>}
         <button className="btn primary" id="btn-stage" data-tip-key="tip.stage" onClick={() => useUI.setState({stageOpen: true})}><Icon name="stage"/><span>{t("medley.stage")}</span></button>
       </div>
     </div>
-    <Seg className="block pane-toggle" id="pane-toggle" aria={t("pane.aria")} value={pane} onChange={setPane}
-      options={[{v: "edit", label: t("pane.edit")}, {v: "sheet", label: t("pane.sheet")}]}/>
+    {canEdit && <Seg className="block pane-toggle" id="pane-toggle" aria={t("pane.aria")} value={pane} onChange={setPane}
+      options={[{v: "edit", label: t("pane.edit")}, {v: "sheet", label: t("pane.sheet")}]}/>}
     <div className="medley-grid" id="medley-grid" data-pane={pane}>
       <div className="pane pane-edit">
         {/* Dica: no celular logo abaixo das abas Editar | Ver folha; no computador, entre a lista e os botões. */}
         {m.items.length > 1 && <DragHint at="top"/>}
         <Items m={m}/>
-        {m.items.length > 1 && <DragHint at="bottom"/>}
         <div className="add-bar">
-          <button className="btn soft" id="add-chords" onClick={() => addItem("")}><Icon name="plus"/><span>{t("add.chords")}</span></button>
-          <button className="btn soft" id="add-lyrics" onClick={() => addItem("letra")}><Icon name="text"/><span>{t("add.lyrics")}</span></button>
+          <button className="btn soft" id="add-chords" onClick={() => addItem("")}><Icon name="plus"/><span>{t("add.song")}</span></button>
           <button className="btn soft" id="add-library" data-tip-key="tip.addLibrary" onClick={() => openDialog("picker", {})}><Icon name="library"/><span>{t("add.library")}</span></button>
           <button className="btn soft" id="add-medley" data-tip-key="tip.addMedley" hidden={isMedley(m)} onClick={addMedleyBlock}><Icon name="link"/><span>{t("add.medley")}</span></button>
         </div>
@@ -203,8 +205,8 @@ function MomentSeg({m, it}: {m: Medley; it: SongItem | MedleyItem}){
     onChange={(v: Moment) => { it.moment = v; store.saveMedley(m); }}
     options={[{v: "", label: t("item.momentLouvor")}, {v: "pos", label: t("item.momentPos")}]}/>;
 }
-const momentChip = (it: SongItem | MedleyItem) => it.moment === "pos" ? <span key="mo" className="chip moment-chip">{t("item.momentPos")}</span>
-  : <span key="mo" className="chip moment-chip louvor">{t("item.momentLouvor")}</span>;
+// Louvor é o padrão e não ganha chip (seria ruído em toda música); só a Pós-pregação aparece.
+const momentChip = (it: SongItem | MedleyItem) => it.moment === "pos" ? <span key="mo" className="chip moment-chip">{t("item.momentPos")}</span> : null;
 
 function MedleyCard({m, it, i}: {m: Medley; it: MedleyItem; i: number}){
   const md = data.medleys.get(it.medleyId);
@@ -295,10 +297,14 @@ function ItemCard({m, it, i}: {m: Medley; it: SongItem; i: number}){
         {!isMedley(m) && <MomentSeg m={m} it={it}/>}</div>
       <textarea className="input song-text" spellCheck={false} aria-label={t("item.textAria", {n:i+1})} placeholder={t(letra ? "item.phLyrics" : "item.phChords")}
         value={text} onChange={ev => { setText(ev.target.value); song.text = ev.target.value; song.title = songTitle(ev.target.value); saveSong(); }}/>
+      {/* Só o tom fica à vista (o tom em que a música toca; a cifra é transposta para ele). Solo, BPM e referência
+          ficam em "Mais detalhes", aberto sozinho quando algum já está preenchido. */}
       <div className="fields item-fields">
-        {/* Um campo só para o tom: o tom em que a música toca (a cifra é transposta para ele). */}
         <label className="field" data-key-field hidden={letra}>{t("item.keyShort")}<Select f="target" value={e.target}
           options={keyOptions(key ? t("item.autoKey", {key}) : t("item.auto"))} onChange={setTarget}/></label>
+      </div>
+      <details className="item-more" open={!!(it.solo || song.bpm || song.ref)}><summary>{t("item.more")}</summary>
+      <div className="fields item-fields">
         <SoloField hidden={letra} value={it.solo || ""} onChange={v => { it.solo = v; store.saveMedley(m); }}/>
         <label className="field" hidden={letra}>{t("item.bpm")}<input className="input" data-f="bpm" type="number" inputMode="numeric" min={20} max={300} placeholder="—" value={bpm}
           onChange={ev => { setBpm(ev.target.value); const v = +ev.target.value; song.bpm = v > 0 && v < 400 ? String(Math.round(v)) : ""; saveSong(); }}/></label>
@@ -311,6 +317,7 @@ function ItemCard({m, it, i}: {m: Medley; it: SongItem; i: number}){
             song.ref = v; setRef(v); saveSong();
           }}/></label>
       </div>
+      </details>
     </div></div></div>
   </li>;
 }

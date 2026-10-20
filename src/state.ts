@@ -9,10 +9,10 @@ import { setLang, getLang, t, type Lang } from "./lib/i18n";
 import { vt, type VtKind } from "./lib/util";
 import type { Song } from "./lib/types";
 
-// "profile", "people" e "group" não estão na barra de abas: o perfil abre pela bolinha, Usuários (só admin)
-// pelo Perfil, e o grupo pelo Início.
-export type View = "home" | "medley" | "library" | "group" | "study" | "tools" | "profile" | "people";
-export const VIEWS: View[] = ["home", "medley", "library", "group", "study", "tools", "profile", "people"];
+// A barra de abas tem Início, Grupo e Mais. O repertório (medley) fica dentro do Grupo; o perfil abre pela
+// bolinha e Usuários (só admin) pelo Perfil.
+export type View = "home" | "medley" | "group" | "study" | "tools" | "more" | "profile" | "people";
+export const VIEWS: View[] = ["home", "medley", "group", "study", "tools", "more", "profile", "people"];
 
 export interface ToastAction { label: string; run: () => void }
 export interface Toast { id: number; msg: string; action?: ToastAction; sticky?: boolean; out?: boolean }
@@ -108,8 +108,25 @@ export function viewFromHash(): View | null {
   return (VIEWS as string[]).includes(h) ? h as View : null;
 }
 export function viewUrl(view: View){ return location.pathname + location.search + (view === "medley" ? "" : "#" + view); }
+// Palco e janelas abertas ganham uma entrada no histórico: o voltar (botão do mouse, gesto do celular) fecha
+// o que está por cima em vez de sair da página. "depth" conta as entradas que criamos; "skip" ignora o
+// popstate que nós mesmos provocamos ao fechar pela interface.
+let depth = 0, skip = false;
+const overlays = (s: {stageOpen: boolean; dialogs: object}) => (s.stageOpen ? 1 : 0) + Object.keys(s.dialogs).length;
+useUI.subscribe(s => {
+  const n = overlays(s);
+  if(n > depth){ while(depth < n){ history.pushState(null, "", location.href); depth++; } }
+  else if(n < depth){ const d = depth - n; depth = n; skip = true; history.go(-d); }
+});
+function closeTopOverlay(){
+  const open = document.querySelectorAll<HTMLDialogElement>("dialog[open]");
+  if(open.length) open[open.length - 1].close("cancel");
+  else useUI.setState({stageOpen: false});
+}
 addEventListener("popstate", () => {
-  const v = viewFromHash() ?? (location.hash ? null : "medley");
+  if(skip){ skip = false; return; }
+  if(depth > 0){ depth--; closeTopOverlay(); return; }
+  const v =viewFromHash() ?? (location.hash ? null : "medley");
   if(v && v !== useUI.getState().view) go(v, {push: false});
 });
 
