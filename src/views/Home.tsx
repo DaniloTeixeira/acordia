@@ -52,7 +52,7 @@ export function Home(){
     {group ? <>
       {next && <NextCard e={next} mine={mine.includes(next)} leader={leader} wide={topWide === "next"}/>}
       {needs.length > 0 && <Block id="home-needs" className="home-needs" wide={topWide === "needs"} title={t("home.needsSub")} count={needs.length}>
-        <ul className="my-next-list">{needs.map(e => <EventRow key={e.id} e={e} chip={<span className="event-chips"><span className="chip st-no">{tn("group.needSub", needsCover(rosterOf(e)).length)}</span></span>}/>)}</ul>
+        <ul className="my-next-list">{needs.map(e => <EventRow key={e.id} e={e} chip={<span className="event-chips need-end"><span className="chip st-no">{tn("group.needSub", needsCover(rosterOf(e)).length)}</span></span>} extra={<span className="event-chips need-under"><span className="chip st-no">{tn("group.needSub", needsCover(rosterOf(e)).length)}</span></span>}/>)}</ul>
       </Block>}
       {waiting.length > 0 && <Block id="home-waiting" className="home-needs home-waiting" wide={topWide === "waiting"} title={t("home.pendingTitle")} count={waiting.length} link={{label: t("home.seeAgenda"), run: () => openGroup("agenda")}}>
         <ul className="home-waiting-list">{waiting.map(e => <WaitingItem key={e.id} e={e}/>)}</ul>

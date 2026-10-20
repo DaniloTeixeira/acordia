@@ -7247,6 +7247,12 @@ dialog.ear-dlg {
   font-weight: 600;
   color: var(--bad);
 }
+.field-req {
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 500;
+  opacity: 0.75;
+}
 .auth-notices {
   display: flex;
   flex-direction: column;
@@ -8799,14 +8805,28 @@ dialog.member-dlg {
   .home-row > .chip {
     margin-left: 0;
   }
-  /* "Precisam de substituto": o chip igual ao da Agenda, na largura toda do card. */
-  .home-row > .event-chips {
+}
+/* "Precisam de substituto": na tela larga o chip fica embaixo da hora, dentro da coluna do texto; no celular
+   fica embaixo de tudo, na largura toda do card. */
+.home-row > .event-chips.need-end {
+  display: none;
+}
+.home-row .event-chips.need-under {
+  display: flex;
+  margin-top: 6px;
+}
+@media (max-width: 599px) {
+  .home-row > .event-chips.need-end {
+    display: flex;
     flex: 1 1 100%;
   }
-  .home-row > .event-chips .chip {
+  .home-row > .event-chips.need-end .chip {
     flex: 1 1 auto;
     justify-content: center;
     text-align: center;
+  }
+  .home-row .event-chips.need-under {
+    display: none;
   }
 }
 /* Voltar dentro do cabeçalho da página (Grupo, Estudo, Ferramentas): colado no topo, sem a margem de cima. */
