@@ -9,6 +9,7 @@ import { reduced, flashSaved, norm } from "../lib/util";
 import { toast, confirmDialog, openDialog, closeDialog, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { DateInput } from "../ui/DateInput";
+import { FieldLabel } from "../ui/FieldLabel";
 import { useGroups, loadGroups, chooseGroup, setMemberRole, outMark } from "../lib/groups";
 import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, streakLevel, fmtPhone, maskPhone, capFirst } from "../lib/calendar";
 import { sortRoles, joinRoles, splitRoles } from "../lib/roles";
@@ -603,8 +604,10 @@ export function PersonEdit({r, onDone, inline}: {r: Allowed; onDone: (saved: boo
 // Validação do e-mail ao adicionar uma pessoa (como no login): aparece ao sair do campo ou ao tentar
 // adicionar, e some quando fica certo.
 export function useEmailCheck(email: string){
-  const [touched, setTouched] = useState(false);
-  return {bad: touched && !!email.trim() && !validEmail(email), blur: () => setTouched(true), fail: () => setTouched(true), reset: () => setTouched(false)};
+  const [touched, setTouched] = useState(false), [tried, setTried] = useState(false);
+  // Vazio só reclama depois de tentar adicionar; incompleto reclama ao sair do campo.
+  return {bad: touched && (email.trim() ? !validEmail(email) : tried), empty: !email.trim(), blur: () => setTouched(true),
+    fail: () => { setTouched(true); setTried(true); }, reset: () => { setTouched(false); setTried(false); }};
 }
 // Nome, e-mail e nascimento de quem está sendo adicionado, cada um com o rótulo em cima.
 export function PersonFields({idp, name, onName, email, onEmail, phone, onPhone, birthday, onBirthday, check}: {idp: string; name: string; onName: (v: string) => void;
@@ -612,10 +615,10 @@ export function PersonFields({idp, name, onName, email, onEmail, phone, onPhone,
   return <>
     <div className="field"><label htmlFor={idp + "-name"}>{t("profile.name")}</label>
       <input className="input" id={idp + "-name"} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onChange={e => onName(capFirst(e.target.value))}/></div>
-    <div className="field"><label htmlFor={idp + "-email"}>{t("auth.email")}</label>
+    <div className="field"><FieldLabel htmlFor={idp + "-email"} required>{t("auth.email")}</FieldLabel>
       <input className="input" id={idp + "-email"} type="email" inputMode="email" autoComplete="off" placeholder={t("people.emailPh")} value={email}
-        aria-invalid={check.bad} aria-describedby={check.bad ? idp + "-email-err" : undefined} onBlur={check.blur} onChange={e => onEmail(e.target.value)}/>
-      {check.bad && <span className="field-error" id={idp + "-email-err"}>{t("auth.badEmail")}</span>}</div>
+        aria-required="true" aria-invalid={check.bad} aria-describedby={check.bad ? idp + "-email-err" : undefined} onBlur={check.blur} onChange={e => onEmail(e.target.value)}/>
+      {check.bad && <span className="field-error" id={idp + "-email-err"}>{t(check.empty ? "auth.needEmail" : "auth.badEmail")}</span>}</div>
     <div className="field phone"><label htmlFor={idp + "-phone"}>{t("profile.phone")}</label>
       <input className="input" id={idp + "-phone"} type="tel" inputMode="tel" autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} onChange={e => onPhone(maskPhone(e.target.value))}/></div>
     <div className="field birthday"><label htmlFor={idp + "-birthday"}>{t("profile.birthday")}</label>

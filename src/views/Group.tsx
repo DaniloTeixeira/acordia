@@ -207,13 +207,16 @@ export function Group(){
 }
 
 function NewGroup(){
-  const [name, setName] = useState(""), [busy, setBusy] = useState(false), lock = useLock();
-  return <form className="people-add group-new" onSubmit={e => { e.preventDefault(); if(!name.trim()) return; lock(async () => {
+  const [name, setName] = useState(""), [busy, setBusy] = useState(false), [tried, setTried] = useState(false), lock = useLock();
+  // Botão sempre ativo: vazio avisa embaixo do campo e leva o foco para ele.
+  const bad = tried && !name.trim();
+  return <form className="people-add group-new" onSubmit={e => { e.preventDefault(); if(!name.trim()){ setTried(true); document.getElementById("group-name-new")?.focus(); return; } lock(async () => {
     setBusy(true); const ok = await createGroup(name).finally(() => setBusy(false));
-    toast(t(ok ? "group.created" : "profile.saveFail", {name: name.trim()})); if(ok) setName("");
-  }); }}>
-    <input className="input" id="group-name-new" maxLength={80} placeholder={t("group.namePh")} aria-label={t("group.name")} value={name} onChange={e => setName(e.target.value)}/>
-    <button className="btn primary" disabled={!name.trim()} aria-busy={busy}>{busy ? <Spin/> : <Icon name="plus" sm/>} {t("group.create")}</button>
+    toast(t(ok ? "group.created" : "profile.saveFail", {name: name.trim()})); if(ok){ setName(""); setTried(false); }
+  }); }} noValidate>
+    <input className="input" id="group-name-new" maxLength={80} placeholder={t("group.namePh")} aria-label={t("group.name")} value={name} aria-invalid={bad} aria-describedby={bad ? "group-name-new-err" : undefined} onChange={e => setName(e.target.value)}/>
+    {bad && <span className="field-error" id="group-name-new-err">{t("group.needName")}</span>}
+    <button className="btn primary" aria-busy={busy}>{busy ? <Spin/> : <Icon name="plus" sm/>} {t("group.create")}</button>
   </form>;
 }
 
@@ -507,7 +510,7 @@ function Members({canEdit}: {canEdit: boolean}){
           <RolePicker value={roles} onChange={setRoles}/>
           {/* Adicionar por último, embaixo das funções. */}
           <div className="member-roles-foot">
-            <button className="btn primary" disabled={!email.trim()} aria-busy={busy === "add"}>{busy === "add" ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
+            <button className="btn primary" aria-busy={busy === "add"}>{busy === "add" ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
           </div>
         </form></>}
       <SecHead as="h3" className="people-sub-h">{t("group.listTitle")} <span className="count-chip">{filter.nq ? shown.length + "/" + g.members.length : g.members.length}</span></SecHead>

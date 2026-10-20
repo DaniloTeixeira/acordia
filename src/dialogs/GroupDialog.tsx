@@ -18,11 +18,12 @@ const enterClicks = (id: string) => (e: React.KeyboardEvent) => {
 // A foto e o formato salvam na hora, como antes; o nome, no Salvar.
 export function GroupDialog(){
   const g = useGroups(), appAdmin = useAuth(s => s.admin), group = g.groups.find(x => x.id === g.gid);
-  const [name, setName] = useState(group?.name || ""), [busy, setBusy] = useState(false), lock = useLock();
+  const [name, setName] = useState(group?.name || ""), [busy, setBusy] = useState(false), [tried, setTried] = useState(false), lock = useLock();
   if(!group) return null;
-  const changed = !!name.trim() && name.trim() !== group.name, taken = groupNameTaken(name, group.id);
+  const changed = !!name.trim() && name.trim() !== group.name, taken = groupNameTaken(name, group.id), empty = tried && !name.trim();
   const save = (e: React.MouseEvent<HTMLButtonElement>) => { const d = e.currentTarget.closest("dialog"); lock(async () => {
-    if(taken) return;
+    // Botão sempre ativo: nome vazio ou repetido avisa embaixo do campo e leva o foco para ele.
+    if(!name.trim() || taken){ setTried(true); document.getElementById("group-rename")?.focus(); return; }
     if(changed){ setBusy(true); const ok = await renameGroup(group.id, name).finally(() => setBusy(false)); if(!ok) return toast(t("profile.saveFail")); toast(t("group.saved")); }
     d?.close("ok");
   }); };
@@ -37,24 +38,24 @@ export function GroupDialog(){
       <div className="dlg-body">
         {appAdmin && <GroupPhoto/>}
         <label className="field"><span>{t("group.name")}</span>
-          <input className="input" id="group-rename" maxLength={80} value={name} aria-invalid={taken} aria-describedby={taken ? "group-rename-err" : undefined}
+          <input className="input" id="group-rename" maxLength={80} value={name} aria-invalid={taken || empty} aria-describedby={taken || empty ? "group-rename-err" : undefined}
             onChange={e => setName(e.target.value)} onKeyDown={enterClicks("group-save")}/>
-          {taken && <span className="field-error" id="group-rename-err">{t("group.nameTaken")}</span>}</label>
+          {(taken || empty) && <span className="field-error" id="group-rename-err">{t(taken ? "group.nameTaken" : "group.needName")}</span>}</label>
         {appAdmin && <button type="button" className="btn ghost danger" id="group-delete" onClick={remove}><Icon name="trash" sm/> {t("group.delete")}</button>}
       </div>
       <div className="dlg-foot"><button className="btn ghost" value="cancel">{t("common.cancel")}</button>
-        <button type="button" className="btn primary" id="group-save" disabled={!name.trim() || taken} aria-busy={busy} onClick={save}>{busy ? <Spin/> : <Icon name="check" sm/>} {t("common.save")}</button></div>
+        <button type="button" className="btn primary" id="group-save" aria-busy={busy} onClick={save}>{busy ? <Spin/> : <Icon name="check" sm/>} {t("common.save")}</button></div>
     </form>
   </Dialog>;
 }
 
 // Novo grupo: cria, passa a ser o grupo aberto e vai para ele (na aba Membros, para já cadastrar a equipe).
 export function NewGroupDialog(){
-  const [name, setName] = useState(""), [busy, setBusy] = useState(false), lock = useLock(), taken = groupNameTaken(name);
+  const [name, setName] = useState(""), [busy, setBusy] = useState(false), [tried, setTried] = useState(false), lock = useLock(), taken = groupNameTaken(name), empty = tried && !name.trim();
   const create = (e: React.FormEvent<HTMLFormElement>) => {
     // O X do cabeçalho (value="cancel") só fecha.
     if(((e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null)?.value === "cancel") return;
-    e.preventDefault(); const d = e.currentTarget.closest("dialog"); if(!name.trim() || taken) return; lock(async () => {
+    e.preventDefault(); const d = e.currentTarget.closest("dialog"); if(!name.trim() || taken){ setTried(true); document.getElementById("group-name-new")?.focus(); return; } lock(async () => {
       setBusy(true); const ok = await createGroup(name).finally(() => setBusy(false));
       toast(t(ok ? "group.created" : "profile.saveFail", {name: name.trim()}));
       if(ok){ d?.close("ok"); openGroup("members"); }
@@ -65,12 +66,12 @@ export function NewGroupDialog(){
       <DialogHead id="new-group-h" title={t("group.newGroupTitle")} closeLabel={t("common.close")}/>
       <div className="dlg-body">
         <label className="field"><span>{t("group.name")}</span>
-          <input className="input" id="group-name-new" maxLength={80} autoFocus placeholder={t("group.namePh")} value={name} aria-invalid={taken} aria-describedby={taken ? "group-name-new-err" : undefined}
+          <input className="input" id="group-name-new" maxLength={80} autoFocus placeholder={t("group.namePh")} value={name} aria-invalid={taken || empty} aria-describedby={taken || empty ? "group-name-new-err" : undefined}
             onChange={e => setName(e.target.value)} onKeyDown={enterClicks("group-create")}/>
-          {taken && <span className="field-error" id="group-name-new-err">{t("group.nameTaken")}</span>}</label>
+          {(taken || empty) && <span className="field-error" id="group-name-new-err">{t(taken ? "group.nameTaken" : "group.needName")}</span>}</label>
       </div>
       <div className="dlg-foot"><button type="button" className="btn ghost" onClick={e => e.currentTarget.closest("dialog")?.close("cancel")}>{t("common.cancel")}</button>
-        <button type="submit" className="btn primary" id="group-create" disabled={!name.trim() || taken} aria-busy={busy}>{busy ? <Spin/> : <Icon name="plus" sm/>} {t("group.create")}</button></div>
+        <button type="submit" className="btn primary" id="group-create" aria-busy={busy}>{busy ? <Spin/> : <Icon name="plus" sm/>} {t("group.create")}</button></div>
     </form>
   </Dialog>;
 }
