@@ -12,7 +12,7 @@ import type { GEvent, RosterRow, AttendanceRow, Unavail, Answer, Presence, Event
 // de quadrada (foto e iniciais).
 // stats: os números do card de cada grupo no Início (próximos eventos, repertórios e membros).
 export interface Group { id: string; name: string; photo?: string; photo_round?: boolean; stats?: {events: number; setlists: number; members: number} }
-// out_since/out_need: marcado pelo líder como fora dos cultos (desde quando e quantos ensaios faltam).
+// out_since/out_need: marcado pelo líder como em pausa (desde quando e quantos ensaios faltam).
 export interface Member { email: string; is_admin: boolean; role: string; name: string; birthday?: string | null; photo?: string; phone?: string; out_since?: string | null; out_need?: number; active?: boolean; created_at?: string }
 export interface GroupSetlist { id: string; group_id: string; source_id: string; name: string; songs: number; code: string; shared_by: string; updated_at: string }
 
@@ -87,7 +87,7 @@ export function loadGroups(gid?: string): Promise<void> {
       if(!cur){ useGroups.setState({...EMPTY, groups, loaded: true}); saveCache(); return; }
       const from = new Date(Date.now() - PAST_DAYS * 864e5).toISOString(), to = new Date(Date.now() + FUTURE_DAYS * 864e5).toISOString();
       const [mem, people, sets, evs, un] = await Promise.all([
-        // Banco ainda sem o ativo/inativo ou sem a marcação de fora dos cultos (antes da migração subir): lê sem eles.
+        // Banco ainda sem o ativo/inativo ou sem a marcação de em pausa (antes da migração subir): lê sem eles.
         cloud.from("group_members").select("email,is_admin,role,out_since,out_need,active,created_at").eq("group_id", cur).order("email")
           .then(r => r.error ? cloud.from("group_members").select("email,is_admin,role,out_since,out_need,created_at").eq("group_id", cur).order("email") : r)
           .then(r => r.error ? cloud.from("group_members").select("email,is_admin,role,created_at").eq("group_id", cur).order("email") : r),
@@ -213,7 +213,7 @@ export const setMemberAdmin = (gid: string, email: string, admin: boolean) => ru
 export const setMemberRole = (gid: string, email: string, role: string) => email === myEmail() && !amGroupAdmin()
   ? run(() => cloud.rpc("set_my_role", {gid, member_role: role.trim().slice(0, ROLES_MAX)}))
   : run(() => cloud.from("group_members").update({role: role.trim().slice(0, ROLES_MAX)}).eq("group_id", gid).eq("email", email));
-// Fora dos cultos pela regra dos ensaios, marcado à mão: conta a volta a partir de agora. need 0 tira a marcação.
+// Em pausa pela regra dos ensaios, marcado à mão: conta a volta a partir de agora. need 0 tira a marcação.
 export const setMemberOut = (gid: string, email: string, need: number) => run(() => cloud.from("group_members")
   .update(need > 0 ? {out_since: new Date().toISOString(), out_need: need} : {out_since: null}).eq("group_id", gid).eq("email", email));
 export const outMark = (m?: Pick<Member, "out_since" | "out_need">) => m?.out_since ? {since: m.out_since, need: m.out_need || 4} : null;

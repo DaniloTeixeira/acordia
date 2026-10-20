@@ -72,7 +72,7 @@ function NotesBg(){
 // (os botões ficam habilitados, só com o indicador). Se a função devolver KEEP, a trava continua
 // fechada: deu certo e a tela vai mudar (entrar no app, ir para o Google). release() reabre.
 const KEEP = Symbol("keep");
-// Chip de faltas seguidas: neutro até a 2ª; da 3ª à 7ª vai de laranja a vermelho (a 8ª já deixa a pessoa fora dos cultos).
+// Chip de faltas seguidas: neutro até a 2ª; da 3ª à 7ª vai de laranja a vermelho (a 8ª já deixa a pessoa em pausa).
 export function StreakChip({streak, title}: {streak: number; title?: string}){
   const lvl = streakLevel(streak);
   return <span className={"chip" + (lvl === null ? "" : " streak")} style={lvl === null ? undefined : {"--lvl": lvl} as React.CSSProperties} title={title}>{t("group.streak", {n: streak, max: MISS_LIMIT})}</span>;

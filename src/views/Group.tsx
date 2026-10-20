@@ -459,7 +459,7 @@ function Attendance({e}: {e: GEvent}){
 // ---------- membros ----------
 function Members({canEdit}: {canEdit: boolean}){
   const g = useGroups(), me = useAuth(s => s.email), appAdmin = useAuth(s => s.admin);
-  const [email, setEmail] = useState(""), [name, setName] = useState(""), [birthday, setBirthday] = useState(""), [phone, setPhone] = useState(""), [roles, setRoles] = useState<string[]>([]), [asAdmin, setAsAdmin] = useState(false), [busy, setBusy] = useState(""), lock = useLock(), check = useEmailCheck(email);
+  const [email, setEmail] = useState(""), [name, setName] = useState(""), [birthday, setBirthday] = useState(""), [phone, setPhone] = useState(""), [roles, setRoles] = useState<string[]>([]), [asAdmin, setAsAdmin] = useState(false), [asOut, setAsOut] = useState(false), [busy, setBusy] = useState(""), lock = useLock(), check = useEmailCheck(email);
   // Um líder só por grupo: o cadastro só pergunta "Líder" quando o grupo ainda não tem.
   const leaderNow = g.members.find(m => m.is_admin);
   const load = monthLoad(dayKey(new Date()), g.events, g.roster);
@@ -477,7 +477,12 @@ function Members({canEdit}: {canEdit: boolean}){
     if(!validEmail(v)){ check.fail(); document.getElementById("member-email")?.focus(); return; }
     setBusy("add"); const ok = await addMember(g.gid, v, asAdmin && !leaderNow, joinRoles(roles), name, birthday, phone).finally(() => setBusy(""));
     if(!ok) return toast(t("profile.saveFail"));
-    toast(t("group.memberAdded", {email: v})); setEmail(""); setName(""); setBirthday(""); setPhone(""); setRoles([]); setAsAdmin(false); check.reset();
+    // Quem já está há muitos ensaios sem aparecer entra marcado em pausa (a volta conta daqui para frente).
+    if(asOut && !(asAdmin && !leaderNow)){
+      if(!await setMemberOut(g.gid, v, COMEBACK)) toast(t("profile.saveFail"));
+      else toast(t("group.outSaved"));
+    }
+    toast(t("group.memberAdded", {email: v})); setEmail(""); setName(""); setBirthday(""); setPhone(""); setRoles([]); setAsAdmin(false); setAsOut(false); check.reset();
   }); };
   const fold = useFold("group-members");
   // Busca e ordem, como na lista "Com acesso" do Perfil (recentes: pela data em que entrou no grupo).
@@ -496,6 +501,9 @@ function Members({canEdit}: {canEdit: boolean}){
             <PersonFields idp="member" name={name} onName={setName} email={email} onEmail={setEmail} phone={phone} onPhone={setPhone} birthday={birthday} onBirthday={setBirthday} check={check}/>
             {!leaderNow && <label className="switch lead boxed"><span>{t("group.leader")}</span><input type="checkbox" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>}
           </div>
+          {!(asAdmin && !leaderNow) && <div className="member-add-out">
+            <label className="switch lead boxed"><span>{t("group.addOut")}</span><input type="checkbox" checked={asOut} onChange={e => setAsOut(e.target.checked)}/></label>
+            <small className="sub">{t("group.addOutHelp", {max: MISS_LIMIT})}</small></div>}
           <RolePicker value={roles} onChange={setRoles}/>
           {/* Adicionar por último, embaixo das funções. */}
           <div className="member-roles-foot">
@@ -580,8 +588,8 @@ function MemberEdit({m, full, onDone, inline}: {m: Member; full: boolean; onDone
 }
 
 // Tudo o que se faz com uma pessoa do grupo, na janela de detalhes (a linha da lista só abre a janela):
-// chamada, fora dos cultos, líder, ativar/desativar e remover (editar os dados é o lápis da própria janela).
-// Presença e fora dos cultos abrem o painel logo abaixo dos botões; as demais rodam na hora e mostram o resultado num aviso.
+// chamada, em pausa, líder, ativar/desativar e remover (editar os dados é o lápis da própria janela).
+// Presença e em pausa abrem o painel logo abaixo dos botões; as demais rodam na hora e mostram o resultado num aviso.
 // Lixeira sozinha no canto do cabeçalho da janela do membro: a única ação destrutiva fica longe das outras.
 export function MemberRemove({m, onGone}: {m: Member; onGone: () => void}){
   const g = useGroups(), me = useAuth(s => s.email), [busy, setBusy] = useState(false), lock = useLock();
@@ -674,7 +682,7 @@ function QuickAttendance({email, onDone}: {email: string; onDone: () => void}){
   </div>;
 }
 
-// Marcar à mão como fora dos cultos (quem já faltou antes do app): a partir de agora, precisa de N
+// Marcar à mão como em pausa (quem já faltou antes do app): a partir de agora, precisa de N
 // ensaios para voltar; cada presença na chamada desconta um. Marcado, dá para mudar o número ou tirar.
 function OutEdit({m, status, marked, need, busy, onSave, onCancel}: {m: Member; status: React.ReactNode; marked: boolean; need: number; busy: boolean; onSave: (need: number) => void; onCancel: () => void}){
   const [k, setK] = useState(need);

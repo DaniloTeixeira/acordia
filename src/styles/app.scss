@@ -660,7 +660,7 @@ textarea::-webkit-scrollbar {
     transform var(--t-fast) var(--ease);
 }
 /* Lixeira com contorno: no hover a borda acompanha o vermelho. */
-/* Hover bem visível nos de contorno (editar, fora dos cultos...): fundo, borda e ícone na cor de destaque. O
+/* Hover bem visível nos de contorno (editar, em pausa...): fundo, borda e ícone na cor de destaque. O
    surface-2 de antes quase não aparecia sobre o card no tema escuro. A lixeira continua com o vermelho. */
 .icon-btn.line:not(.danger):hover:where(:not(:disabled)) {
   background: var(--accent-soft);
@@ -8749,15 +8749,28 @@ dialog.member-dlg {
   gap: 12px;
   margin-bottom: 8px;
 }
+/* Chave com a explicação logo abaixo (o texto longo não cabe dentro da caixa no celular). */
+.member-add-out {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+/* No desktop a chave tem só a largura do texto; no celular ocupa a linha toda. */
+@media (min-width: 600px) {
+  .member-add-out .switch.boxed {
+    align-self: flex-start;
+  }
+}
+/* Funções é item de dentro de "Adicionar membro": título menor, em negrito, sem o ponto do subtítulo de seção. */
+.role-picker .lbl {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--ink);
+}
 .role-picker {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-.role-picker .lbl {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--muted);
 }
 .role-chips {
   display: flex;
@@ -8785,10 +8798,9 @@ dialog.member-dlg {
 .role-chip:hover {
   border-color: var(--accent);
 }
+/* Selecionada: só contorno roxo, igual aos chips de função (a regra compartilhada fica mais abaixo, em .chip.role). */
 .role-chip[aria-pressed="true"] {
-  background: var(--accent-soft);
   border-color: transparent;
-  color: var(--accent-soft-ink);
 }
 .role-other {
   display: flex;
@@ -9174,7 +9186,7 @@ dialog.member-dlg {
   min-width: 0;
 }
 
-/* Grupo → Membros: painel "fora dos cultos" (número de ensaios para voltar e os botões). */
+/* Grupo → Membros: painel "em pausa" (número de ensaios para voltar e os botões). */
 .out-status {
   margin: 0;
 }
@@ -9288,10 +9300,16 @@ dialog.member-dlg {
 /* Chip de função: só contorno, em roxo mais vivo que o tom de --role-ink. Vale em todo lugar que mostra função. */
 .chip.role,
 .member-roles .chip.role:not(.leader, .current),
+.role-chip[aria-pressed="true"],
 .roster-card .role-chip[aria-pressed="true"] {
   background: transparent;
   color: color-mix(in srgb, var(--role-ink) 75%, #a45cff);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, #a45cff 80%, var(--role-ink));
+}
+/* Só no seletor (é um controle de ligar/desligar): além do contorno e do check, um fundo roxo leve para o marcado se destacar. */
+.role-chip[aria-pressed="true"],
+.roster-card .role-chip[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--role-soft) 40%, transparent);
 }
 
 /* Lista do ensaio na agenda (mesma tabela do atalho de presença): nome com as funções ao lado, resposta à direita. */
