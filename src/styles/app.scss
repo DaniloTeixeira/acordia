@@ -1430,13 +1430,6 @@ main {
   font-weight: 700;
   box-shadow: 0 0 6px color-mix(in srgb, #f59e0b 40%, transparent);
 }
-/* "Não entrou": a pessoa está na lista de acesso mas ainda não criou a conta. Contorno tracejado, sem preenchimento. */
-.chip.pending {
-  background: transparent;
-  color: var(--muted);
-  border: 1px dashed var(--line-strong);
-  padding: 1px 8px; /* o contorno de 1px entra na conta: mesma altura dos outros chips */
-}
 /* Acesso ao app na janela de detalhes: o texto e os botões afastados (os botões usam a grade de .member-manage-btns,
    do mesmo formato dos de Gerenciar). */
 .member-access {
@@ -8927,7 +8920,7 @@ dialog.member-dlg {
 }
 /* Na lista de membros, a linha das funções ocupa a largura toda: chips e lápis à esquerda, Líder e excluir à direita.
    Os chips começam na coluna do nome, do e-mail e do celular (foto de 60 px + 10 px de espaço). */
-.members .member-roles:not(.editing) {
+:is(.members, .people-page) .member-roles:not(.editing) {
   flex: 1 1 100%;
   padding-left: 70px;
 }
@@ -9050,8 +9043,9 @@ dialog.member-dlg {
 /* Lista de acesso: o "Admin" logo depois do nome. */
 .people-name {
   display: flex;
+  flex-wrap: wrap; /* nome e chips (Admin, Você, sem grupo...) quebram de linha em vez de estourar a largura */
   align-items: center;
-  gap: 8px;
+  gap: 6px 8px;
   min-width: 0;
 }
 /* Nome um pouco maior que o resto da linha (e o "Sem nome" junto, para as linhas terem a mesma altura). */

@@ -221,6 +221,12 @@ export const outMark = (m?: Pick<Member, "out_since" | "out_need">) => m?.out_si
 export const isActive = (m: Pick<Member, "active">) => m.active !== false;
 export const setMemberActive = (gid: string, email: string, active: boolean) => run(() => cloud.from("group_members").update({active}).eq("group_id", gid).eq("email", email));
 export const removeMember = (gid: string, email: string) => run(() => cloud.from("group_members").delete().eq("group_id", gid).eq("email", email));
+// E-mails que estão em algum grupo. O admin do app lê os membros de todos os grupos (is_member vale para ele); a página
+// Usuários usa isto para marcar quem está sem grupo. null se falhar: aí ela não marca ninguém.
+export async function listGroupedEmails(): Promise<Set<string> | null> {
+  const {data, error} = await cloud.from("group_members").select("email");
+  return error || !data ? null : new Set((data as {email: string}[]).map(r => r.email));
+}
 
 
 export interface EventInput { kind: EventKind; title: string; starts_at: string; call_at: string | null; place: string; notes: string; setlist_id: string | null }

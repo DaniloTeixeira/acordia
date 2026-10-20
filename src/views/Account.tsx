@@ -10,7 +10,7 @@ import { toast, confirmDialog, openDialog, closeDialog, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { DateInput } from "../ui/DateInput";
 import { FieldLabel } from "../ui/FieldLabel";
-import { useGroups, loadGroups, chooseGroup, setMemberRole, outMark } from "../lib/groups";
+import { useGroups, loadGroups, chooseGroup, setMemberRole, outMark, listGroupedEmails } from "../lib/groups";
 import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, streakLevel, fmtPhone, maskPhone } from "../lib/calendar";
 import { sortRoles, joinRoles, splitRoles } from "../lib/roles";
 import { MemberRoles, RolePicker, ReplySeg, GroupMark, eventTitle, timeOf, longDay, openGroup } from "./Group";
@@ -738,7 +738,14 @@ function People({me}: {me: string}){
   const filter = usePeopleFilter(rows, "acordia-people-order", r => r.profileName || r.name, r => r.created_at), {nq, shown} = filter;
   // Falhou: a lista fica vazia com o aviso e o botão de tentar de novo (antes ficava em "Carregando..." para sempre).
   const [failed, setFailed] = useState(false);
-  const load = async () => { setFailed(false); const r = await listAllowed(); if(r) setRows(r); else { setRows(rows => rows || []); setFailed(true); } };
+  // Quem está em algum grupo (null: não deu para ler, então ninguém é marcado "Sem grupo").
+  const [grouped, setGrouped] = useState<Set<string> | null>(null);
+  const load = async () => {
+    setFailed(false);
+    const [r, gr] = await Promise.all([listAllowed(), listGroupedEmails()]);
+    setGrouped(gr);
+    if(r) setRows(r); else { setRows(rows => rows || []); setFailed(true); }
+  };
   useEffect(() => { load(); }, []);
   // Cadastro sem grupo: só entra na lista de acesso (a pessoa pode ser escalada em um grupo depois).
   const [aEmail, setAEmail] = useState(""), [aName, setAName] = useState(""), [aBirthday, setABirthday] = useState(""), [aPhone, setAPhone] = useState(""), [adding, setAdding] = useState(false), lock = useLock(), check = useEmailCheck(aEmail);
@@ -771,7 +778,8 @@ function People({me}: {me: string}){
       {failed && <li className="sub">{t("profile.loadFail")} <button type="button" className="link-btn" onClick={load}>{t("common.retry")}</button></li>}
       {shown === null ? <li className="sub">{t("auth.loading")}</li> : shown.map(r => {
         const nm = r.profileName || r.name, bd = r.profileBirthday || r.birthday, ph = r.profilePhone || r.phone;
-        const openPerson = () => openDialog("member", {email: r.email, person: {name: nm, phone: ph, birthday: bd || null, photo: r.profilePhoto || ""}, manage: {row: r, onChanged: load}});
+        const noGroup = !!grouped && !grouped.has(r.email);
+        const openPerson = () => openDialog("member", {email: r.email, person: {name: nm, phone: ph, birthday: bd || null, photo: r.profilePhoto || ""}, manage: {row: r, onChanged: load, noGroup}});
         return <li key={r.email} className="member-open" onClick={e => { if(!(e.target as HTMLElement).closest(SKIP_OPEN)) openPerson(); }}>
         {/* O "Admin" fica logo depois do nome (ou do e-mail, para quem ainda não tem nome). */}
         {/* Tocar na pessoa (foto ou texto) abre os detalhes, como em Grupo → Membros; o nome é o botão. */}
@@ -780,9 +788,11 @@ function People({me}: {me: string}){
           {/* Sempre as três linhas (nome, e-mail, celular), com um texto apagado no que falta: todas as pessoas
               ficam com a mesma altura. */}
           <span className="people-name"><button type="button" className="member-open-btn" aria-label={t("member.open", {name: nm || r.email})} onClick={openPerson}>
-            {nm ? <b>{nm}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{(r.is_owner || r.is_admin) && <span className={"chip " + (r.is_owner ? "owner" : "accent")}>{t(r.is_owner ? "profile.owner" : "profile.admin")}</span>}{r.email === me && <YouChip/>}{!r.joined && <span className="chip pending">{t("people.notJoined")}</span>}</span>
+            {nm ? <b>{nm}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{(r.is_owner || r.is_admin) && <span className={"chip " + (r.is_owner ? "owner" : "accent")}>{t(r.is_owner ? "profile.owner" : "profile.admin")}</span>}{r.email === me && <YouChip/>}</span>
           <span className="sub people-email">{r.email}{bd && " · " + fmtBirthday(bd)}</span>
           {ph ? <PhoneLink phone={ph}/> : <span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}</span></span>
+        {/* Situação do acesso e do grupo numa linha própria, na mesma posição dos chips da lista de Membros. */}
+        <span className="member-roles">{r.joined ? <span className="chip st-yes">{t("people.joined")}</span> : <span className="chip">{t("people.notJoined")}</span>}{noGroup && <span className="chip st-pending">{t("people.noGroup")}</span>}</span>
         {/* Chevron: indica que a linha inteira abre os detalhes. */}
         <span className="member-open-hint" aria-hidden="true">›</span>
       </li>; })}

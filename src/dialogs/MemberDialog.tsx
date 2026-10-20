@@ -43,6 +43,7 @@ export function MemberDialog({email, person, manage}: DialogProps["member"]){
             <a className="sub people-email" href={"mailto:" + email}>{email}</a>
             {info.phone ? <PhoneLink phone={info.phone}/> : <span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}
             <span className="member-chips">
+              {manage?.noGroup && <span className="chip st-pending">{t("people.noGroup")}</span>}
               {m?.is_admin && <span className="chip accent">{t("group.leader")}</span>}
               {m && !isActive(m) && <span className="chip">{t("group.inactive")}</span>}
               {load > 0 && <span className="chip" title={t("group.loadHint")}>{tn("group.load", load)}</span>}
