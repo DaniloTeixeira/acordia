@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { t, tn, locale } from "../lib/i18n";
 import { Select } from "../ui/Select";
-import { useAuth, savePhone, cleanPhone, signIn, signUp, resendConfirmation, pendingConfirm, setPendingConfirm, forgotPassword, setNewPassword, signInWithGoogle, signOut, saveName, saveBirthday, listAllowed, setAllowedInfo, setPersonInfo, setAllowedAdmin, removeAllowed, validEmail, initials, ownPhoto, removePhoto, type Allowed } from "../lib/cloud";
+import { useAuth, savePhone, cleanPhone, signIn, signUp, resendConfirmation, pendingConfirm, setPendingConfirm, forgotPassword, setNewPassword, signInWithGoogle, signOut, saveName, saveBirthday, listAllowed, addAllowed, setAllowedInfo, setPersonInfo, setAllowedAdmin, removeAllowed, validEmail, initials, ownPhoto, removePhoto, type Allowed } from "../lib/cloud";
 import { DEFAULT_POLICY, missing, passes, fromError, isPwned, type PwPolicy, type PwRule } from "../lib/password";
 import { reduced, flashSaved, norm } from "../lib/util";
 import { toast, confirmDialog, openDialog, closeDialog, go } from "../state";
@@ -692,7 +692,7 @@ function PeopleLink(){
         {noBirthday > 0 && <li className="warn"><Icon name="gift" sm/> {tn("people.statNoBirthday", noBirthday)}</li>}
         {!noPhone && !noBirthday && <li className="ok"><Icon name="check" sm/> {t("people.statComplete")}</li>}
       </ul></>}
-    <button type="button" className="btn primary sm" id="profile-people" onClick={() => go("people")}><Icon name="users" sm/> {t("people.see")} <Icon name="chev" sm className="chev-right"/></button>
+    <button type="button" className="btn primary sm" id="profile-people" onClick={() => go("people")}><Icon name="id" sm/> {t("people.see")} <Icon name="chev" sm className="chev-right"/></button>
   </section>;
 }
 
@@ -740,7 +740,28 @@ function People({me}: {me: string}){
   const [failed, setFailed] = useState(false);
   const load = async () => { setFailed(false); const r = await listAllowed(); if(r) setRows(r); else { setRows(rows => rows || []); setFailed(true); } };
   useEffect(() => { load(); }, []);
+  // Cadastro sem grupo: só entra na lista de acesso (a pessoa pode ser escalada em um grupo depois).
+  const [aEmail, setAEmail] = useState(""), [aName, setAName] = useState(""), [aBirthday, setABirthday] = useState(""), [aPhone, setAPhone] = useState(""), [adding, setAdding] = useState(false), lock = useLock(), check = useEmailCheck(aEmail);
+  const add = (ev: React.FormEvent) => { ev.preventDefault(); lock(async () => {
+    const v = aEmail.trim().toLowerCase();
+    if(!validEmail(v)){ check.fail(); document.getElementById("people-add-email")?.focus(); return; }
+    // Já tem acesso: addAllowed faria upsert e apagaria o que está marcado (admin); avisa em vez de gravar.
+    if(rows?.some(r => r.email === v)) return toast(t("people.alreadyHas", {email: v}));
+    setAdding(true); const ok = await addAllowed(v, false, aName, aBirthday, aPhone).finally(() => setAdding(false));
+    if(!ok) return toast(t("profile.saveFail"));
+    toast(t("people.added", {email: v})); setAEmail(""); setAName(""); setABirthday(""); setAPhone(""); check.reset(); load();
+  }); };
   return <div className="card people-card people-page">
+    <p className="sub">{t("people.addSub")}</p>
+    <form className="member-add people-add-box" onSubmit={add} noValidate>
+      <SecHead as="h3" className="people-sub-h">{t("people.addTitle")}</SecHead>
+      <div className="people-add">
+        <PersonFields idp="people-add" name={aName} onName={setAName} email={aEmail} onEmail={setAEmail} phone={aPhone} onPhone={setAPhone} birthday={aBirthday} onBirthday={setABirthday} check={check}/>
+      </div>
+      <div className="member-roles-foot">
+        <button className="btn primary" aria-busy={adding} disabled={adding}>{adding ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
+      </div>
+    </form>
     <SecHead as="h3" className="people-sub-h">{t("people.listTitle")} {rows && rows.length > 0 && <span className="count-chip">{nq && shown ? shown.length + "/" + rows.length : rows.length}</span>}</SecHead>
     {rows && rows.length > 0 && <PeopleTools idp="people" f={filter}/>}
     {/* Cabeçalho da lista, como numa tabela: marca onde as pessoas começam (no celular, só a faixa). */}

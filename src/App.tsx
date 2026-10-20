@@ -122,12 +122,14 @@ const NAV: {id: NavId; icon: string; label: string; run: () => void}[] = [
 // No trilho da tela larga há espaço: o que o Mais agrupa no celular aparece direto, cada um no seu item.
 const RAIL: {id: string; icon: string; label: string; run: () => void}[] = [
   ...NAV.filter(n => n.id !== "more"),
-  {id: "members", icon: "users", label: "group.membersTab", run: () => openGroup("members")},
   {id: "study", icon: "study", label: "nav.study", run: () => go("study")},
   {id: "tools", icon: "metro", label: "nav.tools", run: () => go("tools")},
+  {id: "members", icon: "users", label: "group.membersTab", run: () => openGroup("members")},
 ];
+// Usuários só no trilho (tela larga) e só para admin (o Dono também é); no celular continua pelo card do Perfil.
+const RAIL_PEOPLE = {id: "people", icon: "id", label: "people.title", run: () => go("people")};
 function railOf(v: View, groupTab: unknown, nav: string): string{
-  if(v === "study" || v === "tools") return v;
+  if(v === "study" || v === "tools" || v === "people") return v;
   if(v === "group" && groupTab === "members") return "members";
   return nav === "more" ? "" : nav;
 }
@@ -167,18 +169,18 @@ export function App(){
   const nav = navOf(view, data.settings.groupTab);
   const current = (v: string) => nav === v ? "page" as const : undefined;
   const rail = railOf(view, data.settings.groupTab, nav);
-  const auth = useAuth(s => s.status), recovery = useAuth(s => s.recovery), helpable = view in HELP_STEPS;
+  const auth = useAuth(s => s.status), recovery = useAuth(s => s.recovery), admin = useAuth(s => s.admin), helpable = view in HELP_STEPS;
   // A dica e o rótulo da ajuda dizem de qual página é ("Como usar o Repertório").
   const helpKey = helpable ? `help.${view}.title` : "help.button";
   // Nada do app aparece antes de a pessoa entrar e ter acesso (nem antes da senha nova).
   if(auth !== "in" || recovery) return <><div className="auth-corner"><LangButton/><ThemeButton/></div><AuthScreen/><LangPop/><Toasts/></>;
-  const profileBtn = (rail: boolean) => <button className={rail ? "nav-item" : "icon-btn"} data-nav="profile" aria-current={current("profile")} aria-label={t("profile.title")} onClick={() => go("profile")}>
+  const profileBtn = (rail: boolean) => <button className={rail ? "nav-item" : "icon-btn"} data-nav="profile" aria-current={rail && view === "people" ? undefined : current("profile")} aria-label={t("profile.title")} onClick={() => go("profile")}>
     <Avatar/>{rail && <span>{t("profile.title")}</span>}</button>;
   return <>
     <div className="shell">
       <aside className="rail" aria-label={t("nav.nav")}>
         {brand(true)}
-        <NavList>{RAIL.map(n => <button key={n.id} className="nav-item" data-nav={n.id} aria-current={rail === n.id ? "page" : undefined} onClick={n.run}>
+        <NavList>{(admin ? [...RAIL, RAIL_PEOPLE] : RAIL).map(n => <button key={n.id} className="nav-item" data-nav={n.id} aria-current={rail === n.id ? "page" : undefined} onClick={n.run}>
           <Icon name={n.icon}/><span>{t(n.label)}</span></button>)}</NavList>
         <div className="rail-foot">
           <button className="nav-item" data-install hidden={!install.show} onClick={install.run}><Icon name="phone"/><span>{t("nav.install")}</span></button>

@@ -6782,10 +6782,6 @@ dialog.ear-dlg {
   align-self: flex-start;
   margin-top: auto;
 }
-/* Página Usuários: a lista num card só, sem ficar larga demais na tela grande. */
-.people-page {
-  max-width: 900px;
-}
 /* Perfil em painel, como o Início: no máximo 2 colunas; o topo na linha toda (é sempre o primeiro). Com um
    número ímpar de cards depois dele, o último ocupa a linha toda. */
 .profile-panel {
