@@ -85,7 +85,7 @@ export function initTooltips(){
   // Foco pelo teclado mostra a dica; no celular (sem teclado em uso), o foco que a janela põe no
   // primeiro botão ao abrir não deve fazer a dica aparecer sozinha.
   let keys = false;
-  document.addEventListener("keydown", e => { if(e.key === "Tab" || e.key.startsWith("Arrow")) keys = true; }, true);
+  document.addEventListener("keydown", e => { if(e.key === "Tab" || e.key?.startsWith("Arrow")) keys = true; }, true);
   document.addEventListener("pointerdown", () => { keys = false; }, true);
   const coarse = matchMedia("(pointer: coarse)");
   document.addEventListener("focusin", e => { if((touch || coarse.matches) && !keys) return; const el = find(e); if(el && el.matches(":focus-visible")){ hide(); show(el); } });
