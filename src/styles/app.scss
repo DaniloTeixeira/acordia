@@ -7817,12 +7817,47 @@ dialog.ear-dlg {
     padding-left: 0;
   }
 }
-.attendance h3 {
-  margin: 0 0 8px;
-  font-size: 0.92rem;
+/* O título fica fora do card, como em Detalhes e Escala; o card só existe com a chamada aberta. */
+.att-box {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+}
+/* A linha toda do título abre e fecha a chamada (alvo de toque grande); fechada, só sobra essa linha. */
+.att-toggle {
   display: flex;
-  gap: 8px;
-  align-items: baseline;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  /* Alvo de toque maior sem deslocar o texto: o padding sai da conta pela margem negativa, e o texto
+     fica na mesma linha do ponto do título (.sec-bar). */
+  padding: 12px 0;
+  margin: -12px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.att-chev {
+  flex-shrink: 0;
+  box-sizing: content-box;
+  padding: 4px;
+  border-radius: 50%;
+  color: var(--muted);
+  transition: transform var(--t) var(--ease-out), background var(--t) var(--ease);
+}
+/* Mesmo realce da seta do card que recolhe (.fold-chev): círculo suave e seta na cor do texto. */
+@media (hover: hover) {
+  .att-toggle:hover .att-chev {
+    background: var(--surface);
+    color: var(--ink);
+  }
+}
+.att-chev.up {
+  transform: rotate(180deg);
 }
 .attendance ul {
   list-style: none;
