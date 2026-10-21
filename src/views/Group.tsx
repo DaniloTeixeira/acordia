@@ -390,7 +390,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
     </div></div>
     <div className="event-more">
       {/* Cada pessoa: nome e situação em cima, as funções neste evento como chips embaixo. */}
-      {/* Ensaio é de todos: quem não foi escalado também aparece (sem resposta a dar), com o selo "Fora da escala". */}
+      {/* Ensaio é de todos: quem não foi escalado também aparece (sem resposta a dar), com o selo "Não escalado" (ou "Em pausa"). */}
       <div className="event-sec"><SecHead as="h3" className="people-sub-h">{t("group.roster")}</SecHead>
       {e.kind === "rehearsal" && g.members.length ? <ul className="quick-att roster-tbl">
         <li className="quick-att-head" aria-hidden="true"><span className="quick-att-when">{t("people.colPerson")}</span><span className="quick-att-ctl">{t("group.respCol")}</span></li>
@@ -400,7 +400,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
           <span className="quick-att-ctl"><StatusChip status={r.status} noIcon/></span></li>)}
         {g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).map(m => <li key={m.email}>
           <span className="quick-att-when"><b>{personName(m.email)}{m.email === me && <YouChip/>}</b></span>
-          <span className="quick-att-ctl"><span className="chip">{t("group.status.off")}</span></span></li>)}</ul>
+          <span className="quick-att-ctl"><span className="chip">{t(rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m)).out ? "group.status.pause" : "group.status.off")}</span></span></li>)}</ul>
         : roster.length ? <ul className="roster">{rosterByPerson(roster).map(r => <li key={r.email} className={"st-" + r.status}>
         <span className="roster-who">{personName(r.email)}{r.email === me && <YouChip/>}</span>
         <StatusChip status={r.status}/>
