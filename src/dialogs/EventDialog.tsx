@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { t, tn } from "../lib/i18n";
 import { useGroups, saveEvent, personName, outMark, isActive, type RosterInput } from "../lib/groups";
 import { warningsFor, rehearsalStanding, monthLoad, weekly, dayKey, rosterByPerson, type EventKind, type GEvent } from "../lib/calendar";
-import { toast, confirmDialog, type DialogProps } from "../state";
+import { toast, confirmDialog, requestClose, type DialogProps } from "../state";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
@@ -52,6 +52,8 @@ export function EventDialog({id, day}: DialogProps["event"]){
   const memberOpts = [{value: "", label: t("group.pickPerson")}, ...g.members.filter(m => isActive(m) || roster.some(r => r.email === m.email)).map(m => ({value: m.email,
     label: personName(m.email) + (m.role ? " · " + sortRoles(splitRoles(m.role)).join(", ") : "") + ((load.get(m.email) || 0) ? " · " + tn("group.load", load.get(m.email)!) : "")}))];
   const free = g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email));
+  // Quem está em pausa não é convocado: fica de fora do "Escalar todos" (o líder ainda pode escalar à mão).
+  const callable = free.filter(m => !rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster).out);
   const save = async () => {
     if(!starts) return toast(t("group.needDate"));
     setBusy(true);
@@ -69,7 +71,7 @@ export function EventDialog({id, day}: DialogProps["event"]){
   return <Dialog name="event" id="dlg-event" className="event-dlg" labelledBy="event-h" dirty={dirty}>
     <form method="dialog" className="dlg" ref={form} onSubmit={e => {
       // O X do cabeçalho (value="cancel") também envia o formulário: esse fecha sem salvar.
-      if((e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") === "cancel"){ done.current = true; return; }
+      if((e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") === "cancel") return;
       e.preventDefault(); if(!busy) save();
     }}>
       <DialogHead id="event-h" title={t(id ? "group.editEvent" : "group.newEvent")} closeLabel={t("common.close")}/>
@@ -97,7 +99,7 @@ export function EventDialog({id, day}: DialogProps["event"]){
         <ul className="roster-edit">{roster.map((r, i) => {
           const warns = r.email ? warningsFor(r.email, probe, {events: g.events, roster: g.roster, unavail: g.unavail}, eventTitle) : [];
           // Culto: quem está fora pela regra dos ensaios ganha um aviso (o líder ainda decide).
-          const sd = r.email && kind === "service" ? rehearsalStanding(r.email, g.events, g.attendance, Date.now(), outMark(g.members.find(m => m.email === r.email))) : null;
+          const sd = r.email && kind === "service" ? rehearsalStanding(r.email, g.events, g.attendance, Date.now(), outMark(g.members.find(m => m.email === r.email)), g.roster) : null;
           const upd = (p: Partial<Row>) => { setRoster(rs => byName(rs.map((x, k) => k === i ? {...x, ...p} : x))); };
           // Quem já está em outra linha não aparece de novo na lista de pessoas.
           const opts = memberOpts.filter(o => !o.value || o.value === r.email || !roster.some(x => x.email === o.value));
@@ -124,11 +126,11 @@ export function EventDialog({id, day}: DialogProps["event"]){
         <datalist id="event-roles">{roleOptions().map(r => <option key={r} value={r}/>)}</datalist>
         <div className="roster-add">
           <button type="button" className="btn soft sm" id="event-add-person" disabled={!free.length} onClick={() => { setRoster(rs => [...rs, {email: "", roles: []}]); }}><Icon name="plus" sm/> {t("group.addPerson")}</button>
-          {free.length > 0 && <button type="button" className="btn ghost sm" onClick={() => { setRoster(rs => byName([...rs.filter(r => r.email), ...free.map(m => ({email: m.email, roles: firstRole(m.email)}))])); }}><Icon name="users" sm/> {t("group.addEveryone")}</button>}
+          {callable.length > 0 && <button type="button" className="btn ghost sm" onClick={() => { setRoster(rs => byName([...rs.filter(r => r.email), ...callable.map(m => ({email: m.email, roles: firstRole(m.email)}))])); }}><Icon name="users" sm/> {t("group.addEveryone")}</button>}
         </div>
         </section>
       </div>
-      <div className="dlg-foot"><button type="button" className="btn ghost" onClick={() => { done.current = true; form.current?.closest("dialog")?.close("cancel"); }}>{t("common.cancel")}</button>
+      <div className="dlg-foot"><button type="button" className="btn ghost" onClick={() => { const d = form.current?.closest("dialog"); if(d) requestClose(d); }}>{t("common.cancel")}</button>
         <button className="btn primary" id="event-save" aria-busy={busy}>{busy && <Spin/>}{t("common.save")}</button></div>
     </form>
   </Dialog>;

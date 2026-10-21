@@ -19,7 +19,7 @@ import { splitRoles, joinRoles, toggleRole, sortRoles } from "../lib/roles";
 import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone,type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, loadGroups, createGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
   deleteEvent, respond, setCover, checkIn, setMyAttendance, markAttendance, setUnavailable, personName, personPhoto, amGroupAdmin, setMemberOut, outMark, isActive, setMemberActive, type GroupSetlist, type Member, type Group } from "../lib/groups";
-import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, go } from "../state";
+import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, confirmUnsaved, useUnsaved, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
@@ -398,9 +398,12 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
           <span className="quick-att-when"><b>{personName(r.email)}{r.email === me && <YouChip/>}</b>
             {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}</span>
           <span className="quick-att-ctl"><StatusChip status={r.status} noIcon/></span></li>)}
-        {g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).map(m => <li key={m.email}>
+        {/* Quem está em pausa não é escalado nem listado, a menos que tenha marcado presença neste ensaio. */}
+        {g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email) && (att.some(a => a.email === m.email && a.status === "present") || !rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster).out)).map(m => {
+          const here = att.some(a => a.email === m.email && a.status === "present");
+          return <li key={m.email}>
           <span className="quick-att-when"><b>{personName(m.email)}{m.email === me && <YouChip/>}</b></span>
-          <span className="quick-att-ctl"><span className="chip">{t(rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m)).out ? "group.status.pause" : "group.status.off")}</span></span></li>)}</ul>
+          <span className="quick-att-ctl">{here ? <span className="chip st-yes">{t("group.att.present")}</span> : <span className="chip">{t(rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m)).out ? "group.status.pause" : "group.status.off")}</span>}</span></li>;})}</ul>
         : roster.length ? <ul className="roster">{rosterByPerson(roster).map(r => <li key={r.email} className={"st-" + r.status}>
         <span className="roster-who">{personName(r.email)}{r.email === me && <YouChip/>}</span>
         <StatusChip status={r.status}/>
@@ -542,7 +545,7 @@ function Members({canEdit}: {canEdit: boolean}){
       {/* Cabeçalho como o da lista "Com acesso" do Perfil. */}
       {shown.length > 0 && <div className="people-list-head" aria-hidden="true"><span>{t("people.colPerson")}</span><span>{t("people.colActions")}</span></div>}
       <ul className="people-list members" ref={filter.listRef}>{filter.nq && !shown.length && <li className="sub">{t("lib.noResults")}</li>}{shown.map(m => {
-        const rate = attendanceRate(m.email, g.events, g.attendance), sd = rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m)), n = load.get(m.email) || 0;
+        const rate = attendanceRate(m.email, g.events, g.attendance, Date.now(), g.roster), sd = rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), n = load.get(m.email) || 0;
         // Regra dos ensaios no lugar do "% nos ensaios" (a porcentagem fica na dica).
         const hint = t("group.ruleHint", {max: MISS_LIMIT, back: COMEBACK, p: rate.total ? Math.round(100 * rate.present / rate.total) : 0, present: rate.present, total: rate.total});
         // Tocar em qualquer parte da linha (fora dos botões, links e do painel de editar) abre os detalhes; o
@@ -580,6 +583,10 @@ function MemberEdit({m, full, onDone, inline}: {m: Member; full: boolean; onDone
   const gid = useGroups(s => s.gid), id = "medit-" + m.email;
   const [name, setName] = useState(m.name), [phone, setPhone] = useState(maskPhone(m.phone || "")), [birthday, setBirthday] = useState(m.birthday || "");
   const [roles, setRoles] = useState(() => sortRoles(splitRoles(m.role))), [busy, setBusy] = useState(false), lock = useLock();
+  // Alterado = diferente de quando abriu: sair (Cancelar, fechar a janela, trocar de página) pergunta antes.
+  const root = useRef<HTMLElement>(null), snap = JSON.stringify([name, phone, birthday, roles]), start = useRef(snap);
+  useUnsaved(root, snap !== start.current);
+  const cancel = async () => { if(snap === start.current || await confirmUnsaved()) onDone(); };
   const save = (e?: React.SyntheticEvent) => { e?.preventDefault(); lock(async () => {
     setBusy(true);
     // Banco sem admin_set_person ainda: grava só na lista de acesso (o que a pessoa preencheu continua valendo).
@@ -595,7 +602,7 @@ function MemberEdit({m, full, onDone, inline}: {m: Member; full: boolean; onDone
     }
   }); };
   const Root = inline ? "div" : "form";
-  return <Root className="people-edit member-edit" {...(inline
+  return <Root ref={root as React.RefObject<never>} className="people-edit member-edit" {...(inline
     ? {onKeyDown: (e: React.KeyboardEvent) => { if(e.key === "Enter" && !e.defaultPrevented && (e.target as HTMLElement).tagName === "INPUT"){ e.preventDefault(); save(); } }}
     : {onSubmit: save})}>
     {full && <div className="people-add">
@@ -608,7 +615,7 @@ function MemberEdit({m, full, onDone, inline}: {m: Member; full: boolean; onDone
     </div>}
     <RolePicker value={roles} onChange={setRoles}/>
     <div className="member-roles-foot">
-      <button type="button" className="btn ghost sm" onClick={onDone}>{t("common.cancel")}</button>
+      <button type="button" className="btn ghost sm" onClick={cancel}>{t("common.cancel")}</button>
       <button type={inline ? "button" : "submit"} className="btn primary sm" aria-busy={busy} onClick={inline ? () => save() : undefined}>{busy ? <Spin/> : <Icon name="check" sm/>} {t("common.save")}</button>
     </div>
   </Root>;
@@ -642,7 +649,7 @@ export function MemberManage({m}: {m: Member}){
   useEffect(() => { if(panel) box.current?.scrollIntoView({block: "nearest", behavior: reduced() ? "auto" : "smooth"}); }, [panel]);
   const canEdit = amGroupAdmin(), self = m.email === me, act = isActive(m), leaderNow = g.members.find(x => x.is_admin);
   const group = g.groups.find(x => x.id === g.gid);
-  const sd = rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m));
+  const sd = rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster);
   const standing = sd.out ? <span className="chip st-no">{tn("group.standOut", sd.need)}</span>
     : sd.streak > 0 ? <StreakChip streak={sd.streak}/>
     : <span className="chip st-yes">{t("group.standOk")}</span>;

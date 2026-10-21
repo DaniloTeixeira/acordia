@@ -150,6 +150,9 @@ direto na folha, sem Editar, e não vê os botões de mudar.
   - **Transpor a cifra** (−/+), que reescreve os acordes;
   - tom, BPM e referência;
   - com alterações, clicar fora não descarta o texto.
+- [ ] **Alterações não salvas (qualquer janela ou formulário)**: Cancelar, X, Esc, voltar, clicar fora ou trocar de
+  página com algo editado e não salvo abre "Alterações não salvas" (Descartar / Continuar editando); sem
+  alterações, fecha direto. Fechar ou recarregar a aba mostra o aviso do navegador.
 
 ### Janela do acorde
 - [ ] Grau e função no tom (Tônica, Subdominante, Dominante ou fora do campo) e notas com os graus.

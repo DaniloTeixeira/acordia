@@ -104,6 +104,14 @@ test("chamada aberta: pendente até 12 h depois; depois vira falta", () => {
   assert.deepEqual(attendanceRate("x", [e], [other], at + 12 * 3600e3), {present: 0, total: 1});
   assert.equal(rehearsalStanding("x", [e], [other], at + 11 * 3600e3).called, 0);
   assert.equal(rehearsalStanding("x", [e], [other], at + 12 * 3600e3).streak, 1);
+  // Falta só conta para quem estava na escala; quem não estava fica fora da conta (mas a presença vale).
+  const scaled = [{event_id: "e", email: "x", role: "", status: "yes" as const, reason: ""}], end = at + 12 * 3600e3;
+  assert.deepEqual(attendanceRate("x", [e], [other], end, []), {present: 0, total: 0});
+  assert.equal(rehearsalStanding("x", [e], [other], end, null, []).streak, 0);
+  assert.deepEqual(attendanceRate("x", [e], [other], end, scaled), {present: 0, total: 1});
+  assert.equal(rehearsalStanding("x", [e], [other], end, null, scaled).streak, 1);
+  const here = {...other, email: "x"};
+  assert.deepEqual(attendanceRate("x", [e], [here], end, []), {present: 1, total: 1});
 });
 
 test("WhatsApp: número com o país e mensagem no link", () => {

@@ -1,9 +1,8 @@
 // Janela modal nativa (<dialog>). Abre ao montar; os botões com value= fecham com esse valor
-// (form method="dialog"). Clicar fora fecha como Cancelar, a não ser que haja alterações (dirty): aí a
-// janela treme e o rodapé mostra, à esquerda, que há alterações não salvas (some se elas forem desfeitas).
+// (form method="dialog"). Com alterações não salvas (dirty), Cancelar, o X, Esc, o voltar e clicar fora
+// perguntam antes de descartar (requestClose em state.ts); sem alterações fecham direto.
 import { useEffect, useRef, type ReactNode } from "react";
-import { closeDialog, type DialogName } from "../state";
-import { t } from "../lib/i18n";
+import { closeDialog, dialogUnsaved, requestClose, watchDialog, type DialogName } from "../state";
 
 export function Dialog({name, id, className, labelledBy, onClose, dirty, children, onOpen}: {
   name: DialogName; id: string; className?: string; labelledBy: string;
@@ -14,6 +13,7 @@ export function Dialog({name, id, className, labelledBy, onClose, dirty, childre
   useEffect(() => {
     const d = ref.current!;
     d.returnValue = "";
+    watchDialog(d, () => !!cb.current.dirty?.());
     if(!d.open) d.showModal();
     onOpen?.(d);
     // Só conta o clique que começou e terminou fora, para não fechar quando alguém seleciona texto
@@ -24,19 +24,21 @@ export function Dialog({name, id, className, labelledBy, onClose, dirty, childre
     const click = (e: MouseEvent) => {
       if(!downOutside || e.target !== d || !outside(e)) return;
       downOutside = false;
-      if(cb.current.dirty?.()){
-        d.style.setProperty("--unsaved", JSON.stringify(t("dialog.unsaved")));
-        d.classList.remove("nudge"); void d.offsetWidth; d.classList.add("nudge", "unsaved"); return;
-      }
-      d.close("cancel");
+      requestClose(d);
     };
+    // Cancelar e o X enviam o formulário com value="cancel": com alterações, trocados pela pergunta.
+    const cancelBtn = (e: MouseEvent) => {
+      const b = (e.target as Element).closest?.("button[value=cancel]");
+      if(b && d.contains(b) && !b.hasAttribute("disabled") && dialogUnsaved(d)){ e.preventDefault(); requestClose(d); }
+    };
+    // Esc
+    const esc = (e: Event) => { if(dialogUnsaved(d)){ e.preventDefault(); requestClose(d); } };
     const close = () => { cb.current.onClose?.(d.returnValue); closeDialog(name); };
-    d.addEventListener("pointerdown", down); d.addEventListener("click", click); d.addEventListener("close", close);
-    return () => { d.removeEventListener("pointerdown", down); d.removeEventListener("click", click); d.removeEventListener("close", close); };
+    d.addEventListener("pointerdown", down); d.addEventListener("click", click); d.addEventListener("click", cancelBtn, true);
+    d.addEventListener("cancel", esc); d.addEventListener("close", close);
+    return () => { d.removeEventListener("pointerdown", down); d.removeEventListener("click", click); d.removeEventListener("click", cancelBtn, true); d.removeEventListener("cancel", esc); d.removeEventListener("close", close); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  // A cada mudança no conteúdo: se as alterações foram desfeitas, o aviso do rodapé some.
-  useEffect(() => { const d = ref.current; if(d?.classList.contains("unsaved") && !cb.current.dirty?.()) d.classList.remove("unsaved"); });
   return <dialog ref={ref} id={id} className={className} aria-labelledby={labelledBy}>{children}</dialog>;
 }
 

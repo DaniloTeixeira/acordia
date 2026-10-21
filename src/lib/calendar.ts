@@ -67,13 +67,16 @@ export const callClosed = (e: Pick<GEvent, "starts_at">, now = Date.now()) => ne
 
 // Frequência nos ensaios com a chamada fechada: presente conta, falta não, justificada fica fora da conta.
 // Sem marcação nenhuma num ensaio que teve chamada, conta como falta; ensaio sem chamada nenhuma não conta.
-export function attendanceRate(email: string, events: GEvent[], att: AttendanceRow[], now = Date.now()): {present: number; total: number} {
+// Falta só vale para quem estava na escala do ensaio (roster); sem a escala informada, vale para todos.
+const notCalled = (e: GEvent, email: string, status: Presence | undefined, roster?: RosterRow[]) =>
+  !!roster && status !== "present" && !roster.some(r => r.event_id === e.id && r.email === email);
+export function attendanceRate(email: string, events: GEvent[], att: AttendanceRow[], now = Date.now(), roster?: RosterRow[]): {present: number; total: number} {
   const past = events.filter(e => e.kind === "rehearsal" && callClosed(e, now));
   let present = 0, total = 0;
   past.forEach(e => {
     const rows = att.filter(a => a.event_id === e.id); if(!rows.length) return;
     const mine = rows.find(a => a.email === email);
-    if(mine?.status === "excused") return;
+    if(mine?.status === "excused" || notCalled(e, email, mine?.status, roster)) return;
     total++; if(mine?.status === "present") present++;
   });
   return {present, total};
@@ -96,7 +99,7 @@ export function streakLevel(streak: number): number | null {
 }
 export interface Standing { out: boolean; streak: number; need: number; called: number; marked?: boolean }
 export interface OutMark { since: string; need: number }
-export function rehearsalStanding(email: string, events: GEvent[], att: AttendanceRow[], now = Date.now(), mark?: OutMark | null): Standing {
+export function rehearsalStanding(email: string, events: GEvent[], att: AttendanceRow[], now = Date.now(), mark?: OutMark | null, roster?: RosterRow[]): Standing {
   const past = events.filter(e => e.kind === "rehearsal" && callClosed(e, now))
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
   const s: Standing = {out: false, streak: 0, need: 0, called: 0};
@@ -106,7 +109,7 @@ export function rehearsalStanding(email: string, events: GEvent[], att: Attendan
     if(pending && e.starts_at >= mark!.since) applyMark();
     const rows = att.filter(a => a.event_id === e.id); if(!rows.length) return;
     const st = rows.find(a => a.email === email)?.status;
-    if(st === "excused") return;
+    if(st === "excused" || notCalled(e, email, st, roster)) return;
     s.called++;
     if(st === "present"){
       if(s.out){ s.need--; if(!s.need) s.out = false; }

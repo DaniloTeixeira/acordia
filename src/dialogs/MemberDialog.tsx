@@ -26,7 +26,7 @@ export function MemberDialog({email, person, manage}: DialogProps["member"]){
   if(!info) return null;
   // Aberto por Usuários, o Editar abre o formulário do app (nome, celular, data e funções); no grupo, o do grupo.
   const canApp = !!manage && canManageApp(manage.row, me, owner), canEdit = canApp || !!m && (amGroupAdmin() || email === me), edit = canApp ? editApp : editing && canEdit;
-  const rate = attendanceRate(email, g.events, g.attendance), sd = rehearsalStanding(email, g.events, g.attendance, Date.now(), m ? outMark(m) : null);
+  const rate = attendanceRate(email, g.events, g.attendance, Date.now(), g.roster), sd = rehearsalStanding(email, g.events, g.attendance, Date.now(), m ? outMark(m) : null, g.roster);
   const p = rate.total ? Math.round(100 * rate.present / rate.total) : 0;
   const roles = sortRoles(splitRoles(m?.role || "")), load = m ? monthLoad(dayKey(new Date()), g.events, g.roster).get(email) || 0 : 0;
   const soon = Date.now() - SOON_MS;
