@@ -513,6 +513,71 @@ textarea::-webkit-scrollbar {
   height: 8px;
 }
 
+/* ---------- hover padrão ----------
+   Um jeito por tipo de elemento, sempre com transição suave (só vale com mouse: @media (hover: hover)):
+   - hover-tint: elemento colorido ou suave (azul-claro, vermelho, marcado): mantém a cor, só muda a intensidade
+     (escurece no claro, clareia no escuro). Nunca trocar o fundo.
+   - hover-row: linha ou botão neutro/transparente: fundo --surface-2.
+   - hover-card: card ou atalho clicável: borda no acento.
+   Elemento clicável novo usa um destes (ver CLAUDE.md); o `transition` vem da regra geral logo abaixo. */
+@mixin hover-tint($host: null, $child: "") {
+  @media (hover: hover) {
+    @if $host {
+      @at-root #{$host}:hover:where(:not(:disabled, [aria-disabled="true"])) #{$child} {
+        filter: brightness(0.92);
+      }
+    } @else {
+      &:hover:where(:not(:disabled, [aria-disabled="true"])) {
+        filter: brightness(0.92);
+      }
+    }
+    @media (prefers-color-scheme: dark) {
+      @if $host {
+        @at-root :root:not([data-theme="light"]) #{$host}:hover:where(:not(:disabled, [aria-disabled="true"])) #{$child} {
+          filter: brightness(1.25);
+        }
+      } @else {
+        :root:not([data-theme="light"]) &:hover:where(:not(:disabled, [aria-disabled="true"])) {
+          filter: brightness(1.25);
+        }
+      }
+    }
+    @if $host {
+      @at-root :root[data-theme="dark"] #{$host}:hover:where(:not(:disabled, [aria-disabled="true"])) #{$child} {
+        filter: brightness(1.25);
+      }
+    } @else {
+      :root[data-theme="dark"] &:hover:where(:not(:disabled, [aria-disabled="true"])) {
+        filter: brightness(1.25);
+      }
+    }
+  }
+}
+@mixin hover-row {
+  @media (hover: hover) {
+    &:hover:where(:not(:disabled, [aria-disabled="true"])) {
+      background: var(--surface-2);
+    }
+  }
+}
+@mixin hover-card {
+  @media (hover: hover) {
+    &:hover:where(:not(:disabled, [aria-disabled="true"])) {
+      border-color: var(--accent);
+    }
+  }
+}
+/* Transição padrão de tudo que se clica; regras de componente com `transition` próprio têm prioridade (especificidade zero aqui). */
+:where(button, a, summary, [role="button"], [role="tab"]) {
+  transition:
+    background-color var(--t-fast) var(--ease),
+    color var(--t-fast),
+    border-color var(--t-fast),
+    box-shadow var(--t-fast),
+    filter var(--t-fast),
+    opacity var(--t-fast);
+}
+
 /* ---------- botões ---------- */
 .btn {
   display: inline-flex;
@@ -576,35 +641,18 @@ textarea::-webkit-scrollbar {
 .btn.soft {
   background: var(--accent-soft);
   color: var(--accent-soft-ink);
-}
-/* Hover do botão azul-claro: mantém a cor e só muda a intensidade (no escuro clareia, senão não aparece). */
-.btn.soft:hover:where(:not(:disabled)) {
-  filter: brightness(0.92);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .btn.soft:hover:where(:not(:disabled)) {
-    filter: brightness(1.25);
-  }
-}
-:root[data-theme="dark"] .btn.soft:hover:where(:not(:disabled)) {
-  filter: brightness(1.25);
+  @include hover-tint;
 }
 .btn.danger {
   background: var(--bad-soft);
   color: var(--bad);
 }
-/* Excluir/remover: o hover mantém o vermelho (nada de fundo cinza); escurece no claro e clareia no escuro. */
+/* Excluir/remover: o hover mantém o vermelho (nada de fundo cinza). */
+.btn.danger:not(.ghost, .armed) {
+  @include hover-tint;
+}
 .btn.danger:not(.ghost, .armed):hover:where(:not(:disabled)) {
   background: var(--bad-soft);
-  filter: brightness(0.92);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .btn.danger:not(.ghost, .armed):hover:where(:not(:disabled)) {
-    filter: brightness(1.25);
-  }
-}
-:root[data-theme="dark"] .btn.danger:not(.ghost, .armed):hover:where(:not(:disabled)) {
-  filter: brightness(1.25);
 }
 .btn.danger.armed {
   background: var(--bad);
@@ -1623,6 +1671,7 @@ main {
     filter var(--t-fast),
     transform var(--t-fast) var(--ease-out),
     box-shadow var(--t-fast);
+  @include hover-tint(".drag-handle", ".num");
 }
 .drag-handle .grip-hover {
   display: none;
@@ -1637,20 +1686,6 @@ main {
   .item-head:hover .drag-handle .grip-hover,
   .drag-handle:focus-visible .grip-hover {
     display: block;
-  }
-  /* Mesmo hover dos elementos suaves: escurece no claro, clareia no escuro. */
-  .drag-handle:hover .num {
-    filter: brightness(0.92);
-  }
-}
-@media (hover: hover) and (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .drag-handle:hover .num {
-    filter: brightness(1.25);
-  }
-}
-@media (hover: hover) {
-  :root[data-theme="dark"] .drag-handle:hover .num {
-    filter: brightness(1.25);
   }
 }
 /* Dica de arrastar (sempre que há 2 itens ou mais): no computador entre a lista e os botões de adicionar;
@@ -4099,6 +4134,7 @@ a.btn {
     padding: 0 14px;
     border-radius: var(--r-lg);
     background: var(--accent-soft);
+    @include hover-tint;
     &::-webkit-details-marker {
       display: none;
     }
@@ -4119,7 +4155,7 @@ a.btn {
     padding: 4px 0 12px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 14px;
     counter-reset: howto;
   }
   li {
@@ -4132,30 +4168,16 @@ a.btn {
     &::before {
       content: counter(howto);
       flex: none;
-      width: 24px;
-      height: 24px;
+      width: calc(.92rem * 1.4);
+      height: calc(.92rem * 1.4);
       border-radius: 50%;
       background: var(--accent-grad);
       color: var(--accent-ink);
-      font-size: .8rem;
+      font-size: .72rem;
       font-weight: 700;
       display: grid;
       place-items: center;
     }
-  }
-}
-/* Hover do cabeçalho: mantém a cor e só muda a intensidade (no escuro clareia, senão não aparece). */
-@media (hover: hover) {
-  .voice-howto summary:hover {
-    filter: brightness(0.92);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .voice-howto summary:hover {
-      filter: brightness(1.25);
-    }
-  }
-  :root[data-theme="dark"] .voice-howto summary:hover {
-    filter: brightness(1.25);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -7645,8 +7667,8 @@ dialog.ear-dlg {
     background-color var(--t-fast),
     border-color var(--t-fast);
 }
-.cal-day:hover {
-  background: var(--surface-2);
+.cal-day {
+  @include hover-row;
 }
 .cal-day.today {
   border-color: var(--accent);
@@ -8596,8 +8618,8 @@ dialog.member-dlg {
     box-shadow var(--t-fast);
 }
 /* Cartão interno, como os de Continuar e das escalas: um tom abaixo do bloco, sem sombra. */
-.home-tile:hover {
-  border-color: var(--accent);
+.home-tile {
+  @include hover-card;
 }
 .home-tile-icon {
   flex: none;
@@ -8677,8 +8699,8 @@ dialog.member-dlg {
     border-color var(--t-fast),
     background-color var(--t-fast);
 }
-.home-tool:hover {
-  border-color: var(--accent);
+.home-tool {
+  @include hover-card;
 }
 .home-tool .i {
   width: 26px;
@@ -8978,8 +9000,8 @@ dialog.member-dlg {
   cursor: pointer;
   transition: background-color var(--t-fast);
 }
-.home-row:hover {
-  background: var(--surface-2);
+.home-row {
+  @include hover-row;
 }
 .home-row > .event-chips {
   margin: 0 0 0 auto;
@@ -9080,8 +9102,8 @@ dialog.member-dlg {
     border-color var(--t-fast),
     color var(--t-fast);
 }
-.role-chip:hover {
-  border-color: var(--accent);
+.role-chip {
+  @include hover-card;
 }
 /* Selecionada: só contorno roxo, igual aos chips de função (a regra compartilhada fica mais abaixo, em .chip.role). */
 .role-chip[aria-pressed="true"] {
@@ -9581,20 +9603,8 @@ dialog.member-dlg {
 .quick-att [data-v="absent"][aria-pressed="true"] { color: var(--warn); }
 /* Hover do Presente | Falta: como nas outras abas, só o texto muda (regra global em .seg button:hover); a marcada
    mantém a cor e só escurece no claro / clareia no escuro. */
-@media (hover: hover) {
-  .quick-att .seg button[aria-pressed="true"]:hover:not(:disabled) {
-    filter: brightness(0.92);
-  }
-}
-@media (hover: hover) and (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .quick-att .seg button[aria-pressed="true"]:hover:not(:disabled) {
-    filter: brightness(1.25);
-  }
-}
-@media (hover: hover) {
-  :root[data-theme="dark"] .quick-att .seg button[aria-pressed="true"]:hover:not(:disabled) {
-    filter: brightness(1.25);
-  }
+.quick-att .seg button[aria-pressed="true"] {
+  @include hover-tint;
 }
 .quick-att-foot { display: flex; justify-content: flex-end; padding-top: 4px; }
 .quick-att-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
@@ -9753,8 +9763,8 @@ dialog.member-dlg {
   cursor: pointer;
   transition: border-color var(--t-fast);
 }
-.more-item:hover {
-  border-color: var(--accent);
+.more-item {
+  @include hover-card;
 }
 .more-what {
   flex: 1;

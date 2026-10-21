@@ -30,6 +30,12 @@ todas as migrações num Supabase vazio.
 - **Hover mantém a cor do elemento.** Botão colorido (vermelho de parar, perigo etc.) continua da sua cor no
   `:hover`; use o `filter: brightness(.92)` compartilhado, nunca trocar o fundo. Elementos suaves (`.btn.soft`,
   chips) escurecem no tema claro e clareiam (`brightness(1.25)`) no escuro.
+- **Todo clicável tem hover, com transição.** Um padrão por tipo de elemento, em mixins no começo do
+  [src/styles/app.scss](src/styles/app.scss) (seção "hover padrão"), só com mouse (`@media (hover: hover)`):
+  `@include hover-tint` (colorido ou suave: mantém a cor, `filter`), `@include hover-row` (linha ou botão neutro:
+  fundo `--surface-2`) e `@include hover-card` (card ou atalho: borda no acento). Não escrever `:hover` solto com
+  cor própria nem repetir as três versões (claro/escuro). O `transition` de `button, a, summary, [role=button|tab]`
+  vem de uma regra geral; elemento que não é um desses (div, span clicável) declara o seu.
 - **Tooltip só em controle ativo.** [src/ui/tooltips.ts](src/ui/tooltips.ts) ignora `:disabled` e
   `[aria-disabled=true]`; controle que parece desativado sem esses atributos recebe `aria-disabled="true"`.
   Dica vem de `data-tip-key` (chave traduzida), `data-tip` ou do `aria-label` de botão só com ícone.
