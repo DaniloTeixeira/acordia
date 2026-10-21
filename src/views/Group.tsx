@@ -413,7 +413,8 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
       {e.kind === "rehearsal" && !isPast && mineRows.length === 0 && g.members.some(m => m.email === me && isActive(m)) && <div className="not-scaled" role="note"><span className="chip st-pending"><span><b>{t("group.notScaled")}.</b> {t("group.notScaledWhy")}</span></span></div>}</div>
       {e.notes && <div className="event-sec"><SecHead as="h3" className="people-sub-h">{t("group.notes")}</SecHead><p className="event-notes">{e.notes}</p></div>}
       {/* A resposta vem depois de ver o evento e quem está na escala: primeiro entender, depois responder. */}
-      {(reply || (e.kind === "rehearsal" && canCheckIn(e))) && <div className="event-sec"><SecHead as="h3" className="people-sub-h">{t("group.myReply")}</SecHead><div className="event-actions">
+      {/* Ensaio que já passou e ainda sem marcação: a pergunta "você estava?" sobe para logo abaixo do cabeçalho (antes ficava no fim do card e ninguém achava). */}
+      {(reply || (e.kind === "rehearsal" && canCheckIn(e))) && <div className={"event-sec" + (e.kind === "rehearsal" && canCheckIn(e) && pastNow && !myMark ? " reply-first" : "")}><SecHead as="h3" className="people-sub-h">{t("group.myReply")}</SecHead><div className="event-actions">
         {reply}
         {canReply && myStatus === "no" && !editReply && <label className="event-cover">
           <Select value={myCover} options={coverOpts} aria={t("group.coverAsk")} disabled={busy === "cover"} onChange={pickCover}/>{busy === "cover" && <Spin/>}</label>}
@@ -439,10 +440,10 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
       <div className="event-foot">
         {set && <><button className="btn ghost sm" onClick={() => openGroupSetlist(set)}><Icon name="music" sm/> {t("group.openSetlist")}</button>
           <button className="btn ghost sm" onClick={() => openGroupSetlist(set, true)}><Icon name="stage" sm/> {t("medley.stage")}</button></>}
-        {canEdit && <><button className="btn ghost sm" onClick={() => openDialog("event", {id: e.id, day: eventDay(e)})}><Icon name="edit" sm/> {t("common.edit")}</button>
+        {canEdit && <div className="event-admin"><button className="btn ghost sm" onClick={() => openDialog("event", {id: e.id, day: eventDay(e)})}><Icon name="edit" sm/> {t("common.edit")}</button>
           <button className="btn ghost sm danger" onClick={async () => {
             if(await confirmDialog({title: t("group.deleteEventTitle"), message: t("group.deleteEventMsg", {name: eventTitle(e), day: longDay(d)})})) act("del", () => deleteEvent(e.id), "group.eventDeleted");
-          }}><Icon name="trash" sm/> {t("common.delete")}</button></>}
+          }}><Icon name="trash" sm/> {t("common.delete")}</button></div>}
       </div>
     </div>
   </li>;
@@ -476,7 +477,7 @@ function Attendance({e}: {e: GEvent}){
       <a className="btn sm soft" href={waLink(waText(e, {names: [...pending].map(personName)}))} target="_blank" rel="noopener"><Icon name="chat" sm/> {t("group.waAll")}</a>
     </div>}
     <ul>{g.members.filter(m => isActive(m) || att.some(x => x.email === m.email)).map(m => { const a = att.find(x => x.email === m.email), wa = pending.has(m.email) && waNumber(m.phone || "");
-      return <li key={m.email}><span className="roster-who">{busy === m.email && <Spin/>}{personName(m.email)}{a && !a.by_admin && <span className="chip">{t("group.selfCheckIn")}</span>}
+      return <li key={m.email}><span className="roster-who">{busy === m.email && <Spin/>}{personName(m.email)}{a && !a.by_admin && <small className="sub">{t("group.selfCheckIn")}</small>}
         {pending.has(m.email) && <span className="chip st-pending">{t("group.att.pending")}</span>}
         {wa && <a className="icon-btn sm" href={waLink(waText(e, {name: personName(m.email)}), m.phone)} target="_blank" rel="noopener"
           aria-label={t("group.waOne", {name: personName(m.email)})} title={t("group.waOne", {name: personName(m.email)})}><Icon name="chat" sm/></a>}</span>

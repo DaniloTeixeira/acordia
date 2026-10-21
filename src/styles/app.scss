@@ -672,13 +672,13 @@ textarea::-webkit-scrollbar {
   border-color: color-mix(in srgb, var(--accent) 60%, var(--line-strong));
   color: var(--accent-soft-ink);
 }
+/* Excluir (com texto ou só ícone): contorno neutro, igual ao do Editar; só o texto e o ícone são vermelhos, e no hover o fundo suave. */
 .icon-btn.line.danger:hover:where(:not(:disabled)) {
-  border-color: color-mix(in srgb, var(--bad) 55%, var(--line-strong));
+  border-color: var(--line-strong);
 }
-/* Excluir com texto: contorno vermelho sempre; no hover continua vermelho (fundo suave, borda e texto). */
 .btn.ghost.danger {
   background: transparent;
-  border-color: color-mix(in srgb, var(--bad) 55%, var(--line-strong));
+  border-color: var(--line-strong);
 }
 /* O anel em gradiente do hover dos botões de contorno vira vermelho aqui, para seguir a cor do botão. */
 .btn.ghost.danger::before {
@@ -686,7 +686,7 @@ textarea::-webkit-scrollbar {
 }
 .btn.ghost.danger:hover:where(:not(:disabled)) {
   background: var(--bad-soft);
-  border-color: color-mix(in srgb, var(--bad) 55%, var(--line-strong));
+  border-color: var(--line-strong);
   color: var(--bad);
 }
 @media (max-width: 899px) {
@@ -7735,7 +7735,11 @@ dialog.ear-dlg {
   padding-top: 12px;
   border-top: 1px solid var(--line);
 }
-.roster {
+/* Editar e Excluir: no celular ocupam a linha toda, um em cada ponta; no desktop ficam juntos, na direita da barra. */
+.event-admin { display: flex; justify-content: space-between; gap: 12px; flex: 1 1 100%; }
+@media (min-width: 900px) {
+  .event-admin { flex: 0 0 auto; margin-left: auto; }
+}.roster {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -9442,6 +9446,8 @@ dialog.member-dlg {
 /* Seções do evento (resposta, escala, observações): cada uma com o título de barra gradiente. */
 .event-sec { display: flex; flex-direction: column; gap: 8px; }
 .event-sec > .people-sub-h { margin: 0; }
+/* Presença ainda por marcar: sobe para o topo do card (o .event-more é uma coluna flex). */
+.event-more > .event-sec.reply-first { order: -1; }
 
 /* Quem cobre (só para quem marcou "Não posso"): rótulo e lista na mesma linha e da mesma altura das abas ao lado. */
 .event-reply { height: 42px; box-sizing: border-box; }

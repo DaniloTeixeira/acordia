@@ -176,7 +176,7 @@ também libera o acesso ao app para eles).
   - tocar num dia mostra os eventos dele e a chave **"Não posso neste dia"** (indisponibilidade);
   - **Suas próximas escalas** no topo, com a função e a resposta;
   - lista de próximos e anteriores.
-- [ ] **Evento** (só quem lidera cria e edita):
+- [ ] **Evento** (só quem lidera cria e edita; Editar e Excluir ficam um em cada ponta no celular e juntos à direita no computador):
   - tipo Culto ou Ensaio, título, data, início, **hora de chegada**, local, repertório do grupo e observações;
   - **repetir** toda semana (2 a 26 vezes);
   - **escala**: quem toca o quê, com funções sugeridas e "Escalar todos";
@@ -186,7 +186,7 @@ também libera o acesso ao app para eles).
       **quem cobre** a vaga (só um aviso para o grupo); quem lidera vê "não pode ir · falta substituto" enquanto ninguém foi indicado.
 - [ ] **Membro ativo ou inativo**: em Membros, quem lidera deixa alguém inativo ("Afastar", olho cortado) sem tirar do grupo.
       O inativo some da escala e da chamada dos ensaios, mas o histórico fica; voltar é pelo mesmo botão ("Reintegrar"). O líder não fica inativo.
-- [ ] **Presença nos ensaios**: "Cheguei" (de 12 h antes do início em diante; em ensaio que já começou o membro escolhe entre "Estive" e "Não estive", ou volta a sem marcação; pode mudar mesmo se o líder marcou) e a chamada de quem lidera
+- [ ] **Presença nos ensaios**: "Cheguei" (de 12 h antes do início em diante; em ensaio que já começou o membro escolhe entre "Estive" e "Não estive", ou volta a sem marcação; pode mudar mesmo se o líder marcou; enquanto não marcou, "Sua resposta" sobe para o topo do card) e a chamada de quem lidera
       (presente, falta, justificada), que vale por cima do "Cheguei".
       Em Membros, o botão de check na linha da pessoa marca presença ou falta dos últimos ensaios sem abrir a agenda.
       A lista do ensaio é uma tabela zebrada (pessoa e resposta, só texto colorido) com todos os membros ativos; quem não foi escalado aparece como "Não escalado" e quem está em pausa como "Em pausa".
