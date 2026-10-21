@@ -8,6 +8,7 @@ import * as store from "../../lib/store";
 import { useData, toast } from "../../state";
 import { voiceSongs, applyVoiceKey, setSongHigh } from "../../repertoire";
 import { Icon } from "../../ui/Icon";
+import { micFailed } from "../../ui/micFailed";
 import { Select } from "../../ui/Select";
 import { SecHead } from "../../ui/SecHead";
 
@@ -25,10 +26,10 @@ const voices = (): Voices => (data.settings.voices || {}) as Voices;
 function useMic(){
   const stop = useRef<(() => void) | null>(null);
   const off = () => { if(stop.current){ stop.current(); stop.current = null; } };
-  const on = async (onPitch: (f: number | null) => void) => {
+  const on = async (onPitch: (f: number | null) => void, retry?: () => void) => {
     off();
     try{ stop.current = await listenPitch(onPitch); return true; }
-    catch(e){ toast(t("tuner.denied")); return false; }
+    catch(e){ micFailed(e, retry); return false; }
   };
   useEffect(() => off, []);
   return {on, off};
@@ -69,7 +70,7 @@ function VoiceRange(){
       m0.run = m === m0.lastMidi ? m0.run + 1 : 1; m0.lastMidi = m;
       if(m0.run >= 8 && (m0.best === null || (which === "low" ? m < m0.best : m > m0.best))) m0.best = m;
       setMeasuring(s => s && {...s, live: t("voice.hearing", {note: midiName(m)}), best: m0.best});
-    });
+    }, () => startMeasure(which));
     if(!ok){ run.current = null; return; }
     setMeasuring({which, live: t("voice.singNow"), best: null});
   };

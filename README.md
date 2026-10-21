@@ -221,6 +221,7 @@ também libera o acesso ao app para eles).
   - mede a nota mais grave e a mais aguda e diz o tipo de voz;
   - guarda vários cantores;
   - sugere o tom de cada música do repertório ("Usar este tom").
+  - se o microfone falhar, o aviso diz o motivo (negado, sem microfone, em uso, navegador sem suporte), ensina a liberar e tem "Tentar de novo".
 
 ### Ferramentas
 - [ ] **Metrônomo**:
@@ -230,7 +231,7 @@ também libera o acesso ao app para eles).
   - acento no 1º tempo;
   - **Descobrir BPM**;
   - atalhos: espaço, setas e T.
-- [ ] **Afinador**: pelo microfone, com A4 de 432 a 446 Hz, ponteiro em cents e a corda mais próxima.
+- [ ] **Afinador**: pelo microfone, com A4 de 432 a 446 Hz, ponteiro em cents e a corda mais próxima; a falha do microfone usa o mesmo aviso da Voz.
 - [ ] **Pad infinito**:
   - tom, 6 estilos (Original, Discreto, Quente, Brilhante, Etéreo, Profundo), volume e filtro;
   - swell em 4 ou 8 compassos;

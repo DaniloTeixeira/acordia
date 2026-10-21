@@ -28,6 +28,16 @@ export function detectPitch(buf: Float32Array, sampleRate: number, {minHz = 35, 
   const shift = (a - 2 * b + c) ? (a - c) / (2 * (a - 2 * b + c)) : 0;
   return sampleRate / (lag + shift);
 }
+// Motivo da falha ao abrir o microfone, para a mensagem dizer o que fazer (getUserMedia rejeita com nomes
+// diferentes). Sem mediaDevices (página não segura, janela embutida de outro app) é "unsupported".
+export type MicError = "denied" | "nomic" | "busy" | "unsupported";
+export function micErrorKind(e: unknown): MicError {
+  const n = (e as {name?: string} | null)?.name;
+  if(n === "NotAllowedError" || n === "PermissionDeniedError" || n === "SecurityError") return "denied";
+  if(n === "NotFoundError" || n === "OverconstrainedError" || n === "DevicesNotFoundError") return "nomic";
+  if(n === "NotReadableError" || n === "AbortError" || n === "TrackStartError") return "busy";
+  return "unsupported";
+}
 // Microfone com detecção contínua, para os exercícios de voz: chama onPitch(Hz ou null) a cada ~60 ms.
 // O cancelamento de eco evita que o som do próprio app (cadência, nota de ajuda) conte como canto.
 // Devolve uma função que para tudo; rejeita se o microfone for negado.

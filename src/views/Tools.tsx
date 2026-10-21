@@ -4,10 +4,11 @@ import { detectPitch, noteFromFreq, nearestString, midiName } from "../lib/tuner
 import { INSTRUMENTS, isInstrument } from "../lib/instruments";
 import { t } from "../lib/i18n";
 import * as store from "../lib/store";
-import { useData, toast, go } from "../state";
+import { useData, go } from "../state";
 import { BackLink } from "../ui/BackLink";
 import { metro } from "../metro";
 import { Icon } from "../ui/Icon";
+import { micFailed } from "../ui/micFailed";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
 import { MetronomeUI } from "./Metronome";
@@ -53,7 +54,7 @@ function Tuner(){
     pad.stop();
     let stream: MediaStream;
     try{ stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:false}}); }
-    catch(e){ return toast(t("tuner.denied")); }
+    catch(e){ return micFailed(e, start); }
     const C = window.AudioContext || (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext;
     const ctx = new C(), src = ctx.createMediaStreamSource(stream), an = ctx.createAnalyser(); an.fftSize = 4096; src.connect(an);
     const buf = new Float32Array(an.fftSize), smooth: number[] = [];
