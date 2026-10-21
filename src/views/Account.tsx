@@ -20,6 +20,7 @@ import { SecHead } from "../ui/SecHead";
 import { PhoneInput } from "../ui/PhoneInput";
 import { NameInput } from "../ui/NameInput";
 import { YouChip } from "../ui/YouChip";
+import { VoiceChip } from "../ui/VoiceChip";
 
 const BASE = import.meta.env.BASE_URL;
 // Logo sem o fundo (as barras em gradiente servem nos dois temas), o nome com o gradiente da marca e o slogan.
@@ -354,7 +355,7 @@ export function Profile(){
     <div className="view-head"><div><h1 id="profile-h">{t("profile.title")}</h1></div></div>
     <div className="profile-panel">
       <div className="card profile-top wide">
-        <div className="profile-who"><PhotoButton/><div><span className="people-name"><b>{profile?.name || email}</b>{(owner || admin) && <span className={"chip " + (owner ? "owner" : "accent")}>{t(owner ? "profile.owner" : "profile.admin")}</span>}</span><span className="sub">{email}</span>
+        <div className="profile-who"><PhotoButton/><div><span className="people-name"><b>{profile?.name || email}</b>{(owner || admin) && <span className={"chip " + (owner ? "owner" : "accent")}>{t(owner ? "profile.owner" : "profile.admin")}</span>}{profile && <VoiceChip {...profile}/>}</span><span className="sub">{email}</span>
           <PhotoActions/></div></div>
         {/* À direita, no pé do card: o estado da nuvem (só quando há algo) antes das escalas. */}
         <div className="profile-side"><SyncStatus/><MySoon/></div>

@@ -1,18 +1,19 @@
-// Aba Voz do Estudo, pensada para cantores: "Minha extensão" mede a voz e guarda no perfil, para o líder e o
-// grupo verem a faixa de cada cantor em Membros e na escala do evento.
+// Aba Voz das Ferramentas, pensada para cantores: "Minha extensão" mede a voz e guarda no perfil, para o líder e o
+// grupo verem a classificação vocal de cada cantor em Membros e na escala do evento.
 import { useEffect, useRef, useState } from "react";
-import { voiceType } from "../../lib/core";
-import { listenPitch, midiName } from "../../lib/tuner";
-import { cleanRange, VOICE_LOWEST, VOICE_HIGHEST, HOLD_TICKS, newHold, holdStep, holdDone, type Hold } from "../../lib/voice";
-import { saveVoiceRange } from "../../lib/groups";
-import { useAuth } from "../../lib/cloud";
-import { t } from "../../lib/i18n";
-import * as store from "../../lib/store";
-import { useData, toast } from "../../state";
-import { Icon } from "../../ui/Icon";
-import { micFailed } from "../../ui/micFailed";
-import { SecHead } from "../../ui/SecHead";
-import { Spin } from "../Account";
+import { voiceType } from "../lib/core";
+import { listenPitch, midiName } from "../lib/tuner";
+import { cleanRange, VOICE_LOWEST, VOICE_HIGHEST, HOLD_TICKS, newHold, holdStep, holdDone, type Hold } from "../lib/voice";
+import { saveVoiceRange } from "../lib/groups";
+import { useAuth } from "../lib/cloud";
+import { t } from "../lib/i18n";
+import * as store from "../lib/store";
+import { useData, toast } from "../state";
+import { Icon } from "../ui/Icon";
+import { micFailed } from "../ui/micFailed";
+import { pad } from "../pad";
+import { SecHead } from "../ui/SecHead";
+import { Spin } from "./Account";
 
 const midiOf = (f: number) => 69 + 12 * Math.log2(f / 440);
 
@@ -22,6 +23,8 @@ function useMic(){
   const off = () => { if(stop.current){ stop.current(); stop.current = null; } };
   const on = async (onPitch: (f: number | null) => void, retry?: () => void) => {
     off();
+    // O microfone ouviria o pad no lugar da voz.
+    pad.stop();
     try{ stop.current = await listenPitch(onPitch); return true; }
     catch(e){ micFailed(e, retry); return false; }
   };

@@ -1,4 +1,4 @@
-// Ferramentas: metrônomo, afinador e pad infinito.
+// Ferramentas: metrônomo, afinador, pad infinito e voz (medir a extensão).
 import { useEffect, useRef, useState } from "react";
 import { detectPitch, noteFromFreq, nearestString, midiName } from "../lib/tuner";
 import { INSTRUMENTS, isInstrument } from "../lib/instruments";
@@ -13,6 +13,7 @@ import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
 import { MetronomeUI } from "./Metronome";
 import { PadUI } from "./Pad";
+import { Voice } from "./Voice";
 import { pad } from "../pad";
 import { InstrumentSelect } from "./InstrumentSelect";
 
@@ -20,7 +21,7 @@ const { data } = store;
 
 export function Tools(){
   useData();
-  const tab = (["tuner", "pad"] as const).find(v => v === data.settings.toolsTab) || "metro";
+  const tab = (["tuner", "pad", "voice"] as const).find(v => v === data.settings.toolsTab) || "metro";
   // Sair da página (ou trocar de aba) para o metrônomo.
   useEffect(() => () => metro.stop(), []);
   useEffect(() => { if(tab !== "metro") metro.stop(); }, [tab]);
@@ -29,10 +30,11 @@ export function Tools(){
       <BackLink id="tools-back" label={t("common.back")} onClick={() => go("more")} mobileOnly/>
       <h1 id="tools-h">{t("tools.title")}</h1><p className="sub">{t("tools.sub")}</p></div></div>
     <Seg id="tools-tabs" aria={t("tools.title")} value={tab} onChange={v => store.setSetting("toolsTab", v)}
-      options={[{v: "metro", label: t("tools.metro")}, {v: "tuner", label: t("tools.tuner")}, {v: "pad", label: t("tools.pad")}]}/>
+      options={[{v: "metro", label: t("tools.metro")}, {v: "tuner", label: t("tools.tuner")}, {v: "pad", label: t("tools.pad")}, {v: "voice", label: t("tools.voice")}]}/>
     <div id="tools-metro" hidden={tab !== "metro"}>{tab === "metro" && <MetronomeUI/>}</div>
     <div id="tools-tuner" hidden={tab !== "tuner"}>{tab === "tuner" && <Tuner/>}</div>
     <div id="tools-pad" hidden={tab !== "pad"}>{tab === "pad" && <PadUI/>}</div>
+    <div id="tools-voice" hidden={tab !== "voice"}>{tab === "voice" && <Voice/>}</div>
   </section>;
 }
 
