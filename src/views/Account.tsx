@@ -520,7 +520,7 @@ function MyRoles(){
 function MyVoice(){
   const profile = useAuth(s => s.profile), has = !!rangeType(profile || {});
   return <Sec id="profile-voice" className="profile-voice" title={t("profile.voice")}
-    action={<button type="button" className="btn soft sm" onClick={() => { setSetting("toolsTab", "voice"); go("tools"); }}>{t(has ? "voice.measureAgain" : "voice.measure")}</button>}>
+    action={<button type="button" className="link-btn" onClick={() => { setSetting("toolsTab", "voice"); go("tools"); }}>{t(has ? "voice.measureAgain" : "voice.measure")}</button>}>
     <span className="member-chips">{has ? <VoiceChip {...profile}/> : <span className="people-missing">{t("profile.noVoice")}</span>}</span>
     <small className="sub">{t("profile.voiceHint")}</small></Sec>;
 }
