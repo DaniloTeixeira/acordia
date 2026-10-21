@@ -90,6 +90,9 @@
   --warn-soft: #fff1e8;
   --role-soft: #f1e8fd;
   --role-ink: #6b2fb3;
+  --voice-bg: #f472b6;
+  --voice-ink: #000000;
+  --voice-line: #db2777;
   --shadow-sm:
     0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.08);
   --shadow-md:
@@ -7885,10 +7888,6 @@ dialog.ear-dlg {
   gap: 6px 10px;
   font-size: 0.9rem;
 }
-.roster-voice {
-  margin-left: 6px;
-  white-space: nowrap;
-}
 .roster-who {
   flex: 1;
   min-width: 0;
@@ -8379,6 +8378,15 @@ dialog.member-dlg {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+}
+/* Respiro entre o texto de cima (título da seção ou data da escala) e os chips de funções. */
+.member-dlg-pair .member-chips,
+.member-dlg-next .member-chips {
+  margin-top: 8px;
+}
+/* Em Funções os chips ficam um pouco mais perto do título. */
+.member-dlg-pair .member-chips-roles {
+  margin-top: 4px;
 }
 .role-input {
   max-width: 200px;
@@ -9600,6 +9608,13 @@ dialog.member-dlg {
 .quick-att .seg button { min-width: 68px; font-weight: 500; }
 
 /* Chips da lista de membros por tipo: situação (verde/laranja/vermelho), escalas (azul) e funções (roxo). */
+/* Tipo de voz (Barítono, Contralto...): rosa, cor que nenhum outro chip usa (funções roxo, estados verde/laranja/vermelho, escalas azul). Mesma cor nos dois temas, por isso sem versão escura. */
+.chip.voice,
+.member-roles .chip.voice:not(.leader, .current) {
+  background: var(--voice-bg);
+  color: var(--voice-ink);
+  box-shadow: inset 0 0 0 1px var(--voice-line);
+}
 .chip.role {
   background: var(--role-soft);
   color: var(--role-ink);
