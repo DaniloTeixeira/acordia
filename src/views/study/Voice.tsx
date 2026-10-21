@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { voiceType } from "../../lib/core";
 import { listenPitch, midiName } from "../../lib/tuner";
-import { cleanRange, VOICE_LOWEST, VOICE_HIGHEST } from "../../lib/voice";
+import { cleanRange, VOICE_LOWEST, VOICE_HIGHEST, HOLD_TICKS, newHold, holdStep, holdDone, type Hold } from "../../lib/voice";
 import { saveVoiceRange } from "../../lib/groups";
 import { useAuth } from "../../lib/cloud";
 import { t } from "../../lib/i18n";
@@ -40,8 +40,8 @@ function VoiceRange(){
   const v = cleanRange(profile?.voice_low, profile?.voice_high);
   const type = v.low !== null && v.high !== null ? voiceType(v.low, v.high) : null;
   const mic = useMic();
-  const [measuring, setMeasuring] = useState<{which: Which; live: string; best: number | null} | null>(null);
-  const run = useRef<{which: Which; best: number | null; run: number; lastMidi: number | null} | null>(null);
+  const [measuring, setMeasuring] = useState<{which: Which; live: string; hold: number} | null>(null);
+  const run = useRef<({which: Which} & Hold) | null>(null);
   // Gravando na nuvem (spinner no botão) e qual nota acabou de ser salva ("✓ Salvo" no título por um instante).
   const [saving, setSaving] = useState<Which | null>(null);
   const [saved, setSaved] = useState<Which | null>(null);
@@ -63,26 +63,20 @@ function VoiceRange(){
     const r = cleanRange(old?.low, old?.high);
     if(r.low !== null || r.high !== null) saveVoiceRange(r);
   }, [profile]);
-  // Mede a nota mais grave (ou aguda) que a pessoa sustenta: conta uma nota quando ela fica ~0,5 s estável.
+  // Mede a nota que a pessoa sustenta: ao segurar a mesma nota por ~2 s ela é salva sozinha e a medição termina.
   const startMeasure = async (which: Which) => {
-    run.current = {which, best: null, run: 0, lastMidi: null};
+    run.current = {which, ...newHold()};
     const ok = await mic.on(f => {
-      const m0 = run.current; if(!m0 || m0.which !== which) return;
-      if(!f){ m0.run = 0; setMeasuring(s => s && {...s, live: t("voice.singNow")}); return; }
-      const m = Math.round(midiOf(f));
-      if(m < VOICE_LOWEST || m > VOICE_HIGHEST) return;
-      m0.run = m === m0.lastMidi ? m0.run + 1 : 1; m0.lastMidi = m;
-      if(m0.run >= 8 && (m0.best === null || (which === "low" ? m < m0.best : m > m0.best))) m0.best = m;
-      setMeasuring(s => s && {...s, live: t("voice.hearing", {note: midiName(m)}), best: m0.best});
+      const cur = run.current; if(!cur || cur.which !== which) return;
+      const h = holdStep(cur, f ? Math.round(midiOf(f)) : null);
+      run.current = {which, ...h};
+      if(holdDone(h)){ mic.off(); run.current = null; setMeasuring(null); save(which, h.note!); return; }
+      setMeasuring(s => s && {...s, live: h.note === null ? t("voice.singNow") : t("voice.hearing", {note: midiName(h.note)}), hold: Math.min(1, h.run / HOLD_TICKS)});
     }, () => startMeasure(which));
     if(!ok){ run.current = null; return; }
-    setMeasuring({which, live: t("voice.singNow"), best: null});
+    setMeasuring({which, live: t("voice.singNow"), hold: 0});
   };
-  const stopMeasure = () => {
-    const m = run.current; mic.off(); run.current = null; setMeasuring(null);
-    if(m && m.best !== null) save(m.which, m.best);
-    else if(m) toast(t("voice.noNote"));
-  };
+  const cancelMeasure = () => { mic.off(); run.current = null; setMeasuring(null); };
   return <div className="card voice-card">
     <SecHead>{t("voice.rangeTitle")}</SecHead>
     <p className="sub">{t("voice.rangeD")}</p>
@@ -94,19 +88,20 @@ function VoiceRange(){
     <div className="voice-steps">
       {(["low", "high"] as const).map(which => {
         const on = measuring && measuring.which === which, busy = saving === which;
-        const cur = v[which], val = on && measuring.best !== null ? measuring.best : cur;
+        const cur = v[which], val = cur;
         return <div key={which} className={"voice-step" + (on ? " measuring" : "")} data-step={which}>
           <span className="lbl">{t(which === "low" ? "voice.lowest" : "voice.highest")}
             <span className={"voice-saved" + (saved === which ? " on" : "")} role="status">{saved === which ? "✓ " + t("common.saved") : ""}</span></span>
           <b className="voice-val">{val ? midiName(val) : "—"}</b>
           {/* Sempre no lugar (só invisível fora da medição), para o card não crescer quando a nota ao vivo aparece. */}
           <span className={"voice-live" + (on ? "" : " idle")} aria-hidden={!on}>{on ? measuring.live : ""}</span>
+          <span className={"voice-hold" + (on ? "" : " idle")} aria-hidden="true"><i style={{width: (on ? measuring.hold * 100 : 0) + "%"}}/></span>
           <div className="voice-step-actions">
             <button className="btn soft sm" data-measure={which} aria-busy={busy} disabled={busy} onClick={() => {
               const was = measuring && measuring.which;
-              if(was) stopMeasure(); // salva a medição em andamento
+              if(was) cancelMeasure();
               if(was !== which) startMeasure(which);
-            }}>{busy ? <Spin/> : on ? <Icon name="check" sm/> : <Icon name="sound" sm/>} {on ? t("common.save") : t(cur ? "voice.measureAgain" : "voice.measure")}</button>
+            }}>{busy ? <Spin/> : on ? <Icon name="x" sm/> : <Icon name="sound" sm/>} {on ? t("common.cancel") : t(cur ? "voice.measureAgain" : "voice.measure")}</button>
             {cur !== null && <>
               {([-1, 1] as const).map(d => <button key={d} className="icon-btn sm" data-nudge={which + ":" + d} disabled={busy} aria-label={t(d < 0 ? "voice.lower" : "voice.higher")} title={t(d < 0 ? "voice.lower" : "voice.higher")}
                 onClick={() => save(which, Math.max(VOICE_LOWEST, Math.min(VOICE_HIGHEST, cur + d)))}><Icon name={d < 0 ? "minus" : "plus"} sm/></button>)}

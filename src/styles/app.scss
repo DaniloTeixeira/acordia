@@ -4230,6 +4230,22 @@ a.btn {
 .voice-live.idle {
   visibility: hidden;
 }
+/* Barra de "segure a nota": enche em ~2 s e, ao completar, a nota é salva. Sempre no lugar, como o .voice-live. */
+.voice-hold {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+  i {
+    display: block;
+    height: 100%;
+    background: var(--accent-grad);
+    transition: width var(--t-fast) linear;
+  }
+}
+.voice-hold.idle {
+  visibility: hidden;
+}
 .voice-step-actions {
   display: flex;
   align-items: center;

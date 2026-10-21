@@ -25,3 +25,16 @@ export function rangeType(r: {voice_low?: number | null; voice_high?: number | n
   const {low, high} = cleanRange(r.voice_low, r.voice_high);
   return low !== null && high !== null ? voiceType(low, high) : "";
 }
+
+// Medição por "segurar a nota": cada leitura (~60 ms) traz a nota ouvida (MIDI) ou null. Segurar a mesma nota
+// por HOLD_TICKS (~2 s) conclui; até GRACE_TICKS leituras fora da nota (vibrato, respiro) não reiniciam a contagem.
+export const HOLD_TICKS = 33, GRACE_TICKS = 3;
+export interface Hold { note: number | null; run: number; miss: number }
+export const newHold = (): Hold => ({note: null, run: 0, miss: 0});
+export function holdStep(h: Hold, heard: number | null): Hold {
+  const m = cleanNote(heard);
+  if(m !== null && (h.note === null || m === h.note)) return {note: m, run: h.run + 1, miss: 0};
+  if(h.miss + 1 <= GRACE_TICKS) return {...h, miss: h.miss + 1};
+  return m !== null ? {note: m, run: 1, miss: 0} : newHold(); // trocou de nota ou parou de cantar: recomeça
+}
+export const holdDone = (h: Hold) => h.note !== null && h.run >= HOLD_TICKS;
