@@ -1,7 +1,7 @@
 // Rode com: npm test
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, rehearsalStanding, canCheckIn, pendingCheckIn, waNumber, waLink, fmtPhone, maskPhone, capFirst, toICS, splitEvents, dayKey, upcomingBirthdays, rosterByPerson, needsCover, pendingReplies, streakLevel, type GEvent, type RosterRow } from "../src/lib/calendar";
+import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, rehearsalStanding, canCheckIn, pendingCheckIn, waNumber, waLink, fmtPhone, maskPhone, capFirst, toICS, splitEvents, dayKey, upcomingBirthdays, rosterByPerson, needsCover, pendingReplies, streakLevel, comebackProgress, type GEvent, type RosterRow } from "../src/lib/calendar";
 
 const ev = (id: string, starts: Date, kind: GEvent["kind"] = "service"): GEvent =>
   ({id, group_id: "g", kind, title: id, starts_at: starts.toISOString(), call_at: null, place: "", notes: "", setlist_id: null});
@@ -206,4 +206,11 @@ test("streakLevel: neutro até 2 faltas, laranja na 3ª e vermelho na 7ª", () =
   assert.equal(streakLevel(3), 0);
   assert.equal(streakLevel(5), 50);
   assert.equal(streakLevel(7), 100);
+});
+
+test("comebackProgress: quanto falta para sair da pausa, contra o total pedido", () => {
+  assert.deepEqual(comebackProgress({need: 4}), {done: 0, total: 4, pct: 0});
+  assert.deepEqual(comebackProgress({need: 1}), {done: 3, total: 4, pct: 75});
+  assert.deepEqual(comebackProgress({need: 6, marked: true}, {since: "", need: 6}), {done: 0, total: 6, pct: 0});
+  assert.deepEqual(comebackProgress({need: 3, marked: true}, {since: "", need: 6}), {done: 3, total: 6, pct: 50});
 });

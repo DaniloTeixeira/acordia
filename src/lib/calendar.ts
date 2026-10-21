@@ -99,6 +99,11 @@ export function streakLevel(streak: number): number | null {
 }
 export interface Standing { out: boolean; streak: number; need: number; called: number; marked?: boolean }
 export interface OutMark { since: string; need: number }
+// Quanto da volta da pausa já foi cumprido: total é o que foi pedido (a marcação à mão ou COMEBACK), need o que falta.
+export function comebackProgress(sd: Pick<Standing, "need" | "marked">, mark?: OutMark | null){
+  const total = Math.max(sd.need, sd.marked && mark ? mark.need : COMEBACK), done = total - sd.need;
+  return {done, total, pct: Math.round(100 * done / total)};
+}
 export function rehearsalStanding(email: string, events: GEvent[], att: AttendanceRow[], now = Date.now(), mark?: OutMark | null, roster?: RosterRow[]): Standing {
   const past = events.filter(e => e.kind === "rehearsal" && callClosed(e, now))
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at));

@@ -10,7 +10,7 @@ import { useAuth } from "../lib/cloud";
 import { closeDialog, type DialogProps } from "../state";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
-import { Avatar, PhoneLink, StreakChip, fmtBirthday, AppAccess, PersonEdit, canManageApp } from "../views/Account";
+import { Avatar, PhoneLink, AttStat, fmtBirthday, AppAccess, PersonEdit, canManageApp } from "../views/Account";
 import { StatusChip, MemberManage, MemberRemove, MemberEditInline, eventTitle, timeOf, longDay } from "../views/Group";
 import { SecHead } from "../ui/SecHead";
 import { YouChip } from "../ui/YouChip";
@@ -27,7 +27,6 @@ export function MemberDialog({email, person, manage}: DialogProps["member"]){
   // Aberto por Usuários, o Editar abre o formulário do app (nome, celular, data e funções); no grupo, o do grupo.
   const canApp = !!manage && canManageApp(manage.row, me, owner), canEdit = canApp || !!m && (amGroupAdmin() || email === me), edit = canApp ? editApp : editing && canEdit;
   const rate = attendanceRate(email, g.events, g.attendance, Date.now(), g.roster), sd = rehearsalStanding(email, g.events, g.attendance, Date.now(), m ? outMark(m) : null, g.roster);
-  const p = rate.total ? Math.round(100 * rate.present / rate.total) : 0;
   const roles = sortRoles(splitRoles(m?.role || "")), load = m ? monthLoad(dayKey(new Date()), g.events, g.roster).get(email) || 0 : 0;
   const soon = Date.now() - SOON_MS;
   const next = g.events.filter(e => new Date(e.starts_at).getTime() > soon && g.roster.some(r => r.event_id === e.id && r.email === email))
@@ -67,13 +66,7 @@ export function MemberDialog({email, person, manage}: DialogProps["member"]){
 
         {m && <>
         <div className="field profile-att"><SecHead as="span">{t("member.attendance")}</SecHead>
-          {rate.total ? <div className="profile-stat">
-            <b>{p}%</b><span className="sub">{t("profile.attCount", {present: rate.present, total: rate.total})}</span>
-            {sd.out ? <span className="chip st-no">{tn("group.standOut", sd.need)}</span>
-              : sd.streak > 0 ? <StreakChip streak={sd.streak}/>
-              : <span className="chip st-yes">{t("group.standOk")}</span>}
-            <span className="meter" aria-hidden="true"><i style={{width: p + "%"}}/></span>
-          </div> : <span className="sub">{t("profile.attNone")}</span>}
+          {rate.total ? <AttStat rate={rate} sd={sd} mark={m ? outMark(m) : null}/> : <span className="sub">{t("profile.attNone")}</span>}
           <small className="sub">{t("profile.attRule", {max: MISS_LIMIT, back: COMEBACK})}</small></div>
 
         <div className="field"><SecHead as="span">{t("member.next")}</SecHead>
@@ -88,7 +81,7 @@ export function MemberDialog({email, person, manage}: DialogProps["member"]){
       </div>
       <div className="dlg-foot">
         {canEdit && !edit && <button type="button" className="btn ghost" onClick={() => canApp ? setEditApp(true) : setEditing(true)}><Icon name="edit" sm/> {t("group.editMemberShort")}</button>}
-        <button className="btn primary" value="ok">{t("common.close")}</button></div>
+        <button className="btn primary" value="cancel">{t("common.close")}</button></div>
     </form>
   </Dialog>;
 }

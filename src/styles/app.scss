@@ -8978,7 +8978,7 @@ dialog.member-dlg {
   padding: 4px 0 2px;
 }
 /* Editar membro (Grupo → Membros): num quadro como o das funções, com um pouco mais de espaço entre as partes. */
-.people-edit.member-edit {
+.people-edit:is(.member-edit, .out-edit) {
   gap: 12px;
   padding: 12px;
   border-radius: var(--r-md);
@@ -9137,6 +9137,10 @@ dialog.member-dlg {
   height: 100%;
   border-radius: inherit;
   background: var(--ok);
+}
+/* Com faltas seguidas a barra fica laranja, como o chip; em pausa ela mostra a volta e segue verde. */
+.profile-stat.is-warn .meter > i {
+  background: var(--warn);
 }
 .profile-next-box {
   display: flex;
@@ -9297,10 +9301,21 @@ dialog.member-dlg {
   font-size: 1.25rem;
 }
 .out-edit-foot {
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* Botões dos quadros de edição: mesmo tamanho no celular e no computador (a regra de toque deixaria 40px). */
+:is(.out-edit-foot, .member-roles-foot) :is(.btn.sm, .link-btn) {
+  min-height: 34px;
+}
+
+/* "Tirar da pausa" é link à esquerda; Cancelar e Salvar ficam juntos à direita. */
+.out-edit-clear {
+  margin-right: auto;
 }
 
 /* Grupo → Membros: atalho de presença/falta. Quadro na largura toda; cada ensaio numa linha só

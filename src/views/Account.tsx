@@ -11,7 +11,7 @@ import { Icon } from "../ui/Icon";
 import { DateInput } from "../ui/DateInput";
 import { FieldLabel } from "../ui/FieldLabel";
 import { useGroups, loadGroups, chooseGroup, setMemberRole, outMark, listGroupedEmails } from "../lib/groups";
-import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, streakLevel, fmtPhone, maskPhone } from "../lib/calendar";
+import { attendanceRate, rehearsalStanding, comebackProgress, type Standing, type OutMark, MISS_LIMIT, COMEBACK, streakLevel, fmtPhone, maskPhone } from "../lib/calendar";
 import { sortRoles, joinRoles, splitRoles } from "../lib/roles";
 import { MemberRoles, RolePicker, ReplySeg, GroupMark, eventTitle, timeOf, longDay, openGroup } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
@@ -79,6 +79,20 @@ const KEEP = Symbol("keep");
 export function StreakChip({streak, title}: {streak: number; title?: string}){
   const lvl = streakLevel(streak);
   return <span className={"chip" + (lvl === null ? "" : " streak")} style={lvl === null ? undefined : {"--lvl": lvl} as React.CSSProperties} title={title}>{t("group.streak", {n: streak, max: MISS_LIMIT})}</span>;
+}
+
+// Frequência nos ensaios: % de presença e a barra. Em pausa, o número e a barra mostram o quanto já foi cumprido
+// da volta (0% neutro até o verde cheio), não o histórico, que mandaria um 100% verde ao lado do chip vermelho.
+export function AttStat({rate, sd, mark}: {rate: {present: number; total: number}; sd: Standing; mark?: OutMark | null}){
+  const back = sd.out ? comebackProgress(sd, mark) : null;
+  const p = back ? back.pct : Math.round(100 * rate.present / rate.total);
+  return <div className={"profile-stat" + (!back && sd.streak > 0 ? " is-warn" : "")}>
+    <b>{p}%</b><span className="sub">{back ? t("profile.attBack", {done: back.done, total: back.total}) : t("profile.attCount", {present: rate.present, total: rate.total})}</span>
+    {sd.out ? <span className="chip st-no">{tn("group.standOut", sd.need)}</span>
+      : sd.streak > 0 ? <StreakChip streak={sd.streak}/>
+      : <span className="chip st-yes">{t("group.standOk")}</span>}
+    <span className="meter" aria-hidden="true"><i style={{width: p + "%"}}/></span>
+  </div>;
 }
 
 export function useLock(){
@@ -443,15 +457,8 @@ function MyAttendance(){
   const {g, me, ok} = useMyGroup();
   if(!ok) return null;
   const rate = attendanceRate(me, g.events, g.attendance, Date.now(), g.roster), sd = rehearsalStanding(me, g.events, g.attendance, Date.now(), outMark(g.members.find(x => x.email === me)), g.roster);
-  const p = rate.total ? Math.round(100 * rate.present / rate.total) : 0;
   return <Sec id="profile-att" className="profile-att" title={t("profile.attendance")}>
-    {rate.total ? <div className="profile-stat">
-      <b>{p}%</b><span className="sub">{t("profile.attCount", {present: rate.present, total: rate.total})}</span>
-      {sd.out ? <span className="chip st-no">{tn("group.standOut", sd.need)}</span>
-        : sd.streak > 0 ? <StreakChip streak={sd.streak}/>
-        : <span className="chip st-yes">{t("group.standOk")}</span>}
-      <span className="meter" aria-hidden="true"><i style={{width: p + "%"}}/></span>
-    </div> : <span className="sub">{t("profile.attNone")}</span>}
+    {rate.total ? <AttStat rate={rate} sd={sd} mark={outMark(g.members.find(x => x.email === me))}/> : <span className="sub">{t("profile.attNone")}</span>}
     <small className="sub">{t("profile.attRule", {max: MISS_LIMIT, back: COMEBACK})}</small>
   </Sec>;
 }
