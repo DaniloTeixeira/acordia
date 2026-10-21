@@ -4258,6 +4258,10 @@ a.btn {
   margin: 0;
 }
 .voice-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   font-weight: 700;
   margin: 0;
 }

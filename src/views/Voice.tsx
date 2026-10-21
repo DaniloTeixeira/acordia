@@ -13,6 +13,7 @@ import { Icon } from "../ui/Icon";
 import { micFailed } from "../ui/micFailed";
 import { pad } from "../pad";
 import { SecHead } from "../ui/SecHead";
+import { VoiceChip } from "../ui/VoiceChip";
 import { Spin } from "./Account";
 
 const midiOf = (f: number) => 69 + 12 * Math.log2(f / 440);
@@ -114,7 +115,7 @@ function VoiceRange(){
         </div>;
       })}
     </div>
-    {type && v.low !== null && v.high !== null && <><p className="voice-result">{t("voice.result", {low: midiName(v.low), high: midiName(v.high), type: t("voice.type." + type)})}</p><p className="sub">{t("voice.typeNote")}</p></>}
+    {type && v.low !== null && v.high !== null && <><p className="voice-result">{t("voice.result", {low: midiName(v.low), high: midiName(v.high)})}<VoiceChip voice_low={v.low} voice_high={v.high}/></p><p className="sub">{t("voice.typeNote")}</p></>}
     <p className="sub">{t("voice.shared")}</p>
   </div>;
 }
