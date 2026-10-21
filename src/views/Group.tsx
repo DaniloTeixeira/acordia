@@ -356,6 +356,8 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
   const att = g.attendance.filter(a => a.event_id === e.id), myAtt = att.find(a => a.email === me), myIn = myAtt?.status === "present";
   const pastNow = Date.now() > d.getTime(), myMark = myAtt?.status === "present" || myAtt?.status === "absent";
   const needs = needsCover(roster), myCover = mineRows[0]?.cover || "";
+  // Quem não foi escalado (como quem está em pausa) só pode marcar presença: falta não conta para ele, e o banco recusa.
+  const myOut = mineRows.length === 0;
   const act = (key: string, fn: () => Promise<boolean>, ok?: string) => lock(async () => { setBusy(key); const r = await fn().finally(() => setBusy("")); toast(t(r ? ok || "group.saved" : "profile.saveFail")); return r; });
   // Resposta de quem está na escala: o mesmo ReplySeg do Início e do Perfil (botões verde/vermelho, depois o selo).
   const canReply = mineRows.length > 0 && !isPast;
@@ -423,7 +425,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
           <span className="reply-badge"><Icon name={myIn ? "check" : "x"} sm/> {t(myIn ? "group.att.present" : "group.att.absent")}</span>
           <button type="button" className="link-btn" onClick={() => setEditIn(true)}>{t("group.changeReply")}</button></div>}
         {e.kind === "rehearsal" && canCheckIn(e) && pastNow && (!myMark || editIn || busy === "in") && <div className="reply-edit"><div className="reply-btns" role="group" aria-label={t("group.myReply")}>
-          {([["present", "check", "group.checkInPast", "reply-yes"], ["absent", "x", "group.notThere", "reply-no"]] as const).map(([v, icon, key, cls]) =>
+          {([["present", "check", "group.checkInPast", "reply-yes"], ["absent", "x", "group.notThere", "reply-no"]] as const).filter(([v]) => v === "present" || !myOut || myAtt?.status === "absent").map(([v, icon, key, cls]) =>
             <button key={v} type="button" className={"btn sm " + cls} aria-busy={busy === "in:" + v} disabled={busy.startsWith("in:")}
               onClick={() => myAtt?.status === v ? setEditIn(false) : act("in:" + v, () => setMyAttendance(e.id, v), "group.saved").then(() => setEditIn(false))}>
               {busy === "in:" + v ? <Spin/> : <Icon name={icon} sm/>} {t(key)}</button>)}</div>
