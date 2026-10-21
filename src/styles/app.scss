@@ -4110,15 +4110,6 @@ a.btn {
 .voice-card h2 {
   margin: 0;
 }
-/* O campo Cantor tem a largura do primeiro card (mesmas colunas de .voice-steps), para alinhar no computador. */
-.voice-card .study-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
-  .inst-field .input {
-    width: 100%;
-  }
-}
 .voice-howto {
   padding: 0 14px;
   overflow: hidden;
@@ -4250,61 +4241,6 @@ a.btn {
 .voice-result {
   font-weight: 700;
   margin: 0;
-}
-.voice-keys {
-  display: flex;
-  flex-direction: column;
-}
-.voice-key-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 130px 110px auto;
-  align-items: end;
-  gap: 12px;
-  padding: 12px 0;
-  border-top: 1px solid var(--line);
-}
-.voice-key-row:first-child {
-  border-top: none;
-}
-.vk-title {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  align-self: center;
-}
-.vk-title b {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.vk-title .sub {
-  font-size: 0.8rem;
-}
-.vk-sug {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  min-height: 40px;
-}
-.vk-sug .lbl {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--muted);
-}
-.vk-sug b {
-  font-size: 1.1rem;
-  color: var(--accent);
-}
-.vk-sug .sub {
-  font-size: 0.8rem;
-}
-@media (max-width: 599px) {
-  .voice-key-row {
-    grid-template-columns: 1fr 1fr;
-  }
-  .vk-title {
-    grid-column: 1/-1;
-  }
 }
 .tuner-dial.ok .tuner-cents {
   color: var(--ok);
@@ -7922,6 +7858,10 @@ dialog.ear-dlg {
   flex-wrap: wrap;
   gap: 6px 10px;
   font-size: 0.9rem;
+}
+.roster-voice {
+  margin-left: 6px;
+  white-space: nowrap;
 }
 .roster-who {
   flex: 1;

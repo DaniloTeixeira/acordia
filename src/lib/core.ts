@@ -512,9 +512,6 @@ export function voiceType(low: number, high: number): string {
   for(const [id, lo, hi] of VOICE_TYPES){ const d = Math.abs(low - lo) + Math.abs(high - hi); if(d < dist){ dist = d; best = id; } }
   return best;
 }
-// Semitons para a nota mais aguda da melodia (no tom original) cair no agudo confortável do cantor.
-// Fica entre -6 e +5: o cantor canta na oitava que lhe serve (ex.: homem cantando música gravada por mulher).
-export function voiceShift(songHigh: number, voiceHigh: number): number { return ((voiceHigh - songHigh) % 12 + 18) % 12 - 6; }
 // Tom transposto, com a grafia usual (ex.: "G" +3 → "Bb", "Em" -2 → "Dm").
 export function transposeKey(key: string, shift: number): string {
   const k = parseKey(key); if(!k) return "";

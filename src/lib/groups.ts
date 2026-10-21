@@ -4,6 +4,7 @@
 // agenda abrir sem internet; mudar precisa de internet.
 import { norm } from "./util";
 import { create } from "zustand";
+import { cleanRange, rangeLabel, type VoiceRange } from "./voice";
 import { cloud, useAuth, validBirthday, cleanPhone, uploadPhoto, cleanPhotos } from "./cloud";
 import { ROLES_MAX } from "./roles";
 import type { GEvent, RosterRow, AttendanceRow, Unavail, Answer, Presence, EventKind } from "./calendar";
@@ -13,7 +14,7 @@ import type { GEvent, RosterRow, AttendanceRow, Unavail, Answer, Presence, Event
 // stats: os números do card de cada grupo no Início (próximos eventos, repertórios e membros).
 export interface Group { id: string; name: string; photo?: string; photo_round?: boolean; stats?: {events: number; setlists: number; members: number} }
 // out_since/out_need: marcado pelo líder como em pausa (desde quando e quantos ensaios faltam).
-export interface Member { email: string; is_admin: boolean; role: string; name: string; birthday?: string | null; photo?: string; phone?: string; out_since?: string | null; out_need?: number; active?: boolean; created_at?: string }
+export interface Member { email: string; is_admin: boolean; role: string; name: string; birthday?: string | null; photo?: string; phone?: string; out_since?: string | null; out_need?: number; active?: boolean; created_at?: string; voice_low?: number | null; voice_high?: number | null }
 export interface GroupSetlist { id: string; group_id: string; source_id: string; name: string; songs: number; code: string; shared_by: string; updated_at: string }
 
 interface GroupState {
@@ -118,9 +119,13 @@ export function loadGroups(gid?: string): Promise<void> {
         if(r.error) throw r.error; if(a.error) throw a.error;
         roster = roster.concat(r.data as RosterRow[]); attendance = attendance.concat(a.data as AttendanceRow[]);
       }
+      // Extensão vocal de cada um (perfil). Banco ainda sem as colunas (antes da migração subir): segue sem ela.
+      const emails = (mem.data as {email: string}[]).map(m => m.email);
+      const vr = emails.length ? await cloud.from("profiles").select("email,voice_low,voice_high").in("email", emails) : null;
+      const voices = new Map(((vr && !vr.error ? vr.data : []) as {email: string; voice_low: number | null; voice_high: number | null}[]).map(v => [v.email, cleanRange(v.voice_low, v.voice_high)]));
       const people_ = new Map((people.data as {email: string; name: string; birthday: string | null; photo?: string; phone?: string}[]).map(p => [p.email, p]));
       const members = (mem.data as Omit<Member, "name">[]).map(m => ({...m, name: people_.get(m.email)?.name || "", birthday: people_.get(m.email)?.birthday || null,
-        photo: people_.get(m.email)?.photo || "", phone: people_.get(m.email)?.phone || ""}));
+        photo: people_.get(m.email)?.photo || "", phone: people_.get(m.email)?.phone || "", voice_low: voices.get(m.email)?.low ?? null, voice_high: voices.get(m.email)?.high ?? null}));
       if(my !== seq) return;
       useGroups.setState({groups, gid: cur, members, setlists: sets.data as GroupSetlist[], events: evs.data as GEvent[], roster, attendance,
         unavail: un.data as Unavail[], loading: false, error: false, loaded: true});
@@ -131,11 +136,23 @@ export function loadGroups(gid?: string): Promise<void> {
   })();
   return p;
 }
+// Extensão vocal (aba Voz): grava as duas pontas no perfil; o grupo vê em Membros e na escala. Atualiza a cópia
+// em memória (perfil e lista de membros) para a tela refletir sem recarregar.
+export async function saveVoiceRange(r: VoiceRange){
+  const p = useAuth.getState().profile; if(!p) return false;
+  const {error} = await cloud.from("profiles").update({voice_low: r.low, voice_high: r.high}).eq("id", p.id);
+  if(error) return false;
+  useAuth.setState({profile: {...p, voice_low: r.low, voice_high: r.high}});
+  useGroups.setState(st => ({members: st.members.map(m => m.email === p.email ? {...m, voice_low: r.low, voice_high: r.high} : m)}));
+  return true;
+}
 // Já existe um grupo com esse nome (sem diferenciar maiúsculas, acentos e espaços)? except: o próprio, ao renomear.
 export const groupNameTaken = (name: string, except = "") => !!norm(name) && useGroups.getState().groups.some(x => x.id !== except && norm(x.name) === norm(name));
 export function chooseGroup(gid: string){ useGroups.setState({gid}); return loadGroups(gid); }
 
 // Nome para mostrar: o do perfil, senão a parte do e-mail antes do @.
+// Faixa da extensão vocal de quem está no grupo aberto ("F2–C4"), ou vazio.
+export const voiceOf = (email: string) => { const m = useGroups.getState().members.find(x => x.email === email); return m ? rangeLabel(m) : ""; };
 export function personName(email: string){
   const m = useGroups.getState().members.find(x => x.email === email);
   return m?.name || email.split("@")[0];

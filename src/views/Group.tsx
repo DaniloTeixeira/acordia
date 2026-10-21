@@ -15,10 +15,11 @@ import type { Item } from "../lib/types";
 import { copyName, LibraryList } from "./Library";
 import { saveBlob } from "../lib/pdf";
 import { reduced } from "../lib/util";
+import { rangeLabel } from "../lib/voice";
 import { splitRoles, joinRoles, toggleRole, sortRoles } from "../lib/roles";
 import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone,type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, loadGroups, createGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
-  deleteEvent, respond, setCover, checkIn, setMyAttendance, markAttendance, setUnavailable, personName, personPhoto, amGroupAdmin, setMemberOut, outMark, isActive, setMemberActive, type GroupSetlist, type Member, type Group } from "../lib/groups";
+  deleteEvent, respond, setCover, checkIn, setMyAttendance, markAttendance, setUnavailable, personName, voiceOf, personPhoto, amGroupAdmin, setMemberOut, outMark, isActive, setMemberActive, type GroupSetlist, type Member, type Group } from "../lib/groups";
 import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, confirmUnsaved, useUnsaved, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { CopyBtn } from "../ui/CopyBtn";
@@ -443,7 +444,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
           <span className={"quick-att-when" + (sd.out ? " with-note" : "")}><b><span>{personName(m.email)}</span>{m.email === me && <YouChip/>}</b>{sd.out && <> <span className="sub pause-note">{tn("group.standOut", sd.need)}</span></>}</span>
           <span className="quick-att-ctl">{here ? <span className="chip st-yes">{t("group.att.present")}</span> : <span className="chip">{t("group.status.off")}</span>}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>)}</ul>
         : roster.length ? <ul className="roster">{people.map(r => <li key={r.email} className={"st-" + r.status}>
-        <span className="roster-who">{personName(r.email)}{r.email === me && <YouChip/>}</span>
+        <span className="roster-who">{personName(r.email)}{r.email === me && <YouChip/>}{voiceOf(r.email) && <small className="sub roster-voice">{voiceOf(r.email)}</small>}</span>
         <StatusChip status={r.status}/>
         {r.roles.length > 0 && <span className="roster-chips">{sortRoles(r.roles).map(x => <span key={x} className="chip role">{x}</span>)}</span>}
         {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}</li>)}</ul>
@@ -585,6 +586,7 @@ function Members({canEdit}: {canEdit: boolean}){
               : sd.streak > 0 ? <StreakChip streak={sd.streak} title={hint}/>
               : sd.called > 0 && <span className="chip st-yes" title={hint}>{t("group.standOk")}</span>}
             {n > 0 && <span className="chip accent" title={t("group.loadHint")}>{tn("group.load", n)}</span>}
+            {rangeLabel(m) && <span className="chip">{rangeLabel(m)}</span>}
           </>} showEmpty={canEdit || m.email === me} busy={false} onSave={() => {}}/>
           {/* Chevron: indica que a linha inteira abre os detalhes. */}
           <span className="member-open-hint" aria-hidden="true">›</span>

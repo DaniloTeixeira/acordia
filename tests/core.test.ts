@@ -223,17 +223,11 @@ test("grau de ouvido: a nota tocada corresponde ao grau da resposta", () => {
   assert.deepEqual(C.cadence(false)[3], C.cadence(false)[0]);
 });
 
-test("voz: classificação pela extensão, transposição e tom sugerido", () => {
+test("voz: classificação pela extensão e transposição de tom", () => {
   assert.equal(C.voiceType(43, 67), "baritono");   // G2–G4
   assert.equal(C.voiceType(48, 72), "tenor");      // C3–C5
   assert.equal(C.voiceType(60, 84), "soprano");    // C4–C6
   assert.equal(C.voiceType(53, 76), "contralto");
-  // A diferença é dobrada para -6..+5 (o cantor escolhe a oitava).
-  assert.equal(C.voiceShift(74, 69), -5);          // agudo D5, cantor até A4: descer 5
-  assert.equal(C.voiceShift(62, 69), -5);          // mesma nota uma oitava abaixo: idem
-  assert.equal(C.voiceShift(64, 69), 5);
-  assert.equal(C.voiceShift(63, 69), -6);
-  assert.equal(C.voiceShift(69, 69), 0);
   assert.equal(C.transposeKey("G", 3), "Bb");
   assert.equal(C.transposeKey("Em", -2), "Dm");
   assert.equal(C.transposeKey("A", -5), "E");
