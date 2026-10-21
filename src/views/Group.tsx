@@ -303,7 +303,8 @@ function MyNextRow({e}: {e: GEvent}){
 }
 
 export function StatusChip({status, noIcon}: {status: string; noIcon?: boolean}){
-  return <span className={"chip st-" + status}>{!noIcon && <><Icon name={status === "yes" ? "check" : status === "no" ? "x" : "dot"} sm/> </>}{t("group.status." + status)}</span>;
+  // Sem resposta não é problema: fica neutro ("st-wait"), para o laranja não competir com o vermelho de Indisponível.
+  return <span className={"chip st-" + (status === "pending" ? "wait" : status)}>{!noIcon && <><Icon name={status === "yes" ? "check" : status === "no" ? "x" : "dot"} sm/> </>}{t("group.status." + status)}</span>;
 }
 
 // Barra do dia escolhido no calendário: data, "não posso neste dia" e novo evento nesse dia.
@@ -442,7 +443,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
         {g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).sort((a, b) => byName(a.email, b.email)).map(m => ({m, sd: rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), here: att.some(a => a.email === m.email && a.status === "present")}))
           .filter(x => x.here || !x.sd.out).map(({m, sd, here}) => <li key={m.email} {...openHistory(m.email)}>
           <span className={"quick-att-when" + (sd.out ? " with-note" : "")}><b><span>{personName(m.email)}</span>{m.email === me && <YouChip/>}</b>{sd.out && <> <span className="sub pause-note">{tn("group.standOut", sd.need)}</span></>}</span>
-          <span className="quick-att-ctl">{here ? <span className="chip st-yes">{t("group.att.present")}</span> : <span className="chip">{t("group.status.off")}</span>}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>)}</ul>
+          <span className="quick-att-ctl">{here ? <span className="chip st-yes">{t("group.att.present")}</span> : <span className="chip st-off">{t("group.status.off")}</span>}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>)}</ul>
         : roster.length ? <ul className="roster">{people.map(r => <li key={r.email} className={"st-" + r.status}>
         <span className="roster-who">{personName(r.email)}{r.email === me && <YouChip/>}{voiceOf(r.email) && <small className="sub roster-voice">{voiceOf(r.email)}</small>}</span>
         <StatusChip status={r.status}/>
