@@ -8,6 +8,7 @@ import { DEFAULT_POLICY, missing, passes, fromError, isPwned, type PwPolicy, typ
 import { reduced, flashSaved, norm } from "../lib/util";
 import { toast, confirmDialog, openDialog, closeDialog, confirmUnsaved, useUnsaved, go } from "../state";
 import { Icon } from "../ui/Icon";
+import { CopyBtn } from "../ui/CopyBtn";
 import { DateInput } from "../ui/DateInput";
 import { FieldLabel } from "../ui/FieldLabel";
 import { useGroups, loadGroups, chooseGroup, setMemberRole, outMark, listGroupedEmails } from "../lib/groups";
@@ -800,8 +801,8 @@ function People({me}: {me: string}){
               ficam com a mesma altura. */}
           <span className="people-name"><button type="button" className="member-open-btn" aria-label={t("member.open", {name: nm || r.email})} onClick={openPerson}>
             {nm ? <b>{nm}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{(r.is_owner || r.is_admin) && <span className={"chip " + (r.is_owner ? "owner" : "accent")}>{t(r.is_owner ? "profile.owner" : "profile.admin")}</span>}{r.email === me && <YouChip/>}</span>
-          <span className="sub people-email">{r.email}{bd && " · " + fmtBirthday(bd)}</span>
-          {ph ? <PhoneLink phone={ph}/> : <span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}</span></span>
+          <span className="copy-row"><span className="sub people-email">{r.email}</span><CopyBtn text={r.email} kind="email"/></span>
+          {ph ? <span className="copy-row"><PhoneLink phone={ph}/><CopyBtn text={ph} kind="phone"/></span> :<span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}</span></span>
         {/* Situação do acesso e do grupo numa linha própria, na mesma posição dos chips da lista de Membros. */}
         <span className="member-roles">{r.joined ? <span className="chip st-yes">{t("people.joined")}</span> : <span className="chip">{t("people.notJoined")}</span>}{noGroup && <span className="chip st-pending">{t("people.noGroup")}</span>}</span>
         {/* Chevron: indica que a linha inteira abre os detalhes. */}

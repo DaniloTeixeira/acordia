@@ -21,10 +21,11 @@ import { useGroups, loadGroups, createGroup, removeGroupPhoto, setGroupRound, ad
   deleteEvent, respond, setCover, checkIn, setMyAttendance, markAttendance, setUnavailable, personName, personPhoto, amGroupAdmin, setMemberOut, outMark, isActive, setMemberActive, type GroupSetlist, type Member, type Group } from "../lib/groups";
 import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, confirmUnsaved, useUnsaved, go } from "../state";
 import { Icon } from "../ui/Icon";
+import { CopyBtn } from "../ui/CopyBtn";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
 import { useFold, FoldHead } from "../ui/Fold";
-import { SKIP_OPEN, StreakChip, useLock, Spin, Avatar, PersonFields, useEmailCheck, pickPhoto, PhoneLink, fmtBirthday, today, usePeopleFilter, PeopleTools } from "./Account";
+import { SKIP_OPEN, StreakChip, useLock, Spin, Avatar, PersonFields, useEmailCheck, pickPhoto, PhoneLink, today, usePeopleFilter, PeopleTools } from "./Account";
 import { DateInput } from "../ui/DateInput";
 import { useMedia } from "../ui/hooks";
 import { SecHead } from "../ui/SecHead";
@@ -356,6 +357,15 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
   const att = g.attendance.filter(a => a.event_id === e.id), myAtt = att.find(a => a.email === me), myIn = myAtt?.status === "present";
   const pastNow = Date.now() > d.getTime(), myMark = myAtt?.status === "present" || myAtt?.status === "absent";
   const needs = needsCover(roster), myCover = mineRows[0]?.cover || "";
+  // Ordem da escala: clicar no título da coluna ordena (de novo, inverte). Pessoa é alfabética (padrão); Resposta vai de
+  // confirmado a indisponível, com empate em ordem alfabética.
+  const [order, setOrder] = useState<{by: "name" | "status"; desc: boolean}>({by: "name", desc: false});
+  const byName = (a: string, b: string) => personName(a).localeCompare(personName(b), locale(), {sensitivity: "base"});
+  const STATUS_RANK: Record<string, number> = {yes: 0, pending: 1, no: 2};
+  const sortBy = (by: "name" | "status") => setOrder(o => ({by, desc: o.by === by && !o.desc}));
+  const people = rosterByPerson(roster).sort((a, b) => ((order.by === "status" ? (STATUS_RANK[a.status] ?? 3) - (STATUS_RANK[b.status] ?? 3) : 0) || byName(a.email, b.email)) * (order.desc ? -1 : 1));
+  const sortHead = (by: "name" | "status", label: string) => <button type="button" className={"qa-sort" + (order.by === by ? " on" : "")} aria-label={t("group.sortBy", {col: label})} onClick={() => sortBy(by)}>
+    {label}<span className="qa-sort-dir" aria-hidden="true"><Icon name="arrow-up" sm className={order.by === by && !order.desc ? "on" : ""}/><Icon name="arrow-down" sm className={order.by === by && order.desc ? "on" : ""}/></span></button>;
   // Quem não foi escalado (como quem está em pausa) só pode marcar presença: falta não conta para ele, e o banco recusa.
   const myOut = mineRows.length === 0;
   const act = (key: string, fn: () => Promise<boolean>, ok?: string) => lock(async () => { setBusy(key); const r = await fn().finally(() => setBusy("")); toast(t(r ? ok || "group.saved" : "profile.saveFail")); return r; });
@@ -394,32 +404,9 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
     <span className="event-chips below">{chips}</span>
     </div></div>
     <div className="event-more">
-      {/* Cada pessoa: nome e situação em cima, as funções neste evento como chips embaixo. */}
-      {/* Ensaio é de todos: quem não foi escalado também aparece (sem resposta a dar), com o selo "Não escalado" (ou "Em pausa"). */}
-      <div className="event-sec"><SecHead as="h3" className="people-sub-h">{t("group.roster")}</SecHead>
-      {e.kind === "rehearsal" && g.members.length ? <ul className="quick-att roster-tbl">
-        <li className="quick-att-head" aria-hidden="true"><span className="quick-att-when">{t("people.colPerson")}</span><span className="quick-att-ctl">{t("group.respCol")}</span><span className="quick-att-go"/></li>
-        {rosterByPerson(roster).map(r => <li key={r.email} {...openHistory(r.email)}>
-          <span className="quick-att-when"><b><span>{personName(r.email)}</span>{r.email === me && <YouChip/>}</b>
-            {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}</span>
-          <span className="quick-att-ctl"><StatusChip status={r.status} noIcon/></span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>)}
-        {/* Quem está em pausa não é escalado nem listado, a menos que tenha marcado presença neste ensaio. */}
-        {g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).map(m => ({m, sd: rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), here: att.some(a => a.email === m.email && a.status === "present")}))
-          .filter(x => x.here || !x.sd.out).map(({m, sd, here}) => <li key={m.email} {...openHistory(m.email)}>
-          <span className={"quick-att-when" + (sd.out ? " with-note" : "")}><b><span>{personName(m.email)}</span>{m.email === me && <YouChip/>}</b>{sd.out && <> <span className="sub pause-note">{tn("group.standOut", sd.need)}</span></>}</span>
-          <span className="quick-att-ctl">{here ? <span className="chip st-yes">{t("group.att.present")}</span> : <span className="chip">{t("group.status.off")}</span>}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>)}</ul>
-        : roster.length ? <ul className="roster">{rosterByPerson(roster).map(r => <li key={r.email} className={"st-" + r.status}>
-        <span className="roster-who">{personName(r.email)}{r.email === me && <YouChip/>}</span>
-        <StatusChip status={r.status}/>
-        {r.roles.length > 0 && <span className="roster-chips">{sortRoles(r.roles).map(x => <span key={x} className="chip role">{x}</span>)}</span>}
-        {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}</li>)}</ul>
-        : <p className="sub">{t("group.noRoster")}</p>}
-      {/* Quem não foi escalado não tem resposta a dar: avisa o porquê, senão parece que os botões sumiram. */}
-      {e.kind === "rehearsal" && !isPast && mineRows.length === 0 && g.members.some(m => m.email === me && isActive(m)) && <div className="not-scaled" role="note"><span className="chip st-pending"><span><b>{t("group.notScaled")}.</b> {t("group.notScaledWhy")}</span></span></div>}</div>
-      {e.notes && <div className="event-sec"><SecHead as="h3" className="people-sub-h">{t("group.notes")}</SecHead><p className="event-notes">{e.notes}</p></div>}
-      {/* A resposta vem depois de ver o evento e quem está na escala: primeiro entender, depois responder. */}
+      {/* A resposta vem antes da escala: quem abre o evento responde primeiro e depois confere quem vai. */}
       {/* Ensaio que já passou e ainda sem marcação: a pergunta "você estava?" sobe para logo abaixo do cabeçalho (antes ficava no fim do card e ninguém achava). */}
-      {(reply || (e.kind === "rehearsal" && canCheckIn(e))) && <div className={"event-sec" + (e.kind === "rehearsal" && canCheckIn(e) && pastNow && !myMark ? " reply-first" : "")}><SecHead as="h3" className="people-sub-h">{t("group.myReply")}</SecHead><div className="event-actions">
+      {(reply || (e.kind === "rehearsal" && canCheckIn(e))) && <div className={"event-sec" + (e.kind === "rehearsal" && canCheckIn(e) && pastNow && !myMark ? " reply-first" : "")}><SecHead as="h3" className="people-sub-h">{t("group.myReply")}</SecHead><div className="event-actions boxed">
         {reply}
         {canReply && myStatus === "no" && !editReply && <label className="event-cover">
           <Select value={myCover} options={coverOpts} aria={t("group.coverAsk")} disabled={busy === "cover"} onChange={pickCover}/>{busy === "cover" && <Spin/>}</label>}
@@ -441,6 +428,29 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
           {myIn && editIn && !busy && <button type="button" className="link-btn" onClick={() => setEditIn(false)}>{t("common.cancel")}</button>}</div>}
       </div>
       </div>}
+      {/* Cada pessoa: nome e situação em cima, as funções neste evento como chips embaixo. */}
+      {/* Ensaio é de todos: quem não foi escalado também aparece (sem resposta a dar), com o selo "Não escalado" (ou "Em pausa"). */}
+      <div className="event-sec"><SecHead as="h3" className="people-sub-h">{t("group.roster")}</SecHead>
+      {e.kind === "rehearsal" && g.members.length ? <ul className="quick-att roster-tbl">
+        <li className="quick-att-head"><span className="quick-att-when">{sortHead("name", t("people.colPerson"))}</span><span className="quick-att-ctl">{sortHead("status", t("group.respCol"))}</span><span className="quick-att-go" aria-hidden="true"/></li>
+        {people.map(r => <li key={r.email} {...openHistory(r.email)}>
+          <span className="quick-att-when"><b><span>{personName(r.email)}</span>{r.email === me && <YouChip/>}</b>
+            {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}</span>
+          <span className="quick-att-ctl"><StatusChip status={r.status} noIcon/></span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>)}
+        {/* Quem está em pausa não é escalado nem listado, a menos que tenha marcado presença neste ensaio. */}
+        {g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).sort((a, b) => byName(a.email, b.email)).map(m => ({m, sd: rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), here: att.some(a => a.email === m.email && a.status === "present")}))
+          .filter(x => x.here || !x.sd.out).map(({m, sd, here}) => <li key={m.email} {...openHistory(m.email)}>
+          <span className={"quick-att-when" + (sd.out ? " with-note" : "")}><b><span>{personName(m.email)}</span>{m.email === me && <YouChip/>}</b>{sd.out && <> <span className="sub pause-note">{tn("group.standOut", sd.need)}</span></>}</span>
+          <span className="quick-att-ctl">{here ? <span className="chip st-yes">{t("group.att.present")}</span> : <span className="chip">{t("group.status.off")}</span>}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>)}</ul>
+        : roster.length ? <ul className="roster">{people.map(r => <li key={r.email} className={"st-" + r.status}>
+        <span className="roster-who">{personName(r.email)}{r.email === me && <YouChip/>}</span>
+        <StatusChip status={r.status}/>
+        {r.roles.length > 0 && <span className="roster-chips">{sortRoles(r.roles).map(x => <span key={x} className="chip role">{x}</span>)}</span>}
+        {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}</li>)}</ul>
+        : <p className="sub">{t("group.noRoster")}</p>}
+      {/* Quem não foi escalado não tem resposta a dar: avisa o porquê, senão parece que os botões sumiram. */}
+      {e.kind === "rehearsal" && !isPast && mineRows.length === 0 && g.members.some(m => m.email === me && isActive(m)) && <div className="not-scaled" role="note"><span className="chip st-pending"><span><b>{t("group.notScaled")}.</b> {t("group.notScaledWhy")}</span></span></div>}</div>
+      {e.notes && <div className="event-sec"><SecHead as="h3" className="people-sub-h">{t("group.notes")}</SecHead><p className="event-notes">{e.notes}</p></div>}
       {e.kind === "rehearsal" && canEdit && Date.now() >= d.getTime() - 12 * 3600 * 1000 && <Attendance e={e}/>}
       <div className="event-foot">
         {set && <><button className="btn ghost sm" onClick={() => openGroupSetlist(set)}><Icon name="music" sm/> {t("group.openSetlist")}</button>
@@ -468,6 +478,7 @@ function waText(e: GEvent, who: {name: string} | {names: string[]}){
 // quem não marcou aparece pendente, com o aviso no WhatsApp.
 function Attendance({e}: {e: GEvent}){
   const g = useGroups(), [busy, setBusy] = useState("");
+  const [open, setOpen] = useState(false);
   const att = g.attendance.filter(a => a.event_id === e.id);
   const pending = new Set(pendingCheckIn(e, g.members.filter(isActive).map(m => m.email), g.attendance));
   const until = fmt({weekday: "long", hour: "2-digit", minute: "2-digit"}).format(new Date(new Date(e.starts_at).getTime() + CHECKIN_MS));
@@ -476,7 +487,10 @@ function Attendance({e}: {e: GEvent}){
     const ok = await markAttendance(e.id, email, v || null).finally(() => setBusy(""));
     if(!ok) toast(t("profile.saveFail"));
   };
-  return <div className="attendance"><h3>{t("group.attendance")} <span className="sub">{t("group.attCount", {n: att.filter(a => a.status === "present").length, total: g.members.filter(isActive).length})}</span></h3>
+  return <div className="event-sec attendance"><SecHead as="h3" className="people-sub-h"><button type="button" className="att-toggle" aria-expanded={open} onClick={() => setOpen(o => !o)}>
+      <span>{t("group.attendance")} <span className="sub">{t("group.attCount", {n: att.filter(a => a.status === "present").length, total: g.members.filter(isActive).length})}</span></span>
+      <Icon name="chev" sm className={"att-chev" + (open ? " up" : "")}/></button></SecHead>
+    {open && <div className="att-box">
     {pending.size > 0 && <div className="att-pending">
       <span className="sub">{t("group.pendingHint", {until})}</span>
       <a className="btn sm soft" href={waLink(waText(e, {names: [...pending].map(personName)}))} target="_blank" rel="noopener"><Icon name="chat" sm/> {t("group.waAll")}</a>
@@ -487,7 +501,7 @@ function Attendance({e}: {e: GEvent}){
         {wa && <a className="icon-btn sm" href={waLink(waText(e, {name: personName(m.email)}), m.phone)} target="_blank" rel="noopener"
           aria-label={t("group.waOne", {name: personName(m.email)})} title={t("group.waOne", {name: personName(m.email)})}><Icon name="chat" sm/></a>}</span>
         <Seg className="sm" aria={t("group.attendance") + ": " + personName(m.email)} value={(a?.status || "") as Presence | ""} onChange={v => mark(m.email, v === a?.status ? "" : v)}
-          options={[{v: "present", label: t("group.att.present")}, {v: "absent", label: t("group.att.absent")}]}/></li>; })}</ul>
+          options={[{v: "present", label: t("group.att.present")}, {v: "absent", label: t("group.att.absent")}]}/></li>; })}</ul></div>}
   </div>;
 }
 
@@ -531,7 +545,7 @@ function Members({canEdit}: {canEdit: boolean}){
         <form className="member-add people-add-box" onSubmit={add} noValidate>
           <SecHead as="h3" className="people-sub-h">{t("group.addTitle")}</SecHead>
           {outside.length > 0 && <Select id="member-pick" className="member-pick" aria={t("group.pickUser")} value={outside.some(a => a.email === email) ? email : ""} onChange={pickUser}
-            options={[{value: "", label: t("group.pickUser")}, ...outside.map(a => ({value: a.email, label: (a.profileName || a.name) ? (a.profileName || a.name) + " · " + a.email : a.email}))]}/>}
+            options={[{value: "", label: t("group.pickUser")}, ...outside.map(a => ({value: a.email, label: a.profileName || a.name || a.email, sub: (a.profileName || a.name) ? a.email : undefined}))]}/>}
           <div className="people-add">
             <PersonFields idp="member" name={name} onName={setName} email={email} onEmail={setEmail} phone={phone} onPhone={setPhone} birthday={birthday} onBirthday={setBirthday} check={check}/>
             {!leaderNow && <label className="switch lead boxed"><span>{t("group.leader")}</span><input type="checkbox" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>}
@@ -561,8 +575,8 @@ function Members({canEdit}: {canEdit: boolean}){
             <PersonAvatar email={m.email}/><span className="people-id">
             <span className="people-name"><button type="button" className="member-open-btn" aria-label={t("member.open", {name: m.name || m.email})}
               onClick={() => openDialog("member", {email: m.email})}>{m.name ? <b>{m.name}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{m.is_admin && <span className="chip leader">{t("group.leader")}</span>}{m.email === me && <YouChip/>}{!isActive(m) && <span className="chip">{t("group.inactive")}</span>}</span>
-            <span className="sub people-email">{m.email}{m.birthday && " · " + fmtBirthday(m.birthday)}</span>
-            {m.phone ? <PhoneLink phone={m.phone}/> : <span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}</span></span>
+            <span className="copy-row"><span className="sub people-email">{m.email}</span><CopyBtn text={m.email} kind="email"/></span>
+            {m.phone ? <span className="copy-row"><PhoneLink phone={m.phone}/><CopyBtn text={m.phone} kind="phone"/></span> :<span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}</span></span>
           {/* Escalas no mês primeiro; a situação nos ensaios (em dia, faltas seguidas, fora) por último. */}
           {/* Escalas no mês, situação nos ensaios e funções: tudo na mesma fileira de chips. */}
           {/* As funções só aparecem aqui; mudar (como todo o resto) é na janela de detalhes. */}
@@ -788,7 +802,7 @@ export function MemberRoles({m, editable, busy, onSave, before, after, lead, sho
   </div>;
   return <span className="member-roles">
     {lead}
-    {roles.length ? roles.map(r => <span key={r} className="chip role">{r}</span>) : showEmpty && <span className="sub">{t("group.noRoles")}</span>}
+    {roles.length ? roles.map(r => <span key={r} className="chip role">{r}</span>) : showEmpty && <span className="people-missing">{t("group.noRoles")}</span>}
     {editable && <button type="button" className="icon-btn sm" aria-label={t("group.editRoles") + ": " + personName(m.email)} title={t("group.editRoles")} onClick={() => setEditing(roles)}><Icon name="edit" sm/></button>}
     {busy && <Spin/>}
     {(before || after) && <span className="member-role-actions">{before}{after}</span>}
