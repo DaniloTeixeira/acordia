@@ -190,6 +190,7 @@ também libera o acesso ao app para eles).
       (presente, falta, justificada), que vale por cima do "Cheguei".
       Em Membros, o botão de check na linha da pessoa marca presença ou falta dos últimos ensaios sem abrir a agenda.
       A lista do ensaio é uma tabela zebrada (pessoa e resposta, só texto colorido) com todos os membros ativos; quem não foi escalado aparece como "Não escalado" e quem está em pausa como "Em pausa". Quem não foi escalado (inclui quem está em pausa) só vê "Presente" ao marcar a própria presença: a falta não conta para ele, e o banco também recusa.
+      Tocar na linha de uma pessoa abre os detalhes dela, com o **histórico nos ensaios** (os últimos 12: Presente, Falta ou Justificada).
       Ao alterar a resposta, o link "Alterar resposta" vira "Cancelar" no mesmo lugar e a linha mantém a altura.
 - [ ] **Adicionar ao calendário** (.ics): todas as suas escalas de uma vez (botão no card "Suas próximas escalas"), com lembrete 1 dia e 2 h antes.
 - [ ] **Repertórios do grupo**: quem lidera compartilha um repertório seu (compartilhar de novo atualiza);

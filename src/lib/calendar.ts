@@ -82,6 +82,21 @@ export function attendanceRate(email: string, events: GEvent[], att: AttendanceR
   return {present, total};
 }
 
+// Histórico da pessoa nos ensaios com a chamada fechada, do mais recente ao mais antigo (mesmas regras de
+// attendanceRate: ensaio sem chamada ou em que ela não era chamada não entra; sem marcação vira falta).
+export interface HistoryRow { event: GEvent; status: Presence }
+export function attendanceHistory(email: string, events: GEvent[], att: AttendanceRow[], now = Date.now(), roster?: RosterRow[], limit = 12): HistoryRow[] {
+  const out: HistoryRow[] = [];
+  events.filter(e => e.kind === "rehearsal" && callClosed(e, now)).sort((a, b) => b.starts_at.localeCompare(a.starts_at)).forEach(e => {
+    if(out.length >= limit) return;
+    const rows = att.filter(a => a.event_id === e.id); if(!rows.length) return;
+    const st = rows.find(a => a.email === email)?.status;
+    if(notCalled(e, email, st, roster)) return;
+    out.push({event: e, status: st || "absent"});
+  });
+  return out;
+}
+
 // Regra da equipe: quem falta a 8 ensaios seguidos fica em pausa até participar de 4 ensaios.
 // Conta os ensaios com a chamada fechada e que tiveram chamada, em ordem; falta justificada não conta nem
 // para a sequência nem para a volta. Os 4 da volta não precisam ser seguidos.
