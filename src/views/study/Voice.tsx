@@ -89,7 +89,7 @@ function VoiceRange(){
       <p className="sub">{t("voice.rangeD")}</p>
       {/* Passo a passo: aberto enquanto a extensão não foi medida, recolhido depois. */}
       <details className="voice-howto" open={!(v && v.low && v.high)}>
-        <summary>{t("voice.how.title")}</summary>
+        <summary><Icon name="sound" sm/> {t("voice.how.title")}<Icon name="chev" sm className="howto-chev"/></summary>
         <ol>{[1, 2, 3, 4, 5].map(n => <li key={n}>{t("voice.how.s" + n)}</li>)}</ol>
       </details>
       <div className="study-row">

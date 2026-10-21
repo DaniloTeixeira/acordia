@@ -4073,23 +4073,64 @@ a.btn {
   margin: 0;
 }
 .voice-howto {
-  padding: 10px 14px;
+  padding: 4px 14px;
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
+  background: var(--accent-soft);
   summary {
     cursor: pointer;
-    font-weight: 600;
-    min-height: 32px;
+    font-weight: 700;
+    color: var(--accent-soft-ink);
+    min-height: 44px;
     display: flex;
     align-items: center;
+    gap: 8px;
+    list-style: none;
+    &::-webkit-details-marker {
+      display: none;
+    }
+    .howto-chev {
+      margin-left: auto;
+      transition: transform .2s;
+    }
+  }
+  &[open] summary .howto-chev {
+    transform: rotate(180deg);
   }
   ol {
-    margin: 6px 0 2px;
-    padding-left: 20px;
+    list-style: none;
+    margin: 0;
+    padding: 4px 0 12px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 10px;
+    counter-reset: howto;
+  }
+  li {
+    counter-increment: howto;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
     font-size: .92rem;
+    line-height: 1.4;
+    &::before {
+      content: counter(howto);
+      flex: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--accent-grad);
+      color: var(--accent-ink);
+      font-size: .8rem;
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-howto summary .howto-chev {
+    transition: none;
   }
 }
 .voice-steps {
