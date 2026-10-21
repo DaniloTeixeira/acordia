@@ -9256,10 +9256,12 @@ dialog.member-dlg {
   font-weight: 400;
 }
 
-/* Card da classificação vocal no Perfil: o chip com "Medir" e a explicação. */
-.profile-voice .member-chips {
+/* Título do card com um botão no canto direito (ex.: "Medir" na classificação vocal). */
+.profile-sec-head {
+  display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 /* Lista de acesso: o "Admin" logo depois do nome. */

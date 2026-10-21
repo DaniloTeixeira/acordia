@@ -419,9 +419,11 @@ function MyGroups(){
 const fmtMonth = (v: string) => new Intl.DateTimeFormat(locale(), {month: "long", year: "numeric"}).format(new Date(v));
 
 // Card de uma seção do Perfil: título com o traço no degradê e o conteúdo embaixo. wide: a linha toda.
-function Sec({id, title, wide, className = "", children}: {id: string; title: string; wide?: boolean; className?: string; children: ReactNode}){
+// "action" é um botão no canto direito, na mesma linha do título.
+function Sec({id, title, wide, className = "", action, children}: {id: string; title: string; wide?: boolean; className?: string; action?: ReactNode; children: ReactNode}){
+  const head = <SecHead id={id + "-h"}>{title}</SecHead>;
   return <section className={"card profile-sec " + className + (wide ? " wide" : "")} id={id} aria-labelledby={id + "-h"}>
-    <SecHead id={id + "-h"}>{title}</SecHead>{children}</section>;
+    {action ? <div className="profile-sec-head">{head}{action}</div> : head}{children}</section>;
 }
 
 // Estado da nuvem: sincronizando, mudanças esperando, sem internet ou erro. Com tudo salvo (quase sempre),
@@ -517,9 +519,9 @@ function MyRoles(){
 // grupo; o grupo só vê o chip.
 function MyVoice(){
   const profile = useAuth(s => s.profile);
-  return <Sec id="profile-voice" className="profile-voice" title={t("profile.voice")}>
-    <span className="member-chips">{rangeType(profile || {}) ? <VoiceChip {...profile}/> : <span className="people-missing">{t("profile.noVoice")}</span>}
-      <button type="button" className="link-btn" onClick={() => { setSetting("toolsTab", "voice"); go("tools"); }}>{t("voice.measure")}</button></span>
+  return <Sec id="profile-voice" className="profile-voice" title={t("profile.voice")}
+    action={<button type="button" className="btn soft sm" onClick={() => { setSetting("toolsTab", "voice"); go("tools"); }}>{t("voice.measure")}</button>}>
+    <span className="member-chips">{rangeType(profile || {}) ? <VoiceChip {...profile}/> : <span className="people-missing">{t("profile.noVoice")}</span>}</span>
     <small className="sub">{t("profile.voiceHint")}</small></Sec>;
 }
 
