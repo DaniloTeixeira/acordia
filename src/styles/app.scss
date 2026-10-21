@@ -8466,7 +8466,8 @@ dialog.member-dlg {
 .home-block-head h2 .i {
   color: var(--accent);
 }
-.home-block-head .link-btn {
+.home-block-head .link-btn,
+.link-btn.go {
   display: inline-flex;
   align-items: center;
   gap: 2px;

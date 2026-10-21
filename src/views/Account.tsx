@@ -21,6 +21,7 @@ import { PhoneInput } from "../ui/PhoneInput";
 import { NameInput } from "../ui/NameInput";
 import { YouChip } from "../ui/YouChip";
 import { VoiceChip } from "../ui/VoiceChip";
+import { GoLink } from "../ui/GoLink";
 import { rangeType } from "../lib/voice";
 import { setSetting } from "../lib/store";
 
@@ -219,10 +220,10 @@ export function AuthScreen(){
       </>}
       {emailField}
       {mode !== "forgot" && <PasswordField key={mode} id="auth-password" label={t("auth.password")} policy={mode === "signup" ? policy : undefined} value={pw} onChange={setPw}/>}
-      {mode === "signin" && <button type="button" className="link-btn auth-forgot" onClick={() => go("forgot")}>{t("auth.forgot")}</button>}
+      {mode === "signin" && <GoLink className="auth-forgot" onClick={() => go("forgot")}>{t("auth.forgot")}</GoLink>}
       <button className="btn primary" id="auth-submit" aria-busy={busy === "submit"}>
         {busy === "submit" && <Spin/>}{t(mode === "signup" ? "auth.signup" : mode === "forgot" ? "auth.sendReset" : "auth.enter")}</button>
-      <p className="auth-switch">{mode === "signin" ? <>{t("auth.noAccount")} <button type="button" className="link-btn" onClick={() => go("signup")}>{t("auth.signup")}</button></>
+      <p className="auth-switch">{mode === "signin" ? <>{t("auth.noAccount")} <GoLink onClick={() => go("signup")}>{t("auth.signup")}</GoLink></>
         : <button type="button" className="link-btn" onClick={() => go("signin")}>{t("auth.backToSignIn")}</button>}</p>
       {mode === "signin" && <p className="auth-invite"><Icon name="user" sm/> {t("auth.invite")}</p>}
     </form>
@@ -484,12 +485,12 @@ function MyNext(){
     {next ? <div className="profile-next-box">
       {/* A situação ao lado do título; embaixo da data, "Suas funções:" e os chips na mesma linha. */}
       <div className="profile-next-what"><span className="profile-next-title"><b>{eventTitle(next)}</b>
-          <button className="link-btn" onClick={() => openGroup("agenda")}>{t("profile.seeAgenda")}</button></span>
+          <GoLink onClick={() => openGroup("agenda")}>{t("profile.seeAgenda")}</GoLink></span>
         <span className="sub">{longDay(new Date(next.starts_at))} · {timeOf(next.starts_at)}{next.place && " · " + next.place}</span>
         {roles.length > 0 && <div className="profile-next-roles"><span className="profile-next-label">{t("profile.nextRoles")}</span>
           <span className="profile-next-chips">{roles.map(r => <span key={r} className="chip role">{r}</span>)}</span></div>}</div>
       <ReplySeg e={next}/>
-    </div> : <span className="sub">{t("profile.nextNone")} <button className="link-btn" onClick={() => openGroup("agenda")}>{t("profile.seeAgenda")}</button></span>}
+    </div> : <span className="sub">{t("profile.nextNone")} <GoLink onClick={() => openGroup("agenda")}>{t("profile.seeAgenda")}</GoLink></span>}
   </Sec>;
 }
 
@@ -520,7 +521,7 @@ function MyRoles(){
 function MyVoice(){
   const profile = useAuth(s => s.profile), has = !!rangeType(profile || {});
   return <Sec id="profile-voice" className="profile-voice" title={t("profile.voice")}
-    action={<button type="button" className="link-btn" onClick={() => { setSetting("toolsTab", "voice"); go("tools"); }}>{t(has ? "voice.measureAgain" : "voice.measure")}</button>}>
+    action={<GoLink onClick={() => { setSetting("toolsTab", "voice"); go("tools"); }}>{t(has ? "voice.measureAgain" : "voice.measure")}</GoLink>}>
     <span className="member-chips">{has ? <VoiceChip {...profile}/> : <span className="people-missing">{t("profile.noVoice")}</span>}</span>
     <small className="sub">{t("profile.voiceHint")}</small></Sec>;
 }
