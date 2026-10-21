@@ -236,7 +236,7 @@ também libera o acesso ao app para eles).
 - [ ] **Voz, Minha extensão** (aba Voz das Ferramentas, ao lado do Afinador):
   - mede a nota mais grave e a mais aguda e diz a classificação vocal;
   - basta **segurar a mesma nota por ~2 segundos**: uma barra enche e a nota é salva sozinha ("✓ Salvo"), sem apertar botão; durante a medição o botão vira Cancelar; ajuste fino de meio tom com + e −;
-  - a extensão fica no **perfil** (na nuvem, com o chip da classificação vocal no topo dele) e o grupo vê a **classificação vocal** (chip Baixo, Barítono, Tenor, Contralto, Mezzo-soprano, Soprano) em **Membros** e na **escala** do evento; a faixa (ex.: F2–C4) não aparece para o grupo;
+  - a extensão fica no **perfil** (na nuvem, com a classificação vocal no card "Minhas funções" do perfil, com atalho para medir) e o grupo vê a **classificação vocal** (chip Baixo, Barítono, Tenor, Contralto, Mezzo-soprano, Soprano) em **Membros** e na **escala** do evento; a faixa (ex.: F2–C4) não aparece para o grupo;
   - passo a passo e o para-que-serve na tela (aberto até medir a primeira vez, depois recolhido);
   - se o microfone falhar, o aviso diz o motivo (negado, sem microfone, em uso, navegador sem suporte), ensina a liberar (no app instalado, pelas configurações do site) e tem "Tentar de novo".
 ## Rodar localmente

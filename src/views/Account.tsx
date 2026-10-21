@@ -21,6 +21,8 @@ import { PhoneInput } from "../ui/PhoneInput";
 import { NameInput } from "../ui/NameInput";
 import { YouChip } from "../ui/YouChip";
 import { VoiceChip } from "../ui/VoiceChip";
+import { rangeType } from "../lib/voice";
+import { setSetting } from "../lib/store";
 
 const BASE = import.meta.env.BASE_URL;
 // Logo sem o fundo (as barras em gradiente servem nos dois temas), o nome com o gradiente da marca e o slogan.
@@ -355,7 +357,7 @@ export function Profile(){
     <div className="view-head"><div><h1 id="profile-h">{t("profile.title")}</h1></div></div>
     <div className="profile-panel">
       <div className="card profile-top wide">
-        <div className="profile-who"><PhotoButton/><div><span className="people-name"><b>{profile?.name || email}</b>{(owner || admin) && <span className={"chip " + (owner ? "owner" : "accent")}>{t(owner ? "profile.owner" : "profile.admin")}</span>}{profile && <VoiceChip {...profile}/>}</span><span className="sub">{email}</span>
+        <div className="profile-who"><PhotoButton/><div><span className="people-name"><b>{profile?.name || email}</b>{(owner || admin) && <span className={"chip " + (owner ? "owner" : "accent")}>{t(owner ? "profile.owner" : "profile.admin")}</span>}</span><span className="sub">{email}</span>
           <PhotoActions/></div></div>
         {/* À direita, no pé do card: o estado da nuvem (só quando há algo) antes das escalas. */}
         <div className="profile-side"><SyncStatus/><MySoon/></div>
@@ -499,7 +501,7 @@ function GroupNote(){
 // As funções da pessoa no grupo aberto (pode ter várias: tocar e cantar). São as que aparecem ao montar
 // a escala. Quem lidera muda as de todos em Grupo → Membros.
 function MyRoles(){
-  const g = useGroups(), me = useAuth(s => s.email), [busy, setBusy] = useState(false);
+  const g = useGroups(), me = useAuth(s => s.email), profile = useAuth(s => s.profile), [busy, setBusy] = useState(false);
   // Ao abrir o perfil, busca o grupo de novo (a cópia do aparelho pode estar velha ou ter falhado).
   useEffect(() => { loadGroups(); }, []);
   const group = g.groups.find(x => x.id === g.gid), m = g.members.find(x => x.email === me);
@@ -507,7 +509,11 @@ function MyRoles(){
   const save = async (v: string) => { setBusy(true); const ok = await setMemberRole(g.gid, me, v).finally(() => setBusy(false)); toast(t(ok ? "profile.rolesSaved" : "profile.saveFail")); };
   return <Sec id="profile-roles" className="profile-roles" title={t("profile.roles", {group: group.name})}>
     <MemberRoles m={m} editable busy={busy} onSave={save}/>
-    <small className="sub">{t("profile.rolesHint")}</small></Sec>;
+    <small className="sub">{t("profile.rolesHint")}</small>
+    <div className="profile-voice"><SecHead as="span">{t("profile.voice")}</SecHead>
+      <span className="member-chips">{rangeType(profile || {}) ? <VoiceChip {...profile}/> : <span className="people-missing">{t("profile.noVoice")}</span>}
+        <button type="button" className="link-btn" onClick={() => { setSetting("toolsTab", "voice"); go("tools"); }}>{t("voice.measure")}</button></span>
+      <small className="sub">{t("profile.voiceHint")}</small></div></Sec>;
 }
 
 // Hoje no formato do campo de data ("AAAA-MM-DD"), para não aceitar datas no futuro.
