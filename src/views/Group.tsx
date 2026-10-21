@@ -478,6 +478,7 @@ function waText(e: GEvent, who: {name: string} | {names: string[]}){
 // quem não marcou aparece pendente, com o aviso no WhatsApp.
 function Attendance({e}: {e: GEvent}){
   const g = useGroups(), [busy, setBusy] = useState("");
+  const [open, setOpen] = useState(false);
   const att = g.attendance.filter(a => a.event_id === e.id);
   const pending = new Set(pendingCheckIn(e, g.members.filter(isActive).map(m => m.email), g.attendance));
   const until = fmt({weekday: "long", hour: "2-digit", minute: "2-digit"}).format(new Date(new Date(e.starts_at).getTime() + CHECKIN_MS));
@@ -486,7 +487,10 @@ function Attendance({e}: {e: GEvent}){
     const ok = await markAttendance(e.id, email, v || null).finally(() => setBusy(""));
     if(!ok) toast(t("profile.saveFail"));
   };
-  return <div className="attendance"><h3>{t("group.attendance")} <span className="sub">{t("group.attCount", {n: att.filter(a => a.status === "present").length, total: g.members.filter(isActive).length})}</span></h3>
+  return <div className="event-sec attendance"><SecHead as="h3" className="people-sub-h"><button type="button" className="att-toggle" aria-expanded={open} onClick={() => setOpen(o => !o)}>
+      <span>{t("group.attendance")} <span className="sub">{t("group.attCount", {n: att.filter(a => a.status === "present").length, total: g.members.filter(isActive).length})}</span></span>
+      <Icon name="chev" sm className={"att-chev" + (open ? " up" : "")}/></button></SecHead>
+    {open && <div className="att-box">
     {pending.size > 0 && <div className="att-pending">
       <span className="sub">{t("group.pendingHint", {until})}</span>
       <a className="btn sm soft" href={waLink(waText(e, {names: [...pending].map(personName)}))} target="_blank" rel="noopener"><Icon name="chat" sm/> {t("group.waAll")}</a>
@@ -497,7 +501,7 @@ function Attendance({e}: {e: GEvent}){
         {wa && <a className="icon-btn sm" href={waLink(waText(e, {name: personName(m.email)}), m.phone)} target="_blank" rel="noopener"
           aria-label={t("group.waOne", {name: personName(m.email)})} title={t("group.waOne", {name: personName(m.email)})}><Icon name="chat" sm/></a>}</span>
         <Seg className="sm" aria={t("group.attendance") + ": " + personName(m.email)} value={(a?.status || "") as Presence | ""} onChange={v => mark(m.email, v === a?.status ? "" : v)}
-          options={[{v: "present", label: t("group.att.present")}, {v: "absent", label: t("group.att.absent")}]}/></li>; })}</ul>
+          options={[{v: "present", label: t("group.att.present")}, {v: "absent", label: t("group.att.absent")}]}/></li>; })}</ul></div>}
   </div>;
 }
 
