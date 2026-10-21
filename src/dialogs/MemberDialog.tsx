@@ -61,7 +61,7 @@ export function MemberDialog({email, person, manage}: DialogProps["member"]){
           <div className="field"><SecHead as="span">{t("member.birthday")}</SecHead>
             {info.birthday ? <span>{fmtBirthday(info.birthday)}</span> : <span className="people-missing">{t("member.noBirthday")}</span>}</div>
           {m && <div className="field"><SecHead as="span">{t("member.voice")}</SecHead>
-            {rangeLabel(m) ? <span className="member-chips"><VoiceChip {...m}/><span className="sub">{rangeLabel(m)}</span></span> : <span className="people-missing">{t("member.noVoice")}</span>}</div>}
+            {rangeLabel(m) ? <span className="member-chips"><VoiceChip {...m}/></span> : <span className="people-missing">{t("member.noVoice")}</span>}</div>}
           {m && <div className="field"><SecHead as="span">{t("member.roles")}</SecHead>
             {roles.length ? <span className="member-chips member-chips-roles">{roles.map(r => <span key={r} className="chip role">{r}</span>)}</span>
               : <span className="people-missing">{t("group.noRoles")}</span>}</div>}

@@ -1,4 +1,4 @@
-// Chip com o tipo de voz de quem mediu a extensão (Baixo, Barítono, Tenor, Contralto...). Igual em todas as
+// Chip com a classificação vocal de quem mediu a extensão (Baixo, Barítono, Tenor, Contralto...). Igual em todas as
 // telas do grupo; sem as duas pontas medidas não há tipo e nada aparece.
 import { t } from "../lib/i18n";
 import { rangeType } from "../lib/voice";
