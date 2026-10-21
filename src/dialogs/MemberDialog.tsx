@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { t, tn } from "../lib/i18n";
 import { useGroups, personPhoto, outMark, amGroupAdmin, isActive } from "../lib/groups";
-import { attendanceRate, rehearsalStanding, monthLoad, dayKey, MISS_LIMIT, COMEBACK } from "../lib/calendar";
+import { attendanceRate, attendanceHistory, rehearsalStanding, monthLoad, dayKey, MISS_LIMIT, COMEBACK } from "../lib/calendar";
 import { splitRoles, sortRoles } from "../lib/roles";
 import { useAuth } from "../lib/cloud";
 import { closeDialog, type DialogProps } from "../state";
@@ -28,7 +28,7 @@ export function MemberDialog({email, person, manage}: DialogProps["member"]){
   const canApp = !!manage && canManageApp(manage.row, me, owner), canEdit = canApp || !!m && (amGroupAdmin() || email === me), edit = canApp ? editApp : editing && canEdit;
   const rate = attendanceRate(email, g.events, g.attendance, Date.now(), g.roster), sd = rehearsalStanding(email, g.events, g.attendance, Date.now(), m ? outMark(m) : null, g.roster);
   const roles = sortRoles(splitRoles(m?.role || "")), load = m ? monthLoad(dayKey(new Date()), g.events, g.roster).get(email) || 0 : 0;
-  const soon = Date.now() - SOON_MS;
+  const hist = attendanceHistory(email, g.events, g.attendance, Date.now(), g.roster), soon = Date.now() - SOON_MS;
   const next = g.events.filter(e => new Date(e.starts_at).getTime() > soon && g.roster.some(r => r.event_id === e.id && r.email === email))
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at)).slice(0, 3);
   return <Dialog name="member" id="dlg-member" className="member-dlg" labelledBy="member-h">
@@ -68,6 +68,12 @@ export function MemberDialog({email, person, manage}: DialogProps["member"]){
         <div className="field profile-att"><SecHead as="span">{t("member.attendance")}</SecHead>
           {rate.total ? <AttStat rate={rate} sd={sd} mark={m ? outMark(m) : null}/> : <span className="sub">{t("profile.attNone")}</span>}
           <small className="sub">{t("profile.attRule", {max: MISS_LIMIT, back: COMEBACK})}</small></div>
+
+        <div className="field"><SecHead as="span">{t("member.history")}</SecHead>
+          {hist.length ? <ul className="member-dlg-hist">{hist.map(h => <li key={h.event.id}>
+            <span className="member-dlg-hist-when"><b>{longDay(new Date(h.event.starts_at))}</b><span className="sub">{timeOf(h.event.starts_at)}</span></span>
+            <span className={"chip " + (h.status === "present" ? "st-yes" : h.status === "absent" ? "st-no" : "")}>{t("group.att." + h.status)}</span></li>)}</ul>
+            : <span className="sub">{t("member.historyNone")}</span>}</div>
 
         <div className="field"><SecHead as="span">{t("member.next")}</SecHead>
           {next.length ? <ul className="member-dlg-next">{next.map(e => {

@@ -60,11 +60,17 @@ addEventListener("pagehide", () => store.flush());
 // (esta só se a última procura foi há mais de 5 minutos, para não repetir a cada troca de aba).
 if("serviceWorker" in navigator && import.meta.env.PROD){
   const had = !!navigator.serviceWorker.controller;
-  let shown = false;
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if(!had || shown) return; shown = true;
+  // A versão nova já assumiu o cache, mas a página aberta continua com o código antigo até recarregar.
+  // Se o aviso for fechado, ele volta ao reabrir o app (no celular o app volta do segundo plano sem recarregar).
+  let pending = false, lastShown = 0;
+  const showUpdate = () => {
+    lastShown = Date.now();
     toast(t("update.ready"), {label: t("update.reload"), run: () => location.reload()}, {sticky: true});
+  };
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if(!had || pending) return; pending = true; showUpdate();
   });
+  document.addEventListener("visibilitychange", () => { if(!document.hidden && pending && Date.now() - lastShown > 10 * 1000) showUpdate(); });
   const register = () => navigator.serviceWorker.register(import.meta.env.BASE_URL + "sw.js").then(reg => {
     let last = Date.now();
     const check = () => { last = Date.now(); reg.update().catch(()=>{}); };
