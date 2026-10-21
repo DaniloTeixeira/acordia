@@ -83,6 +83,7 @@
   --bad: #b91c1c;
   --bad-soft: #fee2e2;
   --warn: #9a3412;
+  --pause: #0891b2;
   --owner-grad: linear-gradient(135deg, #fde68a, #f59e0b);
   --owner-ink: #451a03;
   --warn-soft: #fff1e8;
@@ -4583,11 +4584,6 @@ body[data-menu-open] .people-list li {
   font-weight: 700;
 }
 
-/* janela com alterações: avisa em vez de fechar */
-dialog.nudge {
-  animation: shake 0.35s var(--ease);
-}
-
 .tooltip {
   position: fixed;
   inset: auto;
@@ -4965,15 +4961,6 @@ dialog:not(#dlg-confirm, #dlg-leader, #dlg-install) .dlg-body {
   gap: 8px;
   padding: 12px 20px 18px;
   border-top: 1px solid var(--line);
-}
-/* Tentou fechar com alterações: aviso no rodapé, à esquerda dos botões (o texto vem de --unsaved). */
-dialog.unsaved .dlg-foot::before {
-  content: var(--unsaved);
-  margin-right: auto;
-  align-self: center;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--warn);
 }
 .dlg-body textarea.song-text {
   min-height: 260px;
@@ -8991,7 +8978,7 @@ dialog.member-dlg {
   padding: 4px 0 2px;
 }
 /* Editar membro (Grupo → Membros): num quadro como o das funções, com um pouco mais de espaço entre as partes. */
-.people-edit.member-edit {
+.people-edit:is(.member-edit, .out-edit) {
   gap: 12px;
   padding: 12px;
   border-radius: var(--r-md);
@@ -9150,6 +9137,10 @@ dialog.member-dlg {
   height: 100%;
   border-radius: inherit;
   background: var(--ok);
+}
+/* Com faltas seguidas a barra fica laranja, como o chip; em pausa ela mostra a volta e segue verde. */
+.profile-stat.is-warn .meter > i {
+  background: var(--warn);
 }
 .profile-next-box {
   display: flex;
@@ -9310,10 +9301,21 @@ dialog.member-dlg {
   font-size: 1.25rem;
 }
 .out-edit-foot {
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* Botões dos quadros de edição: mesmo tamanho no celular e no computador (a regra de toque deixaria 40px). */
+:is(.out-edit-foot, .member-roles-foot) :is(.btn.sm, .link-btn) {
+  min-height: 34px;
+}
+
+/* "Tirar da pausa" é link à esquerda; Cancelar e Salvar ficam juntos à direita. */
+.out-edit-clear {
+  margin-right: auto;
 }
 
 /* Grupo → Membros: atalho de presença/falta. Quadro na largura toda; cada ensaio numa linha só
@@ -9421,6 +9423,10 @@ dialog.member-dlg {
 /* Ensaio na agenda: duas colunas (pessoa e resposta, as funções ficam no cartão da pessoa e em Membros); a resposta é só texto colorido, sem pílula. */
 .roster-tbl { grid-template-columns: minmax(0, 1fr) auto; }
 .roster-tbl .quick-att-when { flex-direction: column; align-items: flex-start; gap: 2px; }
+/* Aviso de pausa: na mesma linha do nome; no celular desce para a linha de baixo. */
+.roster-tbl .quick-att-when.with-note { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: 8px; }
+.roster-tbl .quick-att-when .pause-note { color: var(--pause); font-weight: 600; }
+@media (max-width: 599px) { .roster-tbl .quick-att-when.with-note { flex-direction: column; align-items: flex-start; } }
 .roster-tbl .quick-att-ctl { min-width: 0; }
 .roster-tbl .quick-att-ctl { padding-left: 6px; padding-right: 6px; }
 .roster-tbl .quick-att-ctl .chip { background: transparent; border: 0; box-shadow: none; padding: 2px 0; font-weight: 500; white-space: nowrap; }

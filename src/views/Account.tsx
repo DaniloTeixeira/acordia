@@ -6,12 +6,12 @@ import { Select } from "../ui/Select";
 import { useAuth, savePhone, cleanPhone, signIn, signUp, resendConfirmation, pendingConfirm, setPendingConfirm, forgotPassword, setNewPassword, signInWithGoogle, signOut, saveName, saveBirthday, listAllowed, addAllowed, setAllowedInfo, setPersonInfo, setAllowedAdmin, removeAllowed, validEmail, initials, ownPhoto, removePhoto, type Allowed } from "../lib/cloud";
 import { DEFAULT_POLICY, missing, passes, fromError, isPwned, type PwPolicy, type PwRule } from "../lib/password";
 import { reduced, flashSaved, norm } from "../lib/util";
-import { toast, confirmDialog, openDialog, closeDialog, go } from "../state";
+import { toast, confirmDialog, openDialog, closeDialog, confirmUnsaved, useUnsaved, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { DateInput } from "../ui/DateInput";
 import { FieldLabel } from "../ui/FieldLabel";
 import { useGroups, loadGroups, chooseGroup, setMemberRole, outMark, listGroupedEmails } from "../lib/groups";
-import { attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, streakLevel, fmtPhone, maskPhone } from "../lib/calendar";
+import { attendanceRate, rehearsalStanding, comebackProgress, type Standing, type OutMark, MISS_LIMIT, COMEBACK, streakLevel, fmtPhone, maskPhone } from "../lib/calendar";
 import { sortRoles, joinRoles, splitRoles } from "../lib/roles";
 import { MemberRoles, RolePicker, ReplySeg, GroupMark, eventTitle, timeOf, longDay, openGroup } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
@@ -79,6 +79,20 @@ const KEEP = Symbol("keep");
 export function StreakChip({streak, title}: {streak: number; title?: string}){
   const lvl = streakLevel(streak);
   return <span className={"chip" + (lvl === null ? "" : " streak")} style={lvl === null ? undefined : {"--lvl": lvl} as React.CSSProperties} title={title}>{t("group.streak", {n: streak, max: MISS_LIMIT})}</span>;
+}
+
+// Frequência nos ensaios: % de presença e a barra. Em pausa, o número e a barra mostram o quanto já foi cumprido
+// da volta (0% neutro até o verde cheio), não o histórico, que mandaria um 100% verde ao lado do chip vermelho.
+export function AttStat({rate, sd, mark}: {rate: {present: number; total: number}; sd: Standing; mark?: OutMark | null}){
+  const back = sd.out ? comebackProgress(sd, mark) : null;
+  const p = back ? back.pct : Math.round(100 * rate.present / rate.total);
+  return <div className={"profile-stat" + (!back && sd.streak > 0 ? " is-warn" : "")}>
+    <b>{p}%</b><span className="sub">{back ? t("profile.attBack", {done: back.done, total: back.total}) : t("profile.attCount", {present: rate.present, total: rate.total})}</span>
+    {sd.out ? <span className="chip st-no">{tn("group.standOut", sd.need)}</span>
+      : sd.streak > 0 ? <StreakChip streak={sd.streak}/>
+      : <span className="chip st-yes">{t("group.standOk")}</span>}
+    <span className="meter" aria-hidden="true"><i style={{width: p + "%"}}/></span>
+  </div>;
 }
 
 export function useLock(){
@@ -442,16 +456,9 @@ function useMyGroup(){
 function MyAttendance(){
   const {g, me, ok} = useMyGroup();
   if(!ok) return null;
-  const rate = attendanceRate(me, g.events, g.attendance), sd = rehearsalStanding(me, g.events, g.attendance, Date.now(), outMark(g.members.find(x => x.email === me)));
-  const p = rate.total ? Math.round(100 * rate.present / rate.total) : 0;
+  const rate = attendanceRate(me, g.events, g.attendance, Date.now(), g.roster), sd = rehearsalStanding(me, g.events, g.attendance, Date.now(), outMark(g.members.find(x => x.email === me)), g.roster);
   return <Sec id="profile-att" className="profile-att" title={t("profile.attendance")}>
-    {rate.total ? <div className="profile-stat">
-      <b>{p}%</b><span className="sub">{t("profile.attCount", {present: rate.present, total: rate.total})}</span>
-      {sd.out ? <span className="chip st-no">{tn("group.standOut", sd.need)}</span>
-        : sd.streak > 0 ? <StreakChip streak={sd.streak}/>
-        : <span className="chip st-yes">{t("group.standOk")}</span>}
-      <span className="meter" aria-hidden="true"><i style={{width: p + "%"}}/></span>
-    </div> : <span className="sub">{t("profile.attNone")}</span>}
+    {rate.total ? <AttStat rate={rate} sd={sd} mark={outMark(g.members.find(x => x.email === me))}/> : <span className="sub">{t("profile.attNone")}</span>}
     <small className="sub">{t("profile.attRule", {max: MISS_LIMIT, back: COMEBACK})}</small>
   </Sec>;
 }
@@ -569,6 +576,10 @@ export function PersonEdit({r, onDone, inline}: {r: Allowed; onDone: (saved: boo
   // Funções no grupo aberto, se a pessoa está nele (com mais de um grupo, o rótulo diz qual).
   const g = useGroups(), group = g.groups.find(x => x.id === g.gid), member = group ? g.members.find(x => x.email === r.email) : undefined;
   const [roles, setRoles] = useState<string[]>(() => member ? sortRoles(splitRoles(member.role)) : []);
+  // Alterado = diferente de quando abriu: sair (Cancelar, fechar a janela, trocar de página) pergunta antes.
+  const root = useRef<HTMLElement>(null), snap = JSON.stringify([name, phone, birthday, roles]), start = useRef(snap);
+  useUnsaved(root, snap !== start.current);
+  const cancel = async () => { if(snap === start.current || await confirmUnsaved()) onDone(false); };
   // O admin muda nome, celular e data mesmo os que a pessoa preencheu no perfil.
   const save = (e?: React.SyntheticEvent) => { e?.preventDefault(); lock(async () => {
     setBusy(true);
@@ -583,7 +594,7 @@ export function PersonEdit({r, onDone, inline}: {r: Allowed; onDone: (saved: boo
     if(ok) onDone(true);
   }); };
   const Root = inline ? "div" : "form";
-  return <Root className="people-edit member-edit" {...(inline
+  return <Root ref={root as React.RefObject<never>} className="people-edit member-edit" {...(inline
     ? {onKeyDown: (e: React.KeyboardEvent) => { if(e.key === "Enter" && !e.defaultPrevented && (e.target as HTMLElement).tagName === "INPUT"){ e.preventDefault(); save(); } }}
     : {onSubmit: save})}>
     <div className="people-add">
@@ -597,7 +608,7 @@ export function PersonEdit({r, onDone, inline}: {r: Allowed; onDone: (saved: boo
     {group && member && <RolePicker value={roles} onChange={setRoles} label={rolesLabel(g.groups.length, group.name)}/>}
     {/* Cancelar e Salvar por último, embaixo das funções (como no editar de Grupo → Membros). */}
     <div className="member-roles-foot">
-      <button type="button" className="btn ghost sm" onClick={() => onDone(false)}>{t("common.cancel")}</button>
+      <button type="button" className="btn ghost sm" onClick={cancel}>{t("common.cancel")}</button>
       <button type={inline ? "button" : "submit"} className="btn primary sm" aria-busy={busy} onClick={inline ? () => save() : undefined}>{busy ? <Spin/> : <Icon name="check" sm/>} {t("common.save")}</button>
     </div>
   </Root>;

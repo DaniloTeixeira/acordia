@@ -150,6 +150,9 @@ direto na folha, sem Editar, e não vê os botões de mudar.
   - **Transpor a cifra** (−/+), que reescreve os acordes;
   - tom, BPM e referência;
   - com alterações, clicar fora não descarta o texto.
+- [ ] **Alterações não salvas (qualquer janela ou formulário)**: Cancelar, X, Esc, voltar, clicar fora ou trocar de
+  página com algo editado e não salvo abre "Alterações não salvas" (Descartar / Continuar editando); sem
+  alterações, fecha direto. Fechar ou recarregar a aba mostra o aviso do navegador.
 
 ### Janela do acorde
 - [ ] Grau e função no tom (Tônica, Subdominante, Dominante ou fora do campo) e notas com os graus.
@@ -181,8 +184,8 @@ também libera o acesso ao app para eles).
     mostra quantas vezes já foi escalada no mês.
 - [ ] **Resposta da escala**: abas "Confirmar" e "Não posso" (gravam na hora, com spinner). Quem marca "Não posso" pode indicar
       **quem cobre** a vaga (só um aviso para o grupo); quem lidera vê "não pode ir · falta substituto" enquanto ninguém foi indicado.
-- [ ] **Membro ativo ou inativo**: em Membros, quem lidera deixa alguém inativo (olho cortado) sem tirar do grupo.
-      O inativo some da escala e da chamada dos ensaios, mas o histórico fica; reativar é pelo mesmo botão. O líder não fica inativo.
+- [ ] **Membro ativo ou inativo**: em Membros, quem lidera deixa alguém inativo ("Afastar", olho cortado) sem tirar do grupo.
+      O inativo some da escala e da chamada dos ensaios, mas o histórico fica; voltar é pelo mesmo botão ("Reintegrar"). O líder não fica inativo.
 - [ ] **Presença nos ensaios**: "Cheguei" (de 12 h antes do início em diante; em ensaio que já começou o membro escolhe entre "Estive" e "Não estive", ou volta a sem marcação; pode mudar mesmo se o líder marcou) e a chamada de quem lidera
       (presente, falta, justificada), que vale por cima do "Cheguei".
       Em Membros, o botão de check na linha da pessoa marca presença ou falta dos últimos ensaios sem abrir a agenda.
@@ -194,7 +197,7 @@ também libera o acesso ao app para eles).
 - [ ] **Membros**: nome, e-mail, funções (várias, como Vocal e Violão; cada um edita as suas), selo Líder, **frequência nos ensaios** (6 meses)
       e escalas no mês. Quem lidera inclui, torna líder e tira do grupo; admins do app renomeiam, criam e
       excluem grupos.
-- [ ] **Em pausa**: quem falta a 8 ensaios seguidos fica em pausa até participar de 4. No cadastro de Membros, a chave "Em pausa" já inclui a pessoa em pausa (para quem está há mais de 8 ensaios sem participar).
+- [ ] **Em pausa**: quem falta a 8 ensaios seguidos fica em pausa até participar de 4. No cadastro de Membros, a chave "Em pausa" já inclui a pessoa em pausa (para quem está há mais de 8 ensaios sem participar). Na janela do membro, "Ajustar retorno" abre um quadro para marcar a pausa à mão ("Pausar"), mudar quantos ensaios faltam ou "Tirar da pausa"; em pausa, a frequência mostra o progresso da volta (0% até 100%) em vez da presença.
 - [ ] **Sem internet**: mostra a última versão baixada; mudar precisa de internet.
 
 ### Estudo

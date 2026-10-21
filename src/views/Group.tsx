@@ -19,7 +19,7 @@ import { splitRoles, joinRoles, toggleRole, sortRoles } from "../lib/roles";
 import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone,type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, loadGroups, createGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
   deleteEvent, respond, setCover, checkIn, setMyAttendance, markAttendance, setUnavailable, personName, personPhoto, amGroupAdmin, setMemberOut, outMark, isActive, setMemberActive, type GroupSetlist, type Member, type Group } from "../lib/groups";
-import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, go } from "../state";
+import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, confirmUnsaved, useUnsaved, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
@@ -398,9 +398,11 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
           <span className="quick-att-when"><b>{personName(r.email)}{r.email === me && <YouChip/>}</b>
             {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}</span>
           <span className="quick-att-ctl"><StatusChip status={r.status} noIcon/></span></li>)}
-        {g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).map(m => <li key={m.email}>
-          <span className="quick-att-when"><b>{personName(m.email)}{m.email === me && <YouChip/>}</b></span>
-          <span className="quick-att-ctl"><span className="chip">{t(rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m)).out ? "group.status.pause" : "group.status.off")}</span></span></li>)}</ul>
+        {/* Quem está em pausa não é escalado nem listado, a menos que tenha marcado presença neste ensaio. */}
+        {g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).map(m => ({m, sd: rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), here: att.some(a => a.email === m.email && a.status === "present")}))
+          .filter(x => x.here || !x.sd.out).map(({m, sd, here}) => <li key={m.email}>
+          <span className={"quick-att-when" + (sd.out ? " with-note" : "")}><b>{personName(m.email)}{m.email === me && <YouChip/>}</b>{sd.out && <> <span className="sub pause-note">{tn("group.standOut", sd.need)}</span></>}</span>
+          <span className="quick-att-ctl">{here ? <span className="chip st-yes">{t("group.att.present")}</span> : <span className="chip">{t("group.status.off")}</span>}</span></li>)}</ul>
         : roster.length ? <ul className="roster">{rosterByPerson(roster).map(r => <li key={r.email} className={"st-" + r.status}>
         <span className="roster-who">{personName(r.email)}{r.email === me && <YouChip/>}</span>
         <StatusChip status={r.status}/>
@@ -542,7 +544,7 @@ function Members({canEdit}: {canEdit: boolean}){
       {/* Cabeçalho como o da lista "Com acesso" do Perfil. */}
       {shown.length > 0 && <div className="people-list-head" aria-hidden="true"><span>{t("people.colPerson")}</span><span>{t("people.colActions")}</span></div>}
       <ul className="people-list members" ref={filter.listRef}>{filter.nq && !shown.length && <li className="sub">{t("lib.noResults")}</li>}{shown.map(m => {
-        const rate = attendanceRate(m.email, g.events, g.attendance), sd = rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m)), n = load.get(m.email) || 0;
+        const rate = attendanceRate(m.email, g.events, g.attendance, Date.now(), g.roster), sd = rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), n = load.get(m.email) || 0;
         // Regra dos ensaios no lugar do "% nos ensaios" (a porcentagem fica na dica).
         const hint = t("group.ruleHint", {max: MISS_LIMIT, back: COMEBACK, p: rate.total ? Math.round(100 * rate.present / rate.total) : 0, present: rate.present, total: rate.total});
         // Tocar em qualquer parte da linha (fora dos botões, links e do painel de editar) abre os detalhes; o
@@ -580,6 +582,10 @@ function MemberEdit({m, full, onDone, inline}: {m: Member; full: boolean; onDone
   const gid = useGroups(s => s.gid), id = "medit-" + m.email;
   const [name, setName] = useState(m.name), [phone, setPhone] = useState(maskPhone(m.phone || "")), [birthday, setBirthday] = useState(m.birthday || "");
   const [roles, setRoles] = useState(() => sortRoles(splitRoles(m.role))), [busy, setBusy] = useState(false), lock = useLock();
+  // Alterado = diferente de quando abriu: sair (Cancelar, fechar a janela, trocar de página) pergunta antes.
+  const root = useRef<HTMLElement>(null), snap = JSON.stringify([name, phone, birthday, roles]), start = useRef(snap);
+  useUnsaved(root, snap !== start.current);
+  const cancel = async () => { if(snap === start.current || await confirmUnsaved()) onDone(); };
   const save = (e?: React.SyntheticEvent) => { e?.preventDefault(); lock(async () => {
     setBusy(true);
     // Banco sem admin_set_person ainda: grava só na lista de acesso (o que a pessoa preencheu continua valendo).
@@ -595,7 +601,7 @@ function MemberEdit({m, full, onDone, inline}: {m: Member; full: boolean; onDone
     }
   }); };
   const Root = inline ? "div" : "form";
-  return <Root className="people-edit member-edit" {...(inline
+  return <Root ref={root as React.RefObject<never>} className="people-edit member-edit" {...(inline
     ? {onKeyDown: (e: React.KeyboardEvent) => { if(e.key === "Enter" && !e.defaultPrevented && (e.target as HTMLElement).tagName === "INPUT"){ e.preventDefault(); save(); } }}
     : {onSubmit: save})}>
     {full && <div className="people-add">
@@ -608,8 +614,8 @@ function MemberEdit({m, full, onDone, inline}: {m: Member; full: boolean; onDone
     </div>}
     <RolePicker value={roles} onChange={setRoles}/>
     <div className="member-roles-foot">
-      <button type="button" className="btn ghost sm" onClick={onDone}>{t("common.cancel")}</button>
-      <button type={inline ? "button" : "submit"} className="btn primary sm" aria-busy={busy} onClick={inline ? () => save() : undefined}>{busy ? <Spin/> : <Icon name="check" sm/>} {t("common.save")}</button>
+      <button type="button" className="btn ghost sm" onClick={cancel}>{t("common.cancel")}</button>
+      <button type={inline ? "button" : "submit"} className={"btn sm " + (inline ? "soft" : "primary")} aria-busy={busy} onClick={inline ? () => save() : undefined}>{busy ? <Spin/> : <Icon name="check" sm/>} {t("common.save")}</button>
     </div>
   </Root>;
 }
@@ -642,7 +648,7 @@ export function MemberManage({m}: {m: Member}){
   useEffect(() => { if(panel) box.current?.scrollIntoView({block: "nearest", behavior: reduced() ? "auto" : "smooth"}); }, [panel]);
   const canEdit = amGroupAdmin(), self = m.email === me, act = isActive(m), leaderNow = g.members.find(x => x.is_admin);
   const group = g.groups.find(x => x.id === g.gid);
-  const sd = rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m));
+  const sd = rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster);
   const standing = sd.out ? <span className="chip st-no">{tn("group.standOut", sd.need)}</span>
     : sd.streak > 0 ? <StreakChip streak={sd.streak}/>
     : <span className="chip st-yes">{t("group.standOk")}</span>;
@@ -670,7 +676,7 @@ export function MemberManage({m}: {m: Member}){
     {panel && <div ref={box}>
       {panel === "att" && <QuickAttendance email={m.email} onDone={() => setPanel("")}/>}
       {panel === "out" && <OutEdit m={m} status={standing} marked={!!sd.marked} need={sd.marked ? sd.need : COMEBACK} busy={busy === "out"}
-        onSave={k => { setPanel(""); run("out", () => setMemberOut(g.gid, m.email, k), k ? "group.outSaved" : "group.outCleared"); }} onCancel={() => setPanel("")}/>}
+        onSave={k => run("out", () => setMemberOut(g.gid, m.email, k), k ? "group.outSaved" : "group.outCleared", () => setPanel(""))} onCancel={() => setPanel("")}/>}
     </div>}
   </div>;
 }
@@ -712,9 +718,14 @@ function QuickAttendance({email, onDone}: {email: string; onDone: () => void}){
 // Marcar à mão como em pausa (quem já faltou antes do app): a partir de agora, precisa de N
 // ensaios para voltar; cada presença na chamada desconta um. Marcado, dá para mudar o número ou tirar.
 function OutEdit({m, status, marked, need, busy, onSave, onCancel}: {m: Member; status: React.ReactNode; marked: boolean; need: number; busy: boolean; onSave: (need: number) => void; onCancel: () => void}){
-  const [k, setK] = useState(need);
+  const [k, setK] = useState(need), [which, setWhich] = useState<"save" | "clear">("save"), root = useRef<HTMLDivElement>(null);
+  useUnsaved(root, k !== need);
+  // O spinner fica no botão que foi clicado (busy é um só para o painel).
+  const go = (w: "save" | "clear") => { setWhich(w); onSave(w === "clear" ? 0 : k); };
+  const cancel = async () => { if(k === need || await confirmUnsaved()) onCancel(); };
   // Primeiro a situação de hoje (em dia, faltas seguidas ou fora), depois o ajuste: o stepper em cima, os botões embaixo.
-  return <form className="people-edit out-edit" onSubmit={e => { e.preventDefault(); onSave(k); }}>
+  // div, não form: vive dentro da janela de detalhes, que já é um formulário (form aninhado é inválido).
+  return <div className="people-edit out-edit" ref={root}>
     <p className="out-status">{status}</p>
     <p className="sub people-edit-hint">{t("group.outHelp", {name: personName(m.email)})}</p>
     <div className="out-edit-row">
@@ -724,11 +735,11 @@ function OutEdit({m, status, marked, need, busy, onSave, onCancel}: {m: Member; 
         <button type="button" className="icon-btn line" aria-label="+1" disabled={k >= 20} onClick={() => setK(k + 1)}>+</button></span>
     </div>
     <div className="out-edit-foot">
-      <button type="button" className="btn ghost sm" onClick={onCancel}>{t("common.cancel")}</button>
-      {marked && <button type="button" className="btn ghost sm" onClick={() => onSave(0)}>{t("group.outClear")}</button>}
-      <button className="btn primary sm" aria-busy={busy}>{busy ? <Spin/> : <Icon name="check" sm/>} {t(marked ? "common.save" : "group.outConfirm")}</button>
+      {marked && <button type="button" className="link-btn out-edit-clear" aria-busy={busy && which === "clear"} disabled={busy} onClick={() => go("clear")}>{busy && which === "clear" && <Spin/>}{t("group.outClear")}</button>}
+      <button type="button" className="btn ghost sm" disabled={busy} onClick={cancel}>{t("common.cancel")}</button>
+      <button type="button" className="btn soft sm" aria-busy={busy && which === "save"} disabled={busy} onClick={() => go("save")}>{busy && which === "save" ? <Spin/> : <Icon name="check" sm/>} {t(marked ? "common.save" : "group.outConfirm")}</button>
     </div>
-  </form>;
+  </div>;
 }
 
 // Funções para escolher: as mais comuns e as que o grupo já usa.
@@ -759,11 +770,13 @@ export function RolePicker({value, onChange, label}: {value: string[]; onChange:
 // ficam num bloco à parte, que na lista de membros vai para a direita.
 export function MemberRoles({m, editable, busy, onSave, before, after, lead, showEmpty = editable}: {m: Member; lead?: React.ReactNode; editable: boolean; busy: boolean; onSave: (v: string) => void; before?: React.ReactNode; after?: React.ReactNode; showEmpty?: boolean}){
   const [editing, setEditing] = useState<string[] | null>(null);
-  const roles = sortRoles(splitRoles(m.role));
-  if(editing) return <div className="member-roles editing">
+  const roles = sortRoles(splitRoles(m.role)), box = useRef<HTMLDivElement>(null);
+  const changed = !!editing && joinRoles(editing) !== m.role;
+  useUnsaved(box, changed);
+  if(editing) return <div className="member-roles editing" ref={box}>
     <RolePicker value={editing} onChange={setEditing}/>
     <div className="member-roles-foot">
-      <button type="button" className="btn ghost sm" onClick={() => setEditing(null)}>{t("common.cancel")}</button>
+      <button type="button" className="btn ghost sm" onClick={async () => { if(!changed || await confirmUnsaved()) setEditing(null); }}>{t("common.cancel")}</button>
       <button type="button" className="btn primary sm" onClick={() => { const v = joinRoles(editing); setEditing(null); if(v !== m.role) onSave(v); }}>{t("common.save")}</button>
     </div>
   </div>;

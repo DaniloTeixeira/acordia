@@ -207,13 +207,13 @@ function InstallDialog(){
 }
 
 // ---------- confirmar exclusão ----------
-function ConfirmDialog({title, message, confirm, resolve}: DialogProps["confirm"]){
+function ConfirmDialog({title, message, confirm, cancel, resolve}: DialogProps["confirm"]){
   return <Dialog name="confirm" id="dlg-confirm" labelledBy="confirm-h" onClose={rv => resolve(rv === "ok")}
     onOpen={d => d.querySelector<HTMLButtonElement>(".btn.ghost")?.focus()}>
     <form method="dialog" className="dlg">
       <DialogHead id="confirm-h" title={title} closeLabel={t("common.close")}/>
       <div className="dlg-body"><p id="confirm-msg">{message}</p></div>
-      <Foot><button className="btn ghost" value="cancel">{t("common.cancel")}</button><button className="btn danger-solid" value="ok" id="confirm-ok">{confirm || t("common.delete")}</button></Foot>
+      <Foot><button className="btn ghost" value="cancel">{cancel || t("common.cancel")}</button><button className="btn danger-solid" value="ok" id="confirm-ok">{confirm || t("common.delete")}</button></Foot>
     </form>
   </Dialog>;
 }

@@ -2,7 +2,7 @@
 // Os dados (músicas, repertórios, preferências) ficam em lib/store e avisam por useData().
 import type { LibRef } from "./repertoire";
 import { create } from "zustand";
-import { useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore, type RefObject } from "react";
 import { flushSync } from "react-dom";
 import * as store from "./lib/store";
 import { setLang, getLang, t, type Lang } from "./lib/i18n";
@@ -29,7 +29,7 @@ export interface DialogProps {
   install: Record<string, never>;
   chord: {symbol: string; songKey: string};
   player: {url: string; title: string};
-  confirm: {title: string; message: string; confirm?: string; resolve: (ok: boolean) => void};
+  confirm: {title: string; message: string; confirm?: string; cancel?: string; resolve: (ok: boolean) => void};
   // Escolher o novo líder do grupo antes de tirar o atual. options: os outros membros; allowNone: pode ficar
   // sem líder (só admin do app); mine: quem tira é o próprio líder. Resolve o e-mail ("" = sem líder) ou null.
   leader: {group: string; current: string; options: {value: string; label: string; sub?: string}[]; allowNone: boolean; mine: boolean; resolve: (email: string | null) => void};
@@ -90,9 +90,44 @@ export function closeDialog(name: DialogName){
   useUI.setState(s => { const d = {...s.dialogs}; delete d[name]; return {dialogs: d}; });
 }
 // Confirmação antes de excluir. Resolve true quando a pessoa confirma.
-export function confirmDialog(p: {title: string; message: string; confirm?: string}){
+export function confirmDialog(p: {title: string; message: string; confirm?: string; cancel?: string}){
   return new Promise<boolean>(resolve => openDialog("confirm", {...p, resolve}));
 }
+
+// ---------- alterações não salvas ----------
+// Sair (Cancelar, X, Esc, voltar, clicar fora, trocar de página) com algo editado e não salvo pergunta antes de
+// descartar. Cada janela diz se está alterada (Dialog, dirty); formulários dentro de página ou janela avisam com
+// useUnsaved. A pergunta é sempre a mesma, em um lugar só.
+interface Guard { el: () => Element | null; dirty: () => boolean }
+const guards = new Set<Guard>();
+const dialogDirty = new WeakMap<HTMLDialogElement, () => boolean>();
+export function watchDialog(d: HTMLDialogElement, dirty: () => boolean){ dialogDirty.set(d, dirty); }
+export function useUnsaved(el: RefObject<Element | null>, dirty: boolean){
+  const cur = useRef(dirty); cur.current = dirty;
+  useEffect(() => { const g: Guard = {el: () => el.current, dirty: () => cur.current}; guards.add(g); return () => { guards.delete(g); }; }, [el]);
+}
+export function dialogUnsaved(d: HTMLDialogElement){
+  return !!dialogDirty.get(d)?.() || [...guards].some(g => { const e = g.el(); return !!e && d.contains(e) && g.dirty(); });
+}
+// Formulário solto na página (fora de janela) com alterações.
+function pageUnsaved(){ return [...guards].some(g => { const e = g.el(); return !!e && !e.closest("dialog") && g.dirty(); }); }
+export function confirmUnsaved(){
+  return confirmDialog({title: t("unsaved.title"), message: t("unsaved.msg"), confirm: t("unsaved.discard"), cancel: t("unsaved.keep")});
+}
+// Fecha como Cancelar; com alterações, só depois de a pessoa confirmar que quer descartar.
+const asking = new WeakSet<HTMLDialogElement>();
+export async function requestClose(d: HTMLDialogElement){
+  if(!dialogUnsaved(d)){ d.close("cancel"); return true; }
+  if(asking.has(d)) return false;
+  asking.add(d);
+  const ok = await confirmUnsaved().finally(() => asking.delete(d));
+  if(ok) d.close("cancel");
+  return ok;
+}
+// Fechar a aba ou recarregar: o navegador mostra o aviso dele (o texto não é personalizável).
+addEventListener("beforeunload", e => {
+  if(pageUnsaved() || [...document.querySelectorAll<HTMLDialogElement>("dialog[open]")].some(dialogUnsaved)) e.preventDefault();
+});
 
 // Novo líder do grupo: resolve o e-mail escolhido, "" para ficar sem líder, ou null se a pessoa cancelar.
 export function pickLeaderDialog(p: Omit<DialogProps["leader"], "resolve">){
@@ -122,8 +157,11 @@ useUI.subscribe(s => {
 });
 function closeTopOverlay(){
   const open = document.querySelectorAll<HTMLDialogElement>("dialog[open]");
-  if(open.length) open[open.length - 1].close("cancel");
-  else useUI.setState({stageOpen: false});
+  if(!open.length){ useUI.setState({stageOpen: false}); return; }
+  const d = open[open.length - 1];
+  // Com alterações a janela continua aberta: devolve a entrada do histórico que o voltar tirou e pergunta.
+  if(dialogUnsaved(d)){ history.pushState(null, "", location.href); depth++; }
+  requestClose(d);
 }
 addEventListener("popstate", () => {
   if(skip){ skip = false; return; }
@@ -132,10 +170,16 @@ addEventListener("popstate", () => {
   if(v && v !== useUI.getState().view) go(v, {push: false});
 });
 
-export function go(v: string, {instant = false, push = true} = {}){
+export function go(v: string, {instant = false, push = true, force = false} = {}){
   const view = (VIEWS as string[]).includes(v) ? v as View : "medley";
   // Já na página: só volta ao topo, sem transição (ela fazia a tela piscar).
   if(view === useUI.getState().view){ window.scrollTo({top: 0, behavior: "smooth"}); return null; }
+  // Formulário da página com alterações: pergunta antes de sair. No voltar do navegador o endereço já mudou, então volta a ele.
+  if(!force && pageUnsaved()){
+    if(!push) history.pushState(null, "", viewUrl(useUI.getState().view));
+    confirmUnsaved().then(ok => { if(ok) go(v, {instant, force: true}); });
+    return null;
+  }
   if(push) history.pushState(null, "", viewUrl(view));
   const run = () => { useUI.setState({view}); window.scrollTo({top: 0}); };
   if(instant){ run(); return null; }

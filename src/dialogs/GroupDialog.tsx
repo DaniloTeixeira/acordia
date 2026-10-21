@@ -3,7 +3,7 @@ import { useState } from "react";
 import { t } from "../lib/i18n";
 import { useAuth } from "../lib/cloud";
 import { useGroups, createGroup, renameGroup, deleteGroup, groupNameTaken } from "../lib/groups";
-import { toast, confirmDialog } from "../state";
+import { toast, confirmDialog, requestClose } from "../state";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
 import { Spin, useLock } from "../views/Account";
@@ -70,7 +70,7 @@ export function NewGroupDialog(){
             onChange={e => setName(e.target.value)} onKeyDown={enterClicks("group-create")}/>
           {(taken || empty) && <span className="field-error" id="group-name-new-err">{t(taken ? "group.nameTaken" : "group.needName")}</span>}</label>
       </div>
-      <div className="dlg-foot"><button type="button" className="btn ghost" onClick={e => e.currentTarget.closest("dialog")?.close("cancel")}>{t("common.cancel")}</button>
+      <div className="dlg-foot"><button type="button" className="btn ghost" onClick={e => { const d = e.currentTarget.closest("dialog"); if(d) requestClose(d); }}>{t("common.cancel")}</button>
         <button type="submit" className="btn primary" id="group-create" aria-busy={busy}>{busy ? <Spin/> : <Icon name="plus" sm/>} {t("group.create")}</button></div>
     </form>
   </Dialog>;
