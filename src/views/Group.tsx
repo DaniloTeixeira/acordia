@@ -361,6 +361,9 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
   const canReply = mineRows.length > 0 && !isPast;
   // Quem disse "não posso" pode indicar quem cobre; é só um aviso para o grupo.
   const coverOpts = [{value: "", label: t("group.coverNone")}, ...g.members.filter(m => isActive(m) && m.email !== me).map(m => ({value: m.email, label: personName(m.email)}))];
+  // Tocar na linha de uma pessoa abre os detalhes dela, com o histórico nos ensaios (no celular não há hover: a seta mostra que toca).
+  const openHistory = (email: string) => ({className: "is-link", role: "button", tabIndex: 0, "aria-label": t("member.historyOpen", {name: personName(email)}),
+    onClick: () => openDialog("member", {email}), onKeyDown: (ev: React.KeyboardEvent) => { if(ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); openDialog("member", {email}); } }});
   const pickCover = (v: string) => act("cover", () => setCover(e.id, v));
   const reply = canReply && <ReplySeg e={e} onEditing={setEditReply}/>;
   // Os mesmos chips em dois lugares: ao lado da data na tela larga e, no celular, numa linha própria embaixo,
@@ -393,16 +396,16 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
       {/* Ensaio é de todos: quem não foi escalado também aparece (sem resposta a dar), com o selo "Não escalado" (ou "Em pausa"). */}
       <div className="event-sec"><SecHead as="h3" className="people-sub-h">{t("group.roster")}</SecHead>
       {e.kind === "rehearsal" && g.members.length ? <ul className="quick-att roster-tbl">
-        <li className="quick-att-head" aria-hidden="true"><span className="quick-att-when">{t("people.colPerson")}</span><span className="quick-att-ctl">{t("group.respCol")}</span></li>
-        {rosterByPerson(roster).map(r => <li key={r.email}>
-          <span className="quick-att-when"><b>{personName(r.email)}{r.email === me && <YouChip/>}</b>
+        <li className="quick-att-head" aria-hidden="true"><span className="quick-att-when">{t("people.colPerson")}</span><span className="quick-att-ctl">{t("group.respCol")}</span><span className="quick-att-go"/></li>
+        {rosterByPerson(roster).map(r => <li key={r.email} {...openHistory(r.email)}>
+          <span className="quick-att-when"><b><span>{personName(r.email)}</span>{r.email === me && <YouChip/>}</b>
             {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}</span>
-          <span className="quick-att-ctl"><StatusChip status={r.status} noIcon/></span></li>)}
+          <span className="quick-att-ctl"><StatusChip status={r.status} noIcon/></span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>)}
         {/* Quem está em pausa não é escalado nem listado, a menos que tenha marcado presença neste ensaio. */}
         {g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).map(m => ({m, sd: rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), here: att.some(a => a.email === m.email && a.status === "present")}))
-          .filter(x => x.here || !x.sd.out).map(({m, sd, here}) => <li key={m.email}>
-          <span className={"quick-att-when" + (sd.out ? " with-note" : "")}><b>{personName(m.email)}{m.email === me && <YouChip/>}</b>{sd.out && <> <span className="sub pause-note">{tn("group.standOut", sd.need)}</span></>}</span>
-          <span className="quick-att-ctl">{here ? <span className="chip st-yes">{t("group.att.present")}</span> : <span className="chip">{t("group.status.off")}</span>}</span></li>)}</ul>
+          .filter(x => x.here || !x.sd.out).map(({m, sd, here}) => <li key={m.email} {...openHistory(m.email)}>
+          <span className={"quick-att-when" + (sd.out ? " with-note" : "")}><b><span>{personName(m.email)}</span>{m.email === me && <YouChip/>}</b>{sd.out && <> <span className="sub pause-note">{tn("group.standOut", sd.need)}</span></>}</span>
+          <span className="quick-att-ctl">{here ? <span className="chip st-yes">{t("group.att.present")}</span> : <span className="chip">{t("group.status.off")}</span>}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>)}</ul>
         : roster.length ? <ul className="roster">{rosterByPerson(roster).map(r => <li key={r.email} className={"st-" + r.status}>
         <span className="roster-who">{personName(r.email)}{r.email === me && <YouChip/>}</span>
         <StatusChip status={r.status}/>

@@ -1,7 +1,7 @@
 // Rode com: npm test
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, rehearsalStanding, canCheckIn, pendingCheckIn, waNumber, waLink, fmtPhone, maskPhone, capFirst, toICS, splitEvents, dayKey, upcomingBirthdays, rosterByPerson, needsCover, pendingReplies, streakLevel, comebackProgress, type GEvent, type RosterRow } from "../src/lib/calendar";
+import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, attendanceHistory, rehearsalStanding, canCheckIn, pendingCheckIn, waNumber, waLink, fmtPhone, maskPhone, capFirst, toICS, splitEvents, dayKey, upcomingBirthdays, rosterByPerson, needsCover, pendingReplies, streakLevel, comebackProgress, type GEvent, type RosterRow } from "../src/lib/calendar";
 
 const ev = (id: string, starts: Date, kind: GEvent["kind"] = "service"): GEvent =>
   ({id, group_id: "g", kind, title: id, starts_at: starts.toISOString(), call_at: null, place: "", notes: "", setlist_id: null});
@@ -213,4 +213,18 @@ test("comebackProgress: quanto falta para sair da pausa, contra o total pedido",
   assert.deepEqual(comebackProgress({need: 1}), {done: 3, total: 4, pct: 75});
   assert.deepEqual(comebackProgress({need: 6, marked: true}, {since: "", need: 6}), {done: 0, total: 6, pct: 0});
   assert.deepEqual(comebackProgress({need: 3, marked: true}, {since: "", need: 6}), {done: 3, total: 6, pct: 50});
+});
+
+test("histórico: ensaios com chamada fechada, do mais recente ao mais antigo; sem marcação é falta; fora da escala não entra", () => {
+  const at = (d: number) => new Date(2026, 8, d, 19);
+  const a = ev("a", at(1), "rehearsal"), b = ev("b", at(8), "rehearsal"), c = ev("c", at(15), "rehearsal"), d = ev("d", at(22), "rehearsal"), s = ev("s", at(10));
+  const att = [
+    {event_id: "a", email: "x", status: "present" as const, by_admin: false}, {event_id: "b", email: "y", status: "present" as const, by_admin: false},
+    {event_id: "c", email: "x", status: "excused" as const, by_admin: true}, {event_id: "d", email: "y", status: "present" as const, by_admin: false},
+  ];
+  const now = at(30).getTime();
+  const rows = attendanceHistory("x", [a, b, c, d, s], att, now);
+  assert.deepEqual(rows.map(h => [h.event.id, h.status]), [["d", "absent"], ["c", "excused"], ["b", "absent"], ["a", "present"]]);
+  assert.deepEqual(attendanceHistory("x", [a, b, c, d], att, now, [r("a", "x"), r("c", "x")]).map(h => h.event.id), ["c", "a"]);
+  assert.equal(attendanceHistory("x", [a, b, c, d], att, now, undefined, 2).length, 2);
 });
