@@ -372,6 +372,7 @@ export function Profile(){
       </Sec>
       <MyGroups/>
       <MyRoles/>
+      <MyVoice/>
       <MyAttendance/>
       <MyNext/>
       <GroupNote/>
@@ -501,7 +502,7 @@ function GroupNote(){
 // As funções da pessoa no grupo aberto (pode ter várias: tocar e cantar). São as que aparecem ao montar
 // a escala. Quem lidera muda as de todos em Grupo → Membros.
 function MyRoles(){
-  const g = useGroups(), me = useAuth(s => s.email), profile = useAuth(s => s.profile), [busy, setBusy] = useState(false);
+  const g = useGroups(), me = useAuth(s => s.email), [busy, setBusy] = useState(false);
   // Ao abrir o perfil, busca o grupo de novo (a cópia do aparelho pode estar velha ou ter falhado).
   useEffect(() => { loadGroups(); }, []);
   const group = g.groups.find(x => x.id === g.gid), m = g.members.find(x => x.email === me);
@@ -509,11 +510,17 @@ function MyRoles(){
   const save = async (v: string) => { setBusy(true); const ok = await setMemberRole(g.gid, me, v).finally(() => setBusy(false)); toast(t(ok ? "profile.rolesSaved" : "profile.saveFail")); };
   return <Sec id="profile-roles" className="profile-roles" title={t("profile.roles", {group: group.name})}>
     <MemberRoles m={m} editable busy={busy} onSave={save}/>
-    <small className="sub">{t("profile.rolesHint")}</small>
-    <div className="profile-voice"><SecHead as="span">{t("profile.voice")}</SecHead>
-      <span className="member-chips">{rangeType(profile || {}) ? <VoiceChip {...profile}/> : <span className="people-missing">{t("profile.noVoice")}</span>}
-        <button type="button" className="link-btn" onClick={() => { setSetting("toolsTab", "voice"); go("tools"); }}>{t("voice.measure")}</button></span>
-      <small className="sub">{t("profile.voiceHint")}</small></div></Sec>;
+    <small className="sub">{t("profile.rolesHint")}</small></Sec>;
+}
+
+// Classificação vocal da pessoa (Baixo, Tenor...), vinda da medição em Ferramentas → Voz. Aparece mesmo sem
+// grupo; o grupo só vê o chip.
+function MyVoice(){
+  const profile = useAuth(s => s.profile);
+  return <Sec id="profile-voice" className="profile-voice" title={t("profile.voice")}>
+    <span className="member-chips">{rangeType(profile || {}) ? <VoiceChip {...profile}/> : <span className="people-missing">{t("profile.noVoice")}</span>}
+      <button type="button" className="link-btn" onClick={() => { setSetting("toolsTab", "voice"); go("tools"); }}>{t("voice.measure")}</button></span>
+    <small className="sub">{t("profile.voiceHint")}</small></Sec>;
 }
 
 // Hoje no formato do campo de data ("AAAA-MM-DD"), para não aceitar datas no futuro.

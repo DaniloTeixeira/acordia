@@ -9256,13 +9256,7 @@ dialog.member-dlg {
   font-weight: 400;
 }
 
-/* Classificação vocal no card de funções: rótulo, chip com "Medir" e a explicação, separados das funções. */
-.profile-voice {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 14px;
-}
+/* Card da classificação vocal no Perfil: o chip com "Medir" e a explicação. */
 .profile-voice .member-chips {
   align-items: center;
   gap: 10px;
