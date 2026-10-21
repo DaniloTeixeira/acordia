@@ -57,12 +57,16 @@ export function useCanEdit(){ useGroups(s => s.members); useAuth(s => s.admin); 
 // Eventos de até 6 meses atrás (frequência) até 1 ano à frente.
 const PAST_DAYS = 183, FUTURE_DAYS = 366;
 let loading: Promise<void> | null = null;
+// Leituras podem terminar fora de ordem: só a última iniciada grava no estado (senão uma leitura antiga, feita antes de
+// uma marcação, desfaz na tela o que acabou de ser salvo).
+let seq = 0;
 export function loadGroups(gid?: string): Promise<void> {
   if(useAuth.getState().status !== "in") return Promise.resolve();
   if(!useGroups.getState().loaded) loadCache();
   if(loading && !gid) return loading;
   useGroups.setState({loading: true});
-  loading = (async () => {
+  const my = ++seq;
+  const p = loading = (async () => {
     try{
       // Banco ainda sem a foto do grupo ou o formato (antes das migrações subirem): lê sem eles.
       const g = await cloud.from("groups").select("id,name,photo,photo_round").order("name")
@@ -117,14 +121,15 @@ export function loadGroups(gid?: string): Promise<void> {
       const people_ = new Map((people.data as {email: string; name: string; birthday: string | null; photo?: string; phone?: string}[]).map(p => [p.email, p]));
       const members = (mem.data as Omit<Member, "name">[]).map(m => ({...m, name: people_.get(m.email)?.name || "", birthday: people_.get(m.email)?.birthday || null,
         photo: people_.get(m.email)?.photo || "", phone: people_.get(m.email)?.phone || ""}));
+      if(my !== seq) return;
       useGroups.setState({groups, gid: cur, members, setlists: sets.data as GroupSetlist[], events: evs.data as GEvent[], roster, attendance,
         unavail: un.data as Unavail[], loading: false, error: false, loaded: true});
       saveCache();
     }catch(e){
-      useGroups.setState({loading: false, error: true});
-    }finally{ loading = null; }
+      if(my === seq) useGroups.setState({loading: false, error: true});
+    }finally{ if(my === seq) loading = null; }
   })();
-  return loading;
+  return p;
 }
 // Já existe um grupo com esse nome (sem diferenciar maiúsculas, acentos e espaços)? except: o próprio, ao renomear.
 export const groupNameTaken = (name: string, except = "") => !!norm(name) && useGroups.getState().groups.some(x => x.id !== except && norm(x.name) === norm(name));
