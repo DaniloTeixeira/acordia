@@ -4072,6 +4072,15 @@ a.btn {
 .voice-card h2 {
   margin: 0;
 }
+/* O campo Cantor tem a largura do primeiro card (mesmas colunas de .voice-steps), para alinhar no computador. */
+.voice-card .study-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  .inst-field .input {
+    width: 100%;
+  }
+}
 .voice-howto {
   padding: 4px 14px;
   border: 1px solid var(--line);
