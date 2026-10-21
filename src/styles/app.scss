@@ -8473,6 +8473,10 @@ dialog.member-dlg {
   gap: 2px;
   text-decoration: none;
 }
+/* A seta fica no centro da altura das letras minúsculas, não da linha (sem isso parece alta demais). */
+.link-btn.go .chev-right {
+  margin-top: 1.5px;
+}
 /* Celular: os atalhos ocupam a largura toda, um embaixo do outro. */
 @media (max-width: 600px) {
   .home-block .home-tiles {
