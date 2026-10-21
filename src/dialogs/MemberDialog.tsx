@@ -10,6 +10,7 @@ import { useAuth } from "../lib/cloud";
 import { closeDialog, type DialogProps } from "../state";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
+import { CopyBtn } from "../ui/CopyBtn";
 import { Avatar, PhoneLink, AttStat, fmtBirthday, AppAccess, PersonEdit, canManageApp } from "../views/Account";
 import { StatusChip, MemberManage, MemberRemove, MemberEditInline, eventTitle, timeOf, longDay } from "../views/Group";
 import { SecHead } from "../ui/SecHead";
@@ -39,8 +40,8 @@ export function MemberDialog({email, person, manage}: DialogProps["member"]){
           <Avatar big person={{name: info.name, email, photo: info.photo}}/>
           <span className="people-id">
             <span className="people-name">{info.name ? <b>{info.name}</b> : <span className="people-missing">{t("people.noName")}</span>}{email === me && <YouChip/>}</span>
-            <a className="sub people-email" href={"mailto:" + email}>{email}</a>
-            {info.phone ? <PhoneLink phone={info.phone}/> : <span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}
+            <span className="copy-row"><a className="sub people-email" href={"mailto:" + email}>{email}</a><CopyBtn text={email} kind="email"/></span>
+            {info.phone ? <span className="copy-row"><PhoneLink phone={info.phone}/><CopyBtn text={info.phone} kind="phone"/></span> :<span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}
             <span className="member-chips">
               {manage?.noGroup && <span className="chip st-pending">{t("people.noGroup")}</span>}
               {m?.is_admin && <span className="chip accent">{t("group.leader")}</span>}

@@ -1230,9 +1230,7 @@ main {
     z-index: 20;
     height: calc(var(--tabbar) + env(safe-area-inset-bottom));
     padding-bottom: env(safe-area-inset-bottom);
-    background: color-mix(in srgb, var(--surface) 88%, transparent);
-    backdrop-filter: saturate(1.6) blur(14px);
-    -webkit-backdrop-filter: saturate(1.6) blur(14px);
+    background: var(--surface);
     border-top: 1px solid var(--line);
   }
   /* Aba ativa: traço com o gradiente do logo no topo, na largura toda do item. */
@@ -7062,6 +7060,48 @@ dialog.ear-dlg {
 .people-who .chip {
   flex-shrink: 0;
 }
+/* Link de e-mail/celular com o botão de copiar ao lado; a margem negativa evita que o botão engorde a linha. */
+.copy-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+/* O align-self do .phone-link (topo) venceria o align-items da linha e o texto ficava acima do botão. */
+.copy-row .phone-link {
+  margin-top: 0;
+  align-self: center;
+}
+/* Mesmo respiro com ou sem celular: a linha com o botão de copiar (22px) é mais alta que o "Sem celular" (que tem 3px de margem), então a margem compensa. */
+.copy-row + .copy-row {
+  margin-top: 6px;
+}
+/* "Sem celular" na altura da linha com o botão (22px), para o espaço até os chips ser o mesmo com ou sem celular. */
+.people-id > .phone-link.people-missing {
+  min-height: 22px;
+  margin-top: 6px;
+}
+.icon-btn.copy-btn {
+  flex-shrink: 0;
+  /* Menor que o .icon-btn.sm: o fundo do hover não pode passar da linha e cobrir o chip do nome. */
+  width: 26px;
+  height: 26px;
+  margin-block: -2px;
+  color: var(--muted);
+}
+/* Ícone apagado em repouso (vale nos dois temas); volta à força total no hover/foco. */
+.copy-btn .i {
+  opacity: 0.7;
+  transition: opacity var(--t-fast);
+}
+.copy-btn:hover .i,
+.copy-btn:focus-visible .i,
+.copy-btn.done .i {
+  opacity: 1;
+}
+.copy-btn.done {
+  color: var(--ok);
+}
 
 .google-btn {
   background: var(--surface);
@@ -7608,7 +7648,7 @@ dialog.ear-dlg {
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 26px;
 }
 .event.declined {
   border-color: color-mix(in srgb, var(--bad) 40%, var(--line));
@@ -7716,7 +7756,7 @@ dialog.ear-dlg {
 .event-more {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 26px;
 }
 .event-notes {
   margin: 0;
@@ -8067,10 +8107,15 @@ dialog.event-dlg {
   pointer-events: none;
 }
 /* Janela de detalhes do membro */
+/* Quem é a pessoa (foto, nome, contato, chips) num card, como a caixa "Adicionar membro". */
 .member-dlg-who {
   display: flex;
   align-items: center;
   gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
 }
 .member-dlg-who .avatar.big {
   flex-shrink: 0;
@@ -8090,10 +8135,26 @@ dialog.event-dlg {
 .quick-att li.is-link.is-link:active { background: color-mix(in srgb, var(--ink) 10%, transparent); }
 .quick-att li.is-link:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: -2px; }
 /* Seta numa coluna própria e estreita (cabeçalho vazio), na ponta direita da tabela. */
+/* Título de coluna que ordena: botão sem cara de botão, com a altura toda do cabeçalho para o dedo. Duas setas sempre
+   à mostra (pode reordenar); apagadas em repouso, e a da direção ativa acende. */
+.qa-sort { display: flex; align-items: center; justify-content: flex-start; gap: 4px; width: 100%; height: 100%; min-height: 44px; padding: 0 6px; border: 0; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; transition: background-color var(--t-fast) var(--ease); }
+.qa-sort:hover, .qa-sort:focus-visible { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--ink); }
+.qa-sort:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: -2px; }
+/* O cabeçalho inteiro é área de toque: as células vão de borda a borda e o respiro fica dentro do botão. */
+.event-more .roster-tbl li.quick-att-head { padding-left: 0; align-items: stretch; }
+.event-more .roster-tbl .quick-att-head .quick-att-when { padding: 0; }
+.event-more .roster-tbl .quick-att-head .quick-att-when .qa-sort { padding-left: 12px; }
+.event-more .roster-tbl .quick-att-head .quick-att-ctl { padding: 0; }
+.qa-sort.on { color: var(--ink); }
+.qa-sort-dir { display: inline-flex; }
+.qa-sort-dir .i { width: 12px; height: 12px; opacity: .35; transition: opacity var(--t-fast); }
+.qa-sort-dir .i + .i { margin-left: -3px; }
+.qa-sort-dir .i.on { opacity: 1; color: var(--accent); }
+.qa-sort:hover .qa-sort-dir .i:not(.on) { opacity: .6; }
 .roster-tbl .quick-att-go { display: flex; align-items: center; justify-content: center; align-self: stretch; border-left: 1px solid var(--line); }
 .roster-tbl .quick-att-go svg { opacity: .55; }
 .member-dlg-who .member-chips {
-  margin-top: 4px;
+  margin-top: 6px;
 }
 /* Lixeira no canto direito do cabeçalho, centralizada na altura; 40px ainda é um bom alvo de toque. */
 .member-dlg-who .member-remove {
@@ -9109,6 +9170,17 @@ dialog.member-dlg {
     width: 40px;
     height: 40px;
   }
+  /* Copiar: o botão segue com 26px no desenho (o espaço entre as linhas não muda); só a área de toque cresce para 40px. */
+  .icon-btn.copy-btn {
+    width: 26px;
+    height: 26px;
+    position: relative;
+  }
+  .icon-btn.copy-btn::after {
+    content: "";
+    position: absolute;
+    inset: -7px;
+  }
   .seg button {
     min-height: 38px;
   }
@@ -9351,8 +9423,8 @@ dialog.member-dlg {
 :is(.people-list, .event-more, .member-manage) .quick-att li { min-height: 0; display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: center; gap: 0; padding: 0 0 0 12px; border-top: 1px solid var(--line); }
 :is(.people-list, .event-more, .member-manage) .quick-att li:first-child { border-top: 0; }
 :is(.people-list, .event-more, .member-manage) .quick-att li.quick-att-head { background: color-mix(in srgb, var(--surface) 55%, transparent); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
-.quick-att-head .quick-att-when { padding: 4px 0; }
-.quick-att-head .quick-att-ctl { padding-top: 4px; padding-bottom: 4px; }
+.quick-att-head .quick-att-when { padding: 0; }
+.quick-att-head .quick-att-ctl { padding-top: 0; padding-bottom: 0; }
 .quick-att-when { padding: 5px 8px 5px 0; display: flex; align-items: baseline; gap: 8px; min-width: 0; white-space: nowrap; }
 .quick-att-when b { font-size: 0.92rem; }
 .quick-att-when b::first-letter { text-transform: uppercase; }
@@ -9417,6 +9489,7 @@ dialog.member-dlg {
 /* Borda de 1 px na cor do próprio texto do chip (mais acesa que o fundo). Em sombra interna para o chip não crescer. */
 .member-roles .chip:not(.leader, .current),
 .chip.role,
+.reply-badge,
 .chip:is(.st-yes, .st-no, .st-pending) {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent);
 }
@@ -9464,6 +9537,8 @@ dialog.member-dlg {
 /* Seções do evento (resposta, escala, observações): cada uma com o título de barra gradiente. */
 .event-sec { display: flex; flex-direction: column; gap: 8px; }
 .event-sec > .people-sub-h { margin: 0; }
+/* A resposta do usuário num card; o título fica fora, como em Detalhes e Escala. */
+.event-actions.boxed { padding: 14px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface-2); }
 /* Presença ainda por marcar: sobe para o topo do card (o .event-more é uma coluna flex). */
 .event-more > .event-sec.reply-first { order: -1; }
 
@@ -9473,6 +9548,15 @@ dialog.member-dlg {
 .event-cover { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; flex: 0 1 auto; max-width: 100%; font-size: 0.88rem; color: var(--ink-2); }
 .event-cover > span { white-space: nowrap; }
 .event-cover .select-btn { width: auto; min-width: min(250px, 100%); max-width: 100%; height: 36px; min-height: 0; box-sizing: border-box; border-radius: var(--r-full); padding-left: 16px; }
+/* Celular: o selo da resposta ocupa a linha toda, o substituto vem embaixo (largura toda) e "Alterar resposta" por último,
+   na ponta direita. O bloco vira display: contents para o link poder passar do substituto (order). */
+@media (max-width: 899px) {
+  .event-actions > .reply-done { display: contents; }
+  .event-actions > .reply-done .reply-badge { flex: 1 1 100%; justify-content: center; min-height: 34px; font-size: 0.85rem; } /* mesma altura do chip do evento (.event-chips .chip.st-no) */
+  .event-actions > .event-cover { order: 1; flex-basis: 100%; flex-wrap: nowrap; }
+  .event-actions > .event-cover .select-btn { flex: 1 1 auto; min-width: 0; }
+  .event-actions > .reply-done .link-btn { order: 2; margin-left: auto; }
+}
 /* Tela larga: o selo da resposta ("Você não vai" + Alterar resposta) e a lista de substituto ficam lado a lado. */
 @media (min-width: 900px) {
   .event-actions { align-items: center; min-height: 40px; } /* os blocos viram display: contents: a altura fixa vai na linha */
@@ -9484,7 +9568,7 @@ dialog.member-dlg {
   @media (pointer: coarse) {
     .event-actions > .reply-btns .btn { min-height: 40px; }
   }
-  .event-actions > .reply-done .reply-badge { order: 0; min-height: 36px; padding: 0 14px; font-size: 0.84rem; }
+  .event-actions > .reply-done .reply-badge { order: 0; min-height: 34px; padding: 0 12px; font-size: 0.85rem; }
   .event-actions > :is(.reply-done, .reply-edit) .link-btn { order: 2; margin-left: auto; }
   .event-actions > .event-cover { order: 1; }
 }
@@ -9517,8 +9601,8 @@ dialog.member-dlg {
   font-size: 0.85rem;
   font-weight: 600;
   border-radius: var(--r-full);
-  background: color-mix(in srgb, currentColor 14%, transparent);
-  box-shadow: none;
+  background: var(--bad-soft); /* mesmo tom do selo "Você não vai" (.reply-badge) */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent);
 }
 
 /* Mais: lista de destinos que ficam fora da barra de abas. Alvo de toque grande, uma coluna no celular. */
