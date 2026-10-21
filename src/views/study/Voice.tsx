@@ -87,6 +87,11 @@ function VoiceRange(){
     <div className="card voice-card">
       <SecHead>{t("voice.rangeTitle")}</SecHead>
       <p className="sub">{t("voice.rangeD")}</p>
+      {/* Passo a passo: aberto enquanto a extensão não foi medida, recolhido depois. */}
+      <details className="voice-howto" open={!(v && v.low && v.high)}>
+        <summary>{t("voice.how.title")}</summary>
+        <ol>{[1, 2, 3, 4, 5].map(n => <li key={n}>{t("voice.how.s" + n)}</li>)}</ol>
+      </details>
       <div className="study-row">
         <label className="field inst-field"><span>{t("voice.singer")}</span><input className="input" id="vr-name" list="vr-names" maxLength={40} autoComplete="off" value={name}
           onChange={e => setName(e.target.value)}

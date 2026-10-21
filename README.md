@@ -220,8 +220,9 @@ também libera o acesso ao app para eles).
 - [ ] **Voz, Minha extensão**:
   - mede a nota mais grave e a mais aguda e diz o tipo de voz;
   - guarda vários cantores;
+  - passo a passo na tela (aberto até medir a primeira vez, depois recolhido);
   - sugere o tom de cada música do repertório ("Usar este tom").
-  - se o microfone falhar, o aviso diz o motivo (negado, sem microfone, em uso, navegador sem suporte), ensina a liberar e tem "Tentar de novo".
+  - se o microfone falhar, o aviso diz o motivo (negado, sem microfone, em uso, navegador sem suporte), ensina a liberar (no app instalado, pelas configurações do site) e tem "Tentar de novo".
 
 ### Ferramentas
 - [ ] **Metrônomo**:

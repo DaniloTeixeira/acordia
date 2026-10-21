@@ -4072,6 +4072,26 @@ a.btn {
 .voice-card h2 {
   margin: 0;
 }
+.voice-howto {
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+  }
+  ol {
+    margin: 6px 0 2px;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: .92rem;
+  }
+}
 .voice-steps {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
