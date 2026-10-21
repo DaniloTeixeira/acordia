@@ -131,7 +131,6 @@ function WaitingItem({e}: {e: GEvent}){
   const roster = g.roster.filter(r => r.event_id === e.id), people = [...new Set(roster.map(r => r.email))];
   const yes = people.filter(p => roster.some(r => r.email === p && r.status === "yes")).length;
   const list = pendingReplies(roster), names = list.map(p => personName(p).split(" ")[0]);
-  /* MOCK-TEMPORARIO */ names.splice(0, names.length, ...["Zaqueu", "Rebeca", "Vitor", "Mariana", "Gabriel", "Letícia", "Fernando", "Priscila", "Matheus", "Ana Beatriz"]);
   return <li className="home-waiting-item">
     <button type="button" className="home-row" onClick={() => openGroup("agenda", e.id)}>
       <span className="date-badge" ref={sq.badge}><small>{fmt({weekday: "short"}).format(d)}</small><b>{d.getDate()}</b><small>{fmt({month: "short"}).format(d)}</small></span>
