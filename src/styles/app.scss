@@ -54,6 +54,7 @@
   --accent-hover: #2150cc;
   --accent-ink: #ffffff;
   --accent-soft: #e6edfe;
+  --howto-bg: var(--accent-soft);
   --accent-soft-ink: #1f4fc4;
   --reply-soft: #d0dcfb;
   --accent-grad: linear-gradient(135deg, #2f6bf0, #6a3bf2);
@@ -134,6 +135,7 @@
     --accent-hover: #8db2ff;
     --accent-ink: #0b0f1c;
     --accent-soft: #1b2852;
+    --howto-bg: #151d3b;
     --accent-soft-ink: #b4c8ff;
     --reply-soft: #1b2852;
     --accent-grad: linear-gradient(135deg, #6e9bff, #a57bff);
@@ -209,6 +211,7 @@
   --accent-hover: #8db2ff;
   --accent-ink: #0b0f1c;
   --accent-soft: #1b2852;
+  --howto-bg: #151d3b;
   --accent-soft-ink: #b4c8ff;
   --reply-soft: #1b2852;
 --accent-grad: linear-gradient(135deg, #6e9bff, #a57bff);
@@ -4117,10 +4120,11 @@ a.btn {
   }
 }
 .voice-howto {
-  padding: 4px 14px;
+  padding: 0 14px;
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
-  background: var(--accent-soft);
+  background: var(--howto-bg);
   summary {
     cursor: pointer;
     font-weight: 700;
@@ -4133,7 +4137,7 @@ a.btn {
     margin: 0 -14px;
     padding: 0 14px;
     border-radius: var(--r-lg);
-    background: var(--accent-soft);
+    background: var(--howto-bg);
     @include hover-tint;
     &::-webkit-details-marker {
       display: none;
