@@ -4095,6 +4095,10 @@ a.btn {
     align-items: center;
     gap: 8px;
     list-style: none;
+    margin: 0 -14px;
+    padding: 0 14px;
+    border-radius: var(--r-lg);
+    background: var(--accent-soft);
     &::-webkit-details-marker {
       display: none;
     }
@@ -4103,8 +4107,11 @@ a.btn {
       transition: transform .2s;
     }
   }
-  &[open] summary .howto-chev {
-    transform: rotate(180deg);
+  &[open] summary {
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    .howto-chev {
+      transform: rotate(180deg);
+    }
   }
   ol {
     list-style: none;
@@ -4135,6 +4142,20 @@ a.btn {
       display: grid;
       place-items: center;
     }
+  }
+}
+/* Hover do cabeçalho: mantém a cor e só muda a intensidade (no escuro clareia, senão não aparece). */
+@media (hover: hover) {
+  .voice-howto summary:hover {
+    filter: brightness(0.92);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .voice-howto summary:hover {
+      filter: brightness(1.25);
+    }
+  }
+  :root[data-theme="dark"] .voice-howto summary:hover {
+    filter: brightness(1.25);
   }
 }
 @media (prefers-reduced-motion: reduce) {
