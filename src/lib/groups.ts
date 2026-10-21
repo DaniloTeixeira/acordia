@@ -4,7 +4,7 @@
 // agenda abrir sem internet; mudar precisa de internet.
 import { norm } from "./util";
 import { create } from "zustand";
-import { cleanRange, rangeLabel, type VoiceRange } from "./voice";
+import { cleanRange, type VoiceRange } from "./voice";
 import { cloud, useAuth, validBirthday, cleanPhone, uploadPhoto, cleanPhotos } from "./cloud";
 import { ROLES_MAX } from "./roles";
 import type { GEvent, RosterRow, AttendanceRow, Unavail, Answer, Presence, EventKind } from "./calendar";
@@ -151,8 +151,8 @@ export const groupNameTaken = (name: string, except = "") => !!norm(name) && use
 export function chooseGroup(gid: string){ useGroups.setState({gid}); return loadGroups(gid); }
 
 // Nome para mostrar: o do perfil, senão a parte do e-mail antes do @.
-// Faixa da extensão vocal de quem está no grupo aberto ("F2–C4"), ou vazio.
-export const voiceOf = (email: string) => { const m = useGroups.getState().members.find(x => x.email === email); return m ? rangeLabel(m) : ""; };
+// Extensão vocal de quem está no grupo aberto (vazia se não mediu).
+export const voiceOf = (email: string) => { const m = useGroups.getState().members.find(x => x.email === email); return {voice_low: m?.voice_low, voice_high: m?.voice_high}; };
 export function personName(email: string){
   const m = useGroups.getState().members.find(x => x.email === email);
   return m?.name || email.split("@")[0];

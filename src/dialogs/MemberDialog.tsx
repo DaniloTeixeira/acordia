@@ -7,7 +7,8 @@ import { useGroups, personPhoto, outMark, amGroupAdmin, isActive } from "../lib/
 import { attendanceRate, attendanceHistory, rehearsalStanding, monthLoad, dayKey, MISS_LIMIT, COMEBACK } from "../lib/calendar";
 import { splitRoles, sortRoles } from "../lib/roles";
 import { useAuth } from "../lib/cloud";
-import { rangeLabel, rangeType } from "../lib/voice";
+import { rangeLabel } from "../lib/voice";
+import { VoiceChip } from "../ui/VoiceChip";
 import { closeDialog, type DialogProps } from "../state";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
@@ -60,9 +61,9 @@ export function MemberDialog({email, person, manage}: DialogProps["member"]){
           <div className="field"><SecHead as="span">{t("member.birthday")}</SecHead>
             {info.birthday ? <span>{fmtBirthday(info.birthday)}</span> : <span className="people-missing">{t("member.noBirthday")}</span>}</div>
           {m && <div className="field"><SecHead as="span">{t("member.voice")}</SecHead>
-            {rangeLabel(m) ? <span>{rangeLabel(m)}{rangeType(m) && " · " + t("voice.type." + rangeType(m))}</span> : <span className="people-missing">{t("member.noVoice")}</span>}</div>}
+            {rangeLabel(m) ? <span className="member-chips"><VoiceChip {...m}/><span className="sub">{rangeLabel(m)}</span></span> : <span className="people-missing">{t("member.noVoice")}</span>}</div>}
           {m && <div className="field"><SecHead as="span">{t("member.roles")}</SecHead>
-            {roles.length ? <span className="member-chips">{roles.map(r => <span key={r} className="chip role">{r}</span>)}</span>
+            {roles.length ? <span className="member-chips member-chips-roles">{roles.map(r => <span key={r} className="chip role">{r}</span>)}</span>
               : <span className="people-missing">{t("group.noRoles")}</span>}</div>}
         </div>}
 
