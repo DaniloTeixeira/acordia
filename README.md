@@ -219,9 +219,9 @@ também libera o acesso ao app para eles).
   - atalhos 1–4 / 1–7 e Enter.
 - [ ] **Voz, Minha extensão**:
   - mede a nota mais grave e a mais aguda e diz o tipo de voz;
-  - o botão da medição vira **Salvar** e aparece "✓ Salvo"; ajuste fino de meio tom com + e −;
+  - basta **segurar a mesma nota por ~2 segundos**: uma barra enche e a nota é salva sozinha ("✓ Salvo"), sem apertar botão; durante a medição o botão vira Cancelar; ajuste fino de meio tom com + e −;
   - a extensão fica no **perfil** (na nuvem) e o grupo vê a faixa (ex.: F2–C4) em **Membros** (chip), na janela da pessoa (com o tipo de voz) e na **escala** do evento;
-  - passo a passo na tela (aberto até medir a primeira vez, depois recolhido);
+  - passo a passo e o para-que-serve na tela (aberto até medir a primeira vez, depois recolhido);
   - se o microfone falhar, o aviso diz o motivo (negado, sem microfone, em uso, navegador sem suporte), ensina a liberar (no app instalado, pelas configurações do site) e tem "Tentar de novo".
 
 ### Ferramentas
