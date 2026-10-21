@@ -5,5 +5,5 @@ import type { ReactNode } from "react";
 import { Icon } from "./Icon";
 
 export function GoLink({onClick, id, className = "", children}: {onClick: () => void; id?: string; className?: string; children: ReactNode}){
-  return <button type="button" id={id} className={"link-btn go" + (className ? " " + className : "")} onClick={onClick}>{children} <Icon name="chev" sm className="chev-right"/></button>;
+  return <button type="button" id={id} className={"link-btn go" + (className ? " " + className : "")} onClick={onClick}>{children} <Icon name="arrow-right" sm/></button>;
 }
