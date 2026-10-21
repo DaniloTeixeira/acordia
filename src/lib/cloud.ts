@@ -11,7 +11,7 @@ export const cloud: SupabaseClient = createClient(URL, KEY, {auth: {flowType: "p
 export type AuthStatus = "loading" | "out" | "denied" | "in";
 // photo: a foto que a pessoa enviou pelo app (bucket avatars) ou, sem ela, a da conta Google (vem com o
 // login e é copiada para o perfil, para o grupo ver); vazia em quem entra com e-mail e senha e não enviou.
-export interface Profile { id: string; email: string; name: string; birthday?: string | null; photo?: string; phone?: string }
+export interface Profile { id: string; email: string; name: string; birthday?: string | null; photo?: string; phone?: string; voice_low?: number | null; voice_high?: number | null }
 // name/birthday/phone: os informados por quem liberou o acesso; profileName/profileBirthday/profilePhone: os do
 // perfil da pessoa (vazios enquanto ela não entrou ou não preencheu). O perfil vale mais.
 export interface Allowed { email: string; is_admin: boolean; is_owner: boolean; name: string; birthday: string | null; phone: string; profileName: string; profileBirthday: string | null; profilePhone: string; profilePhoto: string; created_at: string; joined: boolean }
@@ -41,8 +41,9 @@ async function refresh(){
   if(!error) cacheAccess(email, a);
   if(!a.allowed){ useAuth.setState({status: "denied", email, admin: false, owner: false, profile: null}); return; }
   setPendingConfirm("");
-  let prof = await cloud.from("profiles").select("id,email,name,birthday,phone,photo").eq("id", session.user.id).maybeSingle();
-  // Banco ainda sem as colunas do celular ou da data de nascimento (antes da migração subir): lê sem elas.
+  // Banco ainda sem a extensão vocal, o celular ou a data de nascimento (antes da migração subir): lê sem elas.
+  let prof = await cloud.from("profiles").select("id,email,name,birthday,phone,photo,voice_low,voice_high").eq("id", session.user.id).maybeSingle();
+  if(prof.error) prof = await cloud.from("profiles").select("id,email,name,birthday,phone,photo").eq("id", session.user.id).maybeSingle();
   if(prof.error) prof = await cloud.from("profiles").select("id,email,name,birthday,photo").eq("id", session.user.id).maybeSingle();
   if(prof.error) prof = await cloud.from("profiles").select("id,email,name").eq("id", session.user.id).maybeSingle();
   const saved = prof.data as Profile | null, google = googlePhoto(session.user.user_metadata);
