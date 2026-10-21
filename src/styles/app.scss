@@ -4212,6 +4212,18 @@ a.btn {
   font-weight: 700;
   color: var(--ink);
 }
+/* "✓ Salvo" ao lado do título depois de salvar a nota; some sozinho. */
+.voice-saved {
+  margin-left: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ok);
+  opacity: 0;
+  transition: opacity var(--t);
+}
+.voice-saved.on {
+  opacity: 1;
+}
 .voice-val {
   font-family: var(--font-display);
   font-size: 1.8rem;

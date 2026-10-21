@@ -53,6 +53,10 @@ function VoiceRange(){
   const [measuring, setMeasuring] = useState<{which: "low" | "high"; live: string; best: number | null} | null>(null);
   const run = useRef<{which: "low" | "high"; best: number | null; run: number; lastMidi: number | null} | null>(null);
   const [name, setName] = useState(singer);
+  // Qual nota acabou de ser salva: mostra "✓ Salvo" no título do card por um instante.
+  const [saved, setSaved] = useState<"low" | "high" | null>(null);
+  const savedTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(savedTimer.current), []);
   useEffect(() => setName(singer), [singer]);
   const saveVoice = (val: {low?: number; high?: number} | null) => {
     const all = Object.assign({}, voices());
@@ -80,6 +84,7 @@ function VoiceRange(){
       const cur = Object.assign({}, voices()[singer] || {}); cur[m.which] = m.best;
       if(cur.low && cur.high && cur.low > cur.high) [cur.low, cur.high] = [cur.high, cur.low];
       saveVoice(cur);
+      setSaved(m.which); clearTimeout(savedTimer.current); savedTimer.current = setTimeout(() => setSaved(null), 2500);
     } else if(m) toast(t("voice.noNote"));
   };
   const songs = v && v.high ? voiceSongs() : [];
@@ -104,7 +109,8 @@ function VoiceRange(){
           const on = measuring && measuring.which === which;
           const val = on && measuring.best !== null ? measuring.best : v && v[which];
           return <div key={which} className={"voice-step" + (on ? " measuring" : "")} data-step={which}>
-            <span className="lbl">{t(which === "low" ? "voice.lowest" : "voice.highest")}</span>
+            <span className="lbl">{t(which === "low" ? "voice.lowest" : "voice.highest")}
+              <span className={"voice-saved" + (saved === which ? " on" : "")} role="status">{saved === which ? "✓ " + t("common.saved") : ""}</span></span>
             <b className="voice-val">{val ? midiName(val) : "—"}</b>
             {/* Sempre no lugar (só invisível fora da medição), para o card não crescer quando a nota ao vivo aparece. */}
             <span className={"voice-live" + (on ? "" : " idle")} aria-hidden={!on}>{on ? measuring.live : ""}</span>
@@ -113,7 +119,7 @@ function VoiceRange(){
                 const was = measuring && measuring.which;
                 if(was) stopMeasure(); // salva a medição em andamento
                 if(was !== which) startMeasure(which);
-              }}>{on ? <><Icon name="check" sm/> {t("voice.done")}</> : <><Icon name="sound" sm/> {t("voice.measure")}</>}</button>
+              }}>{on ? <><Icon name="check" sm/> {t("common.save")}</> : <><Icon name="sound" sm/> {t(val ? "voice.measureAgain" : "voice.measure")}</>}</button>
               {v && v[which] && <>
                 {([-1, 1] as const).map(d => <button key={d} className="icon-btn sm" data-nudge={which + ":" + d} aria-label={t(d < 0 ? "voice.lower" : "voice.higher")} title={t(d < 0 ? "voice.lower" : "voice.higher")}
                   onClick={() => { const cur = Object.assign({}, v); cur[which] = Math.max(LOWEST, Math.min(HIGHEST, cur[which]! + d)); saveVoice(cur); }}><Icon name={d < 0 ? "minus" : "plus"} sm/></button>)}
