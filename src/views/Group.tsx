@@ -26,7 +26,6 @@ import { Icon } from "../ui/Icon";
 import { CopyBtn } from "../ui/CopyBtn";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
-import { useFold, FoldHead } from "../ui/Fold";
 import { SKIP_OPEN, StreakChip, useLock, Spin, Avatar, PersonFields, useEmailCheck, pickPhoto, PhoneLink, today, usePeopleFilter, PeopleTools } from "./Account";
 import { DateInput } from "../ui/DateInput";
 import { useMedia } from "../ui/hooks";
@@ -563,17 +562,14 @@ function Members({canEdit}: {canEdit: boolean}){
     }
     toast(t("group.memberAdded", {email: v})); setEmail(""); setName(""); setBirthday(""); setPhone(""); setRoles([]); setAsAdmin(false); setAsOut(false); check.reset();
   }); };
-  const fold = useFold("group-members");
   // Busca e ordem, como na lista "Com acesso" do Perfil (recentes: pela data em que entrou no grupo).
   const filter = usePeopleFilter(g.members, "acordia-members-order", m => m.name, m => m.created_at || ""), shown = filter.shown || [];
   return <div className="profile-grid">
-    <div className={"card people-card" + fold.cls}>
-      <FoldHead folded={fold.folded} onToggle={fold.toggle} title={t("group.membersTab")}/>
-      <SecHead>{t("group.membersTab")}</SecHead>
-      <div className="card-body">
-      {canEdit && <><p className="sub">{t("group.addSub")}</p>
-        {/* No celular o cadastro começa fechado, para a lista de membros aparecer logo. */}
+    <div className="card people-card people-page">
+      {/* No celular o cadastro começa fechado, para a lista de membros aparecer logo. */}
+      {canEdit && <>
         <FoldCard id="member-add" title={t("group.addTitle")} defaultOpen={!matchMedia("(max-width: 899px)").matches}>
+        <p className="sub">{t("group.addSub")}</p>
         <form className="member-add people-add-box" onSubmit={add} noValidate>
           {outside.length > 0 && <Select id="member-pick" className="member-pick" aria={t("group.pickUser")} value={outside.some(a => a.email === email) ? email : ""} onChange={pickUser}
             options={[{value: "", label: t("group.pickUser")}, ...outside.map(a => ({value: a.email, label: a.profileName || a.name || a.email, sub: (a.profileName || a.name) ? a.email : undefined}))]}/>}
@@ -622,7 +618,6 @@ function Members({canEdit}: {canEdit: boolean}){
           {/* Chevron: indica que a linha inteira abre os detalhes. */}
           <span className="member-open-hint" aria-hidden="true">›</span>
         </li>; })}</ul>
-      </div>
     </div>
   </div>;
 }

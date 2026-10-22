@@ -799,9 +799,9 @@ function People({me}: {me: string}){
     toast(t("people.added", {email: v})); setAEmail(""); setAName(""); setABirthday(""); setAPhone(""); check.reset(); load();
   }); };
   return <div className="card people-card people-page">
-    <p className="sub">{t("people.addSub")}</p>
     {/* No celular o cadastro começa fechado, para a lista de usuários aparecer logo. */}
     <FoldCard id="people-add-card" title={t("people.addTitle")} defaultOpen={!matchMedia("(max-width: 899px)").matches}>
+    <p className="sub">{t("people.addSub")}</p>
     <form className="member-add people-add-box" onSubmit={add} noValidate>
       <div className="people-add">
         <PersonFields idp="people-add" name={aName} onName={setAName} email={aEmail} onEmail={setAEmail} phone={aPhone} onPhone={setAPhone} birthday={aBirthday} onBirthday={setABirthday} check={check}/>
