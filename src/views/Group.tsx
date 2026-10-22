@@ -414,7 +414,6 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
         <b>{eventTitle(e)}</b>
         <span className="sub">{timeOf(e.starts_at)}{e.call_at && " · " + t("group.callAt", {time: timeOf(e.call_at)})}{e.place && " · " + e.place}</span>
         <span className="sub">{relDay(e.starts_at)}{roster.length > 0 && " · " + tn("group.people", new Set(roster.map(r => r.email)).size)}</span>
-        <span className="event-chips beside">{chips}</span>
       </div>
     </div>
     <span className="event-chips below">{chips}</span>
