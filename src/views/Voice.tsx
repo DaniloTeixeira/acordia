@@ -10,6 +10,7 @@ import { t } from "../lib/i18n";
 import * as store from "../lib/store";
 import { useData, toast } from "../state";
 import { Icon } from "../ui/Icon";
+import { useMedia } from "../ui/hooks";
 import { micFailed } from "../ui/micFailed";
 import { pad } from "../pad";
 import { SecHead } from "../ui/SecHead";
@@ -44,6 +45,8 @@ function VoiceRange(){
   const v = cleanRange(profile?.voice_low, profile?.voice_high);
   const type = v.low !== null && v.high !== null ? voiceType(v.low, v.high) : null;
   const mic = useMic();
+  // Mesmo corte do trilho lateral (celular/tablet usam a barra de abas).
+  const wide = useMedia("(min-width: 900px)");
   const [measuring, setMeasuring] = useState<{which: Which; live: string; hold: number} | null>(null);
   const run = useRef<({which: Which} & Hold) | null>(null);
   // Gravando na nuvem (spinner no botão) e qual nota acabou de ser salva ("✓ Salvo" no título por um instante).
@@ -84,8 +87,8 @@ function VoiceRange(){
   return <div className="card voice-card">
     <SecHead>{t("voice.rangeTitle")}</SecHead>
     <p className="sub">{t("voice.rangeD")}</p>
-    {/* Passo a passo: aberto enquanto a extensão não foi medida, recolhido depois. */}
-    <details className="voice-howto" open={!(v.low !== null && v.high !== null)}>
+    {/* Passo a passo: sempre aberto na tela larga (sobra espaço); no celular, aberto só enquanto a extensão não foi medida. */}
+    <details className="voice-howto" open={wide || !(v.low !== null && v.high !== null)}>
       <summary><Icon name="help" sm/> {t("voice.how.title")}<Icon name="chev" sm className="howto-chev"/></summary>
       <ol>{[1, 2, 3, 4].map(n => <li key={n}>{t("voice.how.s" + n)}</li>)}</ol>
     </details>
