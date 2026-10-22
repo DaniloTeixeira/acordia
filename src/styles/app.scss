@@ -10076,3 +10076,12 @@ dialog.member-dlg {
 
 .not-scaled{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:10px 2px 0;line-height:1.4}
 .not-scaled .chip{white-space:normal;border-radius:14px;padding:8px 12px;font-size:0.82rem;line-height:1.4;text-align:left}
+
+/* Escalar ou tirar a pessoa da escala do evento (diálogo do membro aberto pela escala): chip da situação e o botão na mesma linha. */
+.member-roster-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}

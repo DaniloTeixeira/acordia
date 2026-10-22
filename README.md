@@ -181,6 +181,7 @@ também libera o acesso ao app para eles).
   - **repetir** toda semana (2 a 26 vezes);
   - **escala**: quem toca o quê, com funções sugeridas e "Escalar todos"; no computador é uma tabela (pessoa e funções
     numa linha, "Outra função" como link à direita), no celular cada pessoa é um cartão;
+  - tocar numa pessoa da escala abre os detalhes dela e, para quem lidera, o botão **Escalar neste evento** (ou **Tirar da escala**, com confirmação), que grava na hora e mostra os avisos de conflito sem bloquear;
   - **Detalhes** e **Escala** abrem e fecham pelo título: no computador os dois abrem abertos; no celular só a Escala;
   - avisos ao escalar: marcou que não pode no dia, já está em outro evento no dia ou já recusou; cada pessoa
     mostra quantas vezes já foi escalada no mês.

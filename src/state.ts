@@ -41,7 +41,7 @@ export interface DialogProps {
   photo: {src: string; gid?: string};
   // Detalhes de uma pessoa (só leitura): do grupo aberto ou, fora dele, com os dados da lista de acesso.
   // manage: aberto pela página Usuários, traz a linha da lista de acesso e o que fazer quando algo muda nela.
-  member: {email: string; person?: {name: string; phone: string; birthday: string | null; photo: string}; manage?: {row: Allowed; onChanged: () => void; noGroup?: boolean}};
+  member: {email: string; eventId?: string; person?: {name: string; phone: string; birthday: string | null; photo: string}; manage?: {row: Allowed; onChanged: () => void; noGroup?: boolean}};
   // Editar o grupo aberto (foto, nome, excluir) e criar outro grupo.
   group: Record<string, never>;
   newGroup: Record<string, never>;

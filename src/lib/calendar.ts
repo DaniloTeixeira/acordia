@@ -257,6 +257,8 @@ export function upcomingBirthdays<T extends {birthday?: string | null}>(people: 
 // A escala guarda uma linha por função (a mesma pessoa pode tocar e cantar). Para mostrar, junta as
 // linhas de cada pessoa, na ordem em que aparecem. A resposta é a mesma em todas as linhas da pessoa.
 export interface PersonOnRoster { email: string; roles: string[]; status: Answer; reason: string; cover?: string }
+// A pessoa está na escala deste evento (em qualquer função)?
+export const onRoster = (roster: Pick<RosterRow, "event_id" | "email">[], eventId: string, email: string) => roster.some(r => r.event_id === eventId && r.email === email);
 export function rosterByPerson(rows: Pick<RosterRow, "email" | "role" | "status" | "reason" | "cover">[]): PersonOnRoster[] {
   const out = new Map<string, PersonOnRoster>();
   rows.forEach(r => {

@@ -391,7 +391,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
   const coverOpts = [{value: "", label: t("group.coverNone")}, ...g.members.filter(m => isActive(m) && m.email !== me).map(m => ({value: m.email, label: personName(m.email)}))];
   // Tocar na linha de uma pessoa abre os detalhes dela, com o histórico nos ensaios (no celular não há hover: a seta mostra que toca).
   const openHistory = (email: string) => ({className: "is-link", role: "button", tabIndex: 0, "aria-label": t("member.historyOpen", {name: personName(email)}),
-    onClick: () => openDialog("member", {email}), onKeyDown: (ev: React.KeyboardEvent) => { if(ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); openDialog("member", {email}); } }});
+    onClick: () => openDialog("member", {email, eventId: e.id}), onKeyDown: (ev: React.KeyboardEvent) => { if(ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); openDialog("member", {email, eventId: e.id}); } }});
   const pickCover = (v: string) => act("cover", () => setCover(e.id, v));
   const reply = canReply && <ReplySeg e={e} onEditing={setEditReply}/>;
   // Os mesmos chips em dois lugares: ao lado da data na tela larga e, no celular, numa linha própria embaixo,

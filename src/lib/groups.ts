@@ -257,6 +257,10 @@ export interface EventInput { kind: EventKind; title: string; starts_at: string;
 export interface RosterInput { email: string; role: string }
 // Grava o evento e a escala. Quem continua escalado na mesma função mantém a resposta que já deu.
 // dates: com mais de uma, cria um evento igual em cada data (evento repetido).
+// Escala ou tira uma pessoa da escala de um evento já salvo, sem mexer nas outras (roles null = tirar).
+export const setOnRoster = (eventId: string, email: string, roles: string[] | null) => roles
+  ? run(() => cloud.from("event_roster").insert(roles.map(role => ({event_id: eventId, email, role}))))
+  : run(() => cloud.from("event_roster").delete().eq("event_id", eventId).eq("email", email));
 export async function saveEvent(gid: string, id: string | null, ev: EventInput, roster: RosterInput[], dates?: {starts_at: string; call_at: string | null}[]){
   try{
     const clean = roster.filter(r => r.email).map(r => ({email: r.email, role: r.role.trim().slice(0, 40)}));
