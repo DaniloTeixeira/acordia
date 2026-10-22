@@ -9877,6 +9877,10 @@ dialog.member-dlg {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+/* O segundo bloco (Não escalados) ganha uma linha mais forte no topo para marcar a divisão. */
+.roster-tbl li.quick-att-sub ~ li.quick-att-sub {
+  border-top-color: var(--line-strong);
+}
 .roster-tbl .quick-att-when.dim b {
   color: var(--muted);
   font-weight: 400;
