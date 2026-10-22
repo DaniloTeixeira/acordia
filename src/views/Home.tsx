@@ -2,6 +2,7 @@
 // "Estudar" ali mesmo; para quem lidera, logo depois os eventos que precisam de substituto. Depois a semana com
 // as outras escalas, o que estudar e os aniversariantes. Cada coisa aparece num lugar só. O líder vê também
 // quantos já confirmaram, quem ainda não respondeu e o "Novo evento"; o admin, os grupos (com "Novo grupo"). As ferramentas e a Biblioteca ficam em "Mais".
+import { GoLink } from "../ui/GoLink";
 import type { ReactNode } from "react";
 import * as store from "../lib/store";
 import { t, tn, locale } from "../lib/i18n";
@@ -84,7 +85,7 @@ function Block({id, className = "", wide, icon, title, count, link, action, chil
   return <section className={"card home-block " + className + (wide ? " wide" : "")} id={id} aria-labelledby={id + "-h"}>
     <div className="home-block-head">
       <SecHead id={id + "-h"}>{icon && <Icon name={icon} sm/>}{title}{!!count && <span className="count-chip">{count}</span>}</SecHead>
-      {link && <button type="button" className="link-btn" onClick={link.run}>{link.label} <Icon name="chev" sm className="chev-right"/></button>}
+      {link && <GoLink onClick={link.run}>{link.label}</GoLink>}
       {action}
     </div>
     {children}
