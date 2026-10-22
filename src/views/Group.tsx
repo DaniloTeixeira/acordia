@@ -542,10 +542,11 @@ function Members({canEdit}: {canEdit: boolean}){
   const leaderNow = g.members.find(m => m.is_admin);
   const load = monthLoad(dayKey(new Date()), g.events, g.roster);
   // Puxar do cadastro (só admins do app leem a lista): quem tem acesso e ainda não está no grupo.
-  const [allowed, setAllowed] = useState<Allowed[]>([]);
+  // null: ainda lendo a lista (o seletor aparece desativado, para o formulário não pular).
+  const [allowed, setAllowed] = useState<Allowed[] | null>(null);
   // Também diz quem é o Dono: os dados dele só ele muda (o editar fica só com as funções).
-  useEffect(() => { if(appAdmin) listAllowed().then(r => r && setAllowed(r)); }, [appAdmin, g.members.length]);
-  const outside = allowed.filter(a => !g.members.some(m => m.email === a.email));
+  useEffect(() => { if(appAdmin) listAllowed().then(r => setAllowed(a => r || a || [])); }, [appAdmin, g.members.length]);
+  const outside = (allowed || []).filter(a => !g.members.some(m => m.email === a.email));
   const pickUser = (v: string) => {
     const a = outside.find(x => x.email === v); if(!a) return;
     setEmail(a.email); setName(a.profileName || a.name); setBirthday(a.profileBirthday || a.birthday || ""); setPhone(a.profilePhone || a.phone);
