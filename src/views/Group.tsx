@@ -31,6 +31,7 @@ import { SKIP_OPEN, StreakChip, useLock, Spin, Avatar, PersonFields, useEmailChe
 import { DateInput } from "../ui/DateInput";
 import { useMedia } from "../ui/hooks";
 import { SecHead } from "../ui/SecHead";
+import { FoldCard } from "../ui/FoldCard";
 import { PhoneInput } from "../ui/PhoneInput";
 import { NameInput } from "../ui/NameInput";
 import { YouChip } from "../ui/YouChip";
@@ -571,8 +572,9 @@ function Members({canEdit}: {canEdit: boolean}){
       <SecHead>{t("group.membersTab")}</SecHead>
       <div className="card-body">
       {canEdit && <><p className="sub">{t("group.addSub")}</p>
+        {/* No celular o cadastro começa fechado, para a lista de membros aparecer logo. */}
+        <FoldCard id="member-add" title={t("group.addTitle")} defaultOpen={!matchMedia("(max-width: 899px)").matches}>
         <form className="member-add people-add-box" onSubmit={add} noValidate>
-          <SecHead as="h3" className="people-sub-h">{t("group.addTitle")}</SecHead>
           {outside.length > 0 && <Select id="member-pick" className="member-pick" aria={t("group.pickUser")} value={outside.some(a => a.email === email) ? email : ""} onChange={pickUser}
             options={[{value: "", label: t("group.pickUser")}, ...outside.map(a => ({value: a.email, label: a.profileName || a.name || a.email, sub: (a.profileName || a.name) ? a.email : undefined}))]}/>}
           <div className="people-add">
@@ -587,7 +589,8 @@ function Members({canEdit}: {canEdit: boolean}){
           <div className="member-roles-foot">
             <button className="btn primary" aria-busy={busy === "add"}>{busy === "add" ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
           </div>
-        </form></>}
+        </form>
+        </FoldCard></>}
       <SecHead as="h3" className="people-sub-h">{t("group.listTitle")} <span className="count-chip">{filter.nq ? shown.length + "/" + g.members.length : g.members.length}</span></SecHead>
       {g.members.length > 0 && <PeopleTools idp="members" f={filter}/>}
       {/* Cabeçalho como o da lista "Com acesso" do Perfil. */}

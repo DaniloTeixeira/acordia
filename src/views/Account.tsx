@@ -17,6 +17,7 @@ import { sortRoles, joinRoles, splitRoles } from "../lib/roles";
 import { MemberRoles, RolePicker, ReplySeg, GroupMark, eventTitle, timeOf, longDay, openGroup } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
 import { SecHead } from "../ui/SecHead";
+import { FoldCard } from "../ui/FoldCard";
 import { PhoneInput } from "../ui/PhoneInput";
 import { NameInput } from "../ui/NameInput";
 import { YouChip } from "../ui/YouChip";
@@ -799,8 +800,9 @@ function People({me}: {me: string}){
   }); };
   return <div className="card people-card people-page">
     <p className="sub">{t("people.addSub")}</p>
+    {/* No celular o cadastro começa fechado, para a lista de usuários aparecer logo. */}
+    <FoldCard id="people-add-card" title={t("people.addTitle")} defaultOpen={!matchMedia("(max-width: 899px)").matches}>
     <form className="member-add people-add-box" onSubmit={add} noValidate>
-      <SecHead as="h3" className="people-sub-h">{t("people.addTitle")}</SecHead>
       <div className="people-add">
         <PersonFields idp="people-add" name={aName} onName={setAName} email={aEmail} onEmail={setAEmail} phone={aPhone} onPhone={setAPhone} birthday={aBirthday} onBirthday={setABirthday} check={check}/>
       </div>
@@ -808,6 +810,7 @@ function People({me}: {me: string}){
         <button className="btn primary" aria-busy={adding} disabled={adding}>{adding ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
       </div>
     </form>
+    </FoldCard>
     <SecHead as="h3" className="people-sub-h">{t("people.listTitle")} {rows && rows.length > 0 && <span className="count-chip">{nq && shown ? shown.length + "/" + rows.length : rows.length}</span>}</SecHead>
     {rows && rows.length > 0 && <PeopleTools idp="people" f={filter}/>}
     {/* Cabeçalho da lista, como numa tabela: marca onde as pessoas começam (no celular, só a faixa). */}

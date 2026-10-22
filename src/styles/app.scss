@@ -6809,7 +6809,7 @@ dialog.ear-dlg {
   font-weight: 700;
   color: var(--ink);
 }
-/* Seções de dentro de um card com título (Detalhes, Escala, Observações, Sua resposta do evento; Adicionar membro e
+/* Seções de dentro de um card com título (Detalhes, Escala, Observações, Sua resposta do evento; Cadastrar membro e
    a lista de Membros): um ponto no gradiente em vez do traço, e letra menor, para não competirem com o título do card. */
 .event-sec > .people-sub-h,
 .people-card:not(.people-page) .people-sub-h {
@@ -7113,6 +7113,12 @@ dialog.ear-dlg {
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   background: var(--surface-2);
+}
+/* Dentro do card que abre e fecha, a moldura é a do card. */
+.fold-card .people-add-box {
+  padding: 0;
+  border: 0;
+  background: none;
 }
 .people-sub-h {
   display: flex;
@@ -8371,7 +8377,7 @@ dialog.event-dlg {
   pointer-events: none;
 }
 /* Janela de detalhes do membro */
-/* Quem é a pessoa (foto, nome, contato, chips) num card, como a caixa "Adicionar membro". */
+/* Quem é a pessoa (foto, nome, contato, chips) num card, como a caixa "Cadastrar membro". */
 .member-dlg-who {
   display: flex;
   align-items: center;
@@ -8532,7 +8538,7 @@ dialog.member-dlg {
   font-size: 0.85rem;
   max-width: 160px;
 }
-/* Adicionar membro: escolher alguém do cadastro de usuários preenche o formulário. */
+/* Cadastrar membro: escolher alguém do cadastro de usuários preenche o formulário. */
 .member-add .member-pick {
   width: 100%;
   margin-bottom: 10px;
@@ -9197,7 +9203,7 @@ dialog.member-dlg {
     align-self: flex-start;
   }
 }
-/* Funções é item de dentro de "Adicionar membro": título menor, em negrito, sem o ponto do subtítulo de seção. */
+/* Funções é item de dentro de "Cadastrar membro": título menor, em negrito, sem o ponto do subtítulo de seção. */
 .role-picker .lbl {
   font-size: 0.86rem;
   font-weight: 700;
