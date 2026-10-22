@@ -11,7 +11,8 @@ import * as store from "../lib/store";
 import { useData, toast } from "../state";
 import { Icon } from "../ui/Icon";
 import { useMedia } from "../ui/hooks";
-import { micFailed } from "../ui/micFailed";
+import { micFailed, micOk } from "../ui/micFailed";
+import { MicHelp } from "../ui/MicHelp";
 import { pad } from "../pad";
 import { SecHead } from "../ui/SecHead";
 import { VoiceChip } from "../ui/VoiceChip";
@@ -27,7 +28,7 @@ function useMic(){
     off();
     // O microfone ouviria o pad no lugar da voz.
     pad.stop();
-    try{ stop.current = await listenPitch(onPitch); return true; }
+    try{ stop.current = await listenPitch(onPitch); micOk(); return true; }
     catch(e){ micFailed(e, retry); return false; }
   };
   useEffect(() => off, []);
@@ -87,6 +88,7 @@ function VoiceRange(){
   return <div className="card voice-card">
     <SecHead>{t("voice.rangeTitle")}</SecHead>
     <p className="sub">{t("voice.rangeD")}</p>
+    <MicHelp/>
     {/* Passo a passo: sempre aberto na tela larga (sobra espaço); no celular, aberto só enquanto a extensão não foi medida. */}
     <details className="voice-howto" open={wide || !(v.low !== null && v.high !== null)}>
       <summary><Icon name="help" sm/> {t("voice.how.title")}<Icon name="chev" sm className="howto-chev"/></summary>

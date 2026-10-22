@@ -8,7 +8,8 @@ import { useData, go } from "../state";
 import { BackLink } from "../ui/BackLink";
 import { metro } from "../metro";
 import { Icon } from "../ui/Icon";
-import { micFailed } from "../ui/micFailed";
+import { micFailed, micOk } from "../ui/micFailed";
+import { MicHelp } from "../ui/MicHelp";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
 import { MetronomeUI } from "./Metronome";
@@ -57,6 +58,7 @@ function Tuner(){
     let stream: MediaStream;
     try{ stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:false}}); }
     catch(e){ return micFailed(e, start); }
+    micOk();
     const C = window.AudioContext || (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext;
     const ctx = new C(), src = ctx.createMediaStreamSource(stream), an = ctx.createAnalyser(); an.fftSize = 4096; src.connect(an);
     const buf = new Float32Array(an.fftSize), smooth: number[] = [];
@@ -96,6 +98,7 @@ function Tuner(){
       <b>{midiName(m).replace(/\d/, "")}</b><small>{midiName(m).replace(/\D/g, "")}</small></span>)}</div>}
     <button className={"btn primary metro-go" + (on ? " running" : "")} id="tu-toggle" onClick={() => on ? stop() : start()}>
       {on ? <><Icon name="x" sm/> {t("tuner.stop")}</> : <><Icon name="sound" sm/> {t("tuner.start")}</>}</button>
+    <MicHelp/>
     <p className="sub">{t("tuner.hint")}</p>
     <p className="sub">{t("tuner.refHelp")}</p>
   </div>;
