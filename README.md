@@ -199,7 +199,7 @@ também libera o acesso ao app para eles).
 - [ ] **Membros**: nome, e-mail, funções (várias, como Vocal e Violão; cada um edita as suas), selo Líder, **frequência nos ensaios** (6 meses)
       e escalas no mês. Quem lidera inclui, torna líder e tira do grupo; admins do app renomeiam, criam e
       excluem grupos.
-- [ ] **Em pausa**: quem falta a 8 ensaios seguidos fica em pausa até participar de 4. No cadastro de Membros, a chave "Em pausa" já inclui a pessoa em pausa (para quem está há mais de 8 ensaios sem participar). Na janela do membro, "Ajustar retorno" abre um quadro para marcar a pausa à mão ("Pausar"), mudar quantos ensaios faltam ou "Tirar da pausa"; em pausa, a frequência mostra o progresso da volta (0% até 100%) em vez da presença.
+- [ ] **Em pausa**: quem falta a 8 ensaios seguidos fica em pausa até participar de 4. Quem só tem a função Mesa de som fica fora dessa regra (quase não vai aos ensaios). Na chamada do ensaio há também a opção **Pausa**, que deixa a pessoa fora da conta daquele ensaio, e a lista de escala passa a mostrar Presente/Falta/Pausa assim que a chamada é marcada. No cadastro de Membros, a chave "Em pausa" já inclui a pessoa em pausa (para quem está há mais de 8 ensaios sem participar). Na janela do membro, "Ajustar retorno" abre um quadro para marcar a pausa à mão ("Pausar"), mudar quantos ensaios faltam ou "Tirar da pausa"; em pausa, a frequência mostra o progresso da volta (0% até 100%) em vez da presença.
 - [ ] **Sem internet**: mostra a última versão baixada; mudar precisa de internet.
 
 ### Estudo
