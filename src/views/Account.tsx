@@ -18,6 +18,7 @@ import { MemberRoles, RolePicker, ReplySeg, GroupMark, eventTitle, timeOf, longD
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
 import { SecHead } from "../ui/SecHead";
 import { FoldCard } from "../ui/FoldCard";
+import { PeopleSkeleton } from "../ui/PeopleSkeleton";
 import { PhoneInput } from "../ui/PhoneInput";
 import { NameInput } from "../ui/NameInput";
 import { YouChip } from "../ui/YouChip";
@@ -815,10 +816,10 @@ function People({me}: {me: string}){
     {rows && rows.length > 0 && <PeopleTools idp="people" f={filter}/>}
     {/* Cabeçalho da lista, como numa tabela: marca onde as pessoas começam (no celular, só a faixa). */}
     {shown && shown.length > 0 && <div className="people-list-head" aria-hidden="true"><span>{t("people.colPerson")}</span></div>}
-    <ul className="people-list" id="people-list" ref={filter.listRef}>
+    <ul className="people-list" id="people-list" ref={filter.listRef} aria-busy={shown === null}>
       {nq && shown && !shown.length && <li className="sub">{t("lib.noResults")}</li>}
       {failed && <li className="sub">{t("profile.loadFail")} <button type="button" className="link-btn" onClick={load}>{t("common.retry")}</button></li>}
-      {shown === null ? <li className="sub">{t("auth.loading")}</li> : shown.map(r => {
+      {shown === null ? <PeopleSkeleton/> : shown.map(r => {
         const nm = r.profileName || r.name, bd = r.profileBirthday || r.birthday, ph = r.profilePhone || r.phone;
         const noGroup = !!grouped && !grouped.has(r.email);
         const openPerson = () => openDialog("member", {email: r.email, person: {name: nm, phone: ph, birthday: bd || null, photo: r.profilePhoto || ""}, manage: {row: r, onChanged: load, noGroup}});

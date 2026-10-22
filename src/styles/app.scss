@@ -7046,6 +7046,43 @@ dialog.ear-dlg {
   margin: 0;
   padding: 0;
 }
+/* Esqueleto da lista de pessoas (ui/PeopleSkeleton.tsx): blocos que pulsam no lugar de foto e textos. */
+.skel {
+  display: block;
+  border-radius: 6px;
+  background: var(--surface-2);
+  animation: skel-pulse 1.2s ease-in-out infinite alternate;
+}
+.skel-avatar {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+}
+.skel-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.skel-line {
+  height: 12px;
+}
+.skel-line.w80 { width: 80%; }
+.skel-line.w60 { width: 60%; }
+.skel-line.w40 { width: 40%; }
+.people-list li.people-skel {
+  flex-wrap: nowrap;
+  gap: 12px;
+  min-height: 80px;
+}
+@keyframes skel-pulse {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skel { animation: none; }
+}
 /* Toda linha com a mesma altura do rodapé do card do perfil (65 px com borda e espaço: cabe nome e e-mail),
    para as linhas de baixo dos dois cards baterem lado a lado, tenha a pessoa nome e e-mail ou só o e-mail. */
 .people-list li {
