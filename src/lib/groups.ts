@@ -112,10 +112,12 @@ export function loadGroups(gid?: string): Promise<void> {
           const n = await cloud.from("event_roster").select("event_id,email,role,status,reason,cover:covered_by").in("event_id", part);
           return n.error ? cloud.from("event_roster").select("event_id,email,role,status,reason").in("event_id", part) : n;
         };
-        const [r, a] = await Promise.all([
-          readRoster(),
-          cloud.from("event_attendance").select("event_id,email,status,by_admin").in("event_id", part),
-        ]);
+        // Banco ainda sem o pedido de mudança de presença: lê sem ele.
+        const readAtt = async () => {
+          const n = await cloud.from("event_attendance").select("event_id,email,status,by_admin,req_status").in("event_id", part);
+          return n.error ? cloud.from("event_attendance").select("event_id,email,status,by_admin").in("event_id", part) : n;
+        };
+        const [r, a] = await Promise.all([readRoster(), readAtt()]);
         if(r.error) throw r.error; if(a.error) throw a.error;
         roster = roster.concat(r.data as RosterRow[]); attendance = attendance.concat(a.data as AttendanceRow[]);
       }
@@ -269,7 +271,11 @@ export async function saveEvent(gid: string, id: string | null, ev: EventInput, 
       const keep = new Set(unique.map(r => r.email + "|" + r.role));
       const gone = old.filter(r => !keep.has(r.email + "|" + r.role));
       for(const r of gone){ const {error} = await cloud.from("event_roster").delete().eq("event_id", eid).eq("email", r.email).eq("role", r.role); if(error) return false; }
-      const fresh = unique.filter(r => !old.some(o => o.email === r.email && o.role === r.role)).map(r => ({event_id: eid, email: r.email, role: r.role}));
+      // Quem continua na escala mas troca de função mantém a resposta (e quem cobre): só entra "pendente" quem é novo no evento.
+      const fresh = unique.filter(r => !old.some(o => o.email === r.email && o.role === r.role)).map(r => {
+        const had = old.find(o => o.email === r.email);
+        return {event_id: eid, email: r.email, role: r.role, ...(had ? {status: had.status, reason: had.reason, ...(had.cover ? {covered_by: had.cover} : {})} : {})};
+      });
       if(fresh.length){ const {error} = await cloud.from("event_roster").insert(fresh); if(error) return false; }
     }
     await loadGroups(gid);
@@ -287,10 +293,19 @@ export async function setMyAttendance(eventId: string, status: "present" | "abse
   if(await run(() => cloud.rpc("set_my_attendance", {eid: eventId, st: status || ""}))) return true;
   return status === "absent" ? false : checkIn(eventId, status === "present");
 }
-// Chamada feita pelo admin; null tira a marcação.
+// Chamada feita pelo admin; null tira a marcação. Marcar de novo encerra o pedido de mudança que a pessoa tinha feito.
+// Banco sem as colunas do pedido: grava sem elas.
 export const markAttendance = (eventId: string, email: string, status: Presence | null) => status
-  ? run(() => cloud.from("event_attendance").upsert({event_id: eventId, email, status, by_admin: true, marked_at: new Date().toISOString()}))
+  ? run(async () => {
+    const row = {event_id: eventId, email, status, by_admin: true, marked_at: new Date().toISOString()};
+    const r = await cloud.from("event_attendance").upsert({...row, req_status: null, req_at: null});
+    return r.error ? cloud.from("event_attendance").upsert(row) : r;
+  })
   : run(() => cloud.from("event_attendance").delete().eq("event_id", eventId).eq("email", email));
+// Presença marcada pelo líder: a pessoa não troca direto, pede a mudança (null cancela o pedido).
+export const requestAttendanceChange = (eventId: string, status: "present" | "absent" | null) => run(() => cloud.rpc("request_attendance_change", {eid: eventId, st: status || ""}));
+// O líder recusa o pedido e a marcação dele fica como está.
+export const declineAttendanceChange = (eventId: string, email: string) => run(() => cloud.from("event_attendance").update({req_status: null, req_at: null}).eq("event_id", eventId).eq("email", email));
 export const setUnavailable = (day: string, on: boolean, note = "") => on
   ? run(() => cloud.from("unavailable").upsert({email: myEmail(), day, note: note.slice(0, 120)}))
   : run(() => cloud.from("unavailable").delete().eq("email", myEmail()).eq("day", day));
