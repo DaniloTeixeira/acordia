@@ -20,7 +20,7 @@ import { rangeType } from "../lib/voice";
 import { splitRoles, joinRoles, toggleRole, sortRoles } from "../lib/roles";
 import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone,type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, loadGroups, createGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
-  deleteEvent, respond, setCover, checkIn, setMyAttendance, markAttendance, setUnavailable, personName, voiceOf, personPhoto, amGroupAdmin, setMemberOut, outMark, isActive, setMemberActive, type GroupSetlist, type Member, type Group } from "../lib/groups";
+  deleteEvent, respond, setCover, checkIn, setMyAttendance, markAttendance, requestAttendanceChange, declineAttendanceChange, setUnavailable, personName, voiceOf, personPhoto, amGroupAdmin, setMemberOut, outMark, isActive, setMemberActive, type GroupSetlist, type Member, type Group } from "../lib/groups";
 import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, confirmUnsaved, useUnsaved, go } from "../state";
 import { Icon } from "../ui/Icon";
 import { CopyBtn } from "../ui/CopyBtn";
@@ -343,6 +343,19 @@ export function useSquareBadge<W extends HTMLElement = HTMLDivElement>(){
   }, []);
   return {what, badge};
 }
+// Presença que o líder marcou: a pessoa não troca direto. Pede a mudança (para o outro estado) e o líder aceita ou recusa;
+// enquanto o pedido está aberto dá para cancelar.
+function AskChange({e, act}: {e: GEvent; act: (key: string, fn: () => Promise<boolean>, ok?: string) => Promise<unknown>}){
+  const g = useGroups(), me = useAuth(s => s.email), a = g.attendance.find(x => x.event_id === e.id && x.email === me);
+  if(!a) return null;
+  const to = a.status === "present" ? "absent" : "present";
+  if(a.req_status) return <><span className="chip st-pending">{t("group.askSent", {to: t("group.att." + a.req_status)})}</span>
+    <button type="button" className="link-btn" onClick={() => act("ask", () => requestAttendanceChange(e.id, null), "group.askCanceled")}>{t("group.askCancel")}</button></>;
+  return <button type="button" className="link-btn" onClick={async () => {
+    if(await confirmDialog({title: t("group.askTitle"), message: t("group.askMsg", {now: t("group.att." + a.status), to: t("group.att." + to)}), confirm: t("group.askConfirm")})) act("ask", () => requestAttendanceChange(e.id, to), "group.askDone");
+  }}>{t("group.askChange")}</button>;
+}
+
 function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
   const sq = useSquareBadge();
   const g = useGroups(), me = useAuth(s => s.email);
@@ -416,7 +429,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
         {/* Ensaio que já começou: três estados, presente, falta ou sem marcação (um botão por marcação, como na resposta). */}
         {e.kind === "rehearsal" && canCheckIn(e) && pastNow && myMark && !editIn && busy !== "in" && <div className={"reply-done " + (myIn ? "yes" : "no")} role="status">
           <span className="reply-badge"><Icon name={myIn ? "check" : "x"} sm/> {t(myIn ? "group.att.present" : "group.att.absent")}</span>
-          <button type="button" className="link-btn" onClick={() => setEditIn(true)}>{t("group.changeReply")}</button></div>}
+          {myAtt?.by_admin ? <AskChange e={e} act={act}/> : <button type="button" className="link-btn" onClick={() => setEditIn(true)}>{t("group.changeReply")}</button>}</div>}
         {e.kind === "rehearsal" && canCheckIn(e) && pastNow && (!myMark || editIn || busy === "in") && <div className="reply-edit"><div className="reply-btns" role="group" aria-label={t("group.myReply")}>
           {([["present", "check", "group.checkInPast", "reply-yes"], ["absent", "x", "group.notThere", "reply-no"]] as const).filter(([v]) => v === "present" || !myOut || myAtt?.status === "absent").map(([v, icon, key, cls]) =>
             <button key={v} type="button" className={"btn sm " + cls} aria-busy={busy === "in:" + v} disabled={busy.startsWith("in:")}
@@ -425,7 +438,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
           {myMark && editIn && !busy && <button type="button" className="link-btn" onClick={() => setEditIn(false)}>{t("common.cancel")}</button>}</div>}
         {e.kind === "rehearsal" && canCheckIn(e) && !pastNow && myIn && !editIn && busy !== "in" && <div className="reply-done yes" role="status">
           <span className="reply-badge"><Icon name="check" sm/> {t("group.att.present")}</span>
-          <button type="button" className="link-btn" onClick={() => setEditIn(true)}>{t("group.changeReply")}</button></div>}
+          {myAtt?.by_admin ? <AskChange e={e} act={act}/> : <button type="button" className="link-btn" onClick={() => setEditIn(true)}>{t("group.changeReply")}</button>}</div>}
         {e.kind === "rehearsal" && canCheckIn(e) && !pastNow && (!myIn || editIn || busy === "in") && <div className="reply-edit"><button className="btn sm soft" aria-busy={busy === "in"} disabled={busy === "in"}
           onClick={() => act("in", () => checkIn(e.id, !myIn), myIn ? "group.saved" : "group.checkedIn").then(() => setEditIn(false))}>{busy === "in" ? <Spin/> : <Icon name={myIn ? "x" : "user"} sm/>} {t(myIn ? "group.uncheckIn" : Date.now() > d.getTime() ? "group.checkInPast" : "group.checkIn")}</button>
           {myIn && editIn && !busy && <button type="button" className="link-btn" onClick={() => setEditIn(false)}>{t("common.cancel")}</button>}</div>}
@@ -503,6 +516,9 @@ function Attendance({e}: {e: GEvent}){
         {pending.has(m.email) && <span className="chip st-pending">{t("group.att.pending")}</span>}
         {wa && <a className="icon-btn sm" href={waLink(waText(e, {name: personName(m.email)}), m.phone)} target="_blank" rel="noopener"
           aria-label={t("group.waOne", {name: personName(m.email)})} title={t("group.waOne", {name: personName(m.email)})}><Icon name="chat" sm/></a>}</span>
+        {a?.req_status && <span className="att-req"><span className="chip st-pending">{t("group.reqWants", {to: t("group.att." + a.req_status)})}</span>
+          <button type="button" className="btn sm soft" disabled={busy === m.email} onClick={() => mark(m.email, a.req_status!)}>{t("group.reqAccept")}</button>
+          <button type="button" className="btn sm ghost" disabled={busy === m.email} onClick={async () => { setBusy(m.email); const ok = await declineAttendanceChange(e.id, m.email).finally(() => setBusy("")); if(!ok) toast(t("profile.saveFail")); }}>{t("group.reqDecline")}</button></span>}
         <Seg className="sm" aria={t("group.attendance") + ": " + personName(m.email)} value={(a?.status || "") as Presence | ""} onChange={v => mark(m.email, v === a?.status ? "" : v)}
           options={[{v: "present", label: t("group.att.present")}, {v: "absent", label: t("group.att.absent")}]}/></li>; })}</ul></div>}
   </div>;

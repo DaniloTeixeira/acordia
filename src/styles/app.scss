@@ -7918,6 +7918,14 @@ dialog.ear-dlg {
   border-radius: var(--r-lg);
   background: var(--surface-2);
 }
+/* Pedido de mudança de presença: o chip e os botões ocupam a linha toda, abaixo do nome, para caber no celular. */
+.att-box .att-req {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  flex-basis: 100%;
+}
 /* A linha toda do título abre e fecha a chamada (alvo de toque grande); fechada, só sobra essa linha. */
 .att-toggle {
   display: flex;
