@@ -12,7 +12,7 @@ import { CopyBtn } from "../ui/CopyBtn";
 import { DateInput } from "../ui/DateInput";
 import { FieldLabel } from "../ui/FieldLabel";
 import { useGroups, loadGroups, chooseGroup, setMemberRole, outMark, listGroupedEmails } from "../lib/groups";
-import { attendanceRate, rehearsalStanding, comebackProgress, type Standing, type OutMark, MISS_LIMIT, COMEBACK, streakLevel, fmtPhone, maskPhone } from "../lib/calendar";
+import { attendanceRate, attendanceHistory, rehearsalStanding, comebackProgress, type Standing, type OutMark, MISS_LIMIT, COMEBACK, streakLevel, fmtPhone, maskPhone } from "../lib/calendar";
 import { sortRoles, joinRoles, splitRoles } from "../lib/roles";
 import { MemberRoles, RolePicker, ReplySeg, GroupMark, eventTitle, timeOf, longDay, openGroup } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
@@ -465,9 +465,19 @@ function MyAttendance(){
   const {g, me, ok} = useMyGroup();
   if(!ok) return null;
   const rate = attendanceRate(me, g.events, g.attendance, Date.now(), g.roster), sd = rehearsalStanding(me, g.events, g.attendance, Date.now(), outMark(g.members.find(x => x.email === me)), g.roster);
+  // Os últimos ensaios do mais antigo ao mais novo (o mais recente fica na ponta direita).
+  const hist = attendanceHistory(me, g.events, g.attendance, Date.now(), g.roster, 8).reverse();
   return <Sec id="profile-att" className="profile-att" title={t("profile.attendance")}>
     {rate.total ? <AttStat rate={rate} sd={sd} mark={outMark(g.members.find(x => x.email === me))}/> : <span className="sub">{t("profile.attNone")}</span>}
-    <small className="sub">{t("profile.attRule", {max: MISS_LIMIT, back: COMEBACK})}</small>
+    {hist.length > 0 && <div className="att-dots-row">
+      {/* O rótulo e, depois dele, a data de cada ensaio na cor da situação; a legenda no fim (só as situações que aparecem). */}
+      <span className="sub">{tn("profile.attLast", hist.length)}</span>
+      <ul className="att-dots">{hist.map(h => <li key={h.event.id} className={"att-dot " + h.status}
+        aria-label={longDay(new Date(h.event.starts_at)) + ": " + t("group.att." + h.status)}>
+        <span aria-hidden="true">{new Date(h.event.starts_at).toLocaleDateString(locale(), {day: "2-digit", month: "2-digit"})}</span></li>)}</ul>
+      <ul className="att-legend" aria-hidden="true">{(["present", "absent", "excused"] as const).filter(st => hist.some(h => h.status === st)).map(st =>
+        <li key={st} className={"att-dot " + st}><i/>{t("group.att." + st)}</li>)}</ul></div>}
+    <small className="sub att-rule">{t("profile.attRule", {max: MISS_LIMIT, back: COMEBACK})}</small>
   </Sec>;
 }
 

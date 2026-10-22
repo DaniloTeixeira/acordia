@@ -376,6 +376,8 @@ const pt: Dict = {
   "profile.attBack":"{done}/{total} ensaios para voltar",
   "profile.attNone":"Ainda não teve chamada em nenhum ensaio.",
   "profile.attRule":"Quem falta a {max} ensaios seguidos fica em pausa até participar de {back}.",
+  "profile.attLast.one":"Último ensaio",
+  "profile.attLast.other":"Últimos ensaios",
 
   "profile.nextRoles":"Suas funções:",
   "profile.next":"Minha próxima escala",
@@ -1469,6 +1471,8 @@ const en: Dict = {
   "profile.attBack":"{done}/{total} rehearsals to return",
   "profile.attNone":"No rehearsal has had a roll call yet.",
   "profile.attRule":"Missing {max} rehearsals in a row puts you on pause until you attend {back}.",
+  "profile.attLast.one":"Latest rehearsal",
+  "profile.attLast.other":"Latest rehearsals",
 
   "profile.nextRoles":"Your roles:",
   "profile.next":"My next roster",
@@ -2562,6 +2566,8 @@ const es: Dict = {
   "profile.attBack":"{done}/{total} ensayos para volver",
   "profile.attNone":"Todavía no hubo lista en ningún ensayo.",
   "profile.attRule":"Quien falta a {max} ensayos seguidos queda en pausa hasta participar de {back}.",
+  "profile.attLast.one":"Último ensayo",
+  "profile.attLast.other":"Últimos ensayos",
 
   "profile.nextRoles":"Tus funciones:",
   "profile.next":"Mi próxima escala",
