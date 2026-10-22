@@ -226,7 +226,7 @@ também libera o acesso ao app para eles).
   - acento no 1º tempo;
   - **Descobrir BPM**;
   - atalhos: espaço, setas e T.
-- [ ] **Afinador**: pelo microfone, com A4 de 432 a 446 Hz, ponteiro em cents e a corda mais próxima; a falha do microfone usa o mesmo aviso da Voz.
+- [ ] **Afinador**: pelo microfone, com A4 de 432 a 446 Hz, ponteiro em cents e a corda mais próxima; a falha do microfone usa o mesmo aviso fixo da Voz.
 - [ ] **Pad infinito**:
   - tom, 6 estilos (Original, Discreto, Quente, Brilhante, Etéreo, Profundo), volume e filtro;
   - swell em 4 ou 8 compassos;
@@ -238,7 +238,7 @@ também libera o acesso ao app para eles).
   - basta **segurar a mesma nota por ~2 segundos**: uma barra enche e a nota é salva sozinha ("✓ Salvo"), sem apertar botão; durante a medição o botão vira Cancelar; ajuste fino de meio tom com + e −;
   - a extensão fica no **perfil** (na nuvem, com a classificação vocal em um card próprio do perfil, com atalho para medir) e o grupo vê a **classificação vocal** (chip Baixo, Barítono, Tenor, Contralto, Mezzo-soprano, Soprano) em **Membros** e na **escala** do evento; a faixa (ex.: F2–C4) não aparece para o grupo;
   - passo a passo e o para-que-serve na tela (na tela larga fica sempre aberto; no celular abre até medir a primeira vez e depois recolhe);
-  - se o microfone falhar, o aviso diz o motivo (negado, sem microfone, em uso, navegador sem suporte), ensina a liberar (no app instalado, pelas configurações do site) e tem "Tentar de novo".
+  - se o microfone falhar, um balão curto avisa na hora e um aviso fixo na tela (Voz e Afinador) diz o motivo (negado no site, bloqueado pelo Android, sem microfone, em uso, navegador sem suporte), ensina a liberar e tem "Tentar de novo"; some quando o microfone funciona.
 ## Rodar localmente
 
 Feito em React + TypeScript com Vite. Precisa do Node 22 ou mais novo e das chaves do Supabase num `.env.local`
