@@ -122,7 +122,7 @@ function MemberRoster({m, e}: {m: Member; e: GEvent}){
     <SecHead as="span">{eventTitle(e)} · {longDay(new Date(e.starts_at))}</SecHead>
     <span className="member-roster-row">
       {on ? <StatusChip status={row?.status || "pending"} noIcon/> : <span className="chip st-off">{t("group.status.off")}</span>}
-      <button type="button" className={"btn soft sm" + (on ? " danger" : "")} aria-busy={busy} disabled={busy} onClick={toggle}>{busy ? <Spin/> : <Icon name={on ? "x" : "plus"} sm/>} {t(on ? "group.removeFromRoster" : "member.rosterAdd")}</button>
+      <button type="button" className="link-btn" aria-busy={busy} disabled={busy} onClick={toggle}>{busy && <Spin/>}{t(on ? "group.removeFromRoster" : "member.rosterAdd")}</button>
     </span>
     {sd?.out && <p className="roster-warn declined" role="status"><Icon name="x" sm/>{tn("group.warnOut", sd.need)}</p>}
     {warns.map((w, k) => <p key={k} className={"roster-warn " + w.kind} role="status"><Icon name={w.kind === "busy" ? "calendar" : "x"} sm/>
