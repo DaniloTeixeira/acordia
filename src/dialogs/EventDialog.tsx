@@ -14,7 +14,7 @@ import { DateInput } from "../ui/DateInput";
 import { eventTitle, roleOptions } from "../views/Group";
 import { splitRoles, sortRoles, toggleRole } from "../lib/roles";
 import { Spin } from "../views/Account";
-import { SecHead } from "../ui/SecHead";
+import { FoldCard } from "../ui/FoldCard";
 
 const hhmm = (iso: string | null) => { if(!iso) return ""; const d = new Date(iso); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
 // Data do campo (AAAA-MM-DD) + hora (HH:MM), na hora local de quem preenche.
@@ -43,6 +43,8 @@ export function EventDialog({id, day}: DialogProps["event"]){
   const start = useRef<string | null>(null); if(start.current === null) start.current = snap();
   const done = useRef(false), dirty = () => !done.current && snap() !== start.current;
   const form = useRef<HTMLFormElement>(null);
+  // Tela larga abre Detalhes e Escala; no celular só a Escala (os detalhes ficam a um toque).
+  const wide = window.matchMedia("(min-width: 900px)").matches;
   const starts = date && time ? at(date, time) : null;
   const probe: Pick<GEvent, "id" | "starts_at"> = {id: id || "new", starts_at: (starts || new Date()).toISOString()};
   const load = monthLoad(date || dayKey(new Date()), g.events, g.roster);
@@ -76,7 +78,7 @@ export function EventDialog({id, day}: DialogProps["event"]){
     }}>
       <DialogHead id="event-h" title={t(id ? "group.editEvent" : "group.newEvent")} closeLabel={t("common.close")}/>
       <div className="dlg-body">
-        <section className="event-dlg-card" aria-labelledby="event-data-h"><SecHead as="h3" className="people-sub-h" id="event-data-h">{t("group.details")}</SecHead>
+        <FoldCard id="event-data" title={t("group.details")} defaultOpen={wide}>
         <Seg className="block" id="event-kind" aria={t("group.kindLabel")} value={kind} onChange={setKind}
           options={[{v: "service", label: t("group.kind.service")}, {v: "rehearsal", label: t("group.kind.rehearsal")}]}/>
         <label className="field"><span>{t("group.eventTitle")}</span><input className="input" id="event-title" maxLength={80} placeholder={t(kind === "service" ? "group.titlePhService" : "group.titlePhRehearsal")} value={title} onChange={e => setTitle(e.target.value)}/></label>
@@ -92,11 +94,13 @@ export function EventDialog({id, day}: DialogProps["event"]){
         {!id && <label className="field"><span>{t("group.repeat")}</span><Select id="event-repeat" value={weeks} onChange={setWeeks}
           options={["1", "2", "4", "8", "12", "26"].map(n => ({value: n, label: n === "1" ? t("group.repeatNo") : t("group.repeatWeeks", {n})}))}/></label>}
         <label className="field"><span>{t("group.notes")}</span><textarea className="input" id="event-notes" rows={3} maxLength={1000} placeholder={t("group.notesPh")} value={notes} onChange={e => setNotes(e.target.value)}/></label>
-        </section>
+        </FoldCard>
 
-        <section className="event-dlg-card" aria-labelledby="event-roster-h">
-        <SecHead as="h3" className="people-sub-h" id="event-roster-h">{t("group.roster")} <span className="sub">{tn("group.people", roster.filter(r => r.email).length)}</span></SecHead>
-        <ul className="roster-edit">{roster.map((r, i) => {
+        <FoldCard id="event-roster" title={t("group.roster")} aside={<span className="sub">{tn("group.people", roster.filter(r => r.email).length)}</span>} defaultOpen>
+        <ul className="roster-edit">
+          {/* Cabeçalho da tabela: só na tela larga (no celular cada pessoa é um cartão). */}
+          {roster.some(r => r.email) && <li className="roster-head" aria-hidden="true"><span>{t("people.colPerson")}</span><span>{t("group.roles")}</span><span/></li>}
+          {roster.map((r, i) => {
           const warns = r.email ? warningsFor(r.email, probe, {events: g.events, roster: g.roster, unavail: g.unavail}, eventTitle) : [];
           // Culto: quem está fora pela regra dos ensaios ganha um aviso (o líder ainda decide).
           const sd = r.email && kind === "service" ? rehearsalStanding(r.email, g.events, g.attendance, Date.now(), outMark(g.members.find(m => m.email === r.email)), g.roster) : null;
@@ -128,7 +132,7 @@ export function EventDialog({id, day}: DialogProps["event"]){
           <button type="button" className="btn soft sm" id="event-add-person" disabled={!free.length} onClick={() => { setRoster(rs => [...rs, {email: "", roles: []}]); }}><Icon name="plus" sm/> {t("group.addPerson")}</button>
           {callable.length > 0 && <button type="button" className="btn ghost sm" onClick={() => { setRoster(rs => byName([...rs.filter(r => r.email), ...callable.map(m => ({email: m.email, roles: firstRole(m.email)}))])); }}><Icon name="users" sm/> {t("group.addEveryone")}</button>}
         </div>
-        </section>
+        </FoldCard>
       </div>
       <div className="dlg-foot"><button type="button" className="btn ghost" onClick={() => { const d = form.current?.closest("dialog"); if(d) requestClose(d); }}>{t("common.cancel")}</button>
         <button className="btn primary" id="event-save" aria-busy={busy}>{busy && <Spin/>}{t("common.save")}</button></div>
@@ -149,7 +153,7 @@ function RoleChips({roles, value, onChange}: {roles: string[]; value: string[]; 
       {adding
         ? <input className="input role-input sm" list="event-roles" maxLength={40} autoFocus placeholder={t("group.roleOther")} aria-label={t("group.roleOther")} value={other}
             onChange={e => setOther(e.target.value)} onBlur={add} onKeyDown={e => { if(e.key === "Enter"){ e.preventDefault(); add(); } }}/>
-        : <button type="button" className="role-chip add" onClick={() => setAdding(true)}><Icon name="plus" sm/>{t("group.roleOther")}</button>}
+        : <button type="button" className="link-btn role-other" onClick={() => setAdding(true)}>{t("group.roleOther")}</button>}
     </div>
   </div>;
 }

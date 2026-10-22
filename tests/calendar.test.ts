@@ -1,7 +1,7 @@
 // Rode com: npm test
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, attendanceHistory, rehearsalStanding, canCheckIn, pendingCheckIn, waNumber, waLink, fmtPhone, maskPhone, capFirst, toICS, splitEvents, dayKey, upcomingBirthdays, rosterByPerson, needsCover, pendingReplies, streakLevel, comebackProgress, soundOnly, type GEvent, type RosterRow } from "../src/lib/calendar";
+import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, attendanceHistory, rehearsalStanding, canCheckIn, pendingCheckIn, waNumber, waLink, fmtPhone, maskPhone, capFirst, toICS, splitEvents, dayKey, upcomingBirthdays, rosterByPerson, needsCover, pendingReplies, streakLevel, comebackProgress, soundOnly, type GEvent, type RosterRow, onRoster } from "../src/lib/calendar";
 
 const ev = (id: string, starts: Date, kind: GEvent["kind"] = "service"): GEvent =>
   ({id, group_id: "g", kind, title: id, starts_at: starts.toISOString(), call_at: null, place: "", notes: "", setlist_id: null});
@@ -231,4 +231,11 @@ test("histórico: ensaios com chamada fechada, do mais recente ao mais antigo; s
   assert.deepEqual(rows.map(h => [h.event.id, h.status]), [["d", "absent"], ["c", "excused"], ["b", "absent"], ["a", "present"]]);
   assert.deepEqual(attendanceHistory("x", [a, b, c, d], att, now, [r("a", "x"), r("c", "x")]).map(h => h.event.id), ["c", "a"]);
   assert.equal(attendanceHistory("x", [a, b, c, d], att, now, undefined, 2).length, 2);
+});
+
+test("onRoster: está escalado em qualquer função, só neste evento", () => {
+  const roster = [{event_id: "e1", email: "a@x.com"}, {event_id: "e1", email: "a@x.com"}, {event_id: "e2", email: "b@x.com"}];
+  assert.equal(onRoster(roster, "e1", "a@x.com"), true);
+  assert.equal(onRoster(roster, "e1", "b@x.com"), false);
+  assert.equal(onRoster(roster, "e3", "a@x.com"), false);
 });

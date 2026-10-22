@@ -8055,7 +8055,7 @@ dialog.ear-dlg {
 }
 /* Janela do evento */
 dialog.event-dlg {
-  --dlg-w: 640px;
+  --dlg-w: 720px;
 }
 .event-row {
   display: grid;
@@ -8080,9 +8080,59 @@ dialog.event-dlg {
   border-radius: 14px;
   background: var(--surface);
 }
-.event-dlg-card > .people-sub-h {
+.event-dlg-card .people-sub-h {
   margin: 0;
   align-items: baseline;
+}
+/* Card que abre e fecha (ui/FoldCard.tsx): o título inteiro é o botão, com a seta à direita. */
+.fold-card-head {
+  margin: 0;
+}
+.fold-card-head > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.fold-card-chev {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--muted);
+  transition: background var(--t) var(--ease);
+}
+@media (hover: hover) {
+  .fold-card-head > button:hover .fold-card-chev {
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+}
+.fold-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fold-card-body[hidden] {
+  display: none;
+}
+/* "Outra função": link no canto direito da linha dos chips (quebra para a linha de baixo, à direita). */
+.role-other {
+  margin-inline-start: auto;
+  font-size: 0.78rem;
+  padding: 4px 0;
 }
 .roster-edit {
   list-style: none;
@@ -8174,6 +8224,64 @@ dialog.event-dlg {
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
+}
+/* Tela larga: a escala vira tabela como a da agenda (cabeçalho com tom do acento, linhas listradas). Nome,
+   funções e X numa linha só (nome em coluna fixa para os chips alinharem). Com muitas funções os chips
+   quebram dentro da própria coluna; os avisos continuam em linha própria embaixo. */
+.roster-head {
+  display: none;
+}
+@media (min-width: 900px) {
+  .roster-edit {
+    gap: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    overflow: hidden;
+  }
+  .roster-edit > li {
+    border: 0;
+    border-top: 1px solid var(--line);
+    border-radius: 0;
+  }
+  .roster-edit > li:first-child {
+    border-top: 0;
+  }
+  .roster-edit > .roster-card {
+    padding: 6px 8px 6px 12px;
+    background: transparent;
+  }
+  .roster-edit > .roster-card:nth-child(odd) {
+    background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+  }
+  .roster-head {
+    display: grid;
+    grid-template-columns: 146px 1fr 32px;
+    gap: 8px;
+    padding: 7px 8px 7px 12px;
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+    color: var(--muted);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .roster-card.set {
+    grid-template-columns: 146px 1fr 32px;
+    column-gap: 8px;
+  }
+  .roster-card.set .roster-who {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .roster-card.set .roster-roles {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 0;
+  }
+  .roster-card.set .roster-row > .icon-btn {
+    grid-column: 3;
+    grid-row: 1;
+  }
 }
 .roster-warn {
   display: flex;
@@ -9747,7 +9855,7 @@ dialog.member-dlg {
 
 /* Lista do ensaio na agenda (mesma tabela do atalho de presença): nome com as funções ao lado, resposta à direita. */
 .roster-tbl .quick-att-when { flex-wrap: wrap; align-items: center; white-space: normal; row-gap: 4px; }
-.roster-tbl .quick-att-when b { font-weight: 600; }
+.roster-tbl .quick-att-when b { font-weight: 400; }
 .roster-tbl .roster-reason { padding-left: 0; }
 .roster-tbl .quick-att-ctl { justify-content: flex-start; min-width: 110px; }
 
@@ -9756,6 +9864,27 @@ dialog.member-dlg {
 .roster-tbl .quick-att-when { flex-direction: column; align-items: flex-start; gap: 2px; }
 /* Aviso de pausa: na mesma linha do nome; no celular desce para a linha de baixo. */
 .roster-tbl .quick-att-when.with-note { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: 8px; }
+/* Quem não foi escalado nem marcou presença (inclui quem está em pausa): nome discreto, o texto da resposta já diz o motivo. */
+/* Subtítulo dos blocos da escala (Escalados / Não escalados): linha discreta que ocupa a tabela toda. */
+.roster-tbl li.quick-att-sub {
+  display: block;
+  padding: 6px 12px;
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+  box-shadow: inset 2px 0 0 var(--accent);
+  color: var(--ink-2);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+/* O segundo bloco (Não escalados) ganha uma linha mais forte no topo para marcar a divisão. */
+.roster-tbl li.quick-att-sub ~ li.quick-att-sub {
+  border-top-color: var(--line-strong);
+}
+.roster-tbl .quick-att-when.dim b {
+  color: var(--muted);
+  font-weight: 400;
+}
 .roster-tbl .quick-att-when .pause-note { color: var(--pause); font-weight: 600; }
 @media (max-width: 599px) { .roster-tbl .quick-att-when.with-note { flex-direction: column; align-items: flex-start; } }
 .roster-tbl .quick-att-ctl { min-width: 0; }
@@ -9765,7 +9894,7 @@ dialog.member-dlg {
 /* Zebrado leve (a 1ª linha da lista fica lisa; o cabeçalho é o 1º li). Usa --surface-2, que já tem a versão escura. */
 /* Vale para toda tabela .quick-att (escala do ensaio e atalho de presença em Membros). Cabeçalho com um tom próprio (acento sobre o fundo), mais forte que as listras. O seletor repete o de .quick-att-head para vencer. */
 :is(.people-list, .event-more, .member-manage) .quick-att li.quick-att-head { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
-.quick-att li:nth-child(odd):not(.quick-att-head) { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
+.quick-att li:nth-child(odd):not(.quick-att-head, .quick-att-sub) { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
 @media (max-width: 420px) {
   .roster-tbl .quick-att-ctl .chip svg { display: none; }
 }
@@ -9947,3 +10076,12 @@ dialog.member-dlg {
 
 .not-scaled{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:10px 2px 0;line-height:1.4}
 .not-scaled .chip{white-space:normal;border-radius:14px;padding:8px 12px;font-size:0.82rem;line-height:1.4;text-align:left}
+
+/* Escalar ou tirar a pessoa da escala do evento (diálogo do membro aberto pela escala): chip da situação e o botão na mesma linha. */
+.member-roster-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}

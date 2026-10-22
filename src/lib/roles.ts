@@ -31,3 +31,7 @@ export function toggleRole(roles: string[], role: string): string[] {
   const k = role.trim().toLocaleLowerCase();
   return roles.some(r => r.toLocaleLowerCase() === k) ? roles.filter(r => r.toLocaleLowerCase() !== k) : [...roles, role.trim()];
 }
+// Funções com que a pessoa entra numa escala por atalho: a primeira dela (a sugerida), ou uma linha sem função.
+export function rosterRoles(roles: string[]): string[] {
+  return roles.length ? [roles[0]] : [""];
+}

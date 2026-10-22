@@ -179,7 +179,10 @@ também libera o acesso ao app para eles).
 - [ ] **Evento** (só quem lidera cria e edita; Editar e Excluir ficam um em cada ponta no celular e juntos à direita no computador):
   - tipo Culto ou Ensaio, título, data, início, **hora de chegada**, local, repertório do grupo e observações;
   - **repetir** toda semana (2 a 26 vezes);
-  - **escala**: quem toca o quê, com funções sugeridas e "Escalar todos";
+  - **escala**: quem toca o quê, com funções sugeridas e "Escalar todos"; no computador é uma tabela (pessoa e funções
+    numa linha, "Outra função" como link à direita), no celular cada pessoa é um cartão;
+  - tocar numa pessoa da escala abre os detalhes dela e, para quem lidera, o botão **Escalar neste evento** (ou **Tirar da escala**, com confirmação), que grava na hora e mostra os avisos de conflito sem bloquear;
+  - **Detalhes** e **Escala** abrem e fecham pelo título: no computador os dois abrem abertos; no celular só a Escala;
   - avisos ao escalar: marcou que não pode no dia, já está em outro evento no dia ou já recusou; cada pessoa
     mostra quantas vezes já foi escalada no mês.
 - [ ] **Resposta da escala**: abas "Confirmar" e "Não posso" (gravam na hora, com spinner). Quem marca "Não posso" pode indicar
@@ -189,7 +192,7 @@ também libera o acesso ao app para eles).
 - [ ] **Presença nos ensaios**: "Cheguei" (de 12 h antes do início em diante; em ensaio que já começou o membro escolhe entre "Estive" e "Não estive", ou volta a sem marcação; a própria marcação o membro muda quando quiser, mas o que o líder marcou ele não troca direto: usa "Pedir alteração" (dá para cancelar) e o líder aceita ou recusa na chamada; enquanto não marcou, "Sua resposta" sobe para o topo do card) e a chamada de quem lidera
       (presente, falta, justificada), que vale por cima do "Cheguei".
       Em Membros, o botão de check na linha da pessoa marca presença ou falta dos últimos ensaios sem abrir a agenda.
-      A lista do ensaio é uma tabela zebrada (pessoa e resposta, só texto colorido) com os escalados (e quem marcou presença sem estar escalado, como "Não escalado"); enquanto o ensaio não tem escala, aparecem todos os membros ativos, e quem está em pausa fica de fora. A Chamada segue a mesma regra. Quem não foi escalado (inclui quem está em pausa) só vê "Presente" ao marcar a própria presença: a falta não conta para ele, e o banco também recusa. Tocar no título de **Pessoa** ou **Resposta** ordena a lista (de novo, inverte); a resposta do evento vem antes da escala.
+      A lista do ensaio é uma tabela zebrada (pessoa e resposta, só texto colorido) com os escalados e, logo abaixo, os não escalados (quem marcou presença sem estar escalado, como "Não escalado"), em dois blocos (**Escalados** e **Não escalados**, cada um com sua ordem; o subtítulo só aparece quando existem os dois) e com o nome dos não escalados em cinza (discreto); enquanto o ensaio não tem escala, aparecem todos os membros ativos, e quem está em pausa fica de fora. A Chamada segue a mesma regra. Quem não foi escalado (inclui quem está em pausa) só vê "Presente" ao marcar a própria presença: a falta não conta para ele, e o banco também recusa. Tocar no título de **Pessoa** ou **Resposta** ordena a lista (de novo, inverte); a resposta do evento vem antes da escala.
       Tocar na linha de uma pessoa abre os detalhes dela, com o **histórico nos ensaios** (os últimos 12: Presente, Falta ou Justificada).
       Ao alterar a resposta, o link "Alterar resposta" vira "Cancelar" no mesmo lugar e a linha mantém a altura.
 - [ ] **Adicionar ao calendário** (.ics): todas as suas escalas de uma vez (botão no card "Suas próximas escalas"), com lembrete 1 dia e 2 h antes.
