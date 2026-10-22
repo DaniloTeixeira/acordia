@@ -9865,6 +9865,17 @@ dialog.member-dlg {
 /* Aviso de pausa: na mesma linha do nome; no celular desce para a linha de baixo. */
 .roster-tbl .quick-att-when.with-note { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: 8px; }
 /* Quem não foi escalado nem marcou presença (inclui quem está em pausa): nome discreto, o texto da resposta já diz o motivo. */
+/* Subtítulo dos blocos da escala (Escalados / Não escalados): linha discreta que ocupa a tabela toda. */
+.roster-tbl li.quick-att-sub {
+  display: block;
+  padding: 6px 12px;
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 .roster-tbl .quick-att-when.dim b {
   color: var(--muted);
   font-weight: 500;
@@ -9878,7 +9889,7 @@ dialog.member-dlg {
 /* Zebrado leve (a 1ª linha da lista fica lisa; o cabeçalho é o 1º li). Usa --surface-2, que já tem a versão escura. */
 /* Vale para toda tabela .quick-att (escala do ensaio e atalho de presença em Membros). Cabeçalho com um tom próprio (acento sobre o fundo), mais forte que as listras. O seletor repete o de .quick-att-head para vencer. */
 :is(.people-list, .event-more, .member-manage) .quick-att li.quick-att-head { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
-.quick-att li:nth-child(odd):not(.quick-att-head) { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
+.quick-att li:nth-child(odd):not(.quick-att-head, .quick-att-sub) { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
 @media (max-width: 420px) {
   .roster-tbl .quick-att-ctl .chip svg { display: none; }
 }

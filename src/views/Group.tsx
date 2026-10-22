@@ -451,18 +451,21 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
         <li className="quick-att-head"><span className="quick-att-when">{sortHead("name", t("people.colPerson"))}</span><span className="quick-att-ctl">{sortHead("status", t("group.respCol"))}</span><span className="quick-att-go" aria-hidden="true"/></li>
         {/* Uma lista só (escalados e não escalados), na mesma ordem da coluna escolhida. */}
         {[...(
-          people.map(r => ({email: r.email, rank: STATUS_RANK[r.status] ?? 3, li: <li key={r.email} {...openHistory(r.email)}>
+          people.map(r => ({email: r.email, grp: 0, rank: STATUS_RANK[r.status] ?? 3, li: <li key={r.email} {...openHistory(r.email)}>
           <span className="quick-att-when"><b><span>{personName(r.email)}</span>{r.email === me && <YouChip/>}</b>
             {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}</span>
           <span className="quick-att-ctl">{(a => a ? <span className={"chip " + (a.status === "present" ? "st-yes" : a.status === "absent" ? "st-no" : "st-off")}>{t("group.att." + a.status)}</span> : <StatusChip status={r.status} noIcon/>)(att.find(x => x.email === r.email))}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>}))
         ), ...(
           // Quem está em pausa não é escalado nem listado, a menos que tenha marcado presença neste ensaio.
           g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).sort((a, b) => byName(a.email, b.email)).map(m => ({m, sd: rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), here: att.some(a => a.email === m.email && a.status === "present")}))
-          .filter(x => x.here || !x.sd.out).map(({m, sd, here}) => ({email: m.email, rank: here ? 0 : 3, li: <li key={m.email} {...openHistory(m.email)}>
+          .filter(x => x.here || !x.sd.out).map(({m, sd, here}) => ({email: m.email, grp: 1, rank: here ? 0 : 3, li: <li key={m.email} {...openHistory(m.email)}>
           <span className={"quick-att-when" + (sd.out ? " with-note" : "") + (here ? "" : " dim")}><b><span>{personName(m.email)}</span>{m.email === me && <YouChip/>}</b>{sd.out && <> <span className="sub pause-note">{tn("group.standOut", sd.need)}</span></>}</span>
           <span className="quick-att-ctl">{here ? <span className="chip st-yes">{t("group.att.present")}</span> : <span className="chip st-off">{t("group.status.off")}</span>}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>}))
         )]
-          .sort((a, b) => ((order.by === "status" ? a.rank - b.rank : 0) || byName(a.email, b.email)) * (order.desc ? -1 : 1)).map(x => x.li)}</ul>
+          .sort((a, b) => a.grp - b.grp || ((order.by === "status" ? a.rank - b.rank : 0) || byName(a.email, b.email)) * (order.desc ? -1 : 1))
+          // Os dois blocos (escalados e não escalados) só ganham subtítulo quando os dois existem.
+          .flatMap((x, i, all) => all.some(y => y.grp !== x.grp) && (i === 0 || all[i - 1].grp !== x.grp)
+            ? [<li key={"sub" + x.grp} className="quick-att-sub"><span>{t(x.grp ? "group.rosterOff" : "group.rosterOn")} · {all.filter(y => y.grp === x.grp).length}</span></li>, x.li] : [x.li])}</ul>
         : roster.length ? <ul className="roster">{people.map(r => <li key={r.email} className={"st-" + r.status}>
         <span className="roster-who">{personName(r.email)}{r.email === me && <YouChip/>}</span>
         <StatusChip status={r.status}/>
