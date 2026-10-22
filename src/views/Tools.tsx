@@ -30,7 +30,7 @@ export function Tools(){
     <div className="view-head"><div>
       <BackLink id="tools-back" label={t("common.back")} onClick={() => go("more")} mobileOnly/>
       <h1 id="tools-h">{t("tools.title")}</h1><p className="sub">{t("tools.sub")}</p></div></div>
-    <Seg id="tools-tabs" aria={t("tools.title")} value={tab} onChange={v => store.setSetting("toolsTab", v)}
+    <Seg id="tools-tabs" className={tab === "voice" ? "block wide" : "block"} aria={t("tools.title")} value={tab} onChange={v => store.setSetting("toolsTab", v)}
       options={[{v: "metro", label: t("tools.metro")}, {v: "tuner", label: t("tools.tuner")}, {v: "pad", label: t("tools.pad")}, {v: "voice", label: t("tools.voice")}]}/>
     <div id="tools-metro" hidden={tab !== "metro"}>{tab === "metro" && <MetronomeUI/>}</div>
     <div id="tools-tuner" hidden={tab !== "tuner"}>{tab === "tuner" && <Tuner/>}</div>

@@ -5,6 +5,7 @@ import { sanitizeOptions, songTitle, DEFAULT_OPTIONS } from "./core";
 import { t } from "./i18n";
 import type { Song, Medley, Item, SongItem, MedleyItem, Options, Settings } from "./types";
 
+const OPEN_LIMIT = 4000;
 const DB_NAME = "acordia", DB_VERSION = 1, STORES = ["songs","medleys","settings"] as const;
 type StoreName = typeof STORES[number];
 export const data = {songs: new Map<string, Song>(), medleys: new Map<string, Medley>(), settings: {} as Settings};
@@ -59,15 +60,21 @@ export function flush(){ [...pending.values()].forEach(p => { clearTimeout(p.tim
 
 export async function init(errorHandler?: (e: unknown) => void){
   if(errorHandler) onError = errorHandler;
-  try{
-    db = await openDB();
+  // No celular o IndexedDB às vezes não responde (app voltando do segundo plano): sem limite, a primeira
+  // tela nunca aparece. Passado o prazo o app abre vazio e, se o banco responder depois, os dados entram.
+  let late = false;
+  const load = async () => {
+    const d = await openDB();
     const [songs, medleys, settings] = await Promise.all([all<Song>("songs"), all<Medley>("medleys"), all<{key: string; value: unknown}>("settings")]);
-    songs.forEach(s=>data.songs.set(s.id, s));
-    medleys.forEach(m=>data.medleys.set(m.id, m));
-    settings.forEach(s=>{ data.settings[s.key] = s.value; });
-  }catch(e){
-    db = null; onError(e);
-  }
+    db = d;
+    songs.forEach(s=>{ if(!data.songs.has(s.id)) data.songs.set(s.id, s); });
+    medleys.forEach(m=>{ if(!data.medleys.has(m.id)) data.medleys.set(m.id, m); });
+    settings.forEach(s=>{ if(!(s.key in data.settings)) data.settings[s.key] = s.value; });
+    if(late){ cleanup(); touch(); }
+  };
+  const loading = load().catch(e => { db = null; onError(e); });
+  await Promise.race([loading, new Promise<void>(r => setTimeout(r, OPEN_LIMIT))]);
+  if(!db) late = true;
   cleanup();
   if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
   touch();
