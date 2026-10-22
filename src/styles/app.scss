@@ -7808,15 +7808,14 @@ dialog.ear-dlg {
   gap: 4px;
   margin-top: 6px;
 }
-.event-chips:empty,
-.event-chips.below {
+.event-chips:empty {
   display: none;
 }
-/* Celular: os chips saem do lado da data (coluna estreita) e vão para uma linha própria embaixo, com a largura
-   toda do card; cada chip estica para preencher a linha. */
+/* Os chips ficam sempre numa linha própria embaixo do cabeçalho, para o tamanho da data não depender deles
+   (igual em Próximos e Anteriores). No celular cada chip estica para preencher a linha. */
+.event-chips.below { margin-top: 8px; }
 @media (max-width: 599px) {
-  .event-chips.beside { display: none; }
-  .event-chips.below:not(:empty) { display: flex; margin-top: 0; }
+  .event-chips.below { margin-top: 0; }
   .event-chips.below .chip { flex: 1 1 auto; justify-content: center; text-align: center; }
 }
 .chip.kind-rehearsal {
