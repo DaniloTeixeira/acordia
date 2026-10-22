@@ -12,10 +12,10 @@ import { useGroups, chooseGroup, personName, amGroupAdmin, type GroupSetlist } f
 import { useData, openDialog } from "../state";
 import { openGroupSetlist } from "./Group";
 import { Icon } from "../ui/Icon";
-import { Spin } from "./Account";
 import { sortRoles } from "../lib/roles";
 import { useGroupRefresh, ReplySeg, openGroup, eventTitle, fmt, timeOf, longDay, useSquareBadge, relDay, PersonAvatar, GroupMark, GroupPhotoButton } from "./Group";
 import { SecHead } from "../ui/SecHead";
+import { CardSkeleton } from "../ui/Skeleton";
 import { LinkCard, IconMark } from "../ui/LinkCard";
 import { YouChip } from "../ui/YouChip";
 
@@ -66,9 +66,9 @@ export function Home(){
         {leader && <button type="button" className="btn soft sm home-new-event" id="home-new-event" onClick={() => openDialog("event", {id: null, day: dayKey(new Date())})}><Icon name="plus" sm/> {t("group.newEvent")}</button>}
       </Block>
     </> : <>
-      <div className="card empty-state wide">{!g.loaded || g.loading ? <><Spin/><span>{t("auth.loading")}</span></>
-        : <><Icon name="users"/><strong>{t("group.none")}</strong><span>{t(admin ? "group.noneAdmin" : "group.noneSub")}</span>
-          {admin && <button className="btn primary" onClick={() => openDialog("newGroup", {})}><Icon name="plus" sm/> {t("group.create")}</button>}</>}</div>
+      {!g.loaded || g.loading ? <><CardSkeleton wide lines={4}/><CardSkeleton wide/></>
+        : <div className="card empty-state wide"><Icon name="users"/><strong>{t("group.none")}</strong><span>{t(admin ? "group.noneAdmin" : "group.noneSub")}</span>
+          {admin && <button className="btn primary" onClick={() => openDialog("newGroup", {})}><Icon name="plus" sm/> {t("group.create")}</button>}</div>}
     </>}
       {study.length > 0 && <StudyBlock list={study} wide={!pair}/>}
       {group && showGroups && <Groups upcoming={upcoming.length} wide={!pair}/>}

@@ -17,6 +17,9 @@ import { sortRoles, joinRoles, splitRoles } from "../lib/roles";
 import { MemberRoles, RolePicker, ReplySeg, GroupMark, eventTitle, timeOf, longDay, openGroup } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
 import { SecHead } from "../ui/SecHead";
+import { FoldCard } from "../ui/FoldCard";
+import { PeopleSkeleton } from "../ui/PeopleSkeleton";
+import { SkelLine } from "../ui/Skeleton";
 import { PhoneInput } from "../ui/PhoneInput";
 import { NameInput } from "../ui/NameInput";
 import { YouChip } from "../ui/YouChip";
@@ -722,7 +725,7 @@ function PeopleLink(){
   return <section className="card profile-sec profile-people" id="profile-users" aria-labelledby="profile-users-h">
     <SecHead id="profile-users-h">{t("people.title")}{recent.length > 0 && <span className="count-chip">{recent.length}</span>}</SecHead>
     <p className="sub people-hint">{t("people.hint")}</p>
-    {rows === null ? <span className="sub">{t("auth.loading")}</span> : recent.length > 0 && <>
+    {rows === null ? <span className="people-skel-sum" role="status" aria-busy="true"><span className="sr-only">{t("auth.loading")}</span><span className="skel-avatars" aria-hidden="true">{[0, 1, 2, 3].map(i => <span key={i} className="skel avatar"/>)}</span><SkelLine w={50}/></span> : recent.length > 0 && <>
       <span className="scale-people" aria-hidden="true">{recent.slice(0, 8).map(r => <Avatar key={r.email} person={{name: r.profileName || r.name, email: r.email, photo: r.profilePhoto}}/>)}
         {recent.length > 8 && <span className="avatar more">+{recent.length - 8}</span>}</span>
       <ul className="profile-users-stats">
@@ -798,9 +801,10 @@ function People({me}: {me: string}){
     toast(t("people.added", {email: v})); setAEmail(""); setAName(""); setABirthday(""); setAPhone(""); check.reset(); load();
   }); };
   return <div className="card people-card people-page">
+    {/* No celular o cadastro começa fechado, para a lista de usuários aparecer logo. */}
+    <FoldCard id="people-add-card" title={t("people.addTitle")} defaultOpen={!matchMedia("(max-width: 899px)").matches}>
     <p className="sub">{t("people.addSub")}</p>
     <form className="member-add people-add-box" onSubmit={add} noValidate>
-      <SecHead as="h3" className="people-sub-h">{t("people.addTitle")}</SecHead>
       <div className="people-add">
         <PersonFields idp="people-add" name={aName} onName={setAName} email={aEmail} onEmail={setAEmail} phone={aPhone} onPhone={setAPhone} birthday={aBirthday} onBirthday={setABirthday} check={check}/>
       </div>
@@ -808,14 +812,15 @@ function People({me}: {me: string}){
         <button className="btn primary" aria-busy={adding} disabled={adding}>{adding ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
       </div>
     </form>
+    </FoldCard>
     <SecHead as="h3" className="people-sub-h">{t("people.listTitle")} {rows && rows.length > 0 && <span className="count-chip">{nq && shown ? shown.length + "/" + rows.length : rows.length}</span>}</SecHead>
     {rows && rows.length > 0 && <PeopleTools idp="people" f={filter}/>}
     {/* Cabeçalho da lista, como numa tabela: marca onde as pessoas começam (no celular, só a faixa). */}
     {shown && shown.length > 0 && <div className="people-list-head" aria-hidden="true"><span>{t("people.colPerson")}</span></div>}
-    <ul className="people-list" id="people-list" ref={filter.listRef}>
+    <ul className="people-list" id="people-list" ref={filter.listRef} aria-busy={shown === null}>
       {nq && shown && !shown.length && <li className="sub">{t("lib.noResults")}</li>}
       {failed && <li className="sub">{t("profile.loadFail")} <button type="button" className="link-btn" onClick={load}>{t("common.retry")}</button></li>}
-      {shown === null ? <li className="sub">{t("auth.loading")}</li> : shown.map(r => {
+      {shown === null ? <PeopleSkeleton/> : shown.map(r => {
         const nm = r.profileName || r.name, bd = r.profileBirthday || r.birthday, ph = r.profilePhone || r.phone;
         const noGroup = !!grouped && !grouped.has(r.email);
         const openPerson = () => openDialog("member", {email: r.email, person: {name: nm, phone: ph, birthday: bd || null, photo: r.profilePhoto || ""}, manage: {row: r, onChanged: load, noGroup}});

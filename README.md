@@ -53,7 +53,7 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
   - **estado da nuvem** (só quando há algo a saber): "Sincronizando…", mudanças esperando, sem internet ou erro, com
     "Sincronizar agora";
   - **Sair**: tenta subir o que falta, avisa se algo vai se perder e apaga os dados deste aparelho.
-- [ ] **Usuários** do app (só admins, pelo card no Perfil ou pela aba Usuários do menu lateral da tela larga; é a lista de todos com acesso, com ou sem grupo): cadastrar usuário sem grupo (nome, e-mail, celular e nascimento; depois dá para colocar em um grupo em Grupo → Membros), todos com acesso ao app, com busca e ordem; editar os dados,
+- [ ] **Usuários** do app (só admins, pelo card no Perfil ou pela aba Usuários do menu lateral da tela larga; é a lista de todos com acesso, com ou sem grupo): cadastrar usuário sem grupo (no celular o card de cadastro abre fechado; nome, e-mail, celular e nascimento; depois dá para colocar em um grupo em Grupo → Membros), todos com acesso ao app, com busca e ordem; editar os dados,
       tornar ou tirar admin (só o Dono, com confirmação ao dar) e excluir a pessoa do sistema (acesso, grupos e conta de login). A lista mostra só a pessoa
       (nome, e-mail, celular e uma linha de chips: "Acessou" ou "Não acessou" (ainda não fez login) e "Sem grupo" para quem não está em nenhum grupo); as ações ficam na janela de detalhes, em "Acesso ao app".
 - [ ] **Músicas e repertórios na nuvem**, iguais em todos os aparelhos da conta:

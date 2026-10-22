@@ -4421,6 +4421,9 @@ a.btn {
   place-items: center;
   color: #cbd5e1;
   font-size: 0.9rem;
+  /* Pulsa como os esqueletos (.skel) até o vídeo carregar. */
+  background: rgba(148, 163, 184, 0.14);
+  animation: skel-pulse 1.2s ease-in-out infinite alternate;
 }
 .player-tools {
   display: flex;
@@ -6809,16 +6812,17 @@ dialog.ear-dlg {
   font-weight: 700;
   color: var(--ink);
 }
-/* Seções de dentro de um card com título (Detalhes, Escala, Observações, Sua resposta do evento; Adicionar membro e
+/* Seções de dentro de um card com título (Detalhes, Escala, Observações, Sua resposta do evento; Cadastrar membro e
    a lista de Membros): um ponto no gradiente em vez do traço, e letra menor, para não competirem com o título do card. */
 .event-sec > .people-sub-h,
+.fold-card-head .people-sub-h,
 .people-card:not(.people-page) .people-sub-h {
   font-size: 0.86rem;
 }
-:is(.event-sec > .people-sub-h, .people-card:not(.people-page) .people-sub-h) > .sec-bar {
+:is(.event-sec > .people-sub-h, .fold-card-head .people-sub-h, .people-card:not(.people-page) .people-sub-h) > .sec-bar {
   width: 7px;
 }
-:is(.event-sec > .people-sub-h, .people-card:not(.people-page) .people-sub-h) > .sec-bar::before {
+:is(.event-sec > .people-sub-h, .fold-card-head .people-sub-h, .people-card:not(.people-page) .people-sub-h) > .sec-bar::before {
   height: 7px;
   border-radius: 50%;
 }
@@ -7044,6 +7048,64 @@ dialog.ear-dlg {
   list-style: none;
   margin: 0;
   padding: 0;
+}
+/* Esqueleto da lista de pessoas (ui/PeopleSkeleton.tsx): blocos que pulsam no lugar de foto e textos. */
+.skel {
+  display: block;
+  border-radius: 6px;
+  background: var(--surface-2);
+  animation: skel-pulse 1.2s ease-in-out infinite alternate;
+}
+.skel-avatar {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+}
+.skel-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.skel-line {
+  height: 12px;
+}
+.skel-title {
+  width: 40%;
+  height: 18px;
+}
+.skel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.people-skel-sum {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.skel-avatars {
+  display: flex;
+  gap: 6px;
+}
+.skel.avatar {
+  background: var(--surface-2);
+}
+.skel-line.w80 { width: 80%; }
+.skel-line.w60 { width: 60%; }
+.skel-line.w40 { width: 40%; }
+.people-list li.people-skel {
+  flex-wrap: nowrap;
+  gap: 12px;
+  min-height: 80px;
+}
+@keyframes skel-pulse {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skel, .player-loading { animation: none; }
 }
 /* Toda linha com a mesma altura do rodapé do card do perfil (65 px com borda e espaço: cabe nome e e-mail),
    para as linhas de baixo dos dois cards baterem lado a lado, tenha a pessoa nome e e-mail ou só o e-mail. */
@@ -8069,21 +8131,12 @@ dialog.event-dlg {
     grid-column: 1 / -1;
   }
 }
-/* O modal do evento tem dois cards (detalhes e escala), cada um com o título de barra gradiente. */
-.event-dlg-card {
+/* Seção que abre e fecha (ui/FoldCard.tsx): o título inteiro é o botão, com a seta à direita; sem moldura própria. */
+.fold-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
 }
-.event-dlg-card .people-sub-h {
-  margin: 0;
-  align-items: baseline;
-}
-/* Card que abre e fecha (ui/FoldCard.tsx): o título inteiro é o botão, com a seta à direita. */
 .fold-card-head {
   margin: 0;
 }
@@ -8371,7 +8424,7 @@ dialog.event-dlg {
   pointer-events: none;
 }
 /* Janela de detalhes do membro */
-/* Quem é a pessoa (foto, nome, contato, chips) num card, como a caixa "Adicionar membro". */
+/* Quem é a pessoa (foto, nome, contato, chips) num card, como a caixa "Cadastrar membro". */
 .member-dlg-who {
   display: flex;
   align-items: center;
@@ -8532,7 +8585,7 @@ dialog.member-dlg {
   font-size: 0.85rem;
   max-width: 160px;
 }
-/* Adicionar membro: escolher alguém do cadastro de usuários preenche o formulário. */
+/* Cadastrar membro: escolher alguém do cadastro de usuários preenche o formulário. */
 .member-add .member-pick {
   width: 100%;
   margin-bottom: 10px;
@@ -9197,7 +9250,7 @@ dialog.member-dlg {
     align-self: flex-start;
   }
 }
-/* Funções é item de dentro de "Adicionar membro": título menor, em negrito, sem o ponto do subtítulo de seção. */
+/* Funções é item de dentro de "Cadastrar membro": título menor, em negrito, sem o ponto do subtítulo de seção. */
 .role-picker .lbl {
   font-size: 0.86rem;
   font-weight: 700;

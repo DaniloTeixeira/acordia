@@ -26,11 +26,12 @@ import { Icon } from "../ui/Icon";
 import { CopyBtn } from "../ui/CopyBtn";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
-import { useFold, FoldHead } from "../ui/Fold";
 import { SKIP_OPEN, StreakChip, useLock, Spin, Avatar, PersonFields, useEmailCheck, pickPhoto, PhoneLink, today, usePeopleFilter, PeopleTools } from "./Account";
 import { DateInput } from "../ui/DateInput";
 import { useMedia } from "../ui/hooks";
 import { SecHead } from "../ui/SecHead";
+import { FoldCard } from "../ui/FoldCard";
+import { CardSkeleton } from "../ui/Skeleton";
 import { PhoneInput } from "../ui/PhoneInput";
 import { NameInput } from "../ui/NameInput";
 import { YouChip } from "../ui/YouChip";
@@ -196,7 +197,7 @@ export function Group(){
     {actions && <div className="actions">{actions}</div>}</div>;
   if(!group) return <section className="view" id="view-group" data-view="group" aria-labelledby="group-h">
     {head(t("group.sub"))}
-    {!g.loaded || g.loading ? <div className="card empty-state"><Spin/><span>{t("auth.loading")}</span></div>
+    {!g.loaded || g.loading ? <CardSkeleton lines={4}/>
       : g.error ? <div className="card empty-state"><Icon name="sync"/><strong>{t("group.loadFail")}</strong><button className="btn ghost" onClick={() => loadGroups()}>{t("group.retry")}</button></div>
       : <div className="card empty-state"><Icon name="users"/><strong>{t("group.none")}</strong><span>{t(admin ? "group.noneAdmin" : "group.noneSub")}</span>{admin && <NewGroup/>}</div>}
   </section>;
@@ -542,10 +543,11 @@ function Members({canEdit}: {canEdit: boolean}){
   const leaderNow = g.members.find(m => m.is_admin);
   const load = monthLoad(dayKey(new Date()), g.events, g.roster);
   // Puxar do cadastro (só admins do app leem a lista): quem tem acesso e ainda não está no grupo.
-  const [allowed, setAllowed] = useState<Allowed[]>([]);
+  // null: ainda lendo a lista (o seletor aparece desativado, para o formulário não pular).
+  const [allowed, setAllowed] = useState<Allowed[] | null>(null);
   // Também diz quem é o Dono: os dados dele só ele muda (o editar fica só com as funções).
-  useEffect(() => { if(appAdmin) listAllowed().then(r => r && setAllowed(r)); }, [appAdmin, g.members.length]);
-  const outside = allowed.filter(a => !g.members.some(m => m.email === a.email));
+  useEffect(() => { if(appAdmin) listAllowed().then(r => setAllowed(a => r || a || [])); }, [appAdmin, g.members.length]);
+  const outside = (allowed || []).filter(a => !g.members.some(m => m.email === a.email));
   const pickUser = (v: string) => {
     const a = outside.find(x => x.email === v); if(!a) return;
     setEmail(a.email); setName(a.profileName || a.name); setBirthday(a.profileBirthday || a.birthday || ""); setPhone(a.profilePhone || a.phone);
@@ -562,19 +564,17 @@ function Members({canEdit}: {canEdit: boolean}){
     }
     toast(t("group.memberAdded", {email: v})); setEmail(""); setName(""); setBirthday(""); setPhone(""); setRoles([]); setAsAdmin(false); setAsOut(false); check.reset();
   }); };
-  const fold = useFold("group-members");
   // Busca e ordem, como na lista "Com acesso" do Perfil (recentes: pela data em que entrou no grupo).
   const filter = usePeopleFilter(g.members, "acordia-members-order", m => m.name, m => m.created_at || ""), shown = filter.shown || [];
   return <div className="profile-grid">
-    <div className={"card people-card" + fold.cls}>
-      <FoldHead folded={fold.folded} onToggle={fold.toggle} title={t("group.membersTab")}/>
-      <SecHead>{t("group.membersTab")}</SecHead>
-      <div className="card-body">
-      {canEdit && <><p className="sub">{t("group.addSub")}</p>
+    <div className="card people-card people-page">
+      {/* No celular o cadastro começa fechado, para a lista de membros aparecer logo. */}
+      {canEdit && <>
+        <FoldCard id="member-add" title={t("group.addTitle")} defaultOpen={!matchMedia("(max-width: 899px)").matches}>
+        <p className="sub">{t("group.addSub")}</p>
         <form className="member-add people-add-box" onSubmit={add} noValidate>
-          <SecHead as="h3" className="people-sub-h">{t("group.addTitle")}</SecHead>
-          {outside.length > 0 && <Select id="member-pick" className="member-pick" aria={t("group.pickUser")} value={outside.some(a => a.email === email) ? email : ""} onChange={pickUser}
-            options={[{value: "", label: t("group.pickUser")}, ...outside.map(a => ({value: a.email, label: a.profileName || a.name || a.email, sub: (a.profileName || a.name) ? a.email : undefined}))]}/>}
+          {appAdmin && (allowed === null ? <Select id="member-pick" className="member-pick" aria={t("auth.loading")} disabled value="" onChange={() => {}} options={[{value: "", label: t("auth.loading")}]}/> : outside.length > 0 && <Select id="member-pick" className="member-pick" aria={t("group.pickUser")} value={outside.some(a => a.email === email) ? email : ""} onChange={pickUser}
+            options={[{value: "", label: t("group.pickUser")}, ...outside.map(a => ({value: a.email, label: a.profileName || a.name || a.email, sub: (a.profileName || a.name) ? a.email : undefined}))]}/>)}
           <div className="people-add">
             <PersonFields idp="member" name={name} onName={setName} email={email} onEmail={setEmail} phone={phone} onPhone={setPhone} birthday={birthday} onBirthday={setBirthday} check={check}/>
             {!leaderNow && <label className="switch lead boxed"><span>{t("group.leader")}</span><input type="checkbox" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>}
@@ -587,7 +587,8 @@ function Members({canEdit}: {canEdit: boolean}){
           <div className="member-roles-foot">
             <button className="btn primary" aria-busy={busy === "add"}>{busy === "add" ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
           </div>
-        </form></>}
+        </form>
+        </FoldCard></>}
       <SecHead as="h3" className="people-sub-h">{t("group.listTitle")} <span className="count-chip">{filter.nq ? shown.length + "/" + g.members.length : g.members.length}</span></SecHead>
       {g.members.length > 0 && <PeopleTools idp="members" f={filter}/>}
       {/* Cabeçalho como o da lista "Com acesso" do Perfil. */}
@@ -619,7 +620,6 @@ function Members({canEdit}: {canEdit: boolean}){
           {/* Chevron: indica que a linha inteira abre os detalhes. */}
           <span className="member-open-hint" aria-hidden="true">›</span>
         </li>; })}</ul>
-      </div>
     </div>
   </div>;
 }
