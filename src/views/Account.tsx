@@ -801,7 +801,7 @@ function People({me}: {me: string}){
   return <div className="card people-card people-page">
     <p className="sub">{t("people.addSub")}</p>
     {/* No celular o cadastro começa fechado, para a lista de usuários aparecer logo. */}
-    <FoldCard outside id="people-add-card" title={t("people.addTitle")} defaultOpen={!matchMedia("(max-width: 899px)").matches}>
+    <FoldCard id="people-add-card" title={t("people.addTitle")} defaultOpen={!matchMedia("(max-width: 899px)").matches}>
     <form className="member-add people-add-box" onSubmit={add} noValidate>
       <div className="people-add">
         <PersonFields idp="people-add" name={aName} onName={setAName} email={aEmail} onEmail={setAEmail} phone={aPhone} onPhone={setAPhone} birthday={aBirthday} onBirthday={setABirthday} check={check}/>

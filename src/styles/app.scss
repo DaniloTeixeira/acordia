@@ -6812,13 +6812,14 @@ dialog.ear-dlg {
 /* Seções de dentro de um card com título (Detalhes, Escala, Observações, Sua resposta do evento; Cadastrar membro e
    a lista de Membros): um ponto no gradiente em vez do traço, e letra menor, para não competirem com o título do card. */
 .event-sec > .people-sub-h,
+.fold-card-head .people-sub-h,
 .people-card:not(.people-page) .people-sub-h {
   font-size: 0.86rem;
 }
-:is(.event-sec > .people-sub-h, .people-card:not(.people-page) .people-sub-h) > .sec-bar {
+:is(.event-sec > .people-sub-h, .fold-card-head .people-sub-h, .people-card:not(.people-page) .people-sub-h) > .sec-bar {
   width: 7px;
 }
-:is(.event-sec > .people-sub-h, .people-card:not(.people-page) .people-sub-h) > .sec-bar::before {
+:is(.event-sec > .people-sub-h, .fold-card-head .people-sub-h, .people-card:not(.people-page) .people-sub-h) > .sec-bar::before {
   height: 7px;
   border-radius: 50%;
 }
@@ -8069,29 +8070,14 @@ dialog.event-dlg {
     grid-column: 1 / -1;
   }
 }
-/* O modal do evento tem dois cards (detalhes e escala), cada um com o título de barra gradiente. */
-.event-dlg-card {
+/* Seção que abre e fecha (ui/FoldCard.tsx): o título inteiro é o botão, com a seta à direita; sem moldura própria. */
+.fold-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
 }
-.event-dlg-card .people-sub-h {
-  margin: 0;
-  align-items: baseline;
-}
-/* Card que abre e fecha (ui/FoldCard.tsx): o título inteiro é o botão, com a seta à direita. */
 .fold-card-head {
   margin: 0;
-}
-/* Título fora do quadro, como na Agenda: a seção não tem moldura própria; o conteúdo traz a sua. */
-.fold-card.outside {
-  padding: 0;
-  border: 0;
-  background: none;
 }
 .fold-card-head > button {
   display: flex;
