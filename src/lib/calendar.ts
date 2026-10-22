@@ -10,7 +10,7 @@ export interface GEvent {
 }
 // cover: e-mail de quem cobre a vaga de quem disse "não posso" (vazio ou ausente = ninguém indicado).
 export interface RosterRow { event_id: string; email: string; role: string; status: Answer; reason: string; cover?: string }
-export interface AttendanceRow { event_id: string; email: string; status: Presence; by_admin: boolean }
+export interface AttendanceRow { event_id: string; email: string; status: Presence; by_admin: boolean; req_status?: "present" | "absent" | null }
 export interface Unavail { email: string; day: string; note: string }
 
 // Dia local "AAAA-MM-DD" de uma data (a agenda pensa no dia de quem está olhando).
