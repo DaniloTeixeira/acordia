@@ -19,6 +19,7 @@ import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
 import { SecHead } from "../ui/SecHead";
 import { FoldCard } from "../ui/FoldCard";
 import { PeopleSkeleton } from "../ui/PeopleSkeleton";
+import { SkelLine } from "../ui/Skeleton";
 import { PhoneInput } from "../ui/PhoneInput";
 import { NameInput } from "../ui/NameInput";
 import { YouChip } from "../ui/YouChip";
@@ -724,7 +725,7 @@ function PeopleLink(){
   return <section className="card profile-sec profile-people" id="profile-users" aria-labelledby="profile-users-h">
     <SecHead id="profile-users-h">{t("people.title")}{recent.length > 0 && <span className="count-chip">{recent.length}</span>}</SecHead>
     <p className="sub people-hint">{t("people.hint")}</p>
-    {rows === null ? <span className="sub">{t("auth.loading")}</span> : recent.length > 0 && <>
+    {rows === null ? <span className="people-skel-sum" role="status" aria-busy="true"><span className="sr-only">{t("auth.loading")}</span><span className="skel-avatars" aria-hidden="true">{[0, 1, 2, 3].map(i => <span key={i} className="skel avatar"/>)}</span><SkelLine w={50}/></span> : recent.length > 0 && <>
       <span className="scale-people" aria-hidden="true">{recent.slice(0, 8).map(r => <Avatar key={r.email} person={{name: r.profileName || r.name, email: r.email, photo: r.profilePhoto}}/>)}
         {recent.length > 8 && <span className="avatar more">+{recent.length - 8}</span>}</span>
       <ul className="profile-users-stats">

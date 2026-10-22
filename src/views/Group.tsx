@@ -31,6 +31,7 @@ import { DateInput } from "../ui/DateInput";
 import { useMedia } from "../ui/hooks";
 import { SecHead } from "../ui/SecHead";
 import { FoldCard } from "../ui/FoldCard";
+import { CardSkeleton } from "../ui/Skeleton";
 import { PhoneInput } from "../ui/PhoneInput";
 import { NameInput } from "../ui/NameInput";
 import { YouChip } from "../ui/YouChip";
@@ -196,7 +197,7 @@ export function Group(){
     {actions && <div className="actions">{actions}</div>}</div>;
   if(!group) return <section className="view" id="view-group" data-view="group" aria-labelledby="group-h">
     {head(t("group.sub"))}
-    {!g.loaded || g.loading ? <div className="card empty-state"><Spin/><span>{t("auth.loading")}</span></div>
+    {!g.loaded || g.loading ? <CardSkeleton lines={4}/>
       : g.error ? <div className="card empty-state"><Icon name="sync"/><strong>{t("group.loadFail")}</strong><button className="btn ghost" onClick={() => loadGroups()}>{t("group.retry")}</button></div>
       : <div className="card empty-state"><Icon name="users"/><strong>{t("group.none")}</strong><span>{t(admin ? "group.noneAdmin" : "group.noneSub")}</span>{admin && <NewGroup/>}</div>}
   </section>;

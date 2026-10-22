@@ -4421,6 +4421,9 @@ a.btn {
   place-items: center;
   color: #cbd5e1;
   font-size: 0.9rem;
+  /* Pulsa como os esqueletos (.skel) até o vídeo carregar. */
+  background: rgba(148, 163, 184, 0.14);
+  animation: skel-pulse 1.2s ease-in-out infinite alternate;
 }
 .player-tools {
   display: flex;
@@ -7068,6 +7071,27 @@ dialog.ear-dlg {
 .skel-line {
   height: 12px;
 }
+.skel-title {
+  width: 40%;
+  height: 18px;
+}
+.skel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.people-skel-sum {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.skel-avatars {
+  display: flex;
+  gap: 6px;
+}
+.skel.avatar {
+  background: var(--surface-2);
+}
 .skel-line.w80 { width: 80%; }
 .skel-line.w60 { width: 60%; }
 .skel-line.w40 { width: 40%; }
@@ -7081,7 +7105,7 @@ dialog.ear-dlg {
   to { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .skel { animation: none; }
+  .skel, .player-loading { animation: none; }
 }
 /* Toda linha com a mesma altura do rodapé do card do perfil (65 px com borda e espaço: cabe nome e e-mail),
    para as linhas de baixo dos dois cards baterem lado a lado, tenha a pessoa nome e e-mail ou só o e-mail. */
