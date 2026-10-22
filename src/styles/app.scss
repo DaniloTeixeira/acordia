@@ -8598,17 +8598,32 @@ dialog.member-dlg {
 .lib-card .foot.group-set-foot .btn {
   margin-right: 0;
 }
-/* Abas das Ferramentas: no celular estreito, rolam de lado em vez de alargar a página. */
+/* No desktop a barra tem a largura do card da aba ativa (560px; Voz, 720px, como .voice-card). */
 #tools-tabs {
-  overflow-x: auto;
-  scrollbar-width: none;
-  overscroll-behavior-x: contain;
+  max-width: 560px;
 }
-#tools-tabs::-webkit-scrollbar {
-  display: none;
+#tools-tabs.wide {
+  max-width: 720px;
 }
+/* Cada aba cresce conforme o texto; no celular o espaço e a letra diminuem e, se ainda faltar, corta com reticências
+   (sem rolar de lado, para o indicador não sair do lugar). */
 #tools-tabs button {
-  flex-shrink: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 599px) {
+  #tools-tabs button {
+    padding-inline: 8px;
+    font-size: 0.82rem;
+  }
+}
+@media (max-width: 360px) {
+  #tools-tabs button {
+    padding-inline: 5px;
+    font-size: 0.78rem;
+  }
 }
 
 /* ---------- Início ---------- */
