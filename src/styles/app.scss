@@ -9386,6 +9386,69 @@ dialog.member-dlg {
 .profile-stat.is-warn .meter > i {
   background: var(--warn);
 }
+/* Regra da pausa: só o texto de apoio, no pé do card. */
+.profile-sec.profile-att > small.att-rule {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 0.82rem;
+  color: var(--accent-soft-ink);
+  opacity: 0.85;
+}
+/* Últimos ensaios em bolinhas: verde presente, vermelho falta, cinza justificada. */
+.att-dots-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 8px;
+  font-weight: 400;
+  font-size: 0.82rem;
+  line-height: 1.2;
+}
+.att-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.att-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  line-height: 1.2;
+  color: var(--ink-2);
+}
+.att-dot > i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--line);
+}
+.att-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin: 0 0 0 auto;
+  padding: 0;
+  list-style: none;
+}
+.att-legend > .att-dot {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.att-legend > .att-dot > i {
+  width: 8px;
+  height: 8px;
+}
+.att-dot.present > i { background: var(--ok-vivid); }
+.att-dot.absent > i { background: var(--bad-vivid); }
+/* A data sem bolinha leva a cor da situação; a legenda mantém o ponto. */
+.att-dots > .att-dot.present { color: var(--ok); }
+.att-dots > .att-dot.absent { color: var(--bad); }
 .profile-next-box {
   display: flex;
   flex-direction: column;
