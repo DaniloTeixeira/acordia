@@ -519,7 +519,7 @@ function Attendance({e}: {e: GEvent}){
         {a?.req_status && <span className="att-req"><span className="chip st-pending">{t("group.reqWants", {to: t("group.att." + a.req_status)})}</span>
           <button type="button" className="btn sm soft" disabled={busy === m.email} onClick={() => mark(m.email, a.req_status!)}>{t("group.reqAccept")}</button>
           <button type="button" className="btn sm ghost" disabled={busy === m.email} onClick={async () => { setBusy(m.email); const ok = await declineAttendanceChange(e.id, m.email).finally(() => setBusy("")); if(!ok) toast(t("profile.saveFail")); }}>{t("group.reqDecline")}</button></span>}
-        <Seg className="sm" aria={t("group.attendance") + ": " + personName(m.email)} value={(a?.status || (rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster).out ? "paused" : "")) as Presence | ""} onChange={v => mark(m.email, a && v === a.status ? "" : v)}
+        <Seg className="sm" aria={t("group.attendance") + ": " + personName(m.email)} value={(a?.status || "") as Presence | ""} onChange={v => mark(m.email, v === a?.status ? "" : v)}
           options={[{v: "present", label: t("group.att.present")}, {v: "absent", label: t("group.att.absent")}, {v: "paused", label: t("group.att.paused")}]}/></li>; })}</ul></div>}
   </div>;
 }
