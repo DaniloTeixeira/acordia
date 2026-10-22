@@ -4258,6 +4258,10 @@ a.btn {
   margin: 0;
 }
 .voice-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   font-weight: 700;
   margin: 0;
 }
@@ -8470,11 +8474,15 @@ dialog.member-dlg {
 .home-block-head h2 .i {
   color: var(--accent);
 }
-.home-block-head .link-btn {
+.home-block-head .link-btn,
+.link-btn.go {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  text-decoration: none;
+}
+/* A seta fica no centro da altura das letras minúsculas, não da linha (sem isso parece alta demais). */
+.link-btn.go .i {
+  transform: translateY(1.5px);
 }
 /* Celular: os atalhos ocupam a largura toda, um embaixo do outro. */
 @media (max-width: 600px) {
@@ -9258,6 +9266,14 @@ dialog.member-dlg {
 }
 .profile-roles .member-roles.editing {
   font-weight: 400;
+}
+
+/* Título do card com um botão no canto direito (ex.: "Medir" na classificação vocal). */
+.profile-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 /* Lista de acesso: o "Admin" logo depois do nome. */
