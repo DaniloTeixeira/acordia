@@ -38,8 +38,8 @@ function openDB(): Promise<IDBDatabase> {
     r.onblocked = () => rej(new Error("bloqueado"));
   });
 }
-function all<T>(store: StoreName): Promise<T[]> {
-  return new Promise((res, rej)=>{ const q = db!.transaction(store).objectStore(store).getAll(); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+function all<T>(d: IDBDatabase, store: StoreName): Promise<T[]> {
+  return new Promise((res, rej)=>{ const q = d.transaction(store).objectStore(store).getAll(); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
 }
 function write(store: StoreName, fn: (st: IDBObjectStore) => void): Promise<void> {
   if(!db) return Promise.resolve();
@@ -65,7 +65,7 @@ export async function init(errorHandler?: (e: unknown) => void){
   let late = false;
   const load = async () => {
     const d = await openDB();
-    const [songs, medleys, settings] = await Promise.all([all<Song>("songs"), all<Medley>("medleys"), all<{key: string; value: unknown}>("settings")]);
+    const [songs, medleys, settings] = await Promise.all([all<Song>(d, "songs"), all<Medley>(d, "medleys"), all<{key: string; value: unknown}>(d, "settings")]);
     db = d;
     songs.forEach(s=>{ if(!data.songs.has(s.id)) data.songs.set(s.id, s); });
     medleys.forEach(m=>{ if(!data.medleys.has(m.id)) data.medleys.set(m.id, m); });
