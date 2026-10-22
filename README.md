@@ -179,7 +179,9 @@ também libera o acesso ao app para eles).
 - [ ] **Evento** (só quem lidera cria e edita; Editar e Excluir ficam um em cada ponta no celular e juntos à direita no computador):
   - tipo Culto ou Ensaio, título, data, início, **hora de chegada**, local, repertório do grupo e observações;
   - **repetir** toda semana (2 a 26 vezes);
-  - **escala**: quem toca o quê, com funções sugeridas e "Escalar todos";
+  - **escala**: quem toca o quê, com funções sugeridas e "Escalar todos"; no computador é uma tabela (pessoa e funções
+    numa linha, "Outra função" como link à direita), no celular cada pessoa é um cartão;
+  - **Detalhes** e **Escala** abrem e fecham pelo título: no computador os dois abrem abertos; no celular só a Escala;
   - avisos ao escalar: marcou que não pode no dia, já está em outro evento no dia ou já recusou; cada pessoa
     mostra quantas vezes já foi escalada no mês.
 - [ ] **Resposta da escala**: abas "Confirmar" e "Não posso" (gravam na hora, com spinner). Quem marca "Não posso" pode indicar

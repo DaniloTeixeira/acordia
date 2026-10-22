@@ -8055,7 +8055,7 @@ dialog.ear-dlg {
 }
 /* Janela do evento */
 dialog.event-dlg {
-  --dlg-w: 640px;
+  --dlg-w: 720px;
 }
 .event-row {
   display: grid;
@@ -8080,9 +8080,59 @@ dialog.event-dlg {
   border-radius: 14px;
   background: var(--surface);
 }
-.event-dlg-card > .people-sub-h {
+.event-dlg-card .people-sub-h {
   margin: 0;
   align-items: baseline;
+}
+/* Card que abre e fecha (ui/FoldCard.tsx): o título inteiro é o botão, com a seta à direita. */
+.fold-card-head {
+  margin: 0;
+}
+.fold-card-head > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.fold-card-chev {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--muted);
+  transition: background var(--t) var(--ease);
+}
+@media (hover: hover) {
+  .fold-card-head > button:hover .fold-card-chev {
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+}
+.fold-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fold-card-body[hidden] {
+  display: none;
+}
+/* "Outra função": link no canto direito da linha dos chips (quebra para a linha de baixo, à direita). */
+.role-other {
+  margin-inline-start: auto;
+  font-size: 0.78rem;
+  padding: 4px 0;
 }
 .roster-edit {
   list-style: none;
@@ -8174,6 +8224,64 @@ dialog.event-dlg {
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
+}
+/* Tela larga: a escala vira tabela como a da agenda (cabeçalho com tom do acento, linhas listradas). Nome,
+   funções e X numa linha só (nome em coluna fixa para os chips alinharem). Com muitas funções os chips
+   quebram dentro da própria coluna; os avisos continuam em linha própria embaixo. */
+.roster-head {
+  display: none;
+}
+@media (min-width: 900px) {
+  .roster-edit {
+    gap: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    overflow: hidden;
+  }
+  .roster-edit > li {
+    border: 0;
+    border-top: 1px solid var(--line);
+    border-radius: 0;
+  }
+  .roster-edit > li:first-child {
+    border-top: 0;
+  }
+  .roster-edit > .roster-card {
+    padding: 6px 8px 6px 12px;
+    background: transparent;
+  }
+  .roster-edit > .roster-card:nth-child(odd) {
+    background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+  }
+  .roster-head {
+    display: grid;
+    grid-template-columns: 170px 1fr 32px;
+    gap: 8px;
+    padding: 7px 8px 7px 12px;
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+    color: var(--muted);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .roster-card.set {
+    grid-template-columns: 170px 1fr 32px;
+    column-gap: 8px;
+  }
+  .roster-card.set .roster-who {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .roster-card.set .roster-roles {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 0;
+  }
+  .roster-card.set .roster-row > .icon-btn {
+    grid-column: 3;
+    grid-row: 1;
+  }
 }
 .roster-warn {
   display: flex;
