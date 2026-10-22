@@ -3,7 +3,7 @@
 
 export type EventKind = "service" | "rehearsal";
 export type Answer = "pending" | "yes" | "no";
-export type Presence = "present" | "absent" | "excused";
+export type Presence = "present" | "absent" | "excused" | "paused";
 export interface GEvent {
   id: string; group_id: string; kind: EventKind; title: string; starts_at: string; call_at: string | null;
   place: string; notes: string; setlist_id: string | null; updated_at?: string;
@@ -68,6 +68,8 @@ export const callClosed = (e: Pick<GEvent, "starts_at">, now = Date.now()) => ne
 // Frequência nos ensaios com a chamada fechada: presente conta, falta não, justificada fica fora da conta.
 // Sem marcação nenhuma num ensaio que teve chamada, conta como falta; ensaio sem chamada nenhuma não conta.
 // Falta só vale para quem estava na escala do ensaio (roster); sem a escala informada, vale para todos.
+// Justificada e pausa ficam fora da conta (nem falta, nem presença).
+const skipped = (status?: Presence) => status === "excused" || status === "paused";
 const notCalled = (e: GEvent, email: string, status: Presence | undefined, roster?: RosterRow[]) =>
   !!roster && status !== "present" && !roster.some(r => r.event_id === e.id && r.email === email);
 export function attendanceRate(email: string, events: GEvent[], att: AttendanceRow[], now = Date.now(), roster?: RosterRow[]): {present: number; total: number} {
@@ -76,7 +78,7 @@ export function attendanceRate(email: string, events: GEvent[], att: AttendanceR
   past.forEach(e => {
     const rows = att.filter(a => a.event_id === e.id); if(!rows.length) return;
     const mine = rows.find(a => a.email === email);
-    if(mine?.status === "excused" || notCalled(e, email, mine?.status, roster)) return;
+    if(skipped(mine?.status) || notCalled(e, email, mine?.status, roster)) return;
     total++; if(mine?.status === "present") present++;
   });
   return {present, total};
@@ -113,7 +115,10 @@ export function streakLevel(streak: number): number | null {
   return Math.round(100 * Math.min(1, (streak - STREAK_WARN_FROM) / Math.max(1, last - STREAK_WARN_FROM)));
 }
 export interface Standing { out: boolean; streak: number; need: number; called: number; marked?: boolean }
-export interface OutMark { since: string; need: number }
+// exempt: quem só tem a função Mesa de som quase não vai aos ensaios, então não entra na regra das faltas.
+export interface OutMark { since: string; need: number; exempt?: boolean }
+const SOUND_ONLY = ["mesa de som", "sound desk", "mesa de sonido"];
+export const soundOnly = (role: string) => { const r = role.split(",").map(x => x.trim().toLocaleLowerCase()).filter(Boolean); return r.length > 0 && r.every(x => SOUND_ONLY.includes(x)); };
 // Quanto da volta da pausa já foi cumprido: total é o que foi pedido (a marcação à mão ou COMEBACK), need o que falta.
 export function comebackProgress(sd: Pick<Standing, "need" | "marked">, mark?: OutMark | null){
   const total = Math.max(sd.need, sd.marked && mark ? mark.need : COMEBACK), done = total - sd.need;
@@ -123,13 +128,14 @@ export function rehearsalStanding(email: string, events: GEvent[], att: Attendan
   const past = events.filter(e => e.kind === "rehearsal" && callClosed(e, now))
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
   const s: Standing = {out: false, streak: 0, need: 0, called: 0};
+  if(mark?.exempt) return s;
   let pending = !!mark && mark.need > 0;
   const applyMark = () => { pending = false; s.out = true; s.need = mark!.need; s.streak = 0; s.marked = true; };
   past.forEach(e => {
     if(pending && e.starts_at >= mark!.since) applyMark();
     const rows = att.filter(a => a.event_id === e.id); if(!rows.length) return;
     const st = rows.find(a => a.email === email)?.status;
-    if(st === "excused" || notCalled(e, email, st, roster)) return;
+    if(skipped(st) || notCalled(e, email, st, roster)) return;
     s.called++;
     if(st === "present"){
       if(s.out){ s.need--; if(!s.need) s.out = false; }

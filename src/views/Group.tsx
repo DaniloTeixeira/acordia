@@ -452,7 +452,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
         {people.map(r => <li key={r.email} {...openHistory(r.email)}>
           <span className="quick-att-when"><b><span>{personName(r.email)}</span>{r.email === me && <YouChip/>}</b>
             {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}</span>
-          <span className="quick-att-ctl"><StatusChip status={r.status} noIcon/></span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>)}
+          <span className="quick-att-ctl">{(a => a ? <span className={"chip " + (a.status === "present" ? "st-yes" : a.status === "absent" ? "st-no" : "st-off")}>{t("group.att." + a.status)}</span> : <StatusChip status={r.status} noIcon/>)(att.find(x => x.email === r.email))}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>)}
         {/* Quem está em pausa não é escalado nem listado, a menos que tenha marcado presença neste ensaio. */}
         {g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).sort((a, b) => byName(a.email, b.email)).map(m => ({m, sd: rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), here: att.some(a => a.email === m.email && a.status === "present")}))
           .filter(x => x.here || !x.sd.out).map(({m, sd, here}) => <li key={m.email} {...openHistory(m.email)}>
@@ -520,7 +520,7 @@ function Attendance({e}: {e: GEvent}){
           <button type="button" className="btn sm soft" disabled={busy === m.email} onClick={() => mark(m.email, a.req_status!)}>{t("group.reqAccept")}</button>
           <button type="button" className="btn sm ghost" disabled={busy === m.email} onClick={async () => { setBusy(m.email); const ok = await declineAttendanceChange(e.id, m.email).finally(() => setBusy("")); if(!ok) toast(t("profile.saveFail")); }}>{t("group.reqDecline")}</button></span>}
         <Seg className="sm" aria={t("group.attendance") + ": " + personName(m.email)} value={(a?.status || "") as Presence | ""} onChange={v => mark(m.email, v === a?.status ? "" : v)}
-          options={[{v: "present", label: t("group.att.present")}, {v: "absent", label: t("group.att.absent")}]}/></li>; })}</ul></div>}
+          options={[{v: "present", label: t("group.att.present")}, {v: "absent", label: t("group.att.absent")}, {v: "paused", label: t("group.att.paused")}]}/></li>; })}</ul></div>}
   </div>;
 }
 
@@ -750,7 +750,7 @@ function QuickAttendance({email, onDone}: {email: string; onDone: () => void}){
       return <li key={e.id}><span className="quick-att-when"><b><span className="qa-long">{fmt({weekday: "short", day: "numeric", month: "short"}).format(new Date(e.starts_at))}</span><span className="qa-short">{fmt({weekday: "short", day: "2-digit", month: "2-digit"}).format(new Date(e.starts_at))}</span></b>
           <span className="sub">{timeOf(e.starts_at)}</span></span>
         <span className="quick-att-ctl">{busy === e.id && <Spin/>}<Seg className="sm" aria={t("group.attendance") + ": " + personName(email)} value={(a?.status || "") as Presence | ""} onChange={v => mark(e, v === a?.status ? "" : v)} disabled={busy === e.id}
-          options={[{v: "present", label: t("group.att.present")}, {v: "absent", label: t("group.att.absent")}]}/></span></li>; })}</ul>
+          options={[{v: "present", label: t("group.att.present")}, {v: "absent", label: t("group.att.absent")}, {v: "paused", label: t("group.att.paused")}]}/></span></li>; })}</ul>
       : <p className="sub">{t("group.attQuickNone")}</p>}
   </div>;
 }

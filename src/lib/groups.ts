@@ -7,7 +7,7 @@ import { create } from "zustand";
 import { cleanRange, type VoiceRange } from "./voice";
 import { cloud, useAuth, validBirthday, cleanPhone, uploadPhoto, cleanPhotos } from "./cloud";
 import { ROLES_MAX } from "./roles";
-import type { GEvent, RosterRow, AttendanceRow, Unavail, Answer, Presence, EventKind } from "./calendar";
+import { soundOnly, type GEvent, type RosterRow, type AttendanceRow, type Unavail, type Answer, type Presence, type EventKind, type OutMark } from "./calendar";
 
 // photo: link da foto do grupo (vazio: o app mostra as iniciais do nome). photo_round: marca redonda em vez
 // de quadrada (foto e iniciais).
@@ -240,7 +240,7 @@ export const setMemberRole = (gid: string, email: string, role: string) => email
 // Em pausa pela regra dos ensaios, marcado à mão: conta a volta a partir de agora. need 0 tira a marcação.
 export const setMemberOut = (gid: string, email: string, need: number) => run(() => cloud.from("group_members")
   .update(need > 0 ? {out_since: new Date().toISOString(), out_need: need} : {out_since: null}).eq("group_id", gid).eq("email", email));
-export const outMark = (m?: Pick<Member, "out_since" | "out_need">) => m?.out_since ? {since: m.out_since, need: m.out_need || 4} : null;
+export const outMark = (m?: Pick<Member, "out_since" | "out_need" | "role">): OutMark | null => m && soundOnly(m.role || "") ? {since: "", need: 0, exempt: true} : m?.out_since ? {since: m.out_since, need: m.out_need || 4} : null;
 // Inativo: afastado do grupo, sem sair dele. Não aparece para escalar nem na chamada; o histórico fica.
 export const isActive = (m: Pick<Member, "active">) => m.active !== false;
 export const setMemberActive = (gid: string, email: string, active: boolean) => run(() => cloud.from("group_members").update({active}).eq("group_id", gid).eq("email", email));
