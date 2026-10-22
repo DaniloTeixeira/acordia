@@ -453,9 +453,9 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
           <span className="quick-att-when"><b><span>{personName(r.email)}</span>{r.email === me && <YouChip/>}</b>
             {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}</span>
           <span className="quick-att-ctl">{(a => a ? <span className={"chip " + (a.status === "present" ? "st-yes" : a.status === "absent" ? "st-no" : "st-off")}>{t("group.att." + a.status)}</span> : <StatusChip status={r.status} noIcon/>)(att.find(x => x.email === r.email))}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>)}
-        {/* Quem está em pausa não é escalado nem listado, a menos que tenha marcado presença neste ensaio. */}
+        {/* Com escala feita, quem não foi escalado só aparece se marcou presença neste ensaio; sem escala, todos aparecem (menos quem está em pausa). */}
         {g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).sort((a, b) => byName(a.email, b.email)).map(m => ({m, sd: rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), here: att.some(a => a.email === m.email && a.status === "present")}))
-          .filter(x => x.here || !x.sd.out).map(({m, sd, here}) => <li key={m.email} {...openHistory(m.email)}>
+          .filter(x => x.here || (!roster.length && !x.sd.out)).map(({m, sd, here}) => <li key={m.email} {...openHistory(m.email)}>
           <span className={"quick-att-when" + (sd.out ? " with-note" : "")}><b><span>{personName(m.email)}</span>{m.email === me && <YouChip/>}</b>{sd.out && <> <span className="sub pause-note">{tn("group.standOut", sd.need)}</span></>}</span>
           <span className="quick-att-ctl">{here ? <span className="chip st-yes">{t("group.att.present")}</span> : <span className="chip st-off">{t("group.status.off")}</span>}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>)}</ul>
         : roster.length ? <ul className="roster">{people.map(r => <li key={r.email} className={"st-" + r.status}>
@@ -496,7 +496,10 @@ function Attendance({e}: {e: GEvent}){
   const g = useGroups(), [busy, setBusy] = useState("");
   const [open, setOpen] = useState(false);
   const att = g.attendance.filter(a => a.event_id === e.id);
-  const pending = new Set(pendingCheckIn(e, g.members.filter(isActive).map(m => m.email), g.attendance));
+  // Com escala feita, a chamada é só de quem foi escalado (mais quem marcou presença sem estar); sem escala, de todos.
+  const scaled = new Set(g.roster.filter(r => r.event_id === e.id).map(r => r.email));
+  const called = g.members.filter(m => isActive(m) && (!scaled.size || scaled.has(m.email)));
+  const pending = new Set(pendingCheckIn(e, called.map(m => m.email), g.attendance));
   const until = fmt({weekday: "long", hour: "2-digit", minute: "2-digit"}).format(new Date(new Date(e.starts_at).getTime() + CHECKIN_MS));
   const mark = async (email: string, v: Presence | "") => {
     setBusy(email);
@@ -504,14 +507,14 @@ function Attendance({e}: {e: GEvent}){
     if(!ok) toast(t("profile.saveFail"));
   };
   return <div className="event-sec attendance"><SecHead as="h3" className="people-sub-h"><button type="button" className="att-toggle" aria-expanded={open} onClick={() => setOpen(o => !o)}>
-      <span>{t("group.attendance")} <span className="sub">{t("group.attCount", {n: att.filter(a => a.status === "present").length, total: g.members.filter(isActive).length})}</span></span>
+      <span>{t("group.attendance")} <span className="sub">{t("group.attCount", {n: att.filter(a => a.status === "present").length, total: called.length})}</span></span>
       <Icon name="chev" sm className={"att-chev" + (open ? " up" : "")}/></button></SecHead>
     {open && <div className="att-box">
     {pending.size > 0 && <div className="att-pending">
       <span className="sub">{t("group.pendingHint", {until})}</span>
       <a className="btn sm soft" href={waLink(waText(e, {names: [...pending].map(personName)}))} target="_blank" rel="noopener"><Icon name="chat" sm/> {t("group.waAll")}</a>
     </div>}
-    <ul>{g.members.filter(m => isActive(m) || att.some(x => x.email === m.email)).map(m => { const a = att.find(x => x.email === m.email), wa = pending.has(m.email) && waNumber(m.phone || "");
+    <ul>{g.members.filter(m => called.includes(m) || att.some(x => x.email === m.email)).map(m => { const a = att.find(x => x.email === m.email), wa = pending.has(m.email) && waNumber(m.phone || "");
       return <li key={m.email}><span className="roster-who">{busy === m.email && <Spin/>}{personName(m.email)}{a && !a.by_admin && <small className="sub">{t("group.selfCheckIn")}</small>}
         {pending.has(m.email) && <span className="chip st-pending">{t("group.att.pending")}</span>}
         {wa && <a className="icon-btn sm" href={waLink(waText(e, {name: personName(m.email)}), m.phone)} target="_blank" rel="noopener"
