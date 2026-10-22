@@ -9864,6 +9864,11 @@ dialog.member-dlg {
 .roster-tbl .quick-att-when { flex-direction: column; align-items: flex-start; gap: 2px; }
 /* Aviso de pausa: na mesma linha do nome; no celular desce para a linha de baixo. */
 .roster-tbl .quick-att-when.with-note { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: 8px; }
+/* Quem não foi escalado nem marcou presença (inclui quem está em pausa): nome discreto, o texto da resposta já diz o motivo. */
+.roster-tbl .quick-att-when.dim b {
+  color: var(--muted);
+  font-weight: 500;
+}
 .roster-tbl .quick-att-when .pause-note { color: var(--pause); font-weight: 600; }
 @media (max-width: 599px) { .roster-tbl .quick-att-when.with-note { flex-direction: column; align-items: flex-start; } }
 .roster-tbl .quick-att-ctl { min-width: 0; }
