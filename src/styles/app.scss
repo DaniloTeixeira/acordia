@@ -7114,12 +7114,6 @@ dialog.ear-dlg {
   border-radius: var(--r-lg);
   background: var(--surface-2);
 }
-/* Dentro do card que abre e fecha, a moldura é a do card. */
-.fold-card .people-add-box {
-  padding: 0;
-  border: 0;
-  background: none;
-}
 .people-sub-h {
   display: flex;
   align-items: center;
@@ -8092,6 +8086,12 @@ dialog.event-dlg {
 /* Card que abre e fecha (ui/FoldCard.tsx): o título inteiro é o botão, com a seta à direita. */
 .fold-card-head {
   margin: 0;
+}
+/* Título fora do quadro, como na Agenda: a seção não tem moldura própria; o conteúdo traz a sua. */
+.fold-card.outside {
+  padding: 0;
+  border: 0;
+  background: none;
 }
 .fold-card-head > button {
   display: flex;

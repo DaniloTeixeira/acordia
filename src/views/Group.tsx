@@ -573,7 +573,7 @@ function Members({canEdit}: {canEdit: boolean}){
       <div className="card-body">
       {canEdit && <><p className="sub">{t("group.addSub")}</p>
         {/* No celular o cadastro começa fechado, para a lista de membros aparecer logo. */}
-        <FoldCard id="member-add" title={t("group.addTitle")} defaultOpen={!matchMedia("(max-width: 899px)").matches}>
+        <FoldCard outside id="member-add" title={t("group.addTitle")} defaultOpen={!matchMedia("(max-width: 899px)").matches}>
         <form className="member-add people-add-box" onSubmit={add} noValidate>
           {outside.length > 0 && <Select id="member-pick" className="member-pick" aria={t("group.pickUser")} value={outside.some(a => a.email === email) ? email : ""} onChange={pickUser}
             options={[{value: "", label: t("group.pickUser")}, ...outside.map(a => ({value: a.email, label: a.profileName || a.name || a.email, sub: (a.profileName || a.name) ? a.email : undefined}))]}/>}
