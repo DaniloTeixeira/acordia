@@ -1,7 +1,7 @@
 // Rode com: npm test
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, attendanceHistory, rehearsalStanding, canCheckIn, pendingCheckIn, waNumber, waLink, fmtPhone, maskPhone, capFirst, toICS, splitEvents, dayKey, upcomingBirthdays, rosterByPerson, needsCover, pendingReplies, streakLevel, comebackProgress, soundOnly, type GEvent, type RosterRow, onRoster } from "../src/lib/calendar";
+import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, attendanceHistory, rehearsalStanding, canCheckIn, pendingCheckIn, waNumber, waLink, fmtPhone, maskPhone, capFirst, toICS, splitEvents, dayKey, upcomingBirthdays, rosterByPerson, needsCover, pendingReplies, streakLevel, comebackProgress, soundOnly, skipsRehearsal, type GEvent, type RosterRow, onRoster } from "../src/lib/calendar";
 
 const ev = (id: string, starts: Date, kind: GEvent["kind"] = "service"): GEvent =>
   ({id, group_id: "g", kind, title: id, starts_at: starts.toISOString(), call_at: null, place: "", notes: "", setlist_id: null});
@@ -74,6 +74,7 @@ test("regra dos ensaios: 8 faltas seguidas tiram dos cultos até 4 presenças", 
   assert.deepEqual(st({3: "present", 6: "paused"}, 12), {out: false, streak: 7, need: 0, called: 11});
   assert.equal(rehearsalStanding("x", evs, att({}), now, {since: "", need: 0, exempt: true}).streak, 0);
   assert.ok(soundOnly("Mesa de som") && soundOnly("Sound desk, mesa de som") && !soundOnly("Vocal, Mesa de som") && !soundOnly(""));
+  assert.ok(skipsRehearsal("rehearsal", "Mesa de som") && !skipsRehearsal("service", "Mesa de som") && !skipsRehearsal("rehearsal", "Vocal, Mesa de som"));
   // Ensaio futuro ou sem chamada não conta.
   assert.deepEqual(rehearsalStanding("x", evs, [], now), {out: false, streak: 0, need: 0, called: 0});
   // Marcado pelo líder (faltas de antes do app): fora desde a marcação; só as presenças depois contam.

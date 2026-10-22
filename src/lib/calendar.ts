@@ -119,6 +119,8 @@ export interface Standing { out: boolean; streak: number; need: number; called: 
 export interface OutMark { since: string; need: number; exempt?: boolean }
 const SOUND_ONLY = ["mesa de som", "sound desk", "mesa de sonido"];
 export const soundOnly = (role: string) => { const r = role.split(",").map(x => x.trim().toLocaleLowerCase()).filter(Boolean); return r.length > 0 && r.every(x => SOUND_ONLY.includes(x)); };
+// Ensaio não convoca quem só tem Mesa de som (no "Escalar todos"); o líder ainda pode escalar à mão. Culto convoca.
+export const skipsRehearsal = (kind: EventKind, role: string) => kind === "rehearsal" && soundOnly(role);
 // Quanto da volta da pausa já foi cumprido: total é o que foi pedido (a marcação à mão ou COMEBACK), need o que falta.
 export function comebackProgress(sd: Pick<Standing, "need" | "marked">, mark?: OutMark | null){
   const total = Math.max(sd.need, sd.marked && mark ? mark.need : COMEBACK), done = total - sd.need;
