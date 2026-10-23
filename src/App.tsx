@@ -22,7 +22,7 @@ import { useAuth } from "./lib/cloud";
 import { Group, openGroup, LIB_TABS } from "./views/Group";
 import { More } from "./views/More";
 import { Home } from "./views/Home";
-import { ThemeButton } from "./ui/theme";
+import { ThemeButton, shownTheme, toggleTheme } from "./ui/theme";
 export { applyTheme, theme } from "./ui/theme";
 
 const { data } = store;
@@ -85,6 +85,26 @@ function LangPop(){
   return <div id="lang-pop" className="popover menu-pop" popover="auto" role="menu">
     {LANGS.map(([v]) => <button key={v} className="menu-item" role="menuitemradio" aria-checked={v === getLang()} data-lang={v}
       onClick={() => { langPop()?.hidePopover(); changeLang(v); }}>{t("lang." + v)}{v === getLang() && <Icon name="check" sm/>}</button>)}
+  </div>;
+}
+
+// ---------- menu do celular ----------
+// No celular o header só tem a foto do perfil e este menu; idioma, volume, tema e instalar ficam dentro dele (a ajuda fica solta ao lado).
+const accPop = () => document.getElementById("acc-pop");
+const accToggle = toggler(accPop, btn => openNear(accPop()!, btn, 240));
+function AccountMenuButton(){
+  return <button className="icon-btn" data-acc-menu aria-haspopup="menu" aria-label={t("nav.menu")} onPointerDown={accToggle.onPointerDown} onClick={accToggle.onClick}><Icon name="more"/></button>;
+}
+function AccountMenu({install}: {install: {show: boolean; run: () => void}}){
+  const close = () => accPop()?.hidePopover();
+  // O menu fecha e o painel do item abre junto do mesmo botão.
+  const sub = (pop: () => HTMLElement | null, w: number) => () => { close(); const b = document.querySelector<HTMLElement>("[data-acc-menu]"), p = pop(); if(b && p) openNear(p, b, w); };
+  const {v, m} = vol(), name = t("theme." + shownTheme());
+  return <div id="acc-pop" className="popover menu-pop" popover="auto" role="menu">
+    {install.show && <button className="menu-item" role="menuitem" onClick={() => { close(); install.run(); }}><span className="menu-lbl"><Icon name="phone"/>{t("nav.install")}</span></button>}
+    <button className="menu-item" role="menuitem" aria-haspopup="menu" onClick={sub(langPop, 220)}><span className="menu-lbl"><Icon name="globe"/>{t("lang.label")}</span><small>{t("lang." + getLang())}</small></button>
+    <button className="menu-item" role="menuitem" aria-haspopup="true" onClick={sub(volPop, 280)}><span className="menu-lbl"><Icon name={m || !v ? "mute" : "sound"}/>{t("vol.title")}</span><small>{m ? t("vol.muted") : v + "%"}</small></button>
+    <button className="menu-item" role="menuitem" onClick={() => { close(); toggleTheme(); }}><span className="menu-lbl"><Icon name={shownTheme() === "dark" ? "moon" : "sun"}/>{t("theme.label", {name})}</span></button>
   </div>;
 }
 
@@ -191,13 +211,11 @@ export function App(){
         </div>
       </aside>
       <header className="topbar">
-        {brand(false)}
-        <button className="icon-btn" data-install hidden={!install.show} aria-label={t("nav.install")} onClick={install.run}><Icon name="phone"/></button>
-        <LangButton/>
-        <VolumeButton/>
-        <ThemeButton/>
-        {helpable && <button className="icon-btn" data-help-btn data-tip-key={helpKey} aria-label={t(helpKey)} onClick={() => openDialog("help", {page: view})}><Icon name="help"/></button>}
         {profileBtn(false)}
+        {/* Só texto: a home já está na barra de abas e o nome colado na foto causava toque errado. */}
+        <div className="brand"><span><b className="brand-name">Acordia</b></span></div>
+        {helpable && <button className="icon-btn" data-help-btn data-tip-key={helpKey} aria-label={t(helpKey)} onClick={() => openDialog("help", {page: view})}><Icon name="help"/></button>}
+        <AccountMenuButton/>
       </header>
       <main id="main">
         {view === "home" && <Home/>}
@@ -217,6 +235,7 @@ export function App(){
     </div>
     {stageOpen && <Stage/>}
     <Dialogs/>
+    <AccountMenu install={install}/>
     <LangPop/>
     <VolumePop/>
     <Toasts/>

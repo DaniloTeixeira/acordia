@@ -24,8 +24,8 @@ export function Study(){
   useData();
   const st = studyState();
   return <section className="view" id="view-study" data-view="study" aria-labelledby="study-h">
+    <BackLink id="study-back" label={t("common.back")} onClick={() => go("more")} mobileOnly/>
     <div className="view-head"><div>
-      <BackLink id="study-back" label={t("common.back")} onClick={() => go("more")} mobileOnly/>
       <h1 id="study-h">{t("study.title")}</h1><p className="sub">{t("study.sub")}</p></div></div>
     <Seg id="study-tabs" aria={t("study.tabsAria")} value={st.tab} onChange={tab => setStudy({tab})}
       options={[{v: "explore", label: t("study.explore")}, {v: "train", label: t("study.train")}]}/>

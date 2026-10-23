@@ -18,6 +18,7 @@ import { SecHead } from "../ui/SecHead";
 import { VoiceChip } from "../ui/VoiceChip";
 import { Spin } from "./Account";
 
+const LIVE_MS = 500;
 const midiOf = (f: number) => 69 + 12 * Math.log2(f / 440);
 
 // Microfone: liga com um callback e desliga ao sair da tela.
@@ -50,6 +51,7 @@ function VoiceRange(){
   const wide = useMedia("(min-width: 900px)");
   const [measuring, setMeasuring] = useState<{which: Which; live: string; hold: number} | null>(null);
   const run = useRef<({which: Which} & Hold) | null>(null);
+  const liveAt = useRef(0);
   // Gravando na nuvem (spinner no botão) e qual nota acabou de ser salva ("✓ Salvo" no título por um instante).
   const [saving, setSaving] = useState<Which | null>(null);
   const [saved, setSaved] = useState<Which | null>(null);
@@ -79,9 +81,14 @@ function VoiceRange(){
       const h = holdStep(cur, f ? Math.round(midiOf(f)) : null);
       run.current = {which, ...h};
       if(holdDone(h)){ mic.off(); run.current = null; setMeasuring(null); save(which, h.note!); return; }
-      setMeasuring(s => s && {...s, live: h.note === null ? t("voice.singNow") : t("voice.hearing", {note: midiName(h.note)}), hold: Math.min(1, h.run / HOLD_TICKS)});
+      // O texto só muda a cada LIVE_MS (a leitura vem a cada ~60 ms e a nota oscila): rápido demais não dá para ler.
+      const now = performance.now(), text = h.note === null ? t("voice.singNow") : t("voice.hearing", {note: midiName(h.note)});
+      const swap = now - liveAt.current >= LIVE_MS;
+      if(swap) liveAt.current = now;
+      setMeasuring(s => s && {...s, live: swap ? text : s.live, hold: Math.min(1, h.run / HOLD_TICKS)});
     }, () => startMeasure(which));
     if(!ok){ run.current = null; return; }
+    liveAt.current = performance.now();
     setMeasuring({which, live: t("voice.singNow"), hold: 0});
   };
   const cancelMeasure = () => { mic.off(); run.current = null; setMeasuring(null); };

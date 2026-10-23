@@ -52,7 +52,8 @@ export function EventDialog({id, day}: DialogProps["event"]){
   const rolesOf = (email: string) => splitRoles(g.members.find(m => m.email === email)?.role || "");
   const firstRole = (email: string) => rolesOf(email).slice(0, 1);
   const memberOpts = [{value: "", label: t("group.pickPerson")}, ...g.members.filter(m => isActive(m) || roster.some(r => r.email === m.email)).map(m => ({value: m.email,
-    label: personName(m.email) + (m.role ? " · " + sortRoles(splitRoles(m.role)).join(", ") : "") + ((load.get(m.email) || 0) ? " · " + tn("group.load", load.get(m.email)!) : "")}))];
+    label: personName(m.email),
+    sub: [m.role ? sortRoles(splitRoles(m.role)).join(", ") : "", (load.get(m.email) || 0) ? tn("group.load", load.get(m.email)!) : ""].filter(Boolean).join(" · ") || undefined}))];
   const free = g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email));
   // Quem está em pausa (ou, no ensaio, só tem Mesa de som) não é convocado: fica de fora do "Escalar todos" (o líder ainda pode escalar à mão).
   const callable = free.filter(m => !skipsRehearsal(kind, m.role || "") && !rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster).out);

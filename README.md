@@ -13,8 +13,8 @@ presença nos ensaios, e repertórios compartilhados.
 Lista completa, tela por tela, para testar e decidir o que fica. Marque `[x]` no que já foi conferido.
 
 ### Em todas as telas
-- [ ] **Navegação** entre Início, Agenda, Biblioteca (Repertórios, Músicas e Medleys) e Mais (Membros, Usuários só para admin, Estudo e Ferramentas): barra de abas no celular. No computador o trilho
-      lateral mostra tudo direto (Início, Agenda, Biblioteca, Membros, Estudo e Ferramentas), sem o Mais. No celular, Membros, Estudo e Ferramentas têm o link "Voltar" no topo, que leva ao Mais. Cada página tem endereço próprio, então o "voltar" do navegador (e do mouse) funciona e fecha primeiro a janela ou o Palco abertos. O repertório aberto conta como Grupo e o voltar leva aos Repertórios. Tocar de novo na
+- [ ] **Navegação** entre Início, Agenda, Biblioteca (Repertórios, Músicas e Medleys) e Mais (Membros, Usuários só para admin, Estudo e Ferramentas): barra de abas no celular. No topo do celular, a foto do perfil fica à esquerda (abre o Perfil) e o menu (⋯) à direita reúne instalar, idioma, volume e tema; a ajuda (?) fica solta ao lado dele. No computador o trilho
+      lateral mostra tudo direto (Início, Agenda, Biblioteca, Membros, Estudo e Ferramentas), sem o Mais. No celular, Membros, Estudo e Ferramentas têm o link "Voltar" no topo, que leva ao Mais. O "Voltar" fica fixo no topo e continua visível ao rolar. Cada página tem endereço próprio, então o "voltar" do navegador (e do mouse) funciona e fecha primeiro a janela ou o Palco abertos. O repertório aberto conta como Grupo e o voltar leva aos Repertórios. Tocar de novo na
       página atual volta ao topo.
 - [ ] **Tema** claro ou escuro. Até a primeira escolha, segue o aparelho.
 - [ ] **Idioma**: português, inglês e espanhol. O inicial vem do navegador ou do fuso horário.
@@ -174,8 +174,8 @@ também libera o acesso ao app para eles).
 - [ ] **Agenda**:
   - calendário do mês com cultos e ensaios, os dias em que a pessoa está escalada e os dias em que não pode;
   - tocar num dia mostra os eventos dele e a chave **"Não posso neste dia"** (indisponibilidade);
-  - **Suas próximas escalas** no topo, com a função e a resposta;
-  - lista de próximos e anteriores.
+  - **Seu próximo compromisso** no topo: as suas funções, Confirmar / Não posso de cada escala (e quem cobre, para quem não pode), sem abrir o evento;
+  - lista de próximos e anteriores; cada evento abre com a data, o título e os chips no topo do card, sem bloco "Detalhes"; quem está na escala de um evento futuro também responde ali, em "Sua resposta" (o mesmo bloco do topo da Agenda). No ensaio, nas 12 h antes do início, a resposta e a presença viram um estado só para quem está na escala: o selo mostra Presente, Você confirmou ou Você não vai, com um único "Alterar resposta" e as opções **Cheguei** (também confirma a resposta) e **Não posso** (desmarca a presença); quem está na escala também tem ali **Adicionar ao calendário**, com a explicação.
 - [ ] **Evento** (só quem lidera cria e edita; Editar e Excluir ficam um em cada ponta no celular e juntos à direita no computador):
   - tipo Culto ou Ensaio, título, data, início, **hora de chegada**, local, repertório do grupo e observações;
   - **repetir** toda semana (2 a 26 vezes);
@@ -187,6 +187,7 @@ também libera o acesso ao app para eles).
     mostra quantas vezes já foi escalada no mês.
 - [ ] **Resposta da escala**: abas "Confirmar" e "Não posso" (gravam na hora, com spinner). Quem marca "Não posso" pode indicar
       **quem cobre** a vaga (só um aviso para o grupo); quem lidera vê "não pode ir · falta substituto" enquanto ninguém foi indicado.
+- [ ] **Aviso de entrada no grupo**: quando alguém é adicionado ao grupo, os outros membros veem ao abrir o app um aviso fixo ("Fulano entrou em Grupo", ou "Fulano e mais 2 entraram") que fecham no ×. Vale até 14 dias, aparece uma vez por aparelho e não vai para quem adicionou nem para a própria pessoa. É só dentro do app, sem notificação push.
 - [ ] **Membro ativo ou inativo**: em Membros, quem lidera deixa alguém inativo ("Afastar", olho cortado) sem tirar do grupo.
       O inativo some da escala e da chamada dos ensaios, mas o histórico fica; voltar é pelo mesmo botão ("Reintegrar"). O líder não fica inativo.
 - [ ] **Presença nos ensaios**: "Cheguei" (de 12 h antes do início em diante; em ensaio que já começou o membro escolhe entre "Estive" e "Não estive", ou volta a sem marcação; a própria marcação o membro muda quando quiser, mas o que o líder marcou ele não troca direto: usa "Pedir alteração" (dá para cancelar) e o líder aceita ou recusa na chamada; enquanto não marcou, "Sua resposta" sobe para o topo do card) e a chamada de quem lidera

@@ -10,13 +10,13 @@ const { data } = store;
 type Theme = "system" | "light" | "dark";
 const DARK_MQ = "(prefers-color-scheme: dark)";
 export const theme = (): Theme => (["light", "dark"] as const).find(v => v === data.settings.theme) || "system";
-const shownTheme = (): "light" | "dark" => { const th = theme(); return th !== "system" ? th : matchMedia(DARK_MQ).matches ? "dark" : "light"; };
+export const shownTheme = (): "light" | "dark" => { const th = theme(); return th !== "system" ? th : matchMedia(DARK_MQ).matches ? "dark" : "light"; };
 export function applyTheme(th: Theme){
   if(th === "light" || th === "dark") document.documentElement.dataset.theme = th; else delete document.documentElement.dataset.theme;
   try{ localStorage.setItem("acordia-theme", th); }catch(e){ /* sem armazenamento */ }
   document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach(m => { const dark = th === "dark" || (th === "system" && m.media.includes("dark")); m.content = dark ? "#0B0F1C" : "#F5F7FC"; });
 }
-function toggleTheme(){
+export function toggleTheme(){
   const th = shownTheme() === "dark" ? "light" : "dark";
   store.setSetting("theme", th);
   animate(() => applyTheme(th), "theme");

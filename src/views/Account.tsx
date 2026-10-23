@@ -8,6 +8,7 @@ import { DEFAULT_POLICY, missing, passes, fromError, isPwned, type PwPolicy, typ
 import { reduced, flashSaved, norm } from "../lib/util";
 import { toast, confirmDialog, openDialog, closeDialog, confirmUnsaved, useUnsaved, go } from "../state";
 import { Icon } from "../ui/Icon";
+import { BackLink } from "../ui/BackLink";
 import { CopyBtn } from "../ui/CopyBtn";
 import { DateInput } from "../ui/DateInput";
 import { FieldLabel } from "../ui/FieldLabel";
@@ -358,6 +359,7 @@ function PhotoActions(){
 export function Profile(){
   const {profile, admin, owner, email} = useAuth();
   return <section className="view" id="view-profile" data-view="profile" aria-labelledby="profile-h">
+    <BackLink id="profile-back" label={t("common.back")} onClick={() => go("home")} mobileOnly/>
     <div className="view-head"><div><h1 id="profile-h">{t("profile.title")}</h1></div></div>
     <div className="profile-panel">
       <div className="card profile-top wide">
@@ -707,8 +709,8 @@ export function PeoplePage(){
   useEffect(() => { if(!admin) go("profile", {instant: true}); }, [admin]);
   if(!admin) return null;
   return <section className="view" id="view-people" data-view="people" aria-labelledby="people-h">
+    <BackLink id="people-back" label={t("profile.title")} onClick={() => go("profile")}/>
     <div className="view-head"><div>
-      <button className="back-link" id="people-back" onClick={() => go("profile")}><Icon name="back" sm/><span>{t("profile.title")}</span></button>
       <h1 id="people-h">{t("people.title")}</h1><p className="sub">{t("people.sub")}</p></div></div>
     <People me={email}/>
   </section>;
