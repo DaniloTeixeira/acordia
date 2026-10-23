@@ -64,6 +64,8 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 ### Início
 - [ ] Primeira página depois de entrar: "Olá, nome" e a data de hoje. No computador os blocos ficam em duas colunas
       (quando sobra um, ele ocupa a linha toda); no celular, em uma, na mesma ordem.
+- [ ] **Aviso de aniversário**: no dia, um cartão no topo lembra de enviar uma mensagem de parabéns ("Hoje é aniversário de Ana e
+      Pedro!"). O próprio aniversariante vê um "Feliz aniversário". Fechar (X) vale até o aniversário do ano seguinte e fica neste aparelho.
 - [ ] **Próximo compromisso** em destaque, com **Confirmar / Não posso** e **Estudar repertório** (abre a folha) ou Palco, sem sair do Início.
 - [ ] **Precisam de substituto** (só quem lidera): ao lado do destaque, os eventos em que alguém disse que
       não pode.

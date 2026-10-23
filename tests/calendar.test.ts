@@ -1,7 +1,7 @@
 // Rode com: npm test
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, attendanceHistory, rehearsalStanding, canCheckIn, pendingCheckIn, waNumber, waLink, fmtPhone, maskPhone, capFirst, toICS, splitEvents, dayKey, upcomingBirthdays, rosterByPerson, needsCover, pendingReplies, streakLevel, comebackProgress, soundOnly, skipsRehearsal, type GEvent, type RosterRow, onRoster } from "../src/lib/calendar";
+import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, attendanceHistory, rehearsalStanding, canCheckIn, pendingCheckIn, waNumber, waLink, fmtPhone, maskPhone, capFirst, toICS, splitEvents, dayKey, upcomingBirthdays, birthdayNotice, birthdayKey, rosterByPerson, needsCover, pendingReplies, streakLevel, comebackProgress, soundOnly, skipsRehearsal, type GEvent, type RosterRow, onRoster } from "../src/lib/calendar";
 
 const ev = (id: string, starts: Date, kind: GEvent["kind"] = "service"): GEvent =>
   ({id, group_id: "g", kind, title: id, starts_at: starts.toISOString(), call_at: null, place: "", notes: "", setlist_id: null});
@@ -155,6 +155,13 @@ test("aniversariantes: próximos 30 dias, do mais perto ao mais longe, virando o
   assert.deepEqual(upcomingBirthdays(ppl, "2026-10-18").map(p => [p.email, p.in]), [["a", 0], ["b", 18]]);
   assert.deepEqual(upcomingBirthdays(ppl, "2026-12-20").map(p => [p.email, p.in]), [["c", 11]]);
   assert.equal(upcomingBirthdays([{email: "e", birthday: "1999-10-17"}], "2026-10-18", 400)[0].in, 364);
+});
+
+test("aviso de aniversário: só hoje, e dispensar vale até o ano seguinte", () => {
+  const ppl = [{email: "a", birthday: "1990-10-18"}, {email: "b", birthday: "1985-10-19"}, {email: "c", birthday: "2000-10-18"}];
+  assert.deepEqual(birthdayNotice(ppl, "2026-10-18", []).map(p => p.email), ["a", "c"]);
+  assert.deepEqual(birthdayNotice(ppl, "2026-10-18", [birthdayKey("a", "2026-10-18")]).map(p => p.email), ["c"]);
+  assert.deepEqual(birthdayNotice(ppl, "2027-10-18", [birthdayKey("a", "2026-10-18")]).map(p => p.email), ["a", "c"]);
 });
 
 test("aniversariantes: 29/02 vira 28/02 em ano não bissexto", () => {

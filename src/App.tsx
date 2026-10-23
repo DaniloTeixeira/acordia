@@ -193,7 +193,8 @@ export function App(){
   // A dica e o rótulo da ajuda dizem de qual página é ("Como usar o Repertório").
   const helpKey = helpable ? `help.${view}.title` : "help.button";
   // Nada do app aparece antes de a pessoa entrar e ter acesso (nem antes da senha nova).
-  if(auth !== "in" || recovery) return <><div className="auth-corner"><LangButton/><ThemeButton/></div><AuthScreen/><LangPop/><Toasts/></>;
+  // Idioma e tema ficam escondidos no "Carregando…": a tela some em instantes e os ícones piscariam à toa.
+  if(auth !== "in" || recovery) return <>{auth !== "loading" && <div className="auth-corner"><LangButton/><ThemeButton/></div>}<AuthScreen/><LangPop/><Toasts/></>;
   const profileBtn = (rail: boolean) => <button className={rail ? "nav-item" : "icon-btn"} data-nav="profile" aria-current={rail && view === "people" ? undefined : current("profile")} aria-label={t("profile.title")} onClick={() => go("profile")}>
     <Avatar/>{rail && <span>{t("profile.title")}</span>}</button>;
   return <>
