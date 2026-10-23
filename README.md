@@ -79,7 +79,7 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] **Grupos** (com mais de um grupo, ou para o admin): nome, próximos eventos e membros; leva à agenda.
       Fixar põe um grupo em primeiro. O admin cria um grupo novo por aqui.
 - [ ] **Aniversariantes** do grupo nos próximos 7 dias, por último. Na tela larga, os blocos de baixo (Para estudar, Grupos e
-      Aniversariantes) ficam em pares; o último, se sobrar, ocupa a linha toda. O card fica sempre, com um aviso quando
+      Aniversariantes) ficam em pares; o último, se sobrar, ocupa a linha toda. Com mais de dois grupos, Grupos ocupa a linha sozinho, antes dos outros. O card fica sempre, com um aviso quando
       ninguém faz aniversário na semana.
 
 ### Repertório

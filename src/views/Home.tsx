@@ -41,8 +41,17 @@ export function Home(){
   // a aba Grupo já leva até ele.
   const showGroups = g.groups.length > 1 || admin;
   // Embaixo, Estudo, Grupos e Aniversários em pares, na ordem; um número ímpar deixa o último na linha toda.
-  const bottom = [study.length > 0 && "study", group && showGroups && "groups", group && "birthdays"].filter(Boolean);
-  const bottomWide = bottom.length % 2 ? bottom[bottom.length - 1] : "";
+  // Com mais de dois grupos o bloco cresce muito e esticaria o vizinho: fica sozinho na linha, antes dos outros.
+  const nGroups = g.groups.length;
+  const groupsSolo = nGroups > 2;
+  const bottom = [study.length > 0 && "study", group && showGroups && "groups", group && "birthdays"].filter(Boolean) as string[];
+  const paired = groupsSolo ? bottom.filter(k => k !== "groups") : bottom;
+  const bottomWide = paired.length % 2 ? paired[paired.length - 1] : "";
+  const bottomOrder = groupsSolo ? ["groups", ...paired] : paired;
+  const bottomBlock: Record<string, ReactNode> = {
+    study: <StudyBlock key="study" list={study} wide={bottomWide === "study"}/>,
+    groups: <Groups key="groups" upcoming={upcoming.length} wide={groupsSolo || bottomWide === "groups"}/>,
+    birthdays: <Birthdays key="birthdays" list={bdays} wide={bottomWide === "birthdays"}/>};
   // Em cima, na tela larga: próximo compromisso ao lado do que o líder precisa resolver (substituto e respostas),
   // depois a semana na linha toda e, por fim, os blocos de baixo. Um número ímpar de blocos deixa o último na linha toda.
   const top = [next && "next", needs.length > 0 && "needs", waiting.length > 0 && "waiting"].filter(Boolean);
@@ -72,9 +81,7 @@ export function Home(){
         : <div className="card empty-state wide"><Icon name="users"/><strong>{t("group.none")}</strong><span>{t(admin ? "group.noneAdmin" : "group.noneSub")}</span>
           {admin && <button className="btn primary" onClick={() => openDialog("newGroup", {})}><Icon name="plus" sm/> {t("group.create")}</button>}</div>}
     </>}
-      {study.length > 0 && <StudyBlock list={study} wide={bottomWide === "study"}/>}
-      {group && showGroups && <Groups upcoming={upcoming.length} wide={bottomWide === "groups"}/>}
-      {group && <Birthdays list={bdays} wide={bottomWide === "birthdays"}/>}
+      {bottomOrder.map(k => bottomBlock[k])}
     </div>
   </section>;
 }
