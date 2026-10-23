@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { voiceType } from "../lib/core";
 import { listenPitch, midiName } from "../lib/tuner";
-import { cleanRange, VOICE_LOWEST, VOICE_HIGHEST, HOLD_TICKS, newHold, holdStep, holdDone, type Hold } from "../lib/voice";
+import { cleanRange, HOLD_TICKS, newHold, holdStep, holdDone, type Hold } from "../lib/voice";
 import { saveVoiceRange } from "../lib/groups";
 import { useAuth } from "../lib/cloud";
 import { t } from "../lib/i18n";
@@ -18,7 +18,6 @@ import { SecHead } from "../ui/SecHead";
 import { VoiceChip } from "../ui/VoiceChip";
 import { Spin } from "./Account";
 
-const LIVE_MS = 500;
 const midiOf = (f: number) => 69 + 12 * Math.log2(f / 440);
 
 // Microfone: liga com um callback e desliga ao sair da tela.
@@ -49,9 +48,8 @@ function VoiceRange(){
   const mic = useMic();
   // Mesmo corte do trilho lateral (celular/tablet usam a barra de abas).
   const wide = useMedia("(min-width: 900px)");
-  const [measuring, setMeasuring] = useState<{which: Which; live: string; hold: number} | null>(null);
+  const [measuring, setMeasuring] = useState<{which: Which; hold: number} | null>(null);
   const run = useRef<({which: Which} & Hold) | null>(null);
-  const liveAt = useRef(0);
   // Gravando na nuvem (spinner no botão) e qual nota acabou de ser salva ("✓ Salvo" no título por um instante).
   const [saving, setSaving] = useState<Which | null>(null);
   const [saved, setSaved] = useState<Which | null>(null);
@@ -81,15 +79,10 @@ function VoiceRange(){
       const h = holdStep(cur, f ? Math.round(midiOf(f)) : null);
       run.current = {which, ...h};
       if(holdDone(h)){ mic.off(); run.current = null; setMeasuring(null); save(which, h.note!); return; }
-      // O texto só muda a cada LIVE_MS (a leitura vem a cada ~60 ms e a nota oscila): rápido demais não dá para ler.
-      const now = performance.now(), text = h.note === null ? t("voice.singNow") : t("voice.hearing", {note: midiName(h.note)});
-      const swap = now - liveAt.current >= LIVE_MS;
-      if(swap) liveAt.current = now;
-      setMeasuring(s => s && {...s, live: swap ? text : s.live, hold: Math.min(1, h.run / HOLD_TICKS)});
+      setMeasuring(s => s && {...s, hold: Math.min(1, h.run / HOLD_TICKS)});
     }, () => startMeasure(which));
     if(!ok){ run.current = null; return; }
-    liveAt.current = performance.now();
-    setMeasuring({which, live: t("voice.singNow"), hold: 0});
+    setMeasuring({which, hold: 0});
   };
   const cancelMeasure = () => { mic.off(); run.current = null; setMeasuring(null); };
   return <div className="card voice-card">
@@ -106,24 +99,20 @@ function VoiceRange(){
         const on = measuring && measuring.which === which, busy = saving === which;
         const cur = v[which], val = cur;
         return <div key={which} className={"voice-step" + (on ? " measuring" : "")} data-step={which}>
-          <span className="lbl">{t(which === "low" ? "voice.lowest" : "voice.highest")}
-            <span className={"voice-saved" + (saved === which ? " on" : "")} role="status">{saved === which ? "✓ " + t("common.saved") : ""}</span></span>
+          <h3 className="lbl">{t(which === "low" ? "voice.lowest" : "voice.highest")}
+            <span className={"voice-saved" + (saved === which ? " on" : "")} role="status">{saved === which ? "✓ " + t("common.saved") : ""}</span></h3>
           <b className="voice-val">{val ? midiName(val) : "—"}</b>
-          {/* Sempre no lugar (só invisível fora da medição), para o card não crescer quando a nota ao vivo aparece. */}
-          <span className={"voice-live" + (on ? "" : " idle")} aria-hidden={!on}>{on ? measuring.live : ""}</span>
+          {/* Uma linha só, antes do botão: diz o que cantar e, medindo, vira "Cante e segure uma nota…" (no mesmo lugar, o card não cresce). */}
+          <span className={"voice-live" + (on ? " on" : "")}>{on ? t("voice.singNow") : t(which === "low" ? "voice.lowestD" : "voice.highestD")}</span>
           <span className={"voice-hold" + (on ? "" : " idle")} aria-hidden="true"><i style={{width: (on ? measuring.hold * 100 : 0) + "%"}}/></span>
-          <div className="voice-step-actions">
-            <button className="btn soft sm" data-measure={which} aria-busy={busy} disabled={busy} onClick={() => {
+          {/* No fim do card, à direita. Primeira medição é o botão de destaque; depois de medido (ou medindo, para cancelar) vira link. */}
+          <div className="voice-step-foot">
+            <button type="button" className={cur !== null || on ? "link-btn voice-measure" : "btn soft sm"} data-measure={which} aria-busy={busy} disabled={busy} onClick={() => {
               const was = measuring && measuring.which;
               if(was) cancelMeasure();
               if(was !== which) startMeasure(which);
-            }}>{busy ? <Spin/> : on ? <Icon name="x" sm/> : <Icon name="sound" sm/>} {on ? t("common.cancel") : t(cur ? "voice.measureAgain" : "voice.measure")}</button>
-            {cur !== null && <>
-              {([-1, 1] as const).map(d => <button key={d} className="icon-btn sm" data-nudge={which + ":" + d} disabled={busy} aria-label={t(d < 0 ? "voice.lower" : "voice.higher")} title={t(d < 0 ? "voice.lower" : "voice.higher")}
-                onClick={() => save(which, Math.max(VOICE_LOWEST, Math.min(VOICE_HIGHEST, cur + d)))}><Icon name={d < 0 ? "minus" : "plus"} sm/></button>)}
-            </>}
+            }}>{busy ? <Spin/> : <Icon name={on ? "x" : cur !== null ? "sync" : "sound"} sm/>} {on ? t("common.cancel") : t(cur !== null ? "voice.measureAgain" : "voice.measure")}</button>
           </div>
-          <p className="sub">{t(which === "low" ? "voice.lowestD" : "voice.highestD")}</p>
         </div>;
       })}
     </div>

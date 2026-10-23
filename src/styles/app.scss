@@ -4218,9 +4218,23 @@ a.btn {
   opacity: 1;
 }
 .voice-step .lbl {
+  margin: 0;
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--ink);
+}
+/* "Medir" / "Medir de novo" por último, alinhado à direita. */
+.voice-step-foot {
+  display: flex;
+  justify-content: flex-end;
+}
+.voice-measure {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-size: 0.9rem;
+  text-decoration: none;
 }
 /* "✓ Salvo" ao lado do título depois de salvar a nota; some sozinho. */
 .voice-saved {
@@ -4241,13 +4255,14 @@ a.btn {
 }
 .voice-live {
   display: block;
-  min-height: 1.5em;
-  font-size: 0.85rem;
+  min-height: 2.8em;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.voice-live.on {
   font-weight: 600;
   color: var(--accent);
-}
-.voice-live.idle {
-  visibility: hidden;
 }
 /* Barra de "segure a nota": enche em ~2 s e, ao completar, a nota é salva. Sempre no lugar, como o .voice-live. */
 .voice-hold {
@@ -4264,11 +4279,6 @@ a.btn {
 }
 .voice-hold.idle {
   visibility: hidden;
-}
-.voice-step-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 .voice-step .sub {
   margin: 0;
