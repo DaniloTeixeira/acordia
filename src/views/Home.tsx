@@ -40,10 +40,11 @@ export function Home(){
   // Os grupos só aparecem para quem tem mais de um (para trocar) ou é admin (para criar outro); com um grupo só,
   // a aba Grupo já leva até ele.
   const showGroups = g.groups.length > 1 || admin;
-  // Embaixo, Estudo e Grupos lado a lado (as músicas vêm do repertório de um grupo); sozinho, cada um ocupa a linha toda.
-  const pair = study.length > 0 && group && showGroups;
+  // Embaixo, Estudo, Grupos e Aniversários em pares, na ordem; um número ímpar deixa o último na linha toda.
+  const bottom = [study.length > 0 && "study", group && showGroups && "groups", group && "birthdays"].filter(Boolean);
+  const bottomWide = bottom.length % 2 ? bottom[bottom.length - 1] : "";
   // Em cima, na tela larga: próximo compromisso ao lado do que o líder precisa resolver (substituto e respostas),
-  // depois a semana na linha toda, Estudo ao lado de Grupos e, por último, os aniversários na linha toda. Um número ímpar de blocos deixa o último na linha toda.
+  // depois a semana na linha toda e, por fim, os blocos de baixo. Um número ímpar de blocos deixa o último na linha toda.
   const top = [next && "next", needs.length > 0 && "needs", waiting.length > 0 && "waiting"].filter(Boolean);
   const topWide = top.length % 2 ? top[top.length - 1] : "";
   return <section className="view" id="view-home" data-view="home" aria-labelledby="home-h">
@@ -71,9 +72,9 @@ export function Home(){
         : <div className="card empty-state wide"><Icon name="users"/><strong>{t("group.none")}</strong><span>{t(admin ? "group.noneAdmin" : "group.noneSub")}</span>
           {admin && <button className="btn primary" onClick={() => openDialog("newGroup", {})}><Icon name="plus" sm/> {t("group.create")}</button>}</div>}
     </>}
-      {study.length > 0 && <StudyBlock list={study} wide={!pair}/>}
-      {group && showGroups && <Groups upcoming={upcoming.length} wide={!pair}/>}
-      {group && <Birthdays list={bdays} wide/>}
+      {study.length > 0 && <StudyBlock list={study} wide={bottomWide === "study"}/>}
+      {group && showGroups && <Groups upcoming={upcoming.length} wide={bottomWide === "groups"}/>}
+      {group && <Birthdays list={bdays} wide={bottomWide === "birthdays"}/>}
     </div>
   </section>;
 }
