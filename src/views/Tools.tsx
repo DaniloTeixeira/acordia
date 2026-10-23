@@ -4,7 +4,7 @@ import { detectPitch, noteFromFreq, nearestString, midiName } from "../lib/tuner
 import { INSTRUMENTS, isInstrument } from "../lib/instruments";
 import { t } from "../lib/i18n";
 import * as store from "../lib/store";
-import { useData, go } from "../state";
+import { useData } from "../state";
 import { BackLink } from "../ui/BackLink";
 import { metro } from "../metro";
 import { Icon } from "../ui/Icon";
@@ -27,7 +27,7 @@ export function Tools(){
   useEffect(() => () => metro.stop(), []);
   useEffect(() => { if(tab !== "metro") metro.stop(); }, [tab]);
   return <section className="view" id="view-tools" data-view="tools" aria-labelledby="tools-h">
-    <BackLink id="tools-back" label={t("common.back")} onClick={() => go("more")} mobileOnly/>
+    <BackLink id="tools-back" fallback="more"/>
     <div className="view-head"><div>
       <h1 id="tools-h">{t("tools.title")}</h1><p className="sub">{t("tools.sub")}</p></div></div>
     <Seg id="tools-tabs" className={tab === "voice" ? "block wide" : "block"} aria={t("tools.title")} value={tab} onChange={v => store.setSetting("toolsTab", v)}
