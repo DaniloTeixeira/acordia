@@ -1263,9 +1263,7 @@ main {
     padding: env(safe-area-inset-top) 8px 0 14px;
     align-items: center;
     gap: 4px;
-    background: color-mix(in srgb, var(--bg) 82%, transparent);
-    backdrop-filter: saturate(1.6) blur(14px);
-    -webkit-backdrop-filter: saturate(1.6) blur(14px);
+    background: var(--surface);
     border-bottom: 1px solid var(--line);
   }
   .topbar .brand {
@@ -10346,8 +10344,9 @@ main:has(> .view > .back-link:first-child) {
     --gap: 0px;
     position: sticky;
     z-index: 15;
-    background: var(--bg);
-    box-shadow: 0 calc(var(--gap) * -1) 0 var(--bg);
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: saturate(1.6) blur(14px);
+    -webkit-backdrop-filter: saturate(1.6) blur(14px);
     top: calc(var(--topbar) + env(safe-area-inset-top));
     margin: 0 -16px 8px;
     padding: 0 16px;
