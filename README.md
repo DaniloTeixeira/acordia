@@ -14,7 +14,7 @@ Lista completa, tela por tela, para testar e decidir o que fica. Marque `[x]` no
 
 ### Em todas as telas
 - [ ] **Navegação** entre Início, Agenda, Biblioteca (Repertórios, Músicas e Medleys) e Mais (Membros, Usuários só para admin, Estudo e Ferramentas): barra de abas no celular. No topo do celular, a foto do perfil fica à esquerda (abre o Perfil) e o menu (⋯) à direita reúne instalar, idioma, volume e tema; a ajuda (?) fica solta ao lado dele. No computador o trilho
-      lateral mostra tudo direto (Início, Agenda, Biblioteca, Membros, Estudo e Ferramentas), sem o Mais. No celular, Membros, Estudo e Ferramentas têm o link "Voltar" no topo, que leva ao Mais. O "Voltar" fica fixo no topo e continua visível ao rolar. Cada página tem endereço próprio, então o "voltar" do navegador (e do mouse) funciona e fecha primeiro a janela ou o Palco abertos. O repertório aberto conta como Grupo e o voltar leva aos Repertórios. Tocar de novo na
+      lateral mostra tudo direto (Início, Agenda, Biblioteca, Membros, Estudo e Ferramentas), sem o Mais. Membros, Estudo, Ferramentas, Perfil e Usuários têm o link "Voltar para <tela>" no topo, que leva à tela de onde a pessoa veio (sem histórico, ao Mais ou ao Início). No celular ele fica fixo no topo e continua visível ao rolar. Cada página tem endereço próprio, então o "voltar" do navegador (e do mouse) funciona e fecha primeiro a janela ou o Palco abertos. O repertório aberto conta como Grupo e o voltar leva aos Repertórios. Tocar de novo na
       página atual volta ao topo.
 - [ ] **Tema** claro ou escuro. Até a primeira escolha, segue o aparelho.
 - [ ] **Idioma**: português, inglês e espanhol. O inicial vem do navegador ou do fuso horário.
@@ -64,6 +64,8 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 ### Início
 - [ ] Primeira página depois de entrar: "Olá, nome" e a data de hoje. No computador os blocos ficam em duas colunas
       (quando sobra um, ele ocupa a linha toda); no celular, em uma, na mesma ordem.
+- [ ] **Aviso de aniversário**: no dia, um cartão no topo lembra de enviar uma mensagem de parabéns ("Hoje é aniversário de Ana e
+      Pedro!"). O próprio aniversariante vê um "Feliz aniversário". Fechar (X) vale até o aniversário do ano seguinte e fica neste aparelho.
 - [ ] **Próximo compromisso** em destaque, com **Confirmar / Não posso** e **Estudar repertório** (abre a folha) ou Palco, sem sair do Início.
 - [ ] **Precisam de substituto** (só quem lidera): ao lado do destaque, os eventos em que alguém disse que
       não pode.

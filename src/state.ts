@@ -50,6 +50,7 @@ export type DialogName = keyof DialogProps;
 
 interface UIState {
   view: View;
+  trailTick: number; // muda a cada passo do histórico do Voltar, para o rótulo "Voltar para…" redesenhar
   lang: Lang;
   toasts: Toast[];
   dialogs: {[K in DialogName]?: DialogProps[K]};
@@ -63,7 +64,7 @@ interface UIState {
 }
 
 export const useUI = create<UIState>(() => ({
-  view: "medley", lang: "pt", toasts: [], dialogs: {}, stageOpen: false, expanded: new Set(), eventFocus: "", sheetSkip: {}
+  view: "medley", trailTick: 0, lang: "pt", toasts: [], dialogs: {}, stageOpen: false, expanded: new Set(), eventFocus: "", sheetSkip: {}
 }));
 
 // Os dados mudaram (qualquer música, repertório ou preferência): redesenha quem usa.
@@ -170,17 +171,49 @@ addEventListener("popstate", () => {
   if(v && v !== useUI.getState().view) go(v, {push: false});
 });
 
-export function go(v: string, {instant = false, push = true, force = false} = {}){
+// Lugares por onde a pessoa passou: o "Voltar" leva ao anterior de verdade (e só cai no padrão da página sem histórico).
+// Um lugar é uma página ("home", "more"...) ou, no grupo, a aba de baixo: "group:agenda", "group:library" ou "group:members".
+// Cada passo guarda de onde a pessoa saiu (sem repetir o mesmo lugar em seguida); o Voltar tira o último, sempre a tela anterior.
+// Fica na sessão da aba para sobreviver ao refresh, como o histórico do navegador.
+const TRAIL_KEY = "acordia.trail";
+const okPlace = (x: unknown) => typeof x === "string" && ((VIEWS as string[]).includes(x) || x.startsWith("group:"));
+const trail: string[] = (() => { try{ const a = JSON.parse(sessionStorage.getItem(TRAIL_KEY) || "[]"); return Array.isArray(a) ? a.filter(okPlace) : []; }catch(e){ return []; } })();
+const saveTrail = () => { useUI.setState(s => ({trailTick: s.trailTick + 1})); try{ sessionStorage.setItem(TRAIL_KEY, JSON.stringify(trail)); }catch(e){} };
+const tabPlace = () => { const t = store.data.settings.groupTab; return "group:" + (t === "agenda" || t === "members" ? t : "library"); };
+export const place = (view: View = useUI.getState().view) => view === "group" ? tabPlace() : view;
+// Registra que a pessoa saiu de "from" (ou do lugar atual) rumo a "to".
+export function pushTrail(to: string, from: string = place()){
+  if(from !== to && trail[trail.length - 1] !== from){ trail.push(from); if(trail.length > 30) trail.shift(); }
+  saveTrail();
+}
+// Entradas iguais ao lugar atual (sobras de refresh, voltar do navegador...) são ignoradas: o Voltar nunca "fica preso" nelas.
+// Só lê (é chamada ao desenhar o botão, inclusive da página que está saindo): quem apaga é o goBack.
+const lastOther = () => { let i = trail.length - 1; const here = place(); while(i >= 0 && trail[i] === here) i--; return i; };
+export const backTarget = (fallback: string): string => trail[lastOther()] ?? fallback;
+export function goBack(fallback: string){
+  trail.length = lastOther() + 1;
+  const to = backTarget(fallback);
+  if(!to.startsWith("group:")) return go(to, {back: true});
+  const tab = to.slice(6);
+  if(tab === "library"){ const t = store.data.settings.groupTab; if(t === "agenda" || t === "members" || !t) store.setSetting("groupTab", "setlists"); }
+  else store.setSetting("groupTab", tab);
+  if(useUI.getState().view === "group"){ trail.pop(); saveTrail(); window.scrollTo({top: 0, behavior: "smooth"}); return; }
+  go("group", {back: true});
+}
+export function go(v: string, {instant = false, push = true, force = false, back = false} = {}){
   const view = (VIEWS as string[]).includes(v) ? v as View : "medley";
   // Já na página: só volta ao topo, sem transição (ela fazia a tela piscar).
   if(view === useUI.getState().view){ window.scrollTo({top: 0, behavior: "smooth"}); return null; }
   // Formulário da página com alterações: pergunta antes de sair. No voltar do navegador o endereço já mudou, então volta a ele.
   if(!force && pageUnsaved()){
     if(!push) history.pushState(null, "", viewUrl(useUI.getState().view));
-    confirmUnsaved().then(ok => { if(ok) go(v, {instant, force: true}); });
+    confirmUnsaved().then(ok => { if(ok) go(v, {instant, force: true, back}); });
     return null;
   }
   if(push) history.pushState(null, "", viewUrl(view));
+  if(back){ trail.pop(); saveTrail(); }
+  else if(push) pushTrail(place(view));
+  else{ const i = trail.lastIndexOf(place(view)); if(i >= 0){ trail.length = i; saveTrail(); } } // voltar do navegador desfaz os passos até ali
   const run = () => { useUI.setState({view}); window.scrollTo({top: 0}); };
   if(instant){ run(); return null; }
   return animate(run, "slide");

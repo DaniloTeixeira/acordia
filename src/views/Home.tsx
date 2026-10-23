@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import * as store from "../lib/store";
 import { t, tn, locale } from "../lib/i18n";
 import { useAuth } from "../lib/cloud";
-import { dayKey, eventDay, splitEvents, upcomingBirthdays, needsCover, pendingReplies, type GEvent } from "../lib/calendar";
+import { dayKey, eventDay, splitEvents, upcomingBirthdays, birthdayNotice, birthdayKey, needsCover, pendingReplies, type GEvent } from "../lib/calendar";
 import { useGroups, chooseGroup, personName, amGroupAdmin, type GroupSetlist } from "../lib/groups";
 import { useData, openDialog } from "../state";
 import { openGroupSetlist } from "./Group";
@@ -50,6 +50,7 @@ export function Home(){
     <div className="view-head"><div><h1 id="home-h">{t("home.hello", {name})}</h1>
       <p className="sub">{fmt({weekday: "long", day: "numeric", month: "long"}).format(new Date())}</p></div></div>
     <div className="home-grid">
+    {group && <BirthdayNotice/>}
     {group ? <>
       {next && <NextCard e={next} mine={mine.includes(next)} leader={leader} wide={topWide === "next"}/>}
       {needs.length > 0 && <Block id="home-needs" className="home-needs" wide={topWide === "needs"} title={t("home.needsSub")} count={needs.length}>
@@ -159,6 +160,29 @@ function Birthdays({list, wide}: {list: {email: string; in: number; day: number;
       <span className={"chip" + (p.in === 0 ? " accent" : "")}>{p.in === 0 ? t("home.birthdayToday") : when(p.in)}</span>
     </li>)}</ul>}
   </Block>;
+}
+
+// Cartão no topo, só no dia do aniversário: lembra de mandar os parabéns. Para o próprio aniversariante vira uma
+// mensagem de parabéns. Dispensar vale até o aniversário do ano seguinte e fica neste aparelho (não vai à rede).
+function BirthdayNotice(){
+  const g = useGroups(), me = useAuth(s => s.email);
+  const today = dayKey(new Date()), dismissed = store.setting<string[]>("bdayDismissed", []);
+  const list = birthdayNotice(g.members, today, dismissed), mine = list.find(p => p.email === me);
+  const others = list.filter(p => p.email !== me);
+  if(!list.length) return null;
+  const first = (email: string) => personName(email).split(" ")[0];
+  const names = new Intl.ListFormat(locale(), {style: "long", type: "conjunction"}).format(others.map(p => first(p.email)));
+  // Guarda só as dispensas do ano corrente para a lista não crescer.
+  const dismiss = (emails: string[]) => store.setSetting("bdayDismissed", [...dismissed.filter(k => k.endsWith(":" + today.slice(0, 4))), ...emails.map(e => birthdayKey(e, today))]);
+  const card = (id: string, title: string, hint: string, emails: string[]) => <section className="card home-block wide birthday-notice" id={id} role="status">
+    <Icon name="gift"/>
+    <div className="birthday-notice-text"><b>{title}</b><span className="sub">{hint}</span></div>
+    <button type="button" className="icon-btn sm" aria-label={t("common.close")} onClick={() => dismiss(emails)}><Icon name="x" sm/></button>
+  </section>;
+  return <>
+    {mine && card("home-bday-mine", t("home.bdayMine", {name: first(mine.email)}), t("home.bdayMineHint"), [mine.email])}
+    {others.length > 0 && card("home-bday-notice", "🎂 " + t("home.bdayWho", {names}), t("home.bdayHint"), others.map(p => p.email))}
+  </>;
 }
 
 // Os próximos 7 dias, de hoje em diante: um ponto nos dias com evento do grupo (na cor de destaque quando a

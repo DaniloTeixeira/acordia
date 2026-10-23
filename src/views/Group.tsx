@@ -21,7 +21,7 @@ import { splitRoles, joinRoles, toggleRole, sortRoles } from "../lib/roles";
 import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone,type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, loadGroups, createGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
   deleteEvent, respond, setCover, checkIn, setMyAttendance, markAttendance, requestAttendanceChange, declineAttendanceChange, setUnavailable, personName, voiceOf, personPhoto, amGroupAdmin, setMemberOut, outMark, isActive, setMemberActive, type GroupSetlist, type Member, type Group } from "../lib/groups";
-import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, confirmUnsaved, useUnsaved, go } from "../state";
+import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, confirmUnsaved, useUnsaved, go, place, pushTrail } from "../state";
 import { Icon } from "../ui/Icon";
 import { CopyBtn } from "../ui/CopyBtn";
 import { Seg } from "../ui/Seg";
@@ -59,6 +59,7 @@ export function ReplySeg({e, onEditing}: {e: GEvent; onEditing?: (v: boolean) =>
   // Layout effect: o pai troca a linha reservada antes de pintar; com useEffect o card pulava um quadro e voltava.
   useLayoutEffect(() => { onEditing?.(editing); }, [editing]);
   if(cur && !sent && !editing) return <div className={"reply-done " + cur} role="status">
+    <span className="reply-edit-hint">{t(cur === "yes" ? "group.replyYesHint" : "group.replyNoHint")}</span>
     <span className="reply-badge"><Icon name={cur === "yes" ? "check" : "x"} sm/> {t(cur === "yes" ? "group.replyYes" : "group.replyNo")}</span>
     <button type="button" className="link-btn" onClick={() => setEditing(true)}>{t("group.changeReply")}</button></div>;
   const btn =(v: "yes" | "no", icon: string, label: string) =>
@@ -68,7 +69,7 @@ export function ReplySeg({e, onEditing}: {e: GEvent; onEditing?: (v: boolean) =>
   // O "Cancelar" vem acima dos botões, na ponta direita: exatamente onde estava o "Alterar resposta".
   const cancel = cur && editing && !sent;
   return <div className={"reply-edit" + (cancel ? " editing" : "")}>
-    {cancel && <button type="button" className="link-btn" onClick={() => setEditing(false)}>{t("common.cancel")}</button>}
+    {cancel && <><span className="reply-edit-hint">{t("group.replyEditHint")}</span><button type="button" className="link-btn" onClick={() => setEditing(false)}>{t("common.cancel")}</button></>}
     <div className="reply-btns" role="group" aria-label={t("group.myReply")}>{btn("yes", "check", t("group.confirm"))}{btn("no", "x", t("group.decline"))}</div></div>;
 }
 
@@ -175,9 +176,12 @@ export function useGroupRefresh(){
 }
 // Abre a página do grupo numa aba; sem aba, na Agenda (o que o membro mais consulta).
 export function openGroup(tab: Tab = "agenda", eventId = ""){
+  const from = place();
   store.setSetting("groupTab", tab);
   useUI.setState({eventFocus: eventId});
-  go("group");
+  // Trocar de aba (Agenda ↔ Biblioteca) dentro do grupo também é um passo para o Voltar.
+  if(useUI.getState().view === "group"){ pushTrail(place(), from); window.scrollTo({top: 0, behavior: "smooth"}); }
+  else{ go("group"); }
 }
 
 export function Group(){
@@ -193,7 +197,7 @@ export function Group(){
   const tab: Tab = (["agenda", "setlists", "songs", "medleys", "members"] as const).find(v => v === data.settings.groupTab) || "agenda";
   // Quem lidera tem o lápis ao lado do nome: abre a janela com a foto, o nome e (admin do app) outro grupo e excluir.
   const head = (sub: string, actions?: React.ReactNode) => <>
-    <BackLink id="group-back" label={t("common.back")} onClick={() => tab === "members" ? go("more") : go("home")}/>
+    <BackLink id="group-back" fallback={tab === "members" ? "more" : "home"}/>
     <div className="view-head"><div>
     <div className="group-title">{group && (admin ? <GroupPhotoButton group={group}/> : <GroupMark group={group}/>)}
       <div>{group && <span className="group-kicker">{t(tab === "members" ? "group.membersTab" : tab === "agenda" ? "group.agenda" : "lib.title")}</span>}<h1 id="group-h">{group ? group.name : t("group.title")}{canEdit && <button type="button" className="icon-btn sm group-edit-btn" id="group-edit"
@@ -297,6 +301,11 @@ function CoverSelect({e}: {e: GEvent}){
   return <label className="event-cover"><Select value={mine?.cover || ""} options={opts} aria={t("group.coverAsk")} disabled={busy} onChange={pick}/>{busy && <Spin/>}</label>;
 }
 
+// Abaixo do selo da resposta: só "não posso" tem linha extra, com quem cobre. Confirmado já tem o aviso no topo do selo.
+function ReplySlot({status, e}: {status: string; e: GEvent}){
+  return status === "no" ? <div className="my-reply-slot"><CoverSelect e={e}/></div> : null;
+}
+
 // Resposta de uma escala: Confirmar / Não posso e, para quem disse "não posso", quem cobre.
 export function ReplyBlock({e}: {e: GEvent}){
   const g = useGroups(), me = useAuth(s => s.email);
@@ -304,7 +313,7 @@ export function ReplyBlock({e}: {e: GEvent}){
   const mine = g.roster.find(r => r.event_id === e.id && r.email === me);
   return <div className="reply-block"><ReplySeg e={e} onEditing={setEditing}/>
     {/* Respondida: a linha de baixo é reservada (com o substituto só para "não posso"), com a altura dos botões que aparecem ao alterar. */}
-    {(mine?.status === "yes" || mine?.status === "no") && !editing && <div className="my-reply-slot">{mine.status === "no" && <CoverSelect e={e}/>}</div>}</div>;
+    {(mine?.status === "yes" || mine?.status === "no") && !editing && <ReplySlot status={mine.status} e={e}/>}</div>;
 }
 
 // Ensaio na janela da chamada (12 h antes do início), para quem está na escala: a resposta e a presença viram um estado só.
@@ -322,11 +331,12 @@ function RehearsalReply({e, act}: {e: GEvent; act: (key: string, fn: () => Promi
   const showBtns = !status || editing || busy !== "";
   return <div className="reply-block">
     {!showBtns && <><div className={"reply-done " + status} role="status">
+      <span className="reply-edit-hint">{t(status === "yes" ? "group.replyYesHint" : "group.replyNoHint")}</span>
       <span className="reply-badge"><Icon name={status === "yes" ? "check" : "x"} sm/> {t(here ? "group.att.present" : reply === "yes" ? "group.replyYes" : "group.replyNo")}</span>
       {here && a?.by_admin ? <AskChange e={e} act={act}/> : <button type="button" className="link-btn" onClick={() => setEditing(true)}>{t("group.changeReply")}</button>}</div>
-      <div className="my-reply-slot">{status === "no" && <CoverSelect e={e}/>}</div></>}
+      <ReplySlot status={status} e={e}/></>}
     {showBtns && <div className={"reply-edit" + (status && editing && !busy ? " editing" : "")}>
-      {status && editing && !busy && <button type="button" className="link-btn" onClick={() => setEditing(false)}>{t("common.cancel")}</button>}
+      {status && editing && !busy && <><span className="reply-edit-hint">{t("group.replyEditHint")}</span><button type="button" className="link-btn" onClick={() => setEditing(false)}>{t("common.cancel")}</button></>}
       <div className="reply-btns" role="group" aria-label={t("group.myReply")}>
         <button type="button" className="btn sm reply-yes" aria-busy={busy === "in"} disabled={busy !== ""} onClick={arrive}>{busy === "in" ? <Spin/> : <Icon name="check" sm/>} {t("group.checkIn")}</button>
         <button type="button" className="btn sm reply-no" aria-busy={busy === "no"} disabled={busy !== ""} onClick={decline}>{busy === "no" ? <Spin/> : <Icon name="x" sm/>} {t("group.decline")}</button></div></div>}
@@ -428,9 +438,9 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
     {/* Sem título (ou com título igual ao tipo), o tipo já é o título: o chip só aparece quando o evento tem nome próprio. */}
     {e.title && e.title.trim().toLowerCase() !== t("group.kind." + e.kind).toLowerCase() && <span className={"chip kind-" + e.kind}>{t("group.kind." + e.kind)}</span>}
     {set && <span className="chip"><Icon name="music" sm/> {set.name}</span>}
-    {canEdit && needs.length > 0 && !isPast && <span className="chip st-no">{tn("group.needSub", needs.length)}</span>}
     {e.kind === "rehearsal" && myAtt?.status === "present" && <span className="chip st-yes"><Icon name="check" sm/> {t("group.att.present")}</span>}
     {e.kind === "rehearsal" && myAtt?.status === "absent" && <span className="chip st-no"><Icon name="x" sm/> {t("group.att.absent")}</span>}
+    {canEdit && needs.length > 0 && !isPast && <span className="chip st-no">{tn("group.needSub", needs.length)}</span>}
     {pendingCheckIn(e, [me], g.attendance).length > 0 && <span className="chip st-pending"><Icon name="dot" sm/> {t("group.att.pending")}</span>}
   </>;
   return <li ref={ref} className={"card event " + e.kind}>
@@ -458,12 +468,13 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
         {e.kind === "rehearsal" && canCheckIn(e) && pastNow && myMark && !editIn && busy !== "in" && <div className={"reply-done " + (myIn ? "yes" : "no")} role="status">
           <span className="reply-badge"><Icon name={myIn ? "check" : "x"} sm/> {t(myIn ? "group.att.present" : "group.att.absent")}</span>
           {myAtt?.by_admin ? <AskChange e={e} act={act}/> : <button type="button" className="link-btn" onClick={() => setEditIn(true)}>{t("group.changeAtt")}</button>}</div>}
-        {e.kind === "rehearsal" && canCheckIn(e) && pastNow && (!myMark || editIn || busy === "in") && <div className="reply-edit"><div className="reply-btns" role="group" aria-label={t("group.myReply")}>
+        {e.kind === "rehearsal" && canCheckIn(e) && pastNow && (!myMark || editIn || busy === "in") && <div className={"reply-edit" + (myMark && editIn && !busy ? " editing" : "")}>
+          {myMark && editIn && !busy && <><span className="reply-edit-hint">{t("group.replyEditHint")}</span><button type="button" className="link-btn" onClick={() => setEditIn(false)}>{t("common.cancel")}</button></>}
+          <div className="reply-btns" role="group" aria-label={t("group.myReply")}>
           {([["present", "check", "group.checkInPast", "reply-yes"], ["absent", "x", "group.notThere", "reply-no"]] as const).filter(([v]) => v === "present" || !myOut || myAtt?.status === "absent").map(([v, icon, key, cls]) =>
             <button key={v} type="button" className={"btn sm " + cls} aria-busy={busy === "in:" + v} disabled={busy.startsWith("in:")}
               onClick={() => myAtt?.status === v ? setEditIn(false) : act("in:" + v, () => setMyAttendance(e.id, v), "group.saved").then(() => setEditIn(false))}>
-              {busy === "in:" + v ? <Spin/> : <Icon name={icon} sm/>} {t(key)}</button>)}</div>
-          {myMark && editIn && !busy && <button type="button" className="link-btn" onClick={() => setEditIn(false)}>{t("common.cancel")}</button>}</div>}
+              {busy === "in:" + v ? <Spin/> : <Icon name={icon} sm/>} {t(key)}</button>)}</div></div>}
         {e.kind === "rehearsal" && canCheckIn(e) && !pastNow && !unified && myIn && !editIn && busy !== "in" && <div className="reply-done yes" role="status">
           <span className="reply-badge"><Icon name="check" sm/> {t("group.att.present")}</span>
           {myAtt?.by_admin ? <AskChange e={e} act={act}/> : <button type="button" className="link-btn" onClick={() => setEditIn(true)}>{t("group.changeAtt")}</button>}</div>}

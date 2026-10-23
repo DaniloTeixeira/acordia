@@ -1,7 +1,7 @@
 // Estudo: explorador de escalas e campo harmônico e treino em forma de jogo.
 import { t } from "../../lib/i18n";
 import * as store from "../../lib/store";
-import { useData, go } from "../../state";
+import { useData } from "../../state";
 import { BackLink } from "../../ui/BackLink";
 import { Seg } from "../../ui/Seg";
 import { Explore } from "./Explore";
@@ -24,7 +24,7 @@ export function Study(){
   useData();
   const st = studyState();
   return <section className="view" id="view-study" data-view="study" aria-labelledby="study-h">
-    <BackLink id="study-back" label={t("common.back")} onClick={() => go("more")} mobileOnly/>
+    <BackLink id="study-back" fallback="more"/>
     <div className="view-head"><div>
       <h1 id="study-h">{t("study.title")}</h1><p className="sub">{t("study.sub")}</p></div></div>
     <Seg id="study-tabs" aria={t("study.tabsAria")} value={st.tab} onChange={tab => setStudy({tab})}

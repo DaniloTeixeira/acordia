@@ -2400,10 +2400,12 @@ textarea.song-text {
 .root-btn:active {
   transform: scale(0.94);
 }
+/* Selecionado: o mesmo gradiente dos botões principais, com um leve brilho (não depende de hover). */
 .root-btn[aria-pressed="true"] {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent-grad);
+  border-color: transparent;
   color: var(--accent-ink);
+  box-shadow: var(--shadow-sm);
 }
 .study-row {
   display: flex;
@@ -3382,8 +3384,8 @@ textarea.song-text {
   color: var(--muted);
 }
 
-/* Voltar (Grupo, Usuários, repertório, treino): só seta e texto, sem cara de botão.
-   O hover passa para a cor do texto e a seta anda para a esquerda; a altura mínima mantém o alvo de toque. */
+/* Voltar (Grupo, Usuários, repertório, treino): seta e texto com cara de link (cor de destaque e sublinhado, como .link-btn).
+   No hover a cor escurece e a seta anda para a esquerda; a altura mínima mantém o alvo de toque. */
 .back-link {
   display: inline-flex;
   align-items: center;
@@ -3393,12 +3395,16 @@ textarea.song-text {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--muted);
+  color: var(--accent);
   font: inherit;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: color var(--t-fast);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition:
+    color var(--t-fast),
+    text-decoration-color var(--t-fast);
 }
 .back-link .i {
   transition: transform var(--t-fast) var(--ease);
@@ -3409,7 +3415,7 @@ textarea.song-text {
   }
 }
 .back-link:hover {
-  color: var(--ink);
+  color: var(--accent-hover);
 }
 .back-link:hover .i {
   transform: translateX(-3px);
@@ -6842,6 +6848,10 @@ dialog.ear-dlg {
   height: 7px;
   border-radius: 50%;
 }
+/* Na página Membros o "Cadastrar membro" é seção da página (card sem título próprio): traço, como a lista. */
+.people-page .fold-card-head .people-sub-h { font-size: 0.95rem; }
+.people-page .fold-card-head .people-sub-h > .sec-bar { width: 4px; }
+.people-page .fold-card-head .people-sub-h > .sec-bar::before { height: 0.85em; border-radius: 2px; }
 /* Texto de ajuda das seções do Perfil: colado no que explica, menor e sem negrito, para não parecer título. */
 .profile-sec small.sub {
   margin-top: 2px;
@@ -7006,18 +7016,31 @@ dialog.ear-dlg {
 .profile-group-open > .chev-right {
   color: var(--muted);
 }
-/* Sair no fim da página, à esquerda, com um respiro depois do último card. */
+/* Sair no fim da página, à esquerda; os 44px de altura do link já dão o respiro depois do último card. */
 .profile-out {
   display: flex;
-  margin-top: 20px;
+  margin-top: 0;
 }
-/* link discreto com seta, à esquerda, mas com área de toque de 44px */
+/* link discreto com seta, à esquerda, mas com área de toque de 44px; a seta anda para a esquerda no hover, como no Voltar */
 .profile-out .link-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   min-height: 44px;
   padding-right: 16px;
+}
+.profile-out .link-btn .i {
+  transition: transform var(--t-fast) var(--ease);
+}
+@media (hover: hover) {
+  .profile-out .link-btn:hover:not(:disabled) .i {
+    transform: translateX(-3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .profile-out .link-btn:hover .i {
+    transform: none;
+  }
 }
 .profile-who {
   display: flex;
@@ -7702,6 +7725,24 @@ dialog.ear-dlg {
 .chev-right {
   transform: rotate(-90deg);
 }
+/* Seta de link/atalho (não dos botões só de ícone): no hover anda uns pixels no sentido em que aponta, como no Voltar.
+   Usa `translate` (e não `transform`) para somar com o giro da seta e o ajuste de altura que ela já tem. */
+:is(button, a, summary) > .i.chev-right,
+.link-btn.go .i {
+  transition: translate var(--t-fast) var(--ease);
+}
+@media (hover: hover) {
+  :is(button, a, summary):not(.icon-btn, :disabled, [aria-disabled="true"]):hover > .i.chev-right,
+  .link-btn.go:hover:not(:disabled) .i {
+    translate: 3px 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(button, a, summary):hover > .i.chev-right,
+  .link-btn.go:hover .i {
+    translate: none;
+  }
+}
 .cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -7884,7 +7925,7 @@ dialog.ear-dlg {
 }
 /* Os chips ficam sempre numa linha própria embaixo do cabeçalho, para o tamanho da data não depender deles
    (igual em Próximos e Anteriores). No celular cada chip estica para preencher a linha. */
-.event-chips.below { margin-top: 8px; }
+.event-chips.below { margin-top: 8px; gap: 8px; }
 @media (max-width: 599px) {
   .event-chips.below { margin-top: 0; }
   .event-chips.below .chip { flex: 1 1 auto; justify-content: center; text-align: center; }
@@ -9454,6 +9495,23 @@ dialog.member-dlg {
   display: flex;
   flex-direction: column;
 }
+/* Aviso de aniversário no topo do Início: ícone, texto e o fechar na mesma linha. */
+.birthday-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--accent-soft);
+}
+.birthday-notice > .i {
+  color: var(--accent);
+  flex: none;
+}
+.birthday-notice-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
 .birthday-who b {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -9723,7 +9781,7 @@ dialog.member-dlg {
   flex: 0 0 auto;
   min-width: 0;
   justify-content: center;
-  min-height: 36px;
+  min-height: 32px;
   padding: 0 16px;
   font-size: 0.86rem;
 }
@@ -9743,22 +9801,40 @@ dialog.member-dlg {
 .reply-edit .link-btn {
   font-size: 0.78rem;
 }
+/* Resposta dada: o mesmo arranjo de quando os botões estão abertos. Em cima o texto (esquerda) e o link
+   (direita), embaixo o selo; o texto e o link não trocam de lugar ao alternar entre os dois estados. */
+.reply-block .reply-done {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: minmax(40px, auto) 32px; /* a linha de baixo tem a altura do selo e dos botões: o card não muda ao alternar */
+  align-items: center;
+  gap: 8px;
+}
+.reply-block .reply-done .reply-edit-hint { grid-column: 1; grid-row: 1; }
+.reply-block .reply-done .link-btn { grid-column: 2; grid-row: 1; margin-left: 0; min-height: 40px; }
+.reply-block .reply-done .reply-badge { grid-column: 1 / -1; grid-row: 2; justify-self: start; }
 /* Quando o "Cancelar" não cabe ao lado dos botões e desce para a linha de baixo, fica na ponta direita, onde está o "Alterar resposta". */
 .reply-edit .link-btn {
   margin-left: auto;
 }
-/* Alterando uma resposta já dada: "Cancelar" na linha de cima, na ponta direita e com a altura do selo, no lugar exato do
-   "Alterar resposta"; os botões descem para a linha de baixo. */
+/* Alterando uma resposta já dada: o texto em cima com o "Cancelar" na ponta direita, no lugar exato do "Alterar resposta", e os botões
+   embaixo (no lugar do selo). */
 .reply-edit.editing {
-  flex-direction: column;
-  align-items: stretch;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: minmax(40px, auto) 32px; /* a linha de baixo tem a altura do selo e dos botões: o card não muda ao alternar */
+  align-items: center;
   gap: 8px;
 }
+.reply-edit.editing > .reply-btns { grid-column: 1 / -1; grid-row: 2; }
 .reply-edit.editing > .link-btn {
-  align-self: flex-end;
+  grid-column: 2;
+  grid-row: 1;
   margin-left: 0;
-  min-height: 40px; /* a mesma linha de 40px do selo: o link fica exatamente no mesmo ponto */
+  min-height: 40px; /* a mesma linha do "Alterar resposta": o link fica exatamente no mesmo ponto */
 }
+/* Texto sempre em cima, à esquerda do link (Cancelar / Alterar resposta). */
+.reply-edit-hint { grid-column: 1; grid-row: 1; margin: 0; font-size: 0.85rem; color: var(--ink-2); }
 .reply-badge {
   display: inline-flex;
   align-items: center;
@@ -9768,11 +9844,11 @@ dialog.member-dlg {
   border-radius: 999px;
   font-weight: 600;
   font-size: 0.78rem;
-  background: var(--ok-soft);
+  background: transparent; /* só o contorno (vem da regra dos chips de situação) */
   color: var(--ok);
 }
 .reply-done.no .reply-badge {
-  background: var(--bad-soft);
+  background: transparent;
   color: var(--bad);
 }
 /* Confirmar verde e Não posso vermelho, sempre, só com contorno (mais suave); marcado fica cheio. */
@@ -10010,7 +10086,7 @@ dialog.member-dlg {
    na ponta direita. O bloco vira display: contents para o link poder passar do substituto (order). */
 @media (max-width: 899px) {
   .event-actions > .reply-done { display: contents; }
-  .event-actions > .reply-done .reply-badge { flex: 1 1 100%; justify-content: center; min-height: 34px; font-size: 0.85rem; } /* mesma altura do chip do evento (.event-chips .chip.st-no) */
+  .event-actions > .reply-done .reply-badge { flex: 1 1 100%; justify-content: center; }
   .event-actions > .event-cover { order: 1; flex-basis: 100%; flex-wrap: nowrap; }
   .event-actions > .event-cover .select-btn { flex: 1 1 auto; min-width: 0; }
   .event-actions > .reply-done .link-btn { order: 2; margin-left: auto; }
@@ -10022,11 +10098,8 @@ dialog.member-dlg {
   .event-actions > :is(.reply-done, .reply-edit) { display: contents; }
   /* Escolha da resposta: os botões do tamanho do texto, não esticados pela linha. */
   .event-actions > .reply-btns { width: auto; }
-  .event-actions > .reply-btns .btn { flex: 0 0 auto; min-height: 34px; padding: 0 22px; }
-  @media (pointer: coarse) {
-    .event-actions > .reply-btns .btn { min-height: 40px; }
-  }
-  .event-actions > .reply-done .reply-badge { order: 0; min-height: 34px; padding: 0 12px; font-size: 0.85rem; }
+  .event-actions > .reply-btns .btn { flex: 0 0 auto; min-height: 32px; padding: 0 22px; }
+  .event-actions > .reply-done .reply-badge { order: 0; }
   .event-actions > :is(.reply-done, .reply-edit) .link-btn { order: 2; margin-left: auto; }
   .event-actions > .event-cover { order: 1; }
 }
@@ -10048,19 +10121,23 @@ dialog.member-dlg {
   max-width: 100%;
   white-space: normal;
   overflow-wrap: anywhere;
-  border-radius: 12px;
-}
-/* Chip "não pode ir · falta substituto": tamanho do botão pequeno (`.btn.sm`) e fundo suave, igual no celular e no desktop. */
-.event-chips .chip.st-no {
-  min-height: 34px;
-  padding: 0 12px;
+  border-radius: var(--r-full);
+  /* Todo chip e selo de situação do evento tem a mesma altura do selo de resposta (.reply-badge), em qualquer tela. */
+  min-height: 26px;
+  padding: 0 10px;
   box-sizing: border-box;
   justify-content: center;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
+}
+/* Chip "não pode ir · falta substituto": só texto vermelho, sem fundo nem contorno (teste a pedido). */
+.event-chips .chip.st-no {
   font-weight: 600;
-  border-radius: var(--r-full);
-  background: var(--bad-soft); /* mesmo tom do selo "Você não vai" (.reply-badge) */
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent);
+  background: transparent;
+  box-shadow: none;
+}
+/* Tela larga: o aviso vai para o canto direito da linha de chips. */
+@media (min-width: 900px) {
+  .event-chips.below .chip.st-no { margin-left: auto; }
 }
 
 /* Mais: lista de destinos que ficam fora da barra de abas. Alvo de toque grande, uma coluna no celular. */
@@ -10175,7 +10252,7 @@ dialog.member-dlg {
   }
 }
 .reply-block .reply-btns .btn {
-  min-height: 40px;
+  min-height: 32px; /* um pouco mais alto que o selo (.reply-badge), mais fácil de tocar */
 }
 .my-reply-list li + li {
   padding-top: 16px;
@@ -10248,24 +10325,26 @@ dialog.member-dlg {
   justify-content: space-between;
   gap: 8px;
 }
-/* Voltar fixo: filho direto de .view. O "top" é igual à posição natural (o respiro do <main>), então ao rolar ele não anda
-   nem um pixel; a sombra sólida acima dele tampa o conteúdo que passa por ali. No celular o fundo vai de borda a borda. */
+/* Voltar fixo só no celular/tablet (filho direto de .view); no desktop a tela cabe e ele rola junto com a página. */
 .view > .back-link {
-  --gap: 28px;
-  position: sticky;
-  top: var(--gap);
-  z-index: 15;
   margin: 0 0 8px;
-  background: var(--bg);
-  box-shadow: 0 calc(var(--gap) * -1) 0 var(--bg);
 }
-/* No celular o respiro do topo é da própria página; com o Voltar fixo ele encosta na barra do topo (sem folga em cima). */
+/* O Voltar já tem 40px de altura (alvo de toque), então o respiro do topo da página diminui para não somar os dois. */
+main:has(> .view > .back-link:first-child) {
+  padding-top: 8px;
+}
+/* No celular o respiro do topo é da própria página; com o Voltar fixo ele encosta na barra do topo (sem folga em cima).
+   A sombra sólida acima tampa o conteúdo que passa por ali e o fundo vai de borda a borda. */
 @media (max-width: 899px) {
   main:has(> .view > .back-link:first-child) {
     padding-top: 0;
   }
   .view > .back-link {
     --gap: 0px;
+    position: sticky;
+    z-index: 15;
+    background: var(--bg);
+    box-shadow: 0 calc(var(--gap) * -1) 0 var(--bg);
     top: calc(var(--topbar) + env(safe-area-inset-top));
     margin: 0 -16px 8px;
     padding: 0 16px;

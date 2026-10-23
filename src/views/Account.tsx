@@ -359,7 +359,7 @@ function PhotoActions(){
 export function Profile(){
   const {profile, admin, owner, email} = useAuth();
   return <section className="view" id="view-profile" data-view="profile" aria-labelledby="profile-h">
-    <BackLink id="profile-back" label={t("common.back")} onClick={() => go("home")} mobileOnly/>
+    <BackLink id="profile-back" fallback="home"/>
     <div className="view-head"><div><h1 id="profile-h">{t("profile.title")}</h1></div></div>
     <div className="profile-panel">
       <div className="card profile-top wide">
@@ -709,7 +709,7 @@ export function PeoplePage(){
   useEffect(() => { if(!admin) go("profile", {instant: true}); }, [admin]);
   if(!admin) return null;
   return <section className="view" id="view-people" data-view="people" aria-labelledby="people-h">
-    <BackLink id="people-back" label={t("profile.title")} onClick={() => go("profile")}/>
+    <BackLink id="people-back" fallback="profile"/>
     <div className="view-head"><div>
       <h1 id="people-h">{t("people.title")}</h1><p className="sub">{t("people.sub")}</p></div></div>
     <People me={email}/>

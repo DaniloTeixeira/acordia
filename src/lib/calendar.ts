@@ -255,6 +255,13 @@ export function upcomingBirthdays<T extends {birthday?: string | null}>(people: 
   }).sort((a, b) => a.in - b.in);
 }
 
+// Aviso de aniversário na abertura: só quem faz aniversário hoje e ainda não foi dispensado neste ano. A dispensa
+// é guardada como "email:ano" (aparelho), então vale por pessoa e volta no aniversário do ano seguinte.
+export const birthdayKey = (email: string, today: string) => `${email}:${today.slice(0, 4)}`;
+export function birthdayNotice<T extends {email: string; birthday?: string | null}>(people: T[], today: string, dismissed: string[]){
+  return upcomingBirthdays(people, today, 0).filter(p => !dismissed.includes(birthdayKey(p.email, today)));
+}
+
 // ---------- escala por pessoa ----------
 // A escala guarda uma linha por função (a mesma pessoa pode tocar e cantar). Para mostrar, junta as
 // linhas de cada pessoa, na ordem em que aparecem. A resposta é a mesma em todas as linhas da pessoa.
