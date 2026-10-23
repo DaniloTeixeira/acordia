@@ -1268,6 +1268,7 @@ main {
   .topbar .brand {
     padding: 0;
     margin-right: auto;
+    margin-left: 4px;
     font-size: 1rem;
   }
   .topbar .brand img {
@@ -4217,9 +4218,23 @@ a.btn {
   opacity: 1;
 }
 .voice-step .lbl {
+  margin: 0;
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--ink);
+}
+/* "Medir" / "Medir de novo" por último, alinhado à direita. */
+.voice-step-foot {
+  display: flex;
+  justify-content: flex-end;
+}
+.voice-measure {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-size: 0.9rem;
+  text-decoration: none;
 }
 /* "✓ Salvo" ao lado do título depois de salvar a nota; some sozinho. */
 .voice-saved {
@@ -4240,13 +4255,14 @@ a.btn {
 }
 .voice-live {
   display: block;
-  min-height: 1.5em;
-  font-size: 0.85rem;
+  min-height: 2.8em;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.voice-live.on {
   font-weight: 600;
   color: var(--accent);
-}
-.voice-live.idle {
-  visibility: hidden;
 }
 /* Barra de "segure a nota": enche em ~2 s e, ao completar, a nota é salva. Sempre no lugar, como o .voice-live. */
 .voice-hold {
@@ -4263,11 +4279,6 @@ a.btn {
 }
 .voice-hold.idle {
   visibility: hidden;
-}
-.voice-step-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 .voice-step .sub {
   margin: 0;
@@ -4639,6 +4650,11 @@ a.btn {
 }
 .menu-item.danger {
   color: var(--bad);
+}
+/* Valor atual à direita do item (idioma, volume). */
+.menu-item small {
+  color: var(--muted);
+  font-weight: 500;
 }
 .menu-item.sep {
   margin-top: 7px;
@@ -7498,6 +7514,35 @@ dialog.ear-dlg {
 #view-group > .view-head > .actions > .btn {
   flex-shrink: 0;
 }
+/* Celular: o botão de ação (Novo evento...) fica à direita, na linha do nome, em vez de cair para a linha de baixo. */
+#view-group > .view-head {
+  flex-wrap: nowrap;
+}
+#view-group > .view-head > div:first-child {
+  flex: 1 1 0;
+  min-width: 0;
+}
+#view-group > .view-head > .actions {
+  margin-left: auto;
+}
+/* Celular estreito: kicker, marca, nome e lápis ocupam a linha sozinhos; o botão de ação desce para a linha de baixo, na largura toda. */
+@media (max-width: 599px) {
+  #view-group > .view-head {
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+  #view-group > .view-head > div:first-child {
+    flex: 1 1 100%;
+  }
+  #view-group > .view-head > .actions {
+    flex: 1 1 100%;
+    margin-left: 0;
+    min-height: 0;
+  }
+  #view-group > .view-head > .actions > .btn {
+    flex: 1 1 auto;
+  }
+}
 /* "GRUPO" em cima do nome: deixa claro em que tela a pessoa está. */
 .group-kicker {
   display: block;
@@ -7525,8 +7570,12 @@ dialog.ear-dlg {
 .agenda-grid {
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(280px, 360px) 1fr;
+  grid-template-columns: 1fr minmax(280px, 360px);
   align-items: start;
+}
+/* Os Eventos vêm primeiro: à esquerda na tela larga e acima do calendário no celular, para responder sem rolar. */
+.agenda-grid > .agenda-list {
+  order: -1;
 }
 @media (max-width: 899px) {
   .agenda-grid {
@@ -7544,15 +7593,6 @@ dialog.ear-dlg {
 .agenda-list .card {
   box-shadow: none;
 }
-.my-next {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.my-next h2 {
-  margin: 0;
-  font-size: 1rem;
-}
 /* Selo da data quadrado e do tamanho do bloco de texto (título, hora, chips e botão); o tamanho vem de useSquareBadge.
    As linhas de evento do Início usam o mesmo selo da Agenda. */
 .my-next-list .date-badge,
@@ -7568,30 +7608,6 @@ dialog.ear-dlg {
 .my-next-list .date-badge small,
 .home-row .date-badge small {
   font-size: 0.85rem;
-}
-.my-next-hint {
-  margin: 0;
-  font-size: 0.8rem;
-}
-.my-next-ics {
-  align-self: flex-start;
-  margin-top: 8px;
-}
-/* Mesma altura do desktop no celular: o botão já ocupa a largura toda, então o alvo de toque é grande o bastante
-   e a regra de toque de `.btn.sm` (40px) só deixava o card mais alto. */
-.btn.sm.my-next-ics {
-  min-height: 34px;
-}
-/* No celular o botão vai para a linha de baixo do evento (fora do bloco de texto) e ocupa a largura toda. */
-@media (max-width: 599px) {
-  .my-next-list li {
-    flex-wrap: wrap;
-  }
-  .my-next-list li > .my-next-ics {
-    flex: 1 1 100%;
-    margin-top: 0;
-    justify-content: center;
-  }
 }
 .my-next-list {
   list-style: none;
@@ -7657,7 +7673,7 @@ dialog.ear-dlg {
 .cal {
   padding: 14px;
 }
-/* Títulos das seções da Agenda (Calendário e Eventos), no mesmo tamanho de "Suas próximas escalas". */
+/* Títulos das seções da Agenda (Calendário e Eventos), no mesmo tamanho de "Seu próximo compromisso". */
 .cal > h2 {
   margin: 0 0 10px;
   font-size: 1rem;
@@ -7816,18 +7832,11 @@ dialog.ear-dlg {
   flex-direction: column;
   gap: 26px;
 }
-.event.declined {
-  border-color: color-mix(in srgb, var(--bad) 40%, var(--line));
-}
-/* Dados do evento num cartão próprio (data, título, chips e a resposta de quem é escalado); a lista de pessoas fica fora dele. */
+/* Dados do evento (data, título e chips) no topo do card, soltos: sem quadro, para não ser card dentro de card. */
 .event-info {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--surface-2);
 }
 .event-top {
   display: flex;
@@ -7879,6 +7888,7 @@ dialog.ear-dlg {
 @media (max-width: 599px) {
   .event-chips.below { margin-top: 0; }
   .event-chips.below .chip { flex: 1 1 auto; justify-content: center; text-align: center; }
+  .event-chips.below .chip.role { flex: 0 0 auto; }
 }
 .chip.kind-rehearsal {
   background: var(--ok-soft);
@@ -9733,6 +9743,22 @@ dialog.member-dlg {
 .reply-edit .link-btn {
   font-size: 0.78rem;
 }
+/* Quando o "Cancelar" não cabe ao lado dos botões e desce para a linha de baixo, fica na ponta direita, onde está o "Alterar resposta". */
+.reply-edit .link-btn {
+  margin-left: auto;
+}
+/* Alterando uma resposta já dada: "Cancelar" na linha de cima, na ponta direita e com a altura do selo, no lugar exato do
+   "Alterar resposta"; os botões descem para a linha de baixo. */
+.reply-edit.editing {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.reply-edit.editing > .link-btn {
+  align-self: flex-end;
+  margin-left: 0;
+  min-height: 40px; /* a mesma linha de 40px do selo: o link fica exatamente no mesmo ponto */
+}
 .reply-badge {
   display: inline-flex;
   align-items: center;
@@ -9970,7 +9996,6 @@ dialog.member-dlg {
 .event-sec { display: flex; flex-direction: column; gap: 8px; }
 .event-sec > .people-sub-h { margin: 0; }
 /* A resposta do usuário num card; o título fica fora, como em Detalhes e Escala. */
-.event-actions.boxed { padding: 14px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface-2); }
 /* Presença ainda por marcar: sobe para o topo do card (o .event-more é uma coluna flex). */
 .event-more > .event-sec.reply-first { order: -1; }
 
@@ -9980,6 +10005,7 @@ dialog.member-dlg {
 .event-cover { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; flex: 0 1 auto; max-width: 100%; font-size: 0.88rem; color: var(--ink-2); }
 .event-cover > span { white-space: nowrap; }
 .event-cover .select-btn { width: auto; min-width: min(250px, 100%); max-width: 100%; height: 36px; min-height: 0; box-sizing: border-box; border-radius: var(--r-full); padding-left: 16px; }
+.event-actions.boxed { padding: 14px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface-2); }
 /* Celular: o selo da resposta ocupa a linha toda, o substituto vem embaixo (largura toda) e "Alterar resposta" por último,
    na ponta direita. O bloco vira display: contents para o link poder passar do substituto (order). */
 @media (max-width: 899px) {
@@ -10100,6 +10126,76 @@ dialog.member-dlg {
   flex-wrap: wrap;
   gap: 8px;
 }
+/* Sua resposta (Agenda): por escala, título e data em cima, Confirmar / Não posso embaixo na largura toda. */
+/* Mesmo padrão dos cards da Agenda (Calendário e Eventos): respiro de 14px, título de 1rem e 10px até a primeira linha. */
+.my-reply {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+}
+.my-reply > h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.my-reply-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.my-reply-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+/* Resposta dada (selo + Alterar resposta, 40px) e a linha reservada abaixo (substituto, 40px) somam o mesmo que o
+   Cancelar (40px) com os botões (40px): ao alternar entre eles o conteúdo de baixo não se mexe. */
+.my-reply-what {
+  margin-bottom: 14px;
+}
+.my-reply-slot {
+  margin-top: 8px; /* o mesmo respiro entre o Cancelar e os botões (.reply-edit.editing), para a altura não mudar */
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+.my-reply-slot .event-cover {
+  width: 100%;
+}
+.my-reply-slot .event-cover .select-btn {
+  height: 40px;
+}
+/* Celular: o substituto ocupa a largura toda; na tela larga fica do tamanho do conteúdo. */
+@media (max-width: 599px) {
+  .my-reply-slot .event-cover .select-btn {
+    width: 100%;
+  }
+}
+.reply-block .reply-btns .btn {
+  min-height: 40px;
+}
+.my-reply-list li + li {
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.my-reply-what {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.my-reply-what .roster-chips {
+  gap: 8px;
+  margin-top: 6px;
+}
+.my-reply-what b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 /* Outras escalas do Início: a linha do evento e, embaixo, Confirmar / Não posso na largura toda. */
 .my-next-list li.home-scale {
   flex-direction: column;
@@ -10151,4 +10247,61 @@ dialog.member-dlg {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+/* Voltar fixo: filho direto de .view. O "top" é igual à posição natural (o respiro do <main>), então ao rolar ele não anda
+   nem um pixel; a sombra sólida acima dele tampa o conteúdo que passa por ali. No celular o fundo vai de borda a borda. */
+.view > .back-link {
+  --gap: 28px;
+  position: sticky;
+  top: var(--gap);
+  z-index: 15;
+  margin: 0 0 8px;
+  background: var(--bg);
+  box-shadow: 0 calc(var(--gap) * -1) 0 var(--bg);
+}
+/* No celular o respiro do topo é da própria página; com o Voltar fixo ele encosta na barra do topo (sem folga em cima). */
+@media (max-width: 899px) {
+  main:has(> .view > .back-link:first-child) {
+    padding-top: 0;
+  }
+  .view > .back-link {
+    --gap: 0px;
+    top: calc(var(--topbar) + env(safe-area-inset-top));
+    margin: 0 -16px 8px;
+    padding: 0 16px;
+    width: calc(100% + 32px);
+  }
+}
+/* Adicionar ao calendário (só quem está na escala): botão e a explicação logo abaixo; no celular o botão ocupa a largura toda. */
+.event-ics {
+  padding: 14px;
+  border-radius: var(--r-lg);
+  background: var(--surface-2); /* quadro só do conteúdo, sem contorno (o título solto segue o padrão das seções) */
+}
+.event-ics .btn {
+  align-self: flex-start;
+}
+.event-ics .sub {
+  margin: 0;
+  font-size: 0.8rem;
+}
+@media (max-width: 599px) {
+  .event-ics .btn {
+    align-self: stretch;
+    justify-content: center;
+  }
+}
+/* Resposta (topo da Agenda e card do evento), no celular: Confirmar e Não posso dividem a largura toda do card. */
+@media (max-width: 599px) {
+  .reply-block .reply-btns {
+    width: 100%;
+  }
+  .reply-block .reply-btns .btn {
+    flex: 1 1 0;
+  }
+}
+/* Bloco de resposta (ReplyBlock): ocupa a linha toda onde estiver (topo da Agenda ou card do evento). */
+.reply-block {
+  flex: 1 1 100%;
+  min-width: 0;
 }

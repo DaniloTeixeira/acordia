@@ -7,6 +7,9 @@ import { create } from "zustand";
 import { cleanRange, type VoiceRange } from "./voice";
 import { cloud, useAuth, validBirthday, cleanPhone, uploadPhoto, cleanPhotos } from "./cloud";
 import { ROLES_MAX } from "./roles";
+import { unseenJoins, type JoinNotice } from "./notices";
+import { toast } from "../state";
+import { t } from "./i18n";
 import { soundOnly, type GEvent, type RosterRow, type AttendanceRow, type Unavail, type Answer, type Presence, type EventKind, type OutMark } from "./calendar";
 
 // photo: link da foto do grupo (vazio: o app mostra as iniciais do nome). photo_round: marca redonda em vez
@@ -132,11 +135,29 @@ export function loadGroups(gid?: string): Promise<void> {
       useGroups.setState({groups, gid: cur, members, setlists: sets.data as GroupSetlist[], events: evs.data as GEvent[], roster, attendance,
         unavail: un.data as Unavail[], loading: false, error: false, loaded: true});
       saveCache();
+      announceJoins(cur, groups.find(x => x.id === cur)?.name || "");
     }catch(e){
       if(my === seq) useGroups.setState({loading: false, error: true});
     }finally{ if(my === seq) loading = null; }
   })();
   return p;
+}
+// Avisa quem entrou no grupo desde a última vez que esta pessoa viu (um aviso fixo, que ela fecha). O "visto"
+// fica no aparelho, por pessoa e grupo; falhou ou banco sem a tabela (antes da migração subir): segue sem avisar.
+async function announceJoins(gid: string, groupName: string){
+  const me = myEmail(); if(!me || !gid) return;
+  const key = "acordia-notice-seen:" + me + ":" + gid;
+  try{
+    const {data, error} = await cloud.from("group_notices").select("email,by_email,created_at").eq("group_id", gid).eq("kind", "joined");
+    if(error || !data) return;
+    let seen = ""; try{ seen = localStorage.getItem(key) || ""; }catch(e){ /* sem armazenamento */ }
+    const mine = useGroups.getState().members.find(m => m.email === me)?.created_at;
+    const who = unseenJoins(data as JoinNotice[], me, seen, mine);
+    try{ localStorage.setItem(key, new Date().toISOString()); }catch(e){ /* sem espaço: só não guarda */ }
+    if(!who.length) return;
+    const name = personName(who[0]);
+    toast(who.length === 1 ? t("group.joined", {name, group: groupName}) : t("group.joinedMore", {name, n: who.length - 1, group: groupName}), undefined, {sticky: true});
+  }catch(e){ /* sem aviso desta vez */ }
 }
 // Extensão vocal (aba Voz): grava as duas pontas no perfil; o grupo vê em Membros e na escala. Atualiza a cópia
 // em memória (perfil e lista de membros) para a tela refletir sem recarregar.
