@@ -6949,7 +6949,7 @@ dialog.ear-dlg {
 /* Na página Membros o "Cadastrar membro" é seção da página (card sem título próprio): traço, como a lista. */
 /* No cabeçalho que recolhe, sem margem de baixo e centralizado na vertical: o título (e o ponto) ficam no mesmo
    centro da seta à direita, que o botão também centraliza. */
-.fold-card-head .people-sub-h { margin-bottom: 0; align-items: center; }
+.fold-card-head .people-sub-h { margin: 0; align-items: center; }
 .fold-card-head .people-sub-h > .sec-bar { align-self: center; }
 .fold-card .fold-card-head .people-sub-h > .sec-bar::before { transform: none; }
 .people-page .fold-card-head .people-sub-h { font-size: 0.95rem; }
