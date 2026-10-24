@@ -2381,9 +2381,20 @@ textarea.song-text {
   gap: 4px;
   margin-left: auto;
 }
-/* No celular o menu "⋯" fica no canto esquerdo do rodapé e o caret que abre o card, no direito. */
+/* No celular o menu "⋯" sobe para o canto superior direito do card; o caret que abre o card fica no rodapé, à direita. */
 .lib-card .foot .foot-acts.narrow {
   display: contents;
+}
+.cards:not(.rows) .lib-card:has(.foot-acts.narrow) {
+  position: relative;
+}
+.cards:not(.rows) .lib-card:has(.foot-acts.narrow) > h3 {
+  padding-right: 36px;
+}
+.cards:not(.rows) .lib-card .foot .foot-acts.narrow > [aria-haspopup="menu"] {
+  position: absolute;
+  top: 8px;
+  right: 8px;
 }
 /* O "há x dias" sai da linha dos chips e vai para o rodapé, encostado na seta (à direita). */
 .lib-card:has(.foot-acts.narrow) .meta .when {
@@ -2399,8 +2410,27 @@ textarea.song-text {
   order: 1;
   margin-left: auto;
 }
-.lib-card .foot .foot-acts.narrow [data-a="open"] {
+.lib-card .foot .foot-acts.narrow :is([data-a="open"], [data-a="solo"]) {
   order: 2;
+}
+/* Tela larga, em cards: o "há x dias" também vai para o rodapé, antes dos ícones, como no celular. */
+.cards:not(.rows) .lib-card:has(.foot-acts:not(.narrow)) .meta .when {
+  display: none;
+}
+.cards:not(.rows) .lib-card .foot:has(.foot-acts:not(.narrow)) {
+  .foot-when {
+    display: inline-flex;
+    align-items: center;
+    height: 34px;
+    line-height: 1;
+    padding-bottom: 4px;
+    order: 1;
+    margin-left: auto;
+  }
+  .foot-acts {
+    order: 2;
+    margin-left: 0;
+  }
 }
 /* "No repertório atual" é um botão (tira, ou abre a lista de repertórios) com cara de chip. */
 .lib-card .foot .chip-btn {
@@ -6913,8 +6943,15 @@ dialog.ear-dlg {
 :is(.event-sec > .people-sub-h, .fold-card-head .people-sub-h, .people-card:not(.people-page) .people-sub-h) > .sec-bar::before {
   height: 7px;
   border-radius: 50%;
+  /* O meio da linha fica acima do meio das letras minúsculas: desce o ponto um pouco para alinhar com elas. */
+  transform: translateY(0.1em);
 }
 /* Na página Membros o "Cadastrar membro" é seção da página (card sem título próprio): traço, como a lista. */
+/* No cabeçalho que recolhe, sem margem de baixo e centralizado na vertical: o título (e o ponto) ficam no mesmo
+   centro da seta à direita, que o botão também centraliza. */
+.fold-card-head .people-sub-h { margin-bottom: 0; align-items: center; }
+.fold-card-head .people-sub-h > .sec-bar { align-self: center; }
+.fold-card .fold-card-head .people-sub-h > .sec-bar::before { transform: none; }
 .people-page .fold-card-head .people-sub-h { font-size: 0.95rem; }
 .people-page .fold-card-head .people-sub-h > .sec-bar { width: 4px; }
 .people-page .fold-card-head .people-sub-h > .sec-bar::before { height: 0.85em; border-radius: 2px; }
@@ -10032,6 +10069,13 @@ dialog.member-dlg {
 .quick-att .seg { background: color-mix(in srgb, var(--surface) 45%, transparent); box-shadow: none; padding: 2px; }
 .quick-att .seg::before { box-shadow: none; top: 2px; bottom: 2px; }
 .quick-att .seg button { min-width: 68px; font-weight: 500; }
+/* Celular: Presente | Falta (atalho de presença e chamada do evento) com alvo de toque grande; o .seg.sm e o .quick-att
+   deixavam 28–34 px. A linha da tabela cresce junto (o seletor repete o de .quick-att .seg button para vencer). */
+@media (max-width: 899px) {
+  .quick-att .seg button,
+  .attendance .seg.sm button { min-height: 40px; font-size: 0.9rem; }
+  .quick-att .seg button { padding-top: 6px; padding-bottom: 6px; }
+}
 
 /* Chips da lista de membros por tipo: situação (verde/laranja/vermelho), escalas (azul) e funções (roxo). */
 /* Tipo de voz (Barítono, Contralto...): rosa, cor que nenhum outro chip usa (funções roxo, estados verde/laranja/vermelho, escalas azul). Mesma cor nos dois temas, por isso sem versão escura. */
