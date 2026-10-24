@@ -7576,6 +7576,19 @@ dialog.ear-dlg {
 #group-tabs {
   margin-bottom: 16px;
 }
+/* Próximos / Anteriores: no celular ocupam a linha toda; no computador só o que o texto pede. */
+#agenda-when {
+  margin-bottom: 16px;
+}
+@media (min-width: 600px) {
+  #agenda-when.seg.block {
+    width: fit-content;
+  }
+  #agenda-when button {
+    flex: 0 0 auto;
+    min-width: 9rem;
+  }
+}
 /* Novo evento no meio da linha do nome e dos membros, não do bloco todo com o "Início"
    em cima: as ações descem até essa linha e centralizam na altura da marca (52 px). */
 #view-group > .view-head {
