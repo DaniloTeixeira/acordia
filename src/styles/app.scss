@@ -81,6 +81,8 @@
   --chord: #b0201a;
   --ok: #15803d;
   --ok-soft: #dcfce7;
+  --info: #1f5eff;
+  --info-soft: #d6e4ff;
   --bad: #b91c1c;
   --bad-soft: #fee2e2;
   --warn: #9a3412;
@@ -165,6 +167,8 @@
     --chord: #ff8a80;
     --ok: #4ade80;
     --ok-soft: #12321f;
+    --info: #4d9bff;
+    --info-soft: #12306b;
     --bad: #f87171;
     --bad-soft: #3a1717;
     --warn: #fdba74;
@@ -233,6 +237,8 @@
   --chord: #ff8a80;
   --ok: #4ade80;
   --ok-soft: #12321f;
+  --info: #4d9bff;
+  --info-soft: #12306b;
   --bad: #f87171;
   --bad-soft: #3a1717;
   --warn: #fdba74;
@@ -2214,6 +2220,44 @@ textarea.song-text {
     height: 34px;
   }
 }
+/* Filtro de mês de Anteriores: do tamanho do texto na tela larga e na largura toda no celular. */
+.lib-toolbar .select-btn.past-month { width: auto; }
+@media (max-width: 599px) {
+  .lib-toolbar .select-btn.past-month { width: 100%; flex: 1 1 100%; }
+}
+/* Anteriores, tela larga, modo linhas: tudo numa linha só (nome | dia, hora e local | chips | há x dias), para ocupar menos espaço. */
+@media (min-width: 600px) {
+  #past-list.cards.rows .lib-card {
+    grid-template-columns: minmax(7rem, 14rem) minmax(0, 1fr) auto auto;
+    grid-template-areas: "title excerpt meta foot";
+    gap: 16px;
+    padding-block: 8px;
+  }
+  #past-list.cards.rows .lib-card h3 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #past-list.cards.rows .lib-card .excerpt {
+    display: block;
+    grid-area: excerpt;
+    min-height: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    -webkit-line-clamp: 1;
+  }
+  #past-list.cards.rows .lib-card .meta {
+    flex-wrap: nowrap;
+  }
+  #past-list.cards.rows .lib-card .foot {
+    display: block;
+  }
+  #past-list.cards.rows .lib-card .foot .foot-when {
+    white-space: nowrap;
+    padding-right: 0;
+  }
+}
 /* A cópia do "há x minutos" junto dos botões só aparece no modo linhas. */
 .lib-card .foot .foot-when {
   display: none;
@@ -4094,8 +4138,16 @@ a.btn {
   background: var(--accent);
   transition: left 120ms var(--ease-out);
 }
+/* Afinado: o ponteiro trava no centro, a zona e a nota ficam verdes. */
 .tuner-dial.ok .tuner-needle {
-  background: var(--ok);
+  background: var(--ok-vivid);
+  box-shadow: 0 0 10px var(--ok-vivid);
+}
+.tuner-dial.ok .tuner-zone {
+  background: color-mix(in srgb, var(--ok-vivid) 38%, transparent);
+}
+.tuner-dial.ok .tuner-cents {
+  color: var(--ok);
 }
 .tuner-scale span {
   position: absolute;
@@ -7597,9 +7649,15 @@ dialog.ear-dlg {
   grid-template-columns: 1fr minmax(280px, 360px);
   align-items: start;
 }
-/* Os Eventos vêm primeiro: à esquerda na tela larga e acima do calendário no celular, para responder sem rolar. */
+/* Tela larga: os Eventos à esquerda e o calendário à direita. No celular o calendário vem primeiro (em Próximos e em Anteriores),
+   porque a lista pode ficar longa. */
 .agenda-grid > .agenda-list {
   order: -1;
+}
+@media (max-width: 899px) {
+  .agenda-grid > .agenda-list {
+    order: 0;
+  }
 }
 @media (max-width: 899px) {
   .agenda-grid {
@@ -7943,6 +8001,11 @@ dialog.ear-dlg {
 .chip.st-yes {
   background: var(--ok-soft);
   color: var(--ok);
+}
+/* Confirmado (resposta dada) é azul; verde fica para Presente (chegou). */
+.chip.st-conf {
+  background: var(--info-soft);
+  color: var(--info);
 }
 .chip.st-no {
   background: var(--bad-soft);
@@ -10004,8 +10067,18 @@ dialog.member-dlg {
 .member-roles .chip:not(.leader, .current),
 .chip.role,
 .reply-badge,
-.chip:is(.st-yes, .st-no, .st-pending) {
+.chip:is(.st-yes, .st-conf, .st-no, .st-pending) {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent);
+}
+/* Início: "Você foi ao ensaio?" depois do ensaio; botões do tamanho dos de Confirmar / Não posso. */
+.rehearsal-check .reply-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+/* Presente (chegou) é um verde a mais que Confirmado: só contorno, mais grosso e vivo, e negrito. */
+.chip.st-here,
+.reply-badge.here {
+  background: transparent;
+  color: var(--ok);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1.5px var(--ok-vivid);
 }
 
 /* Chip de função: só contorno, em roxo mais vivo que o tom de --role-ink. Vale em todo lugar que mostra função. */

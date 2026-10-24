@@ -16,6 +16,7 @@ import { PlayerDialog } from "./PlayerDialog";
 import { EarDialog } from "./EarDialog";
 import { EventDialog } from "./EventDialog";
 import { PhotoDialog } from "./PhotoDialog";
+import { EventDetailDialog } from "./EventDetailDialog";
 import { MemberDialog } from "./MemberDialog";
 import { GroupDialog, NewGroupDialog } from "./GroupDialog";
 import type { SongType } from "../lib/types";
@@ -40,6 +41,7 @@ export function Dialogs(){
     {d.event && <EventDialog {...d.event}/>}
     {d.photo && <PhotoDialog {...d.photo}/>}
     {d.member && <MemberDialog {...d.member}/>}
+    {d.eventDetail && <EventDetailDialog {...d.eventDetail}/>}
     {d.group && <GroupDialog/>}
     {d.newGroup && <NewGroupDialog/>}
   </>;

@@ -66,7 +66,8 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
       (quando sobra um, ele ocupa a linha toda); no celular, em uma, na mesma ordem.
 - [ ] **Aviso de aniversário**: no dia, um cartão no topo lembra de enviar uma mensagem de parabéns ("Hoje é aniversário de Ana e
       Pedro!"). O próprio aniversariante vê um "Feliz aniversário". Fechar (X) vale até o aniversário do ano seguinte e fica neste aparelho.
-- [ ] **Próximo compromisso** em destaque, com **Confirmar / Não posso** e **Estudar repertório** (abre a folha) ou Palco, sem sair do Início.
+- [ ] **Você foi ao ensaio?** (cartão fixo no topo, com aviso quando não há nada): depois que o ensaio começa, quem estava na escala marca **Estive / Não estive** ali mesmo, sem abrir a Agenda, por até 7 dias. O ensaio que já começou deixa de ser o "próximo compromisso".
+- [ ] **Próximo compromisso** em destaque (fixo, com aviso "Nenhum evento marcado" quando não há), com **Confirmar / Não posso** e **Estudar repertório** (abre a folha) ou Palco, sem sair do Início.
 - [ ] **Precisam de substituto** (só quem lidera): ao lado do destaque, os eventos em que alguém disse que
       não pode.
 - [ ] **Próximos 7 dias**: a semana com um ponto nos dias com evento (destacado quando a pessoa está escalada).
@@ -178,7 +179,9 @@ também libera o acesso ao app para eles).
   - calendário do mês com cultos e ensaios, os dias em que a pessoa está escalada e os dias em que não pode;
   - tocar num dia mostra os eventos dele e a chave **"Não posso neste dia"** (indisponibilidade);
   - **Seu próximo compromisso** no topo: as suas funções, Confirmar / Não posso de cada escala (e quem cobre, para quem não pode), sem abrir o evento;
-  - lista de próximos e anteriores; cada evento abre com a data, o título e os chips no topo do card, sem bloco "Detalhes"; quem está na escala de um evento futuro também responde ali, em "Sua resposta" (o mesmo bloco do topo da Agenda). No ensaio, nas 12 h antes do início, a resposta e a presença viram um estado só para quem está na escala: o selo mostra Presente, Você confirmou ou Você não vai, com um único "Alterar resposta" e as opções **Cheguei** (também confirma a resposta) e **Não posso** (desmarca a presença); quem está na escala também tem ali **Adicionar ao calendário**, com a explicação.
+  - **Anteriores** segue o layout da Biblioteca: busca, filtro por mês, cards ou linhas (no computador, uma linha só por evento) com a sua presença, funções, repertório, quantos foram e o dia, hora e local; tocar abre os detalhes numa janela. O ensaio que já começou é anterior. No celular o calendário vem acima da lista, em Próximos e em Anteriores;
+  - **Presente** (verde mais forte, só contorno) e **Confirmado** (azul) têm cores diferentes;
+  - lista de próximos; cada evento abre com a data, o título e os chips no topo do card, sem bloco "Detalhes"; quem está na escala de um evento futuro também responde ali, em "Sua resposta" (o mesmo bloco do topo da Agenda). No ensaio, nas 12 h antes do início, a resposta e a presença viram um estado só para quem está na escala: o selo mostra Presente, Você confirmou ou Você não vai, com um único "Alterar resposta" e as opções **Cheguei** (também confirma a resposta) e **Não posso** (desmarca a presença); quem está na escala também tem ali **Adicionar ao calendário**, com a explicação.
 - [ ] **Evento** (só quem lidera cria e edita; Editar e Excluir ficam um em cada ponta no celular e juntos à direita no computador):
   - tipo Culto ou Ensaio, título, data, início, **hora de chegada**, local, repertório do grupo e observações;
   - **repetir** toda semana (2 a 26 vezes);
@@ -233,7 +236,7 @@ também libera o acesso ao app para eles).
   - acento no 1º tempo;
   - **Descobrir BPM**;
   - atalhos: espaço, setas e T.
-- [ ] **Afinador**: pelo microfone, com A4 de 432 a 446 Hz, ponteiro em cents e a corda mais próxima; a falha do microfone usa o mesmo aviso fixo da Voz.
+- [ ] **Afinador**: pelo microfone, com A4 de 432 a 446 Hz, ponteiro em cents e a corda mais próxima; afinado (±5 cents) o ponteiro trava no centro e tudo fica verde, e só solta passando de ±10; a falha do microfone usa o mesmo aviso fixo da Voz.
 - [ ] **Pad infinito**:
   - tom, 6 estilos (Original, Discreto, Quente, Brilhante, Etéreo, Profundo), volume e filtro;
   - swell em 4 ou 8 compassos;

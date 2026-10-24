@@ -136,6 +136,10 @@ test("próximos e anteriores", () => {
   const {upcoming, past} = splitEvents([ev("b", new Date(2026, 9, 25)), ev("a", new Date(2026, 9, 18, 9)), ev("p", new Date(2026, 9, 1)), ev("q", new Date(2026, 9, 10))], now);
   assert.deepEqual(upcoming.map(e => e.id), ["a", "b"]);
   assert.deepEqual(past.map(e => e.id), ["q", "p"]);
+  // Ensaio que já começou vai para os anteriores, o culto só depois de 6 h.
+  const r = splitEvents([ev("r", new Date(2026, 9, 18, 9), "rehearsal"), ev("s", new Date(2026, 9, 18, 9))], now);
+  assert.deepEqual(r.upcoming.map(e => e.id), ["s"]);
+  assert.deepEqual(r.past.map(e => e.id), ["r"]);
 });
 
 test(".ics: formato do calendário, com escape, lembretes e linhas dobradas", () => {
