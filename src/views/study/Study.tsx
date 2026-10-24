@@ -27,7 +27,7 @@ export function Study(){
     <BackLink id="study-back" fallback="more"/>
     <div className="view-head"><div>
       <h1 id="study-h">{t("study.title")}</h1><p className="sub">{t("study.sub")}</p></div></div>
-    <Seg id="study-tabs" aria={t("study.tabsAria")} value={st.tab} onChange={tab => setStudy({tab})}
+    <Seg id="study-tabs" className="tabs" aria={t("study.tabsAria")} value={st.tab} onChange={tab => setStudy({tab})}
       options={[{v: "explore", label: t("study.explore")}, {v: "train", label: t("study.train")}]}/>
     <div id="study-explore" hidden={st.tab !== "explore"}>{st.tab === "explore" && <Explore/>}</div>
     {/* O treino continua montado ao trocar de aba, para não perder a rodada em andamento. */}

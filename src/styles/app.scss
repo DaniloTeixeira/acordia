@@ -1087,24 +1087,39 @@ select.input {
 .seg.block button {
   flex: 1;
 }
-/* Abas da Biblioteca: cada uma cresce conforme o texto (base auto), para "Repertórios (1)" não vazar da pílula.
-   No celular o espaço e a letra diminuem e, se ainda faltar, o texto corta com reticências. */
-#group-tabs button {
+/* Abas de página (Biblioteca, Agenda, Ferramentas, Estudo): um padrão só. No celular ocupam a linha toda (a aba cresce conforme
+   o texto; se ainda faltar espaço a letra diminui e o texto corta com reticências, sem rolar de lado, para o indicador não sair
+   do lugar). No computador têm só o tamanho do texto, com largura mínima por aba, alinhadas à esquerda. */
+.seg.tabs {
+  display: flex;
+  width: 100%;
+  margin-bottom: 16px;
+}
+.seg.tabs button {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 @media (max-width: 599px) {
-  #group-tabs button {
+  .seg.tabs button {
     padding-inline: 8px;
     font-size: 0.82rem;
   }
 }
 @media (max-width: 360px) {
-  #group-tabs button {
+  .seg.tabs button {
     padding-inline: 5px;
     font-size: 0.78rem;
+  }
+}
+@media (min-width: 600px) {
+  .seg.tabs {
+    width: fit-content;
+  }
+  .seg.tabs button {
+    flex: 0 0 auto;
+    min-width: 9rem;
   }
 }
 
@@ -3828,13 +3843,11 @@ a.btn {
 
 /* abas do estudo rolam no celular */
 /* Abas que não cabem em telas estreitas rolam para o lado, sem barra visível. */
-#study-tabs,
 #lib-tabs {
   overflow-x: auto;
   scrollbar-width: none;
   max-width: 100%;
 }
-#study-tabs::-webkit-scrollbar,
 #lib-tabs::-webkit-scrollbar {
   display: none;
 }
@@ -7573,22 +7586,6 @@ dialog.ear-dlg {
 }
 
 /* ---------- Grupo: agenda, escala, presença, repertórios e membros ---------- */
-#group-tabs {
-  margin-bottom: 16px;
-}
-/* Próximos / Anteriores: no celular ocupam a linha toda; no computador só o que o texto pede. */
-#agenda-when {
-  margin-bottom: 16px;
-}
-@media (min-width: 600px) {
-  #agenda-when.seg.block {
-    width: fit-content;
-  }
-  #agenda-when button {
-    flex: 0 0 auto;
-    min-width: 9rem;
-  }
-}
 /* Novo evento no meio da linha do nome e dos membros, não do bloco todo com o "Início"
    em cima: as ações descem até essa linha e centralizam na altura da marca (52 px). */
 #view-group > .view-head {
@@ -8726,34 +8723,6 @@ dialog.member-dlg {
 .lib-card .foot.group-set-foot .btn {
   margin-right: 0;
 }
-/* No desktop a barra tem a largura do card da aba ativa (560px; Voz, 720px, como .voice-card). */
-#tools-tabs {
-  max-width: 560px;
-}
-#tools-tabs.wide {
-  max-width: 720px;
-}
-/* Cada aba cresce conforme o texto; no celular o espaço e a letra diminuem e, se ainda faltar, corta com reticências
-   (sem rolar de lado, para o indicador não sair do lugar). */
-#tools-tabs button {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-@media (max-width: 599px) {
-  #tools-tabs button {
-    padding-inline: 8px;
-    font-size: 0.82rem;
-  }
-}
-@media (max-width: 360px) {
-  #tools-tabs button {
-    padding-inline: 5px;
-    font-size: 0.78rem;
-  }
-}
-
 /* ---------- Início ---------- */
 #view-home {
   display: flex;

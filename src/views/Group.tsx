@@ -217,7 +217,7 @@ export function Group(){
       {canEdit && tab === "agenda" && <button className="btn primary" id="group-new-event" onClick={() => openDialog("event", {id: null, day: dayKey(new Date())})}><Icon name="plus" sm/><span>{t("group.newEvent")}</span></button>}
     </>)}
     {/* Agenda e Biblioteca estão na barra de baixo (Membros, em Mais): só a Biblioteca tem abas, as suas três listas. */}
-    {LIB_TABS.includes(tab) && <Seg id="group-tabs" className="block" aria={t("lib.tabsAria")} value={tab} onChange={v => store.setSetting("groupTab", v)}
+    {LIB_TABS.includes(tab) && <Seg id="group-tabs" className="tabs" aria={t("lib.tabsAria")} value={tab} onChange={v => store.setSetting("groupTab", v)}
       options={[{v: "setlists", label: t("lib.setlists", {n: libCount.setlists})}, {v: "songs", label: t("lib.songs", {n: libCount.songs})}, {v: "medleys", label: t("lib.mblocks", {n: libCount.medleys})}]}/>}
     {tab === "agenda" && <Agenda canEdit={canEdit}/>}
     {tab !== "agenda" && tab !== "members" && <LibraryList key={tab} tab={tab} canEdit={canEdit}/>}
@@ -280,7 +280,7 @@ function Agenda({canEdit}: {canEdit: boolean}){
   </>;
   return <div className="agenda">
     {/* Próximos e Anteriores no topo da página, como as abas da Biblioteca. Anteriores não tem calendário: tem busca e filtro por mês. */}
-    <Seg className="block" id="agenda-when" aria={t("group.agenda")} value={showPast ? "past" : "next"} onChange={v => { setShowPast(v === "past"); setSel(""); }}
+    <Seg className="tabs" id="agenda-when" aria={t("group.agenda")} value={showPast ? "past" : "next"} onChange={v => { setShowPast(v === "past"); setSel(""); }}
       options={[{v: "past", label: t("group.past")}, {v: "next", label: t("group.upcoming")}]}/>
     {showPast ? <PastEvents past={past}/> : <div className="agenda-grid">
       {narrow ? <div className="card cal"><FoldCard id="cal" title={t("group.calendar")} defaultOpen={!!sel}>{calBody}</FoldCard></div>
