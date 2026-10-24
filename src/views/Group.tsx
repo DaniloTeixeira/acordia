@@ -252,44 +252,47 @@ function Agenda({canEdit}: {canEdit: boolean}){
   const {upcoming, past} = splitEvents(g.events);
   const today = dayKey(new Date());
   const shift = (d: number) => setMonth(({y, m}) => { const x = new Date(y, m + d, 1); return {y: x.getFullYear(), m: x.getMonth()}; });
-  const list = sel ? (byDay.get(sel) || []) : showPast ? past : upcoming;
+  const list = sel ? (byDay.get(sel) || []) : upcoming, narrow = useMedia("(max-width: 899px)");
   const weekdays = Array.from({length: 7}, (_, i) => fmt({weekday: "narrow"}).format(new Date(2024, 0, 7 + i)));
+  // No celular o calendário é um bloco que abre e fecha (começa fechado, a não ser que haja um dia escolhido), para não
+  // empurrar a lista; na tela larga é um card ao lado dela.
+  const calBody = <>
+    <div className="cal-head">
+      <button className="icon-btn sm" aria-label={t("group.prevMonth")} onClick={() => shift(-1)}><Icon name="chev" sm className="chev-left"/></button>
+      <b>{fmt({month: "long", year: "numeric"}).format(new Date(month.y, month.m, 1))}</b>
+      <button className="icon-btn sm" aria-label={t("group.nextMonth")} onClick={() => shift(1)}><Icon name="chev" sm className="chev-right"/></button>
+    </div>
+    <div className="cal-grid" role="grid">
+      {weekdays.map((w, i) => <span key={"w" + i} className="cal-wd" role="columnheader">{w}</span>)}
+      {monthGrid(month.y, month.m).flat().map((d, i) => {
+        if(!d) return <span key={i}/>;
+        const k = dayKey(d), evs = byDay.get(k) || [];
+        const off = myOff.has(k), mineDay = evs.some(e => g.roster.some(r => r.event_id === e.id && r.email === me));
+        return <button key={i} type="button" className={"cal-day" + (k === today ? " today" : "") + (off ? " off" : "") + (mineDay ? " mine" : "")} aria-pressed={sel === k}
+          aria-label={longDay(d) + (evs.length ? " · " + evs.map(eventTitle).join(", ") : "") + (off ? " · " + t("group.unavailable") : "")}
+          onClick={() => setSel(sel === k ? "" : k)}>
+          <span>{d.getDate()}</span>
+          {evs.length > 0 && <span className="cal-dots">{evs.slice(0, 3).map(e => <i key={e.id} className={e.kind}/>)}</span>}
+        </button>;
+      })}
+    </div>
+    <div className="cal-legend"><span><i className="service"/>{t("group.kind.service")}</span><span><i className="rehearsal"/>{t("group.kind.rehearsal")}</span><span><i className="off"/>{t("group.unavailable")}</span></div>
+  </>;
   return <div className="agenda">
-    <div className="agenda-grid">
-      <div className="card cal" aria-labelledby="cal-h">
-        <SecHead id="cal-h">{t("group.calendar")}</SecHead>
-        <div className="cal-head">
-          <button className="icon-btn sm" aria-label={t("group.prevMonth")} onClick={() => shift(-1)}><Icon name="chev" sm className="chev-left"/></button>
-          <b>{fmt({month: "long", year: "numeric"}).format(new Date(month.y, month.m, 1))}</b>
-          <button className="icon-btn sm" aria-label={t("group.nextMonth")} onClick={() => shift(1)}><Icon name="chev" sm className="chev-right"/></button>
-        </div>
-        <div className="cal-grid" role="grid">
-          {weekdays.map((w, i) => <span key={"w" + i} className="cal-wd" role="columnheader">{w}</span>)}
-          {monthGrid(month.y, month.m).flat().map((d, i) => {
-            if(!d) return <span key={i}/>;
-            const k = dayKey(d), evs = byDay.get(k) || [];
-            const off = myOff.has(k), mineDay = evs.some(e => g.roster.some(r => r.event_id === e.id && r.email === me));
-            return <button key={i} type="button" className={"cal-day" + (k === today ? " today" : "") + (off ? " off" : "") + (mineDay ? " mine" : "")} aria-pressed={sel === k}
-              aria-label={longDay(d) + (evs.length ? " · " + evs.map(eventTitle).join(", ") : "") + (off ? " · " + t("group.unavailable") : "")}
-              onClick={() => setSel(sel === k ? "" : k)}>
-              <span>{d.getDate()}</span>
-              {evs.length > 0 && <span className="cal-dots">{evs.slice(0, 3).map(e => <i key={e.id} className={e.kind}/>)}</span>}
-            </button>;
-          })}
-        </div>
-        <div className="cal-legend"><span><i className="service"/>{t("group.kind.service")}</span><span><i className="rehearsal"/>{t("group.kind.rehearsal")}</span><span><i className="off"/>{t("group.unavailable")}</span></div>
-      </div>
+    {/* Próximos e Anteriores no topo da página, como as abas da Biblioteca. Anteriores não tem calendário: tem busca e filtro por mês. */}
+    <Seg className="block" id="agenda-when" aria={t("group.agenda")} value={showPast ? "past" : "next"} onChange={v => { setShowPast(v === "past"); setSel(""); }}
+      options={[{v: "past", label: t("group.past")}, {v: "next", label: t("group.upcoming")}]}/>
+    {showPast ? <PastEvents past={past}/> : <div className="agenda-grid">
+      {narrow ? <div className="card cal"><FoldCard id="cal" title={t("group.calendar")} defaultOpen={!!sel}>{calBody}</FoldCard></div>
+        : <div className="card cal" aria-labelledby="cal-h"><SecHead id="cal-h">{t("group.calendar")}</SecHead>{calBody}</div>}
       <div className="card agenda-list">
         <SecHead className="people-sub-h agenda-list-h">{t("group.events")}</SecHead>
-        {sel ? <DayBar day={sel} off={myOff.has(sel)} canEdit={canEdit} onClear={() => setSel("")}/>
-          : <Seg className="block" id="agenda-when" aria={t("group.agenda")} value={showPast ? "past" : "next"} onChange={v => setShowPast(v === "past")}
-            options={[{v: "past", label: t("group.past")}, {v: "next", label: t("group.upcoming")}]}/>}
-        {showPast && !sel ? <PastEvents past={past}/>
-          : list.length ? <ul className="events">{list.map(e => <EventCard key={e.id} e={e} canEdit={canEdit}/>)}</ul>
-          : <div className="card empty-state"><Icon name="calendar"/><strong>{t(sel ? "group.noEventsDay" : showPast ? "group.noPast" : "group.noEvents")}</strong>
-            {canEdit && !showPast && <span>{t("group.noEventsAdmin")}</span>}</div>}
+        {sel && <DayBar day={sel} off={myOff.has(sel)} canEdit={canEdit} onClear={() => setSel("")}/>}
+        {list.length ? <ul className="events">{list.map(e => <EventCard key={e.id} e={e} canEdit={canEdit}/>)}</ul>
+          : <div className="card empty-state"><Icon name="calendar"/><strong>{t(sel ? "group.noEventsDay" : "group.noEvents")}</strong>
+            {canEdit && !sel && <span>{t("group.noEventsAdmin")}</span>}</div>}
       </div>
-    </div>
+    </div>}
   </div>;
 }
 
