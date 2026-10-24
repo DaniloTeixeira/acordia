@@ -82,7 +82,7 @@ export function MemberDialog({email, eventId, person, manage}: DialogProps["memb
         <div className="field"><SecHead as="span">{t("member.history")}</SecHead>
           {hist.length ? <ul className="member-dlg-hist">{hist.map(h => <li key={h.event.id}>
             <span className="member-dlg-hist-when"><b>{longDay(new Date(h.event.starts_at))}</b><span className="sub">{timeOf(h.event.starts_at)}</span></span>
-            <span className={"chip " + (h.status === "present" ? "st-yes" : h.status === "absent" ? "st-no" : "")}>{t("group.att." + h.status)}</span></li>)}</ul>
+            <span className={"chip " + (h.status === "present" ? "st-here" : h.status === "absent" ? "st-no" : "")}>{t("group.att." + h.status)}</span></li>)}</ul>
             : <span className="sub">{t("member.historyNone")}</span>}</div>
 
         <div className="field"><SecHead as="span">{t("member.next")}</SecHead>

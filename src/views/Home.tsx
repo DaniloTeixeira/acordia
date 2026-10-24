@@ -3,14 +3,15 @@
 // as outras escalas, o que estudar e os aniversariantes. Cada coisa aparece num lugar só. O líder vê também
 // quantos já confirmaram, quem ainda não respondeu e o "Novo evento"; o admin, os grupos (com "Novo grupo"). As ferramentas e a Biblioteca ficam em "Mais".
 import { GoLink } from "../ui/GoLink";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import * as store from "../lib/store";
 import { t, tn, locale } from "../lib/i18n";
 import { useAuth } from "../lib/cloud";
 import { dayKey, eventDay, splitEvents, upcomingBirthdays, birthdayNotice, birthdayKey, needsCover, pendingReplies, type GEvent } from "../lib/calendar";
-import { useGroups, chooseGroup, personName, amGroupAdmin, type GroupSetlist } from "../lib/groups";
-import { useData, openDialog } from "../state";
+import { useGroups, chooseGroup, personName, amGroupAdmin, setMyAttendance, type GroupSetlist } from "../lib/groups";
+import { useData, openDialog, toast } from "../state";
 import { openGroupSetlist } from "./Group";
+import { Spin } from "./Account";
 import { Icon } from "../ui/Icon";
 import { sortRoles } from "../lib/roles";
 import { useGroupRefresh, ReplySeg, openGroup, eventTitle, fmt, timeOf, longDay, useSquareBadge, relDay, PersonAvatar, GroupMark, GroupPhotoButton } from "./Group";
@@ -26,14 +27,16 @@ export function Home(){
   const g = useGroups(), me = useAuth(s => s.email), profile = useAuth(s => s.profile), admin = useAuth(s => s.admin);
   const group = g.groups.find(x => x.id === g.gid);
   const {upcoming} = splitEvents(g.events);
-  const mine = upcoming.filter(e => g.roster.some(r => r.event_id === e.id && r.email === me));
+  // Ensaio que já começou não é "próximo compromisso": se falta marcar, vira o card "Você foi ao ensaio?"; senão some daqui.
+  const check = pendingRehearsal(me), started = (e: GEvent) => e.kind === "rehearsal" && new Date(e.starts_at).getTime() <= Date.now();
+  const mine = upcoming.filter(e => !started(e) && g.roster.some(r => r.event_id === e.id && r.email === me));
   const leader = amGroupAdmin();
   const rosterOf = (e: GEvent) => g.roster.filter(r => r.event_id === e.id);
   const needs = leader ? upcoming.filter(e => needsCover(rosterOf(e)).length > 0) : [];
   // Para o líder: os próximos eventos com gente que ainda não respondeu (fora os que já pedem substituto).
   const waiting = leader ? upcoming.filter(e => !needs.includes(e) && pendingReplies(rosterOf(e)).length > 0).slice(0, 5) : [];
   // O próximo compromisso é a primeira escala da pessoa; sem escala, o próximo evento do grupo (sem resposta).
-  const next = mine[0] || upcoming[0], rest = mine.slice(1);
+  const next = mine[0] || upcoming.find(e => !started(e)), rest = mine.slice(1);
   const name = (profile?.name || me.split("@")[0]).split(" ")[0];
   const bdays = group ? upcomingBirthdays(g.members, dayKey(new Date()), 7) : [];
   const study = studyList(next?.setlist_id);
@@ -54,15 +57,17 @@ export function Home(){
     birthdays: <Birthdays key="birthdays" list={bdays} wide={bottomWide === "birthdays"}/>};
   // Em cima, na tela larga: próximo compromisso ao lado do que o líder precisa resolver (substituto e respostas),
   // depois a semana na linha toda e, por fim, os blocos de baixo. Um número ímpar de blocos deixa o último na linha toda.
-  const top = [next && "next", needs.length > 0 && "needs", waiting.length > 0 && "waiting"].filter(Boolean);
+  const top = ["next", needs.length > 0 && "needs", waiting.length > 0 && "waiting"].filter(Boolean);
   const topWide = top.length % 2 ? top[top.length - 1] : "";
   return <section className="view" id="view-home" data-view="home" aria-labelledby="home-h">
     <div className="view-head"><div><h1 id="home-h">{t("home.hello", {name})}</h1>
       <p className="sub">{fmt({weekday: "long", day: "numeric", month: "long"}).format(new Date())}</p></div></div>
     <div className="home-grid">
     {group && <BirthdayNotice/>}
+    {group && <RehearsalCheck e={check}/>}
     {group ? <>
-      {next && <NextCard e={next} mine={mine.includes(next)} leader={leader} wide={topWide === "next"}/>}
+      {next ? <NextCard e={next} mine={mine.includes(next)} leader={leader} wide={topWide === "next"}/>
+        : <Block id="home-next" className="home-next" wide={topWide === "next"} title={t("home.next")}><div className="empty-state home-empty"><Icon name="calendar"/><span>{t("group.noEvents")}</span></div></Block>}
       {needs.length > 0 && <Block id="home-needs" className="home-needs" wide={topWide === "needs"} title={t("home.needsSub")} count={needs.length}>
         <ul className="my-next-list">{needs.map(e => <EventRow key={e.id} e={e} chip={<span className="event-chips need-end"><span className="chip st-no">{tn("group.needSub", needsCover(rosterOf(e)).length)}</span></span>} extra={<span className="event-chips need-under"><span className="chip st-no">{tn("group.needSub", needsCover(rosterOf(e)).length)}</span></span>}/>)}</ul>
       </Block>}
@@ -73,7 +78,6 @@ export function Home(){
       <Block id="home-scales-block" wide title={t(rest.length ? "home.myScales" : "home.week")} count={rest.length ? mine.length : 0} link={{label: t("home.seeAgenda"), run: () => openGroup("agenda")}}>
         <WeekStrip upcoming={upcoming}/>
         {rest.length > 0 && <ul className="my-next-list home-scales" id="home-scales">{rest.map(e => <ScaleRow key={e.id} e={e} leader={leader}/>)}</ul>}
-        {!next && <div className="empty-state home-empty"><Icon name="calendar"/><span>{t("group.noEvents")}</span></div>}
         {leader && <button type="button" className="btn soft sm home-new-event" id="home-new-event" onClick={() => openDialog("event", {id: null, day: dayKey(new Date())})}><Icon name="plus" sm/> {t("group.newEvent")}</button>}
       </Block>
     </> : <>
@@ -191,6 +195,35 @@ function BirthdayNotice(){
     {mine && card("home-bday-mine", t("home.bdayMine", {name: first(mine.email)}), t("home.bdayMineHint"), [mine.email])}
     {others.length > 0 && card("home-bday-notice", "🎂 " + t("home.bdayWho", {names}), t("home.bdayHint"), others.map(p => p.email))}
   </>;
+}
+
+// Cartão no topo depois do ensaio: pergunta se a pessoa (escalada) foi, para marcar sem abrir a Agenda. Vale enquanto a
+// chamada está aberta e a pessoa ainda não tem marcação; mostra o ensaio mais recente.
+function pendingRehearsal(me: string): GEvent | undefined {
+  // Também depois de fechada a chamada (a Agenda ainda deixa marcar), até 7 dias depois do ensaio.
+  const g = useGroups.getState(), now = Date.now(), WEEK = 7 * 24 * 3600 * 1000;
+  return [...g.events].filter(x => x.kind === "rehearsal" && new Date(x.starts_at).getTime() <= now && now - new Date(x.starts_at).getTime() < WEEK
+    && g.roster.some(r => r.event_id === x.id && r.email === me) && !g.attendance.some(a => a.event_id === x.id && a.email === me))
+    .sort((a, b) => b.starts_at.localeCompare(a.starts_at))[0];
+}
+function RehearsalCheck({e}: {e?: GEvent}){
+  const [busy, setBusy] = useState("");
+  if(!e) return <section className="card home-block wide rehearsal-check" id="home-check" aria-labelledby="home-check-h">
+    <div className="home-block-head"><SecHead id="home-check-h">{t("home.wasThere")}</SecHead></div>
+    <div className="empty-state home-empty"><Icon name="check"/><span>{t("home.wasThereNone")}</span></div>
+  </section>;
+  const mark = async (v: "present" | "absent") => {
+    setBusy(v); const ok = await setMyAttendance(e.id, v).finally(() => setBusy(""));
+    toast(t(ok ? "group.saved" : "profile.saveFail"), ok ? undefined : {label: t("common.retry"), run: () => mark(v)});
+  };
+  return <section className="card home-block wide rehearsal-check" id="home-check" aria-labelledby="home-check-h">
+    <div className="home-block-head"><SecHead id="home-check-h">{t("home.wasThere")}</SecHead><GoLink onClick={() => openGroup("agenda", e.id)}>{t("home.details")}</GoLink></div>
+    <span className="sub">{eventTitle(e)} · {longDay(new Date(e.starts_at))} · {timeOf(e.starts_at)}</span>
+    <div className="reply-btns" role="group" aria-label={t("home.wasThere")}>
+      <button type="button" className="btn sm reply-yes" aria-busy={busy === "present"} disabled={busy !== ""} onClick={() => mark("present")}>{busy === "present" ? <Spin/> : <Icon name="check" sm/>} {t("group.checkInPast")}</button>
+      <button type="button" className="btn sm reply-no" aria-busy={busy === "absent"} disabled={busy !== ""} onClick={() => mark("absent")}>{busy === "absent" ? <Spin/> : <Icon name="x" sm/>} {t("group.notThere")}</button>
+    </div>
+  </section>;
 }
 
 // Os próximos 7 dias, de hoje em diante: um ponto nos dias com evento do grupo (na cor de destaque quando a

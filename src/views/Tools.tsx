@@ -30,7 +30,7 @@ export function Tools(){
     <BackLink id="tools-back" fallback="more"/>
     <div className="view-head"><div>
       <h1 id="tools-h">{t("tools.title")}</h1><p className="sub">{t("tools.sub")}</p></div></div>
-    <Seg id="tools-tabs" className={tab === "voice" ? "block wide" : "block"} aria={t("tools.title")} value={tab} onChange={v => store.setSetting("toolsTab", v)}
+    <Seg id="tools-tabs" className="tabs" aria={t("tools.title")} value={tab} onChange={v => store.setSetting("toolsTab", v)}
       options={[{v: "metro", label: t("tools.metro")}, {v: "tuner", label: t("tools.tuner")}, {v: "pad", label: t("tools.pad")}, {v: "voice", label: t("tools.voice")}]}/>
     <div id="tools-metro" hidden={tab !== "metro"}>{tab === "metro" && <MetronomeUI/>}</div>
     <div id="tools-tuner" hidden={tab !== "tuner"}>{tab === "tuner" && <Tuner/>}</div>
@@ -62,21 +62,23 @@ function Tuner(){
     const C = window.AudioContext || (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext;
     const ctx = new C(), src = ctx.createMediaStreamSource(stream), an = ctx.createAnalyser(); an.fftSize = 4096; src.connect(an);
     const buf = new Float32Array(an.fftSize), smooth: number[] = [];
-    let raf = 0, last = 0;
+    let raf = 0, last = 0, locked = false;
     const loop = () => {
       raf = requestAnimationFrame(loop);
       const now = performance.now(); if(now - last < 60) return; last = now;
       an.getFloatTimeDomainData(buf);
       const f = detectPitch(buf, ctx.sampleRate);
-      if(!f){ setQuiet(true); return; }
+      if(!f){ locked = false; setQuiet(true); return; }
       smooth.push(f); if(smooth.length > 5) smooth.shift();
       const fm = [...smooth].sort((x, y) => x - y)[smooth.length >> 1];
       const {a4, inst} = live.current;
       const n = noteFromFreq(fm, a4), s = nearestString(fm, inst, a4);
       const near = s && Math.abs(s.cents) <= 150;
       const cents = near ? s!.cents : n.cents, label = near ? s!.name : n.name + n.octave;
+      // Histerese: entra na afinação com até 5 cents e só sai com mais de 10, para o ponteiro não tremer na borda.
+      locked = Math.abs(cents) <= (locked ? 10 : 5);
       setQuiet(false);
-      setR({label: label.replace(/-?\d+$/, ""), oct: label.match(/-?\d+$/)?.[0] || "", cents, ok: Math.abs(cents) <= 5, hz: fm, string: near ? s!.index : null});
+      setR({label: label.replace(/-?\d+$/, ""), oct: label.match(/-?\d+$/)?.[0] || "", cents, ok: locked, hz: fm, string: near ? s!.index : null});
     };
     loop(); setOn(true);
     stopRef.current = () => { cancelAnimationFrame(raf); stream.getTracks().forEach(tr => tr.stop()); ctx.close().catch(()=>{}); };
@@ -91,7 +93,7 @@ function Tuner(){
     <div className={"tuner-dial" + (quiet ? " quiet" : "") + (r && r.ok && !quiet ? " ok" : "")} aria-live="polite">
       <div className="tuner-note"><b id="tu-note">{r ? r.label : "—"}</b><small id="tu-oct">{r ? r.oct : ""}</small></div>
       <div className="tuner-meter"><div className="tuner-scale">{[-50,-25,0,25,50].map(v => <span key={v} style={{left: (50 + v * 0.9) + "%"}}>{v > 0 ? "+" + v : v}</span>)}</div>
-        <div className="tuner-needle" id="tu-needle" style={r ? {left: (50 + clamped * 0.9) + "%"} : undefined}/><div className="tuner-zone"/></div>
+        <div className="tuner-needle" id="tu-needle" style={r ? {left: (r.ok ? 50 : 50 + clamped * 0.9) + "%"} : undefined}/><div className="tuner-zone"/></div>
       <p className="tuner-cents" id="tu-cents">{!r ? t("tuner.idle") : r.ok ? t("tuner.inTune") : t(r.cents < 0 ? "tuner.low" : "tuner.high", {c: Math.abs(r.cents)}) + ` · ${r.hz.toFixed(1)} Hz`}</p>
     </div>
     {I.kind === "strings" && <div className="tuner-strings">{I.strings.map((m, i) => <span key={i} className={"tstring" + (r && !quiet && r.string === i ? " on" : "")} data-i={i}>

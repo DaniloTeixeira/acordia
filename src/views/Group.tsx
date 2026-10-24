@@ -18,13 +18,14 @@ import { reduced } from "../lib/util";
 import { VoiceChip } from "../ui/VoiceChip";
 import { rangeType } from "../lib/voice";
 import { splitRoles, joinRoles, toggleRole, sortRoles } from "../lib/roles";
-import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone,type GEvent, type Presence } from "../lib/calendar";
+import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone, capFirst, type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, loadGroups, createGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
   deleteEvent, respond, setCover, checkIn, setMyAttendance, markAttendance, requestAttendanceChange, declineAttendanceChange, setUnavailable, personName, voiceOf, personPhoto, amGroupAdmin, setMemberOut, outMark, isActive, setMemberActive, type GroupSetlist, type Member, type Group } from "../lib/groups";
 import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, confirmUnsaved, useUnsaved, go, place, pushTrail } from "../state";
 import { Icon } from "../ui/Icon";
 import { CopyBtn } from "../ui/CopyBtn";
 import { Seg } from "../ui/Seg";
+import { useMedia } from "../ui/hooks";
 import { Select } from "../ui/Select";
 import { SKIP_OPEN, StreakChip, useLock, Spin, Avatar, PersonFields, useEmailCheck, pickPhoto, PhoneLink, today, usePeopleFilter, PeopleTools } from "./Account";
 import { DateInput } from "../ui/DateInput";
@@ -216,7 +217,7 @@ export function Group(){
       {canEdit && tab === "agenda" && <button className="btn primary" id="group-new-event" onClick={() => openDialog("event", {id: null, day: dayKey(new Date())})}><Icon name="plus" sm/><span>{t("group.newEvent")}</span></button>}
     </>)}
     {/* Agenda e Biblioteca estão na barra de baixo (Membros, em Mais): só a Biblioteca tem abas, as suas três listas. */}
-    {LIB_TABS.includes(tab) && <Seg id="group-tabs" className="block" aria={t("lib.tabsAria")} value={tab} onChange={v => store.setSetting("groupTab", v)}
+    {LIB_TABS.includes(tab) && <Seg id="group-tabs" className="tabs" aria={t("lib.tabsAria")} value={tab} onChange={v => store.setSetting("groupTab", v)}
       options={[{v: "setlists", label: t("lib.setlists", {n: libCount.setlists})}, {v: "songs", label: t("lib.songs", {n: libCount.songs})}, {v: "medleys", label: t("lib.mblocks", {n: libCount.medleys})}]}/>}
     {tab === "agenda" && <Agenda canEdit={canEdit}/>}
     {tab !== "agenda" && tab !== "members" && <LibraryList key={tab} tab={tab} canEdit={canEdit}/>}
@@ -251,43 +252,92 @@ function Agenda({canEdit}: {canEdit: boolean}){
   const {upcoming, past} = splitEvents(g.events);
   const today = dayKey(new Date());
   const shift = (d: number) => setMonth(({y, m}) => { const x = new Date(y, m + d, 1); return {y: x.getFullYear(), m: x.getMonth()}; });
-  const list = sel ? (byDay.get(sel) || []) : showPast ? past : upcoming;
+  const list = sel ? (byDay.get(sel) || []) : upcoming, narrow = useMedia("(max-width: 899px)");
   const weekdays = Array.from({length: 7}, (_, i) => fmt({weekday: "narrow"}).format(new Date(2024, 0, 7 + i)));
+  // No celular o calendário é um bloco que abre e fecha (começa fechado, a não ser que haja um dia escolhido), para não
+  // empurrar a lista; na tela larga é um card ao lado dela.
+  const calBody = <>
+    <div className="cal-head">
+      <button className="icon-btn sm" aria-label={t("group.prevMonth")} onClick={() => shift(-1)}><Icon name="chev" sm className="chev-left"/></button>
+      <b>{fmt({month: "long", year: "numeric"}).format(new Date(month.y, month.m, 1))}</b>
+      <button className="icon-btn sm" aria-label={t("group.nextMonth")} onClick={() => shift(1)}><Icon name="chev" sm className="chev-right"/></button>
+    </div>
+    <div className="cal-grid" role="grid">
+      {weekdays.map((w, i) => <span key={"w" + i} className="cal-wd" role="columnheader">{w}</span>)}
+      {monthGrid(month.y, month.m).flat().map((d, i) => {
+        if(!d) return <span key={i}/>;
+        const k = dayKey(d), evs = byDay.get(k) || [];
+        const off = myOff.has(k), mineDay = evs.some(e => g.roster.some(r => r.event_id === e.id && r.email === me));
+        return <button key={i} type="button" className={"cal-day" + (k === today ? " today" : "") + (off ? " off" : "") + (mineDay ? " mine" : "")} aria-pressed={sel === k}
+          aria-label={longDay(d) + (evs.length ? " · " + evs.map(eventTitle).join(", ") : "") + (off ? " · " + t("group.unavailable") : "")}
+          onClick={() => setSel(sel === k ? "" : k)}>
+          <span>{d.getDate()}</span>
+          {evs.length > 0 && <span className="cal-dots">{evs.slice(0, 3).map(e => <i key={e.id} className={e.kind}/>)}</span>}
+        </button>;
+      })}
+    </div>
+    <div className="cal-legend"><span><i className="service"/>{t("group.kind.service")}</span><span><i className="rehearsal"/>{t("group.kind.rehearsal")}</span><span><i className="off"/>{t("group.unavailable")}</span></div>
+  </>;
   return <div className="agenda">
-    <div className="agenda-grid">
-      <div className="card cal" aria-labelledby="cal-h">
-        <SecHead id="cal-h">{t("group.calendar")}</SecHead>
-        <div className="cal-head">
-          <button className="icon-btn sm" aria-label={t("group.prevMonth")} onClick={() => shift(-1)}><Icon name="chev" sm className="chev-left"/></button>
-          <b>{fmt({month: "long", year: "numeric"}).format(new Date(month.y, month.m, 1))}</b>
-          <button className="icon-btn sm" aria-label={t("group.nextMonth")} onClick={() => shift(1)}><Icon name="chev" sm className="chev-right"/></button>
-        </div>
-        <div className="cal-grid" role="grid">
-          {weekdays.map((w, i) => <span key={"w" + i} className="cal-wd" role="columnheader">{w}</span>)}
-          {monthGrid(month.y, month.m).flat().map((d, i) => {
-            if(!d) return <span key={i}/>;
-            const k = dayKey(d), evs = byDay.get(k) || [];
-            const off = myOff.has(k), mineDay = evs.some(e => g.roster.some(r => r.event_id === e.id && r.email === me));
-            return <button key={i} type="button" className={"cal-day" + (k === today ? " today" : "") + (off ? " off" : "") + (mineDay ? " mine" : "")} aria-pressed={sel === k}
-              aria-label={longDay(d) + (evs.length ? " · " + evs.map(eventTitle).join(", ") : "") + (off ? " · " + t("group.unavailable") : "")}
-              onClick={() => setSel(sel === k ? "" : k)}>
-              <span>{d.getDate()}</span>
-              {evs.length > 0 && <span className="cal-dots">{evs.slice(0, 3).map(e => <i key={e.id} className={e.kind}/>)}</span>}
-            </button>;
-          })}
-        </div>
-        <div className="cal-legend"><span><i className="service"/>{t("group.kind.service")}</span><span><i className="rehearsal"/>{t("group.kind.rehearsal")}</span><span><i className="off"/>{t("group.unavailable")}</span></div>
-      </div>
+    {/* Próximos e Anteriores no topo da página, como as abas da Biblioteca. Anteriores não tem calendário: tem busca e filtro por mês. */}
+    <Seg className="tabs" id="agenda-when" aria={t("group.agenda")} value={showPast ? "past" : "next"} onChange={v => { setShowPast(v === "past"); setSel(""); }}
+      options={[{v: "past", label: t("group.past")}, {v: "next", label: t("group.upcoming")}]}/>
+    {showPast ? <PastEvents past={past}/> : <div className="agenda-grid">
+      {narrow ? <div className="card cal"><FoldCard id="cal" title={t("group.calendar")} defaultOpen={!!sel}>{calBody}</FoldCard></div>
+        : <div className="card cal" aria-labelledby="cal-h"><SecHead id="cal-h">{t("group.calendar")}</SecHead>{calBody}</div>}
       <div className="card agenda-list">
         <SecHead className="people-sub-h agenda-list-h">{t("group.events")}</SecHead>
-        {sel ? <DayBar day={sel} off={myOff.has(sel)} canEdit={canEdit} onClear={() => setSel("")}/>
-          : <Seg className="block" id="agenda-when" aria={t("group.agenda")} value={showPast ? "past" : "next"} onChange={v => setShowPast(v === "past")}
-            options={[{v: "past", label: t("group.past")}, {v: "next", label: t("group.upcoming")}]}/>}
+        {sel && <DayBar day={sel} off={myOff.has(sel)} canEdit={canEdit} onClear={() => setSel("")}/>}
         {list.length ? <ul className="events">{list.map(e => <EventCard key={e.id} e={e} canEdit={canEdit}/>)}</ul>
-          : <div className="card empty-state"><Icon name="calendar"/><strong>{t(sel ? "group.noEventsDay" : showPast ? "group.noPast" : "group.noEvents")}</strong>
-            {canEdit && !showPast && <span>{t("group.noEventsAdmin")}</span>}</div>}
+          : <div className="card empty-state"><Icon name="calendar"/><strong>{t(sel ? "group.noEventsDay" : "group.noEvents")}</strong>
+            {canEdit && !sel && <span>{t("group.noEventsAdmin")}</span>}</div>}
       </div>
+    </div>}
+  </div>;
+}
+
+// Anteriores no mesmo layout da Biblioteca: busca, filtro por mês (começa no mais recente), cards ou linhas e, em cada
+// evento, um card com o nome, a sua presença e a data. Tocar abre os detalhes numa janela (EventDetailDialog).
+const NARROW = "(max-width: 599px)";
+function PastEvents({past}: {past: GEvent[]}){
+  useData();
+  const g = useGroups(), me = useAuth(s => s.email), narrow = useMedia(NARROW);
+  const view = !narrow && store.data.settings.libView === "rows" ? "rows" : "cards";
+  const [query, setQuery] = useState(""), [monthF, setMonthF] = useState("");
+  const q = norm(query);
+  const months = [...new Set(past.map(e => eventDay(e).slice(0, 7)))];
+  const mf = monthF === "all" ? "" : months.includes(monthF) ? monthF : months[0] || "";
+  const monthLabel = (k: string) => capFirst(fmt({month: "long", year: "numeric", timeZone: "UTC"}).format(new Date(Date.UTC(+k.slice(0, 4), +k.slice(5, 7) - 1, 1))));
+  const rows = past.filter(e => (!mf || eventDay(e).startsWith(mf)) && (!q || norm(eventTitle(e) + " " + (e.place || "")).includes(q)));
+  return <div className="group-lib">
+    <div className="lib-toolbar">
+      <div className="search"><Icon name="search" sm/><input type="search" className="input" id="past-q" placeholder={t("lib.search")} aria-label={t("lib.searchAria")} value={query} onChange={e => setQuery(e.target.value)}/></div>
+      <Select id="past-month" className="past-month" aria={t("group.monthAria")} value={mf || "all"} onChange={setMonthF}
+        options={[...months.map(k => ({value: k, label: monthLabel(k)})), {value: "all", label: t("group.allMonths")}]}/>
+      {!narrow && <Seg className="view-seg" id="past-view" aria={t("lib.viewAria")} value={view} onChange={v => store.setSetting("libView", v)}
+        options={[{v: "cards", label: <Icon name="grid" sm/>, aria: t("lib.viewCards"), tip: "lib.viewCards"}, {v: "rows", label: <Icon name="list" sm/>, aria: t("lib.viewRows"), tip: "lib.viewRows"}]}/>}
     </div>
+    <ul className={"cards" + (view === "rows" ? " rows" : "")} id="past-list">
+      {rows.length === 0 && <li className="empty-state" style={{gridColumn: "1/-1"}}><Icon name={past.length ? "search" : "calendar"}/><strong>{t(past.length ? "lib.noResults" : "group.noPast")}</strong></li>}
+      {rows.map((e, idx) => {
+        const att = g.attendance.find(a => a.event_id === e.id && a.email === me)?.status, set = g.setlists.find(x => x.id === e.setlist_id);
+        const roster = g.roster.filter(r => r.event_id === e.id), people = new Set(roster.map(r => r.email)).size;
+        const roles = sortRoles(roster.filter(r => r.email === me).map(r => r.role).filter(Boolean));
+        const here = g.attendance.filter(a => a.event_id === e.id && a.status === "present").length;
+        const open = () => openDialog("eventDetail", {id: e.id});
+        return <li key={e.id} className="lib-card" role="button" tabIndex={0} aria-haspopup="dialog" style={{animationDelay: Math.min(idx, 12) * 25 + "ms"}} onClick={open}
+          onKeyDown={ev => { if(ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); open(); } }}>
+          <h3>{eventTitle(e)}</h3>
+          <div className="meta">{e.kind === "rehearsal" && (att === "present" || att === "absent") && <span className={"chip " + (att === "present" ? "st-here" : "st-no")}>{t("group.att." + att)}</span>}
+            {roles.map(x => <span key={x} className="chip role">{x}</span>)}
+            {set && <span className="chip"><Icon name="music" sm/> {set.name}</span>}
+            {(people > 0 || here > 0) && <span className="chip"><Icon name="users" sm/> {e.kind === "rehearsal" ? t("group.attCount", {n: here, total: Math.max(people, here)}) : tn("group.people", people)}</span>}
+            <span className="when">{relDay(e.starts_at)}</span></div>
+          <p className="excerpt">{longDay(new Date(e.starts_at))} · {timeOf(e.starts_at)}{e.call_at && " · " + t("group.callAt", {time: timeOf(e.call_at)})}{e.place && " · " + e.place}{e.notes && " · " + e.notes}</p>
+          <div className="foot"><span className="when foot-when" aria-hidden="true">{relDay(e.starts_at)}</span></div>
+        </li>;
+      })}
+    </ul>
   </div>;
 }
 
@@ -332,7 +382,7 @@ function RehearsalReply({e, act}: {e: GEvent; act: (key: string, fn: () => Promi
   return <div className="reply-block">
     {!showBtns && <><div className={"reply-done " + status} role="status">
       <span className="reply-edit-hint">{t(status === "yes" ? "group.replyYesHint" : "group.replyNoHint")}</span>
-      <span className="reply-badge"><Icon name={status === "yes" ? "check" : "x"} sm/> {t(here ? "group.att.present" : reply === "yes" ? "group.replyYes" : "group.replyNo")}</span>
+      <span className={"reply-badge" + (here ? " here" : "")}><Icon name={status === "yes" ? "check" : "x"} sm/> {t(here ? "group.att.present" : reply === "yes" ? "group.replyYes" : "group.replyNo")}</span>
       {here && a?.by_admin ? <AskChange e={e} act={act}/> : <button type="button" className="link-btn" onClick={() => setEditing(true)}>{t("group.changeReply")}</button>}</div>
       <ReplySlot status={status} e={e}/></>}
     {showBtns && <div className={"reply-edit" + (status && editing && !busy ? " editing" : "")}>
@@ -345,7 +395,7 @@ function RehearsalReply({e, act}: {e: GEvent; act: (key: string, fn: () => Promi
 
 export function StatusChip({status, noIcon}: {status: string; noIcon?: boolean}){
   // Sem resposta não é problema: fica neutro ("st-wait"), para o laranja não competir com o vermelho de Indisponível.
-  return <span className={"chip st-" + (status === "pending" ? "wait" : status)}>{!noIcon && <><Icon name={status === "yes" ? "check" : status === "no" ? "x" : "dot"} sm/> </>}{t("group.status." + status)}</span>;
+  return <span className={"chip st-" + (status === "pending" ? "wait" : status === "yes" ? "conf" : status)}>{!noIcon && <><Icon name={status === "yes" ? "check" : status === "no" ? "x" : "dot"} sm/> </>}{t("group.status." + status)}</span>;
 }
 
 // Barra do dia escolhido no calendário: data, "não posso neste dia" e novo evento nesse dia.
@@ -396,7 +446,7 @@ function AskChange({e, act}: {e: GEvent; act: (key: string, fn: () => Promise<bo
   }}>{t("group.askChange")}</button>;
 }
 
-function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
+export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
   const sq = useSquareBadge();
   const g = useGroups(), me = useAuth(s => s.email);
   const [busy, setBusy] = useState(""), [editIn, setEditIn] = useState(false);
@@ -438,7 +488,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
     {/* Sem título (ou com título igual ao tipo), o tipo já é o título: o chip só aparece quando o evento tem nome próprio. */}
     {e.title && e.title.trim().toLowerCase() !== t("group.kind." + e.kind).toLowerCase() && <span className={"chip kind-" + e.kind}>{t("group.kind." + e.kind)}</span>}
     {set && <span className="chip"><Icon name="music" sm/> {set.name}</span>}
-    {e.kind === "rehearsal" && myAtt?.status === "present" && <span className="chip st-yes"><Icon name="check" sm/> {t("group.att.present")}</span>}
+    {e.kind === "rehearsal" && myAtt?.status === "present" && <span className="chip st-here"><Icon name="check" sm/> {t("group.att.present")}</span>}
     {e.kind === "rehearsal" && myAtt?.status === "absent" && <span className="chip st-no"><Icon name="x" sm/> {t("group.att.absent")}</span>}
     {canEdit && needs.length > 0 && !isPast && <span className="chip st-no">{tn("group.needSub", needs.length)}</span>}
     {pendingCheckIn(e, [me], g.attendance).length > 0 && <span className="chip st-pending"><Icon name="dot" sm/> {t("group.att.pending")}</span>}
@@ -466,7 +516,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
         {/* Ensaio que já começou: três estados, presente, falta ou sem marcação (um botão por marcação, como na resposta). */}
         {reply}
         {e.kind === "rehearsal" && canCheckIn(e) && pastNow && myMark && !editIn && busy !== "in" && <div className={"reply-done " + (myIn ? "yes" : "no")} role="status">
-          <span className="reply-badge"><Icon name={myIn ? "check" : "x"} sm/> {t(myIn ? "group.att.present" : "group.att.absent")}</span>
+          <span className={"reply-badge" + (myIn ? " here" : "")}><Icon name={myIn ? "check" : "x"} sm/> {t(myIn ? "group.att.present" : "group.att.absent")}</span>
           {myAtt?.by_admin ? <AskChange e={e} act={act}/> : <button type="button" className="link-btn" onClick={() => setEditIn(true)}>{t("group.changeAtt")}</button>}</div>}
         {e.kind === "rehearsal" && canCheckIn(e) && pastNow && (!myMark || editIn || busy === "in") && <div className={"reply-edit" + (myMark && editIn && !busy ? " editing" : "")}>
           {myMark && editIn && !busy && <><span className="reply-edit-hint">{t("group.replyEditHint")}</span><button type="button" className="link-btn" onClick={() => setEditIn(false)}>{t("common.cancel")}</button></>}
@@ -476,7 +526,7 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
               onClick={() => myAtt?.status === v ? setEditIn(false) : act("in:" + v, () => setMyAttendance(e.id, v), "group.saved").then(() => setEditIn(false))}>
               {busy === "in:" + v ? <Spin/> : <Icon name={icon} sm/>} {t(key)}</button>)}</div></div>}
         {e.kind === "rehearsal" && canCheckIn(e) && !pastNow && !unified && myIn && !editIn && busy !== "in" && <div className="reply-done yes" role="status">
-          <span className="reply-badge"><Icon name="check" sm/> {t("group.att.present")}</span>
+          <span className="reply-badge here"><Icon name="check" sm/> {t("group.att.present")}</span>
           {myAtt?.by_admin ? <AskChange e={e} act={act}/> : <button type="button" className="link-btn" onClick={() => setEditIn(true)}>{t("group.changeAtt")}</button>}</div>}
         {e.kind === "rehearsal" && canCheckIn(e) && !pastNow && !unified && (!myIn || editIn || busy === "in") && <div className="reply-edit"><button className="btn sm soft" aria-busy={busy === "in"} disabled={busy === "in"}
           onClick={() => act("in", () => checkIn(e.id, !myIn), myIn ? "group.saved" : "group.checkedIn").then(() => setEditIn(false))}>{busy === "in" ? <Spin/> : <Icon name={myIn ? "x" : "user"} sm/>} {t(myIn ? "group.uncheckIn" : Date.now() > d.getTime() ? "group.checkInPast" : "group.checkIn")}</button>
@@ -493,13 +543,13 @@ function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
           people.map(r => ({email: r.email, grp: 0, rank: STATUS_RANK[r.status] ?? 3, li: <li key={r.email} {...openHistory(r.email)}>
           <span className="quick-att-when"><b><span>{personName(r.email)}</span>{r.email === me && <YouChip/>}</b>
             {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}</span>
-          <span className="quick-att-ctl">{(a => a ? <span className={"chip " + (a.status === "present" ? "st-yes" : a.status === "absent" ? "st-no" : "st-off")}>{t("group.att." + a.status)}</span> : <StatusChip status={r.status} noIcon/>)(att.find(x => x.email === r.email))}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>}))
+          <span className="quick-att-ctl">{(a => a ? <span className={"chip " + (a.status === "present" ? "st-here" : a.status === "absent" ? "st-no" : "st-off")}>{t("group.att." + a.status)}</span> : <StatusChip status={r.status} noIcon/>)(att.find(x => x.email === r.email))}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>}))
         ), ...(
           // Com escala feita, quem não foi escalado só aparece se marcou presença neste ensaio; sem escala, todos aparecem (menos quem está em pausa).
           g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).sort((a, b) => byName(a.email, b.email)).map(m => ({m, sd: rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), here: att.some(a => a.email === m.email && a.status === "present")}))
           .filter(x => x.here || (!roster.length && !x.sd.out)).map(({m, sd, here}) => ({email: m.email, grp: 1, rank: here ? 0 : 3, li: <li key={m.email} {...openHistory(m.email)}>
           <span className={"quick-att-when" + (sd.out ? " with-note" : "") + (here ? "" : " dim")}><b><span>{personName(m.email)}</span>{m.email === me && <YouChip/>}</b>{sd.out && <> <span className="sub pause-note">{tn("group.standOut", sd.need)}</span></>}</span>
-          <span className="quick-att-ctl">{here ? <span className="chip st-yes">{t("group.att.present")}</span> : <span className="chip st-off">{t("group.status.off")}</span>}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>}))
+          <span className="quick-att-ctl">{here ? <span className="chip st-here">{t("group.att.present")}</span> : <span className="chip st-off">{t("group.status.off")}</span>}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>}))
         )]
           .sort((a, b) => a.grp - b.grp || ((order.by === "status" ? a.rank - b.rank : 0) || byName(a.email, b.email)) * (order.desc ? -1 : 1))
           // Os dois blocos (escalados e não escalados) só ganham subtítulo quando os dois existem.

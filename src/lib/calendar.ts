@@ -232,8 +232,9 @@ export function toICS(events: {id: string; title: string; start: Date; end?: Dat
 
 // Ordem da lista: próximos primeiro (do mais perto ao mais longe); passados depois, do mais recente.
 export function splitEvents(events: GEvent[], now = Date.now()){
-  // Um evento continua em "próximos" até 6 h depois do início (está acontecendo).
-  const upcoming = events.filter(e => new Date(e.starts_at).getTime() >= now - 6 * 3600 * 1000).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  // Um evento continua em "próximos" até 6 h depois do início (está acontecendo); o ensaio, não: começou, já passou
+  // (a chamada fica na aba Anteriores e no cartão do Início).
+  const upcoming = events.filter(e => new Date(e.starts_at).getTime() >= now - (e.kind === "rehearsal" ? 0 : 6 * 3600 * 1000)).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
   const past = events.filter(e => !upcoming.includes(e)).sort((a, b) => b.starts_at.localeCompare(a.starts_at));
   return {upcoming, past};
 }
