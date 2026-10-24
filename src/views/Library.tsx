@@ -62,7 +62,10 @@ function AddButton({r}: {r: LibRef}){
 function CardActs({items, narrow, onOpen, gaps = 0}: {items: MenuItem[]; narrow: boolean; onOpen?: () => void; gaps?: number}){
   return <span className={"foot-acts" + (narrow ? " narrow" : "")}>
     {!narrow && Array.from({length: gaps}, (_, i) => <span key={i} className="act-gap" aria-hidden="true"/>)}
-    {items.length > 0 && (narrow ? <Menu aria={t("common.more")} items={items}/>
+    {items.length > 0 && (narrow ? (items.length === 1
+        // Um item só: o botão direto (no rodapé, junto do "há x dias"), sem abrir um menu de uma opção.
+        ? <button type="button" className={"icon-btn sm" + (items[0].danger ? " danger" : "")} data-a="solo" aria-label={items[0].label} onClick={items[0].onClick}><Icon name={items[0].icon} sm/></button>
+        : <Menu aria={t("common.more")} items={items}/>)
       : items.map(it => <button key={it.label} type="button" className={"icon-btn sm" + (it.danger ? " danger" : "")} aria-label={it.label} title={it.label} onClick={it.onClick}><Icon name={it.icon} sm/></button>))}
     {onOpen && <button className="icon-btn sm" data-a="open" aria-label={t("common.open")} onClick={onOpen}><Icon name="chev" sm className="chev-right"/></button>}
   </span>;
