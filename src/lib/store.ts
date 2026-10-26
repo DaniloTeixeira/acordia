@@ -92,7 +92,39 @@ const changed: Change = (kind, id, op) => changeFns.forEach(f => f(kind, id, op)
 // Salvar atualiza a memória na hora (a interface já mostra) e grava no banco logo depois.
 export function saveSong(s: Song){ s.updatedAt = Date.now(); data.songs.set(s.id, s); later("s:" + s.id, () => write("songs", st=>st.put(s))); touch(); changed("s", s.id, "put"); }
 export function deleteSong(id: string){ cancel("s:" + id); data.songs.delete(id); write("songs", st=>st.delete(id)); touch(); changed("s", id, "del"); }
-export function saveMedley(m: Medley){ m.updatedAt = Date.now(); data.medleys.set(m.id, m); later("m:" + m.id, () => write("medleys", st=>st.put(m))); touch(); changed("m", m.id, "put"); }
+// Repertório de mentira que só dá a folha à música nova avulsa: nunca é gravado nem enviado.
+export const SONG_DRAFT = "song-draft";
+// Rascunhos: música/repertório/medley recém-criado que ninguém mexeu. O registro fica no aparelho (localStorage) para
+// que um refresh na tela de criação também o apague na abertura seguinte, e não só o "Voltar".
+const DRAFTS_KEY = "acordia.drafts";
+const readDrafts = (): string[] => { try{ return JSON.parse(localStorage.getItem(DRAFTS_KEY) || "[]"); }catch(e){ return []; } };
+const writeDrafts = (ids: string[]) => { try{ localStorage.setItem(DRAFTS_KEY, JSON.stringify(ids)); }catch(e){} };
+export const isDraft = (id: string) => readDrafts().includes(id);
+// Os que estão abertos agora na tela de criação: ficam fora das listas (senão o card novo pisca antes de navegar).
+const fresh = new Set<string>();
+export const isBlank = (x: Song | Medley) => fresh.has(x.id) && ("items" in x ? !x.items.length : !x.text.trim() && !x.title.trim());
+export function markDraft(id: string){ fresh.add(id); touch(); if(!isDraft(id)) writeDrafts([...readDrafts(), id]); }
+export function clearDraft(id: string){ fresh.delete(id); writeDrafts(readDrafts().filter(x => x !== id)); }
+function dropStaleDrafts(){
+  const ids = readDrafts(); if(!ids.length) return;
+  const usedSongs = new Set([...data.medleys.values()].flatMap(m => m.items.map(i => i.type === "medley" ? "" : i.songId)));
+  const usedBlocks = new Set([...data.medleys.values()].flatMap(m => m.items.map(i => i.type === "medley" ? i.medleyId : "")));
+  // Refresh (F5) na própria tela de criação: a página continua aberta, então o rascunho dela fica (só o "Voltar" ou abrir o app de novo o apaga).
+  const nav = (performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined)?.type;
+  const reopened = nav === "reload" || nav === "back_forward";
+  const hash = location.hash.slice(1);
+  const open = !reopened ? "" : hash === "song" ? data.settings.songId : hash === "" ? data.settings.currentMedley : "";
+  const keep: string[] = [];
+  ids.forEach(id => {
+    if(id === open){ keep.push(id); return; }
+    const s = data.songs.get(id), m = data.medleys.get(id);
+    if(s && !s.text.trim() && !s.title.trim() && !usedSongs.has(id)) deleteSong(id);
+    else if(m && !m.items.length && !usedBlocks.has(id)) deleteMedley(id);
+  });
+  // Quem já tinha conteúdo é de verdade: sai do registro.
+  writeDrafts(keep);
+}
+export function saveMedley(m: Medley){ if(m.id === SONG_DRAFT) return touch(); m.updatedAt = Date.now(); data.medleys.set(m.id, m); later("m:" + m.id, () => write("medleys", st=>st.put(m))); touch(); changed("m", m.id, "put"); }
 export function deleteMedley(id: string){ cancel("m:" + id); data.medleys.delete(id); write("medleys", st=>st.delete(id)); touch(); changed("m", id, "del"); }
 
 // ---------- o que vem da nuvem ----------
@@ -131,6 +163,7 @@ export const newMedleyItem = (medleyId: string): MedleyItem => ({id:newId("i"), 
 
 // Músicas vazias que nenhum medley usa são rascunhos abandonados.
 function cleanup(){
+  dropStaleDrafts();
   const used = new Set([...data.medleys.values()].flatMap(m=>m.items.map(i=>i.type === "medley" ? "" : i.songId)));
   [...data.songs.values()].forEach(s=>{ if(!s.text.trim() && !used.has(s.id)) deleteSong(s.id); });
 }

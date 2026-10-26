@@ -1,15 +1,13 @@
 // Janelas do app. Cada uma aparece quando aberta com openDialog(nome, dados).
 import { Fragment, useEffect, useRef, useState } from "react";
-import { songTitle, sanitizeUrl, parseSong, detectKey, keyShift, transposeKey, transposeText } from "../lib/core";
 import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
 import { norm } from "../lib/util";
-import { useUI, toast, openDialog, type DialogProps } from "../state";
-import { current, isMedley, lastPlayKey, markOpened, songItems, sheetSongs, libTargets, libTitle, inSetlist, addToSetlist, removeFromSetlist, type LibRef } from "../repertoire";
+import { useUI, toast, type DialogProps } from "../state";
+import { current, isMedley, lastPlayKey, songItems, sheetSongs, libTargets, libTitle, inSetlist, addToSetlist, removeFromSetlist, type LibRef } from "../repertoire";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
 import { Select } from "../ui/Select";
-import { keyOptions } from "../views/Repertoire";
 import { ChordDialog } from "./ChordDialog";
 import { setSheetSkip } from "../views/Sheet";
 import { PlayerDialog } from "./PlayerDialog";
@@ -19,7 +17,6 @@ import { PhotoDialog } from "./PhotoDialog";
 import { EventDetailDialog } from "./EventDetailDialog";
 import { MemberDialog } from "./MemberDialog";
 import { GroupDialog, NewGroupDialog } from "./GroupDialog";
-import type { SongType } from "../lib/types";
 
 const { data } = store;
 const songsN = (n: number) => tn("song", n);
@@ -28,7 +25,6 @@ export function Dialogs(){
   const d = useUI(s => s.dialogs);
   return <>
     {d.picker && <Picker/>}
-    {d.song && <SongDialog {...d.song}/>}
     {d.addTo && <AddToDialog {...d.addTo}/>}
     {d.sheetPick && <SheetPickDialog {...d.sheetPick}/>}
     {d.install && <InstallDialog/>}
@@ -88,64 +84,6 @@ function Picker(){
       </div>
       <Foot><button className="btn ghost" value="cancel">{t("common.cancel")}</button>
         <button className="btn primary" value="ok" id="picker-ok" disabled={!chosen.size}>{chosen.size > 1 ? t("common.addN", {n: chosen.size}) : t("common.add")}</button></Foot>
-    </form>
-  </Dialog>;
-}
-
-// ---------- nova música / editar música ----------
-function SongDialog({song: s}: DialogProps["song"]){
-  const isNew = !s;
-  // Abrir uma música conta para o "Continuar de onde parou" do Início.
-  useEffect(() => { if(s) markOpened("song", s.id); }, [s]);
-  const [text, setText] = useState(s ? s.text : ""), [key, setKey] = useState(s ? s.key : "");
-  const [bpm, setBpm] = useState(s ? s.bpm : ""), [ref, setRef] = useState(s ? s.ref || "" : "");
-  // O tipo não é escolhido: com texto e sem nenhum acorde, é só letra; senão, com cifra.
-  const hasChords = (x: string) => parseSong(x).blocks.some(b => b.some(it => it.chord));
-  const typeOf = (x: string): SongType => x.trim() && !hasChords(x) ? "letra" : "";
-  const type = typeOf(text);
-  const start = useRef([text, key, bpm, ref].join("\u0000"));
-  const vals = useRef({text, type, key, bpm, ref}); vals.current = {text, type, key, bpm, ref};
-  const close = (rv: string) => {
-    if(rv !== "ok") return;
-    const v = vals.current;
-    if(!songTitle(v.text)) return toast(t("song.needTitle"));
-    const n = +v.bpm, fields = {text: v.text, title: songTitle(v.text), type: v.type, key: v.key, bpm: n > 0 && n < 400 ? String(Math.round(n)) : "", ref: sanitizeUrl(v.ref)};
-    if(isNew) store.createSong(fields); else { Object.assign(s!, fields); store.saveSong(s!); }
-    toast(t(isNew ? "song.saved" : "song.updated"));
-  };
-  // Com alterações, clicar fora não descarta o texto.
-  const dirty = () => { const v = vals.current; return [v.text, v.key, v.bpm, v.ref].join("\u0000") !== start.current; };
-  const ear = () => openDialog("ear", {text, songKey: key, onApply: (nt, k) => {
-    setText(nt);
-    if(hasChords(nt)){ if(!key && detectKey(parseSong(nt)) !== k) setKey(k); }
-  }});
-  // Transpor reescreve a cifra no texto; com tom automático, o tom acompanha sozinho.
-  const shiftKey = (d: number) => {
-    if(!hasChords(text)) return toast(t("song.noChords"));
-    const base = key || detectKey(parseSong(text)), to = transposeKey(base, d);
-    setText(transposeText(text, keyShift(base, to), to));
-    if(key) setKey(to);
-  };
-  const shownKey = type === "letra" || !hasChords(text) ? "" : key || detectKey(parseSong(text));
-  return <Dialog name="song" id="dlg-song" labelledBy="song-h" onClose={close} dirty={dirty}
-    onOpen={d => requestAnimationFrame(() => d.querySelector<HTMLTextAreaElement>("#song-text")?.focus())}>
-    <form method="dialog" className="dlg">
-      <DialogHead id="song-h" title={t(isNew ? "song.newTitle" : "song.editTitle")} closeLabel={t("common.close")}/>
-      <div className="dlg-body">
-        {/* Montar cifra é para música nova, a partir da letra; editar uma música existente não precisa dele. */}
-        {isNew && <div className="type-row"><button type="button" className="btn soft sm" id="song-ear" data-tip-key="tip.ear" disabled={!songTitle(text)} onClick={ear}><Icon name="music" sm/> {t("ear.open")}</button></div>}
-        <textarea className="input song-text" id="song-text" spellCheck={false} aria-label={t("song.textAria")} placeholder={t(type === "letra" ? "item.phLyrics" : "item.phChords")} value={text} onChange={e => setText(e.target.value)}/>
-        <div className="fields">
-          <div className="field wide" hidden={!shownKey}><span>{t("song.transpose")}</span><span className="tr-ctl">
-            <button type="button" className="icon-btn sm" id="song-tr-down" aria-label={t("song.down")} title={t("song.down")} onClick={() => shiftKey(-1)}>−</button>
-            <b id="song-tr-key">{shownKey}</b>
-            <button type="button" className="icon-btn sm" id="song-tr-up" aria-label={t("song.up")} title={t("song.up")} onClick={() => shiftKey(1)}>+</button></span></div>
-          <label className="field" hidden={type === "letra"}><span>{t("song.key")}</span><Select id="song-key" value={key} onChange={setKey} options={keyOptions(t("item.auto"))}/></label>
-          <label className="field"><span>{t("item.bpm")}</span><input className="input" id="song-bpm" type="number" inputMode="numeric" min={20} max={300} placeholder="—" value={bpm} onChange={e => setBpm(e.target.value)}/></label>
-          <label className="field wide"><span>{t("item.ref")}</span><input className="input" id="song-ref" type="url" inputMode="url" autoComplete="off" placeholder={t("item.refPh")} value={ref} onChange={e => setRef(e.target.value)}/></label>
-        </div>
-      </div>
-      <Foot><button className="btn ghost" value="cancel">{t("common.cancel")}</button><button className="btn primary" value="ok">{t("common.save")}</button></Foot>
     </form>
   </Dialog>;
 }

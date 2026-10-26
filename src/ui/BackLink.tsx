@@ -7,7 +7,7 @@ import { Icon } from "./Icon";
 import { t } from "../lib/i18n";
 import { backTarget, goBack, useUI, type View } from "../state";
 
-const NAME: Record<string, string> = {"group:agenda": "group.agenda", "group:library": "lib.title", "group:members": "group.membersTab", home: "nav.home", medley: "nav.medley", group: "nav.group", study: "nav.study", tools: "nav.tools", more: "nav.more", profile: "profile.title", people: "people.title"};
+const NAME: Record<string, string> = {"group:agenda": "group.agenda", "group:library": "lib.title", "group:members": "group.membersTab", home: "nav.home", medley: "nav.medley", group: "nav.group", study: "nav.study", tools: "nav.tools", more: "nav.more", profile: "profile.title", people: "people.title", song: "song.newTitle"};
 
 export function BackLink({id, fallback, mobileOnly}: {id: string; fallback: View; mobileOnly?: boolean}){
   useUI(s => s.trailTick + s.view); // o rótulo acompanha o histórico mesmo com a página já montada

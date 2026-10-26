@@ -5,17 +5,17 @@ import { KEYS, MINOR_KEYS, songTitle, sanitizeUrl, youtubeId, parseSong, detectK
 import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
 import { reduced, vt, flashSaved, reveal } from "../lib/util";
-import { useUI, useData, toast, openDialog, toggleExpanded, go } from "../state";
-import { current, isMedley, openMedley, songItems, arrangementOf, eff, songKey, lastPlayKey, sheetSongs } from "../repertoire";
+import { useUI, useData, toast, openDialog, toggleExpanded, go, goBack, confirmDialog } from "../state";
+import { current, isMedley, openMedley, songItems, arrangementOf, eff, songKey, isLyricsOnly, lastPlayKey, sheetSongs, markOpened, usage } from "../repertoire";
 import { Icon } from "../ui/Icon";
+import { AddButton } from "../ui/AddButton";
 import { Seg } from "../ui/Seg";
 import { Select, type Options } from "../ui/Select";
 import { useSynced } from "../ui/hooks";
 import { useDragSort } from "../ui/dragSort";
 import { useGroups, loadGroups, useCanEdit } from "../lib/groups";
 import { Sheet, SheetPane, copySheet, sheetMode } from "./Sheet";
-import { confirmDeleteMedley } from "./Library";
-import { openGroup } from "./Group";
+import { confirmDeleteMedley, deleteSong } from "./Library";
 import type { Medley, MedleyItem, SongItem, Song, Moment } from "../lib/types";
 
 const { data } = store;
@@ -30,13 +30,44 @@ export function keyOptions(first: string): Options {
 
 export function setPane(v: "edit" | "sheet"){ store.setSetting("pane", v); }
 
+// Repertório/medley recém-criado que ainda ninguém mexeu: se sair sem escrever nome nem adicionar música, é apagado.
+// O registro fica no aparelho: um refresh na tela de criação também apaga o rascunho vazio (ver store.dropStaleDrafts).
+const drafts = {add: store.markDraft, has: store.isDraft, delete: store.clearDraft};
+function dropDraft(id: string){
+  const m = data.medleys.get(id);
+  drafts.delete(id);
+  if(m && !m.items.length) store.deleteMedley(id);
+}
+
 export function newMedley(){
   const m = store.createMedley(t("medley.newName", {date: new Date().toLocaleDateString(locale(), {day:"2-digit", month:"2-digit"})}));
+  drafts.add(m.id);
   store.setSetting("currentMedley", m.id); store.setSetting("returnTo", "");
   useUI.setState({expanded: new Set()});
   go("medley");
   setTimeout(() => { const name = document.querySelector<HTMLInputElement>("#medley-name"); name?.focus(); name?.select(); }, 50);
-  toast(t("medley.created"));
+}
+// Medley novo avulso (aba Medleys da Biblioteca): abre na edição com o nome selecionado; depois entra em repertórios pelo "Adicionar".
+export function newMedleyBlock(){
+  const n = [...data.medleys.values()].filter(isMedley).length + 1;
+  const m = store.createMedley(t("mblock.newName", {n}), [], undefined, "medley");
+  drafts.add(m.id);
+  openMedley(m.id); setPane("edit"); go("medley");
+  setTimeout(() => { const name = document.querySelector<HTMLInputElement>("#medley-name"); name?.focus(); name?.select(); }, 50);
+}
+// Página da música (o mesmo cartão do repertório, sem o que é do repertório). Grava sozinha.
+export function openSong(id: string){
+  markOpened("song", id);
+  store.setSetting("songId", id);
+  go("song");
+}
+// Música nova avulsa: como o repertório novo, é rascunho até ter conteúdo; se sair sem escrever nada, é apagada na hora
+// (antes ficava vazia na Biblioteca e na nuvem até a próxima abertura do app).
+export function newSong(){ const s = store.createSong({}); drafts.add(s.id); openSong(s.id); }
+function dropSongDraft(id: string){
+  const s = data.songs.get(id);
+  drafts.delete(id);
+  if(s && !s.text.trim() && !s.title.trim() && !(usage().get(id) || 0)) store.deleteSong(id);
 }
 function focusItem(id: string){
   requestAnimationFrame(() => {
@@ -97,36 +128,58 @@ function removeItem(id: string, li: HTMLElement | null){
   }, reduced() ? 0 : 220);
 }
 
-export function Repertoire(){
+export function NewSong(){ return <Repertoire song/>; }
+
+// song: página de uma música avulsa (nova ou da Biblioteca). É a mesma tela, só com o cartão da música: sem folha, palco, excluir, novo nem adicionar.
+export function Repertoire({song}: {song?: boolean} = {}){
   useData();
+  const sg = song ? data.songs.get(data.settings.songId as string) : undefined, sit = useRef<SongItem>(), draft = useRef<Medley>();
+  // A música avulsa ganha um repertório só na memória (a folha precisa dele); nunca é gravado.
+  if(sg && sit.current?.songId !== sg.id){ sit.current = store.newItem(sg.id); draft.current = {id: store.SONG_DRAFT, kind: "setlist", name: "", items: [sit.current], options: {...current().options}}; }
+  if(sg && draft.current) draft.current.name = sg.title || t("song.newTitle");
+  // Música que sumiu (excluída aqui ou na nuvem) volta uma vez só, para a aba de onde veio; chamar o Voltar também no excluir pulava duas telas.
+  useEffect(() => { if(song && !sg) goBack("group"); }, [song, sg]);
   // Membros do grupo para a lista de quem faz o solo (usa a cópia do aparelho se já houver).
   useEffect(() => { if(!useGroups.getState().loaded) loadGroups(); }, []);
   // Quem não lidera o grupo só lê: fica na folha, sem editar, excluir ou criar.
   const canEdit = useCanEdit();
-  const pane = !canEdit || data.settings.pane === "sheet" ? "sheet" : "edit";
-  const m = current(), back = data.medleys.get(data.settings.returnTo as string);
-  const leave = () => openGroup("setlists");
+  const pane = canEdit && data.settings.pane !== "sheet" ? "edit" : "sheet";
+  const m = song && draft.current ? draft.current : current(), back = data.medleys.get(data.settings.returnTo as string);
+  // Ao sair (ou trocar de repertório), apaga o rascunho que ficou vazio. Adiado um tick para o StrictMode não apagar à toa.
+  useEffect(() => () => { setTimeout(() => {
+    if(drafts.has(m.id) && (useUI.getState().view !== "medley" || data.settings.currentMedley !== m.id)) dropDraft(m.id);
+  }); }, [m.id]);
+  // Música nova avulsa que ficou vazia: mesma regra do rascunho de repertório.
+  const sgId = sg?.id;
+  useEffect(() => () => { if(!sgId) return; setTimeout(() => {
+    if(drafts.has(sgId) && (useUI.getState().view !== "song" || data.settings.songId !== sgId)) dropSongDraft(sgId);
+  }); }, [sgId]);
+  // Volta pelo histórico (a aba da Biblioteca de onde a pessoa veio) e tira o passo dele; abrir o grupo de novo empilhava a tela e o Voltar girava em círculo.
+  const leave = () => goBack("group");
   const n = songItems(m).length, off = m.options.transpose || 0;
   const sub = (n ? t("medley.saved", {songs: songsN(n)}) : t("medley.startHint")) + (off ? " · " + t("medley.transposed", {n: (off > 0 ? "+" : "") + off}) : "");
+  if(song && (!sg || !sit.current)) return null;
   return <section className="view" id="view-medley" data-view="medley" aria-labelledby="medley-name">
     <div className="view-head">
       <div className="title-wrap">
         {/* Medley volta para o repertório de onde veio; o resto volta para os Repertórios do Grupo. */}
         <div className="ctx" id="medley-ctx">
-          <button className="back-link" id="ctx-back" onClick={() => { if(isMedley(m) && back) openMedley(back.id); else leave(); }}>
-            <Icon name="back" sm/><span id="ctx-back-label">{t("ctx.back", {name: isMedley(m) && back ? back.name : t("group.setlists")})}</span></button>
-          {isMedley(m) && <span className="chip accent"><Icon name="link" sm/><span>{t("ctx.medley")}</span></span>}
+          <button className="back-link" id="ctx-back" onClick={() => { if(song) leave(); else if(isMedley(m) && back) openMedley(back.id); else leave(); }}>
+            <Icon name="back" sm/><span id="ctx-back-label">{t("ctx.back", {name: song ? t("lib.title") : isMedley(m) && back ? back.name : t("group.setlists")})}</span></button>
+          {!song && isMedley(m) && <span className="chip accent"><Icon name="link" sm/><span>{t("ctx.medley")}</span></span>}
         </div>
-        {canEdit ? <MedleyName key={m.id} m={m}/> : <h1 id="medley-name" className="title-read">{m.name}</h1>}
-        <p className="sub" id="medley-sub">{sub}</p>
+        {song ? <h1 id="medley-name" className="title-read">{sg!.title || t("song.newTitle")}</h1> : canEdit ? <MedleyName key={m.id} m={m}/> : <h1 id="medley-name" className="title-read">{m.name}</h1>}
+        <p className="sub" id="medley-sub">{song ? t("medley.startHint") : sub}</p>
       </div>
       <div className="actions">
-        {canEdit && <><button className="icon-btn danger line" id="btn-del-medley" aria-label={t("common.delete")} title={t("common.delete")} onClick={async () => {
+        {canEdit && (song || isMedley(m)) && <AddButton r={song ? {kind: "song", id: sg!.id} : {kind: "medley", id: m.id}}/>}
+        {canEdit && <><span className="act-sep" aria-hidden="true"/><button className="icon-btn danger line" id="btn-del-medley" aria-label={t("common.delete")} title={t("common.delete")} onClick={async () => {
+          if(song){ const n = usage().get(sg!.id) || 0; if(await confirmDialog({title: t("confirm.songTitle"), message: t(n ? "confirm.songUsed" : "confirm.song", {title: sg!.title || t("song.newTitle"), medleys: tn("medley", n)})})){ deleteSong(sg!); } return; }
           // Medley volta para o repertório de onde veio; repertório vai para a Biblioteca.
           if(await confirmDeleteMedley(m) && !(isMedley(m) && back)) leave();
         }}><Icon name="trash"/></button>
-        <button className="btn ghost" id="btn-new-medley" data-tip-key="tip.new" aria-label={t("medley.new")} onClick={() => newMedley()}><Icon name="plus"/><span className="label-lg">{t("medley.new")}</span></button></>}
-        <button className="btn primary" id="btn-stage" data-tip-key="tip.stage" onClick={() => useUI.setState({stageOpen: true})}><Icon name="stage"/><span>{t("medley.stage")}</span></button>
+        {!song && <button className="btn ghost" id="btn-new-medley" data-tip-key="tip.new" aria-label={t("medley.new")} onClick={() => newMedley()}><Icon name="plus"/><span className="label-lg">{t("medley.new")}</span></button>}</>}
+        {!song && <button className="btn primary" id="btn-stage" data-tip-key="tip.stage" onClick={() => useUI.setState({stageOpen: true})}><Icon name="stage"/><span>{t("medley.stage")}</span></button>}
       </div>
     </div>
     {canEdit && <Seg className="block pane-toggle" id="pane-toggle" aria={t("pane.aria")} value={pane} onChange={setPane}
@@ -134,13 +187,13 @@ export function Repertoire(){
     <div className="medley-grid" id="medley-grid" data-pane={pane}>
       <div className="pane pane-edit">
         {/* Dica: no celular logo abaixo das abas Editar | Ver folha; no computador, entre a lista e os botões. */}
-        {m.items.length > 1 && <DragHint at="top"/>}
-        <Items m={m}/>
-        <div className="add-bar">
-          <button className="btn soft" id="add-chords" onClick={() => addItem("")}><Icon name="plus"/><span>{t("add.song")}</span></button>
-          <button className="btn soft" id="add-library" data-tip-key="tip.addLibrary" onClick={() => openDialog("picker", {})}><Icon name="library"/><span>{t("add.library")}</span></button>
+        {!song && m.items.length > 1 && <DragHint at="top"/>}
+        {song ? <ol className="items"><ItemCard m={m} it={sit.current!} i={0} bare/></ol> : <Items m={m}/>}
+        {!song && <div className="add-bar">
+          <button className="btn soft" id="add-chords" onClick={() => addItem("")}><Icon name="plus"/><span className="lbl-long">{t("add.song")}</span><span className="lbl-short">{t("add.songShort")}</span></button>
+          <button className="btn soft" id="add-library" data-tip-key="tip.addLibrary" onClick={() => openDialog("picker", {})}><Icon name="library"/><span className="lbl-long">{t("add.library")}</span><span className="lbl-short">{t("add.libraryShort")}</span></button>
           <button className="btn soft" id="add-medley" data-tip-key="tip.addMedley" hidden={isMedley(m)} onClick={addMedleyBlock}><Icon name="link"/><span>{t("add.medley")}</span></button>
-        </div>
+        </div>}
       </div>
       <SheetPane m={m}><Sheet m={m}/></SheetPane>
     </div>
@@ -155,7 +208,7 @@ function MedleyName({m}: {m: Medley}){
   return <div className="field title-field">
     <textarea id="medley-name" className="title-input" rows={1} aria-label={t("medley.nameAria")} maxLength={80} autoComplete="off" value={v}
       onFocus={() => { before.current = m.name; }}
-      onChange={e => { const x = e.target.value.replace(/\s*\n\s*/g, " "); setV(x); m.name = x.trim() || t("medley.noName"); store.saveMedley(m); }}
+      onChange={e => { const x = e.target.value.replace(/\s*\n\s*/g, " "); setV(x); m.name = x.trim() || t("medley.noName"); drafts.delete(m.id); store.saveMedley(m); }}
       onBlur={e => { if(m.name !== before.current) flashSaved(e.currentTarget); }}
       onKeyDown={e => { if(e.key === "Enter"){ e.preventDefault(); e.currentTarget.blur(); } }}/></div>;
 }
@@ -241,20 +294,21 @@ function MedleyCard({m, it, i}: {m: Medley; it: MedleyItem; i: number}){
   </li>;
 }
 
-function ItemCard({m, it, i}: {m: Medley; it: SongItem; i: number}){
+// bare: música avulsa (página de música nova), sem o que é do repertório (ordem, momento, solo, remover).
+function ItemCard({m, it, i, bare}: {m: Medley; it: SongItem; i: number; bare?: boolean}){
   let s = data.songs.get(it.songId);
   if(!s){ s = store.createSong({}); it.songId = s.id; }
   const song: Song = s;
-  const open = useUI(st => st.expanded.has(it.id));
+  const expanded = useUI(st => st.expanded.has(it.id)), open = bare || expanded;
   const ref = useRef<HTMLLIElement>(null);
   // A música fica enxuta, no repertório e no medley: só tom, solo, BPM e referência.
-  const letra = song.type === "letra", a = arrangementOf(song, it), e = eff(song, it);
+  const letra = isLyricsOnly(song), a = arrangementOf(song, it), e = eff(song, it);
   const [text, setText] = useSynced(song.text);
   const [bpm, setBpm] = useSynced(song.bpm || "");
   const [refUrl, setRef] = useSynced(song.ref || "");
   const saveSong = () => store.saveSong(song);
   // Com um arranjo antigo escolhido, o tom muda o arranjo (vale em todos os repertórios que o usam).
-  const setTarget = (v: string) => { if(a){ a.target = v; saveSong(); } else { it.target = v; store.saveMedley(m); } };
+  const setTarget = (v: string) => { if(bare){ song.key = v; saveSong(); } else if(a){ a.target = v; saveSong(); } else { it.target = v; store.saveMedley(m); } };
   const key = songKey(song);
   // A primeira linha fica toda para o nome; tom, Pós-pregação e o resto vão na de baixo.
   const chips: React.ReactNode[] = [];
@@ -280,7 +334,7 @@ function ItemCard({m, it, i}: {m: Medley; it: SongItem; i: number}){
     saveSong();
   }});
   return <li ref={ref} className={"item" + (open ? "" : " collapsed")} data-id={it.id}>
-    <div className="item-head">
+    {!bare && <div className="item-head">
       <DragHandle id={it.id} n={i+1}/>
       <button className="item-toggle" aria-expanded={open} onClick={toggle}>
         <span className="item-title">{song.title || t("item.newSong")}</span>
@@ -288,25 +342,26 @@ function ItemCard({m, it, i}: {m: Medley; it: SongItem; i: number}){
       <ItemActions it={it} after={<button className="icon-btn sm" data-a="toggle" aria-label={t(open ? "common.close" : "common.open")} onClick={toggle}><Icon name="chev" sm className="chev"/></button>}>
         <button className="icon-btn sm ref-btn" data-a="ref" aria-label={t("ref.listen")} title={t("ref.listen")} hidden={!song.ref} onClick={() => openRef(song.ref || "", song.title)}><Icon name="play" sm/></button>
       </ItemActions>
-    </div>
+    </div>}
     <div className="item-body"><div><div className="item-inner">
       <div className="type-row">
         <button type="button" className="btn soft sm" data-a="ear" data-tip-key="tip.ear" disabled={!song.title} onClick={ear}><Icon name="music" sm/> {t("ear.open")}</button>
-        <button type="button" className="btn soft sm" data-a="copy-lyrics" disabled={!song.title} onClick={() => { const s = sheetSongs(m).find(x => x.itemId === it.id); if(s) copySheet(m, [s]); }}><Icon name="copy" sm/> {t("item.copy." + sheetMode())}</button>
-        {!isMedley(m) && <MomentSeg m={m} it={it}/>}</div>
-      <textarea className="input song-text" spellCheck={false} aria-label={t("item.textAria", {n:i+1})} placeholder={t(letra ? "item.phLyrics" : "item.phChords")}
+        {!bare && <button type="button" className="btn soft sm" data-a="copy-lyrics" disabled={!song.title} onClick={() => { const s = sheetSongs(m).find(x => x.itemId === it.id); if(s) copySheet(m, [s]); }}><Icon name="copy" sm/> {t("item.copy." + sheetMode())}</button>}
+        {!isMedley(m) && !bare && <MomentSeg m={m} it={it}/>}</div>
+      <textarea className="input song-text" spellCheck={false} aria-label={t("item.textAria", {n:i+1})} placeholder={t(letra ? "item.phLyrics" : "item.phChords")} autoFocus={bare}
         value={text} onChange={ev => { const v = ev.target.value; setText(v); song.text = v; song.title = songTitle(v);
           // O tipo acompanha o texto: sem nenhum acorde é só letra.
           song.type = v.trim() && !parseSong(v).blocks.some(b => b.some(x => x.chord)) ? "letra" : ""; saveSong(); }}/>
+      <p className="note song-hint">{t("item.chorusHint")}</p>
       {/* Só o tom fica à vista (o tom em que a música toca; a cifra é transposta para ele). Solo, BPM e referência
           ficam em "Mais detalhes", aberto sozinho quando algum já está preenchido. */}
       <div className="fields item-fields">
-        <label className="field" data-key-field hidden={letra}>{t("item.keyShort")}<Select f="target" value={e.target}
+        <label className="field" data-key-field hidden={letra}>{t("item.keyShort")}<Select f="target" value={bare ? song.key : e.target}
           options={keyOptions(key ? t("item.autoKey", {key}) : t("item.auto"))} onChange={setTarget}/></label>
       </div>
-      <details className="item-more" open={!!(it.solo || song.bpm || song.ref)}><summary>{t("item.more")}</summary>
+      <details className="item-more" open={!!(it.solo || song.bpm || song.ref) || !!bare}><summary>{t("item.more")}</summary>
       <div className="fields item-fields">
-        <SoloField hidden={letra} value={it.solo || ""} onChange={v => { it.solo = v; store.saveMedley(m); }}/>
+        <SoloField hidden={letra || !!bare} value={it.solo || ""} onChange={v => { it.solo = v; store.saveMedley(m); }}/>
         <label className="field" hidden={letra}>{t("item.bpm")}<input className="input" data-f="bpm" type="number" inputMode="numeric" min={20} max={300} placeholder="—" value={bpm}
           onChange={ev => { setBpm(ev.target.value); const v = +ev.target.value; song.bpm = v > 0 && v < 400 ? String(Math.round(v)) : ""; saveSong(); }}/></label>
         <label className="field wide">{t("item.ref")}<input className="input" data-f="ref" type="url" inputMode="url" autoComplete="off" placeholder={t("item.refPh")} value={refUrl}

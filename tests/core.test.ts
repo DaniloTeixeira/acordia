@@ -310,3 +310,12 @@ test("opções: transpor tudo e desenhos do capo", () => {
   assert.equal(C.sanitizeOptions({capoShapes: true}).capoShapes, true);
   assert.equal(C.sanitizeOptions({capoShapes: "sim"}).capoShapes, false);
 });
+
+test("parseSong ignora caracteres invisíveis de texto colado (cifra continua cifra, marcação continua marcação)", () => {
+  const s = C.parseSong("Santo\n\n\u200B   G\u00A0\u00A0 G4\u200B\nAs muitas gerações\n\n[Refrão]\u200B\n\u00A0 C9\nTeu nome\n");
+  assert.equal(s.blocks.length, 2);
+  assert.equal(s.blocks[0][0].kind, "pair");
+  assert.equal(s.blocks[0][0].chord, "   G   G4");
+  assert.deepEqual(s.chorus, [false, true]);
+  assert.ok(C.isChordLine(C.cleanText("\u200BC\u00A0G")));
+});

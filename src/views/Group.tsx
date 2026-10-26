@@ -10,7 +10,7 @@ import { songTitle, sanitizeItem } from "../lib/core";
 import { norm } from "../lib/util";
 import { current, openMedley, isMedley } from "../repertoire";
 import { isAutoSetlist } from "../lib/syncrules";
-import { newMedley } from "./Repertoire";
+import { newMedley, newMedleyBlock, newSong } from "./Repertoire";
 import type { Item } from "../lib/types";
 import { copyName, LibraryList } from "./Library";
 import { saveBlob } from "../lib/pdf";
@@ -193,9 +193,12 @@ export function Group(){
   const group = g.groups.find(x => x.id === g.gid);
   const canEdit = !!group && amGroupAdmin();
   // Números das abas da Biblioteca (quem só lê não conta o repertório vazio que o app cria sozinho no aparelho).
-  const meds = [...data.medleys.values()].filter(m => canEdit || !isAutoSetlist(m));
+  const meds = [...data.medleys.values()].filter(m => !store.isBlank(m) && (canEdit || !isAutoSetlist(m)));
   const libCount = {songs: [...data.songs.values()].filter(s => s.title).length, setlists: meds.filter(m => !isMedley(m)).length, medleys: meds.filter(isMedley).length};
   const tab: Tab = (["agenda", "setlists", "songs", "medleys", "members"] as const).find(v => v === data.settings.groupTab) || "agenda";
+  // Modo "Selecionar" da Biblioteca (exclusão em lote): null = desligado; a seleção vale para a aba aberta.
+  const [sel, setSel] = useState<Set<string> | null>(null);
+  useEffect(() => setSel(null), [tab]);
   // Quem lidera tem o lápis ao lado do nome: abre a janela com a foto, o nome e (admin do app) outro grupo e excluir.
   const head = (sub: string, actions?: React.ReactNode) => <>
     <BackLink id="group-back" fallback={tab === "members" ? "more" : "home"}/>
@@ -210,17 +213,24 @@ export function Group(){
       : g.error ? <div className="card empty-state"><Icon name="sync"/><strong>{t("group.loadFail")}</strong><button className="btn ghost" onClick={() => loadGroups()}>{t("group.retry")}</button></div>
       : <div className="card empty-state"><Icon name="users"/><strong>{t("group.none")}</strong><span>{t(admin ? "group.noneAdmin" : "group.noneSub")}</span>{admin && <NewGroup/>}</div>}
   </section>;
+  // Botão "novo" da Biblioteca, na linha das abas: o que ele cria depende da aba.
+  const NEW_LABEL: Record<string, string> = {setlists: "group.newSetlist", songs: "lib.new", medleys: "group.newMedley"};
+  const NEW_ACT: Record<string, () => void> = {setlists: () => newMedley(), songs: () => newSong(), medleys: () => newMedleyBlock()};
   return <section className="view" id="view-group" data-view="group" aria-labelledby="group-h">
     {head(tn("group.members", g.members.length) + (g.error ? " · " + t("group.offline") : ""), <>
-      {canEdit && tab === "setlists" && <button className="btn primary" id="group-new-setlist" onClick={() => newMedley()}><Icon name="plus" sm/><span>{t("group.newSetlist")}</span></button>}
-      {canEdit && tab === "songs" && <button className="btn primary" id="group-new-song" onClick={() => openDialog("song", {song: null})}><Icon name="plus" sm/><span>{t("lib.new")}</span></button>}
       {canEdit && tab === "agenda" && <button className="btn primary" id="group-new-event" onClick={() => openDialog("event", {id: null, day: dayKey(new Date())})}><Icon name="plus" sm/><span>{t("group.newEvent")}</span></button>}
     </>)}
     {/* Agenda e Biblioteca estão na barra de baixo (Membros, em Mais): só a Biblioteca tem abas, as suas três listas. */}
-    {LIB_TABS.includes(tab) && <Seg id="group-tabs" className="tabs" aria={t("lib.tabsAria")} value={tab} onChange={v => store.setSetting("groupTab", v)}
-      options={[{v: "setlists", label: t("lib.setlists", {n: libCount.setlists})}, {v: "songs", label: t("lib.songs", {n: libCount.songs})}, {v: "medleys", label: t("lib.mblocks", {n: libCount.medleys})}]}/>}
+    {LIB_TABS.includes(tab) && <div className="tabs-row">
+      <Seg id="group-tabs" className="tabs" aria={t("lib.tabsAria")} value={tab} onChange={v => store.setSetting("groupTab", v)}
+      options={[{v: "setlists", label: t("lib.setlists", {n: libCount.setlists})}, {v: "songs", label: t("lib.songs", {n: libCount.songs})}, {v: "medleys", label: t("lib.mblocks", {n: libCount.medleys})}]}/>
+      {canEdit && <div className="tabs-acts">
+        <button type="button" className="btn ghost" id="lib-select" aria-pressed={!!sel} aria-label={t(sel ? "common.cancel" : "lib.select")} onClick={() => setSel(sel ? null : new Set())}><Icon name={sel ? "x" : "check"} sm/><span className="label-lg">{t(sel ? "common.cancel" : "lib.select")}</span></button>
+        <button className="btn primary" id="group-new-lib" aria-label={t(NEW_LABEL[tab])} onClick={NEW_ACT[tab]}><Icon name="plus" sm/><span className="label-lg">{t(NEW_LABEL[tab])}</span></button>
+      </div>}
+    </div>}
     {tab === "agenda" && <Agenda canEdit={canEdit}/>}
-    {tab !== "agenda" && tab !== "members" && <LibraryList key={tab} tab={tab} canEdit={canEdit}/>}
+    {tab !== "agenda" && tab !== "members" && <LibraryList key={tab} tab={tab} canEdit={canEdit} sel={sel} setSel={setSel}/>}
     {tab === "members" && <Members canEdit={canEdit}/>}
   </section>;
 }
