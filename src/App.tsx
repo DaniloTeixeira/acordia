@@ -12,7 +12,7 @@ import { Range } from "./ui/Range";
 import { TIMBRES, getTimbre } from "./lib/audio";
 import { chooseTimbre } from "./views/InstrumentSelect";
 import { openNear, toggler } from "./ui/popover";
-import { Repertoire } from "./views/Repertoire";
+import { Repertoire, NewSong } from "./views/Repertoire";
 import { Study } from "./views/study/Study";
 import { Tools } from "./views/Tools";
 import { Stage } from "./views/Stage";
@@ -155,7 +155,7 @@ function railOf(v: View, groupTab: unknown, nav: string): string{
 }
 function navOf(v: View, groupTab: unknown): NavId | "profile" | ""{
   if(v === "profile" || v === "people") return "profile";
-  if(v === "medley") return "library";
+  if(v === "medley" || v === "song") return "library";
   if(v === "group") return groupTab === "members" ? "more" : (LIB_TABS as unknown[]).includes(groupTab) ? "library" : "agenda";
   return v === "home" ? "home" : v === "more" || v === "study" || v === "tools" ? "more" : "";
 }
@@ -227,6 +227,7 @@ export function App(){
         {view === "more" && <More/>}
         {view === "profile" && <Profile/>}
         {view === "people" && <PeoplePage/>}
+        {view === "song" && <NewSong/>}
       </main>
       <button className="help-fab" id="help-fab" hidden={!helpable} data-tip-key={helpKey} data-tip-side="left" aria-label={t(helpKey)} onClick={() => openDialog("help", {page: view})}><Icon name="question"/></button>
       <nav className="tabbar" ref={tabbar} aria-label={t("nav.nav")}>

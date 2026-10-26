@@ -63,8 +63,14 @@ function normInterlude(line: string){
 // Outra marcação também encerra o refrão. Bloco com a mesma letra de um refrão (repetido sem marcação) também é.
 const CHORUS_TAG = /^\s*\[\s*(refr[ãa]o|coro|chorus|estribillo)(?![\p{L}])[^\]]*\]\s*$/iu;
 const CHORUS_END = /^\s*\[\s*(\/\s*(refr[ãa]o|coro|chorus|estribillo)|(fim|final|end|fin)\s+(d[oe]l?\s+|of\s+(the\s+)?)?(refr[ãa]o|coro|chorus|estribillo))(?![\p{L}])[^\]]*\]\s*$/iu;
+// Texto colado de site/PDF/WhatsApp traz caracteres invisíveis (largura zero, hífen suave, marcas de direção) que
+// não contam como espaço e quebram a linha de acordes e a marcação [Refrão]; a música virava só letra, com as
+// cifras coladas e sem destaque. Aqui eles somem e os espaços especiais viram espaço comum.
+export function cleanText(text: string){
+  return text.replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2064\u00AD\uFEFF]/g,"").replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g," ").replace(/[\u2028\u2029]/g,"\n");
+}
 export function parseSong(text: string, plain?: boolean): ParsedSong {
-  const raw = text.replace(/\r/g,"").split("\n");
+  const raw = cleanText(text).replace(/\r/g,"").split("\n");
   let i = 0; while(i<raw.length && !raw[i].trim()) i++;
   const title = (raw[i]||"").trim(); i++;
   // As marcações [Parte] saem da letra, mas fecham o bloco e dizem se o próximo é refrão.
@@ -368,7 +374,7 @@ export function chordLineToCells(line: string, lyric: string | null): string[] {
   return Array.from({length: n}, (_, i) => out[i] || "");
 }
 export function earRows(text: string): EarLine[] {
-  const raw = text.replace(/\r/g, "").split("\n"), out: EarLine[] = [];
+  const raw = cleanText(text).replace(/\r/g, "").split("\n"), out: EarLine[] = [];
   const ti = raw.findIndex(l => l.trim());
   for(let j = 0; j < raw.length; j++){
     const l = raw[j];
@@ -417,7 +423,7 @@ export function earText(lines: EarLine[], key: string): string {
 // Reescreve os acordes do texto em outro tom (o título e a letra ficam iguais).
 export function transposeText(text: string, shift: number, target: string): string {
   const s = ((shift % 12) + 12) % 12; if(!s) return text;
-  const lines = text.split("\n"), ti = lines.findIndex(l => l.trim());
+  const lines = cleanText(text).split("\n"), ti = lines.findIndex(l => l.trim());
   return lines.map((l, i) => i > ti && !isTag(l) && isChordLine(l) ? lineTranspose(l, s, target) : l).join("\n");
 }
 

@@ -7,13 +7,12 @@ import { flushSync } from "react-dom";
 import * as store from "./lib/store";
 import { setLang, getLang, t, type Lang } from "./lib/i18n";
 import { vt, type VtKind } from "./lib/util";
-import type { Song } from "./lib/types";
 import type { Allowed } from "./lib/cloud";
 
 // A barra de abas tem Início, Grupo e Mais. O repertório (medley) fica dentro do Grupo; o perfil abre pela
 // bolinha e Usuários (só admin) pelo Perfil.
-export type View = "home" | "medley" | "group" | "study" | "tools" | "more" | "profile" | "people";
-export const VIEWS: View[] = ["home", "medley", "group", "study", "tools", "more", "profile", "people"];
+export type View = "home" | "medley" | "group" | "study" | "tools" | "more" | "profile" | "people" | "song";
+export const VIEWS: View[] = ["home", "medley", "group", "study", "tools", "more", "profile", "people", "song"];
 
 export interface ToastAction { label: string; run: () => void }
 export interface Toast { id: number; msg: string; action?: ToastAction; sticky?: boolean; out?: boolean }
@@ -21,7 +20,6 @@ export interface Toast { id: number; msg: string; action?: ToastAction; sticky?:
 // Cada janela recebe seus dados ao abrir.
 export interface DialogProps {
   picker: Record<string, never>;
-  song: {song: Song | null};
   // Pôr ou tirar uma música ou um medley da Biblioteca de cada repertório.
   addTo: LibRef;
   // Escolher as músicas que entram na folha do repertório (id).

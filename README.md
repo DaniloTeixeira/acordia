@@ -149,6 +149,8 @@ direto na folha, sem Editar, e não vê os botões de mudar.
 - [ ] **Cartão de música**: tom, BPM, em quantos repertórios está, trecho da letra e quando foi
       editada; Adicionar ao repertório, ▶, Editar e Excluir.
 - [ ] **Cartão de repertório/medley**: Abrir, **Duplicar** ("(cópia)") e Excluir.
+- [ ] **Selecionar** (só quem lidera, ao lado do botão de criar): marca vários cartões de Músicas, Repertórios ou Medleys, com "Todos" (só os que a busca mostra) e **Excluir** numa confirmação só; um aviso com Desfazer devolve tudo.
+- [ ] **Rascunho vazio**: música, repertório ou medley recém-criado que ninguém mexeu não aparece na lista e é apagado ao sair da tela (ou na abertura seguinte do app); o F5 na própria tela de criação mantém a tela.
 - [ ] **Janela da música**:
   - Montar cifra (só em música nova);
   - **Transpor a cifra** (−/+), que reescreve os acordes;

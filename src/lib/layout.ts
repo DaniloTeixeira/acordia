@@ -140,7 +140,7 @@ function metaLine(s: SheetSong, mode: SheetMode){
 export function layout(songs: SheetSong[], fs: number, k: number, opts: LayoutOpts): {pages: Page[]; tooWide: boolean} {
   const mode = opts.mode, L = mode === "letra", columns = opts.columns === 1 ? 1 : 2, measure = opts.measure || approxMeasure;
   const COLW = colWidth(columns), maxCols = Math.floor(COLW/(CW*fs));
-  const CH = fs*1.05, LY = L ? fs*(1.15+0.25*k) : fs*1.32*k, CO = fs*1.5*k, BG = L ? fs*1.3*k : fs*0.95*k, TH = TITLE_SIZE + 13, SG = 12*k;
+  const CH = fs*1.05, LY = L ? fs*(1.15+0.25*k) : fs*1.32*k, CO = fs*1.5*k, BG = L ? fs*1.3*k : fs*1.25*k, TH = TITLE_SIZE + 13, SG = 12*k;
   const pages: Page[] = [[]]; let page = 0, col = 0, y = M, tooWide = false;
   const usedCols = [0];
   const x = () => M + col*(COLW+GAP);

@@ -69,6 +69,8 @@ export function eff(s: Song, it: SongItem){
   return a ? {target: a.target || "", capo: a.capo || "", notes: a.notes || ""} : {target: it.target || "", capo: it.capo || "", notes: it.notes || ""};
 }
 // Tom da música: o escolhido ou o detectado pela cifra.
+// Só letra de verdade: o tipo "letra" fica velho se o texto ganhou acordes sem passar pela edição (colar, grupo, nuvem).
+export const isLyricsOnly = (s: Song) => s.type === "letra" && !parseSong(s.text).blocks.some(b => b.some(x => x.chord));
 export const songKey = (s: Song) => s.key || (s.text.trim() ? detectKey(parseSong(s.text)) : "");
 // Tom em que a última música com cifra do medley toca: a próxima entra nele por padrão.
 export function lastPlayKey(m: Medley){
@@ -84,7 +86,7 @@ export interface SheetEntry extends SheetSong { auto: string; itemId: string; re
 export function sheetSongs(m: Medley): SheetEntry[] {
   let list = songItems(m).map(({it, group, gname, moment}): SheetEntry | null => {
     const s = data.songs.get(it.songId); if(!s || !s.text.trim()) return null;
-    const letra = s.type === "letra", p = parseSong(s.text, letra);
+    const letra = isLyricsOnly(s), p = parseSong(s.text, letra);
     if(!p.title) return null;
     const e = eff(s, it);
     const auto = letra ? "" : detectKey(p), key = letra ? "" : (s.key || auto);
