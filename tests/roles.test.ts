@@ -1,7 +1,7 @@
 // Funções dos membros do grupo: separar, juntar e ligar/desligar.
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { splitRoles, joinRoles, toggleRole, sortRoles, rosterRoles, ROLES_MAX } from "../src/lib/roles";
+import { splitRoles, joinRoles, toggleRole, sortRoles, rosterRoles, setDefaultRole, ROLES_MAX } from "../src/lib/roles";
 
 test("separa as funções, sem vazias nem repetidas", () => {
   assert.deepEqual(splitRoles(""), []);
@@ -31,4 +31,10 @@ test("sortRoles: ordem alfabética sem diferenciar maiúsculas e acentos", () =>
 test("rosterRoles: entra com a primeira função, ou sem função", () => {
   assert.deepEqual(rosterRoles(["Vocal", "Violão"]), ["Vocal"]);
   assert.deepEqual(rosterRoles([]), [""]);
+});
+
+test("setDefaultRole: passa a função para a frente (a padrão na escala) sem perder as outras", () => {
+  assert.deepEqual(setDefaultRole(["Vocal", "Violão", "Teclado"], "teclado"), ["Teclado", "Vocal", "Violão"]);
+  assert.deepEqual(setDefaultRole(["Vocal"], "Baixo"), ["Vocal"]);
+  assert.deepEqual(rosterRoles(setDefaultRole(["Vocal", "Violão"], "Violão")), ["Violão"]);
 });

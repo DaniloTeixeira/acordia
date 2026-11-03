@@ -175,7 +175,7 @@ direto na folha, sem Editar, e não vê os botões de mudar.
 - [ ] "Abrir no YouTube". Link que não é do YouTube abre numa aba nova.
 
 ### Grupo
-Abre pelo Início (cartão do grupo ou de uma escala). Os admins do app criam grupos; quem lidera um grupo inclui os membros pelo e-mail (o que
+Abre pelo Início (cartão do grupo ou de uma escala). Qualquer pessoa cria o próprio grupo (e vira o líder dele, só os membros o veem; quem criou também o exclui); quem lidera um grupo inclui os membros pelo e-mail (o que
 também libera o acesso ao app para eles).
 - [ ] **Agenda**:
   - calendário do mês com cultos e ensaios, os dias em que a pessoa está escalada e os dias em que não pode;
@@ -209,9 +209,8 @@ também libera o acesso ao app para eles).
 - [ ] **Repertórios do grupo**: quem lidera compartilha um repertório seu (compartilhar de novo atualiza);
       todos abrem ("Salvar e abrir" ou "Atualizar") ou vão direto ao **Palco**.
 - [ ] **Copiar e-mail e celular**: ao lado de cada e-mail e celular (Membros, Usuários e janela da pessoa) há um botão que copia o texto e mostra "✓" por um instante.
-- [ ] **Membros**: nome, e-mail, funções (várias, como Vocal e Violão; cada um edita as suas), selo Líder, **frequência nos ensaios** (6 meses)
-      e escalas no mês. Quem lidera inclui, torna líder e tira do grupo; admins do app renomeiam, criam e
-      excluem grupos.
+- [ ] **Membros**: nome, e-mail, funções (várias, como Vocal e Violão; cada um edita as suas, e a **função padrão** ★ já vem marcada ao escalar), selo Líder, **frequência nos ensaios** (6 meses)
+      e escalas no mês. Quem lidera inclui, torna líder e tira do grupo; admins do app, e quem criou o grupo, excluem.
 - [ ] **Em pausa**: quem falta a 8 ensaios seguidos fica em pausa até participar de 4. Quem só tem a função Mesa de som fica fora dessa regra (quase não vai aos ensaios). Na chamada do ensaio há também a opção **Pausa**, que deixa a pessoa fora da conta daquele ensaio, e a lista de escala passa a mostrar Presente/Falta/Pausa assim que a chamada é marcada. No cadastro de Membros, a chave "Em pausa" já inclui a pessoa em pausa (para quem está há mais de 8 ensaios sem participar). Na janela do membro, "Ajustar retorno" abre um quadro para marcar a pausa à mão ("Pausar"), mudar quantos ensaios faltam ou "Tirar da pausa"; em pausa, a frequência mostra o progresso da volta (0% até 100%) em vez da presença.
 - [ ] **Sem internet**: mostra a última versão baixada; mudar precisa de internet.
 

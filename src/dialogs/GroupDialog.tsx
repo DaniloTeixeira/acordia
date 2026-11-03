@@ -1,8 +1,7 @@
-// Janelas do grupo: editar o grupo aberto (lápis ao lado do nome, em Grupo) e criar outro (Início, só admins do app).
+// Janelas do grupo: editar o grupo aberto (lápis ao lado do nome, em Grupo) e criar outro (Início, qualquer pessoa).
 import { useState } from "react";
 import { t } from "../lib/i18n";
-import { useAuth } from "../lib/cloud";
-import { useGroups, createGroup, renameGroup, deleteGroup, groupNameTaken } from "../lib/groups";
+import { useGroups, createGroup, renameGroup, deleteGroup, groupNameTaken, ownsGroup } from "../lib/groups";
 import { toast, confirmDialog, requestClose } from "../state";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
@@ -14,10 +13,10 @@ const enterClicks = (id: string) => (e: React.KeyboardEvent) => {
   if(e.key === "Enter"){ e.preventDefault(); (document.getElementById(id) as HTMLButtonElement | null)?.click(); }
 };
 
-// Foto (só admins do app; o banco recusa os líderes) e nome; excluir também só para admins do app.
+// Foto e nome; foto e excluir só para admins do app e para quem criou o grupo (o banco recusa os demais líderes).
 // A foto e o formato salvam na hora, como antes; o nome, no Salvar.
 export function GroupDialog(){
-  const g = useGroups(), appAdmin = useAuth(s => s.admin), group = g.groups.find(x => x.id === g.gid);
+  const g = useGroups(), group = g.groups.find(x => x.id === g.gid);
   const [name, setName] = useState(group?.name || ""), [busy, setBusy] = useState(false), [tried, setTried] = useState(false), lock = useLock();
   if(!group) return null;
   const changed = !!name.trim() && name.trim() !== group.name, taken = groupNameTaken(name, group.id), empty = tried && !name.trim();
@@ -36,12 +35,12 @@ export function GroupDialog(){
     <form method="dialog" className="dlg">
       <DialogHead id="group-dlg-h" title={t("group.edit")} closeLabel={t("common.close")}/>
       <div className="dlg-body">
-        {appAdmin && <GroupPhoto/>}
+        {ownsGroup(group) && <GroupPhoto/>}
         <label className="field"><span>{t("group.name")}</span>
           <input className="input" id="group-rename" maxLength={80} value={name} aria-invalid={taken || empty} aria-describedby={taken || empty ? "group-rename-err" : undefined}
             onChange={e => setName(e.target.value)} onKeyDown={enterClicks("group-save")}/>
           {(taken || empty) && <span className="field-error" id="group-rename-err">{t(taken ? "group.nameTaken" : "group.needName")}</span>}</label>
-        {appAdmin && <button type="button" className="btn ghost danger" id="group-delete" onClick={remove}><Icon name="trash" sm/> {t("group.delete")}</button>}
+        {ownsGroup(group) && <button type="button" className="btn ghost danger" id="group-delete" onClick={remove}><Icon name="trash" sm/> {t("group.delete")}</button>}
       </div>
       <div className="dlg-foot"><button className="btn ghost" value="cancel">{t("common.cancel")}</button>
         <button type="button" className="btn primary" id="group-save" aria-busy={busy} onClick={save}>{busy ? <Spin/> : <Icon name="check" sm/>} {t("common.save")}</button></div>
