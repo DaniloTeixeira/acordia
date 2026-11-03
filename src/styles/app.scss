@@ -2293,6 +2293,27 @@ textarea.song-text {
     padding-right: 0;
   }
 }
+/* Anteriores em cards: o "há x dias" sobe para o canto superior direito (o rodapé some) e o card encurta. */
+#past-list.cards:not(.rows) .lib-card {
+  gap: 8px;
+}
+#past-list.cards:not(.rows) .lib-card > h3 {
+  padding-right: 5.5rem;
+}
+#past-list.cards:not(.rows) .lib-card .excerpt {
+  min-height: 0;
+}
+#past-list.cards:not(.rows) .lib-card .foot {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  margin: 0;
+}
+#past-list.cards:not(.rows) .lib-card .foot .foot-when {
+  height: auto;
+  padding: 0;
+  line-height: 1.3;
+}
 /* Troca cards | linhas fica colada no botão de ordem. */
 .lib-toolbar > .view-seg {
   flex-shrink: 0;
@@ -6945,6 +6966,10 @@ dialog.ear-dlg {
 .people-page .fold-card-head .people-sub-h { font-size: 0.95rem; }
 .people-page .fold-card-head .people-sub-h > .sec-bar { width: 4px; }
 .people-page .fold-card-head .people-sub-h > .sec-bar::before { height: 0.85em; border-radius: 2px; }
+/* O Calendário da Agenda também leva o traço (barra) em vez do ponto. */
+.cal .fold-card-head .people-sub-h { font-size: 0.95rem; }
+.cal .fold-card-head .people-sub-h > .sec-bar { width: 4px; }
+.cal .fold-card-head .people-sub-h > .sec-bar::before { height: 0.85em; border-radius: 2px; }
 /* Texto de ajuda das seções do Perfil: colado no que explica, menor e sem negrito, para não parecer título. */
 .profile-sec small.sub {
   margin-top: 2px;

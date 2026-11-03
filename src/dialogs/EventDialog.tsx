@@ -4,7 +4,7 @@
 import { useRef, useState } from "react";
 import { t, tn } from "../lib/i18n";
 import { useGroups, saveEvent, personName, outMark, isActive, type RosterInput } from "../lib/groups";
-import { warningsFor, rehearsalStanding, monthLoad, weekly, dayKey, rosterByPerson, skipsRehearsal, type EventKind, type GEvent } from "../lib/calendar";
+import { warningsFor, rehearsalStanding, monthLoad, weekly, dayKey, rosterByPerson, soundOnly, type EventKind, type GEvent } from "../lib/calendar";
 import { toast, confirmDialog, requestClose, type DialogProps } from "../state";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
@@ -55,8 +55,8 @@ export function EventDialog({id, day}: DialogProps["event"]){
     label: personName(m.email),
     sub: [m.role ? sortRoles(splitRoles(m.role)).join(", ") : "", (load.get(m.email) || 0) ? tn("group.load", load.get(m.email)!) : ""].filter(Boolean).join(" · ") || undefined}))];
   const free = g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email));
-  // Quem está em pausa (ou, no ensaio, só tem Mesa de som) não é convocado: fica de fora do "Escalar todos" (o líder ainda pode escalar à mão).
-  const callable = free.filter(m => !skipsRehearsal(kind, m.role || "") && !rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster).out);
+  // Quem está em pausa (ou só tem Mesa de som, em qualquer evento) não é convocado: fica de fora do "Escalar todos" (o líder ainda pode escalar à mão).
+  const callable = free.filter(m => !soundOnly(m.role || "") && !rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster).out);
   const save = async () => {
     if(!starts) return toast(t("group.needDate"));
     setBusy(true);
