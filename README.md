@@ -321,7 +321,7 @@ A `main` é o que está no ar e é protegida: nada entra sem PR e sem o CI passa
 migração, corrigir com uma migração nova. Depois, corrigir na `main` por PR (o próximo merge publica a `main`
 de novo).
 
-**Banco dev sempre ativo:** o workflow [manter-dev-ativo.yml](.github/workflows/manter-dev-ativo.yml) faz uma chamada por dia ao projeto dev, para o Supabase gratuito não pausá-lo por falta de uso (a produção não precisa). Usa os secrets `DEV_SUPABASE_URL` e `DEV_SUPABASE_KEY`. Se o projeto já estiver pausado, restaure no painel do Supabase (no plano gratuito só dá por cerca de 90 dias).
+**Banco dev sempre ativo:** o workflow [manter-dev-ativo.yml](.github/workflows/manter-dev-ativo.yml) faz uma chamada duas vezes por semana (segunda e quinta) ao projeto dev, para o Supabase gratuito não pausá-lo por falta de uso (a produção não precisa). Usa os secrets `DEV_SUPABASE_URL` e `DEV_SUPABASE_KEY`. Se o projeto já estiver pausado, restaure no painel do Supabase (no plano gratuito só dá por cerca de 90 dias).
 
 Em cada deploy, o CI roda typecheck, testes, `npm run build` e publica no GitHub Pages. O build lista todos os arquivos no service worker
 ([src/sw.ts](src/sw.ts)), que guarda o app inteiro na instalação; quem já instalou recebe a versão nova no

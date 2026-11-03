@@ -1,11 +1,11 @@
 name: Manter o banco dev ativo
 
 # O plano gratuito do Supabase pausa o projeto sem uso por cerca de 7 dias (o dev é o que mais fica parado).
-# Uma chamada por dia conta como atividade e evita a pausa. Não escreve nada no banco.
+# Uma chamada a cada 3 ou 4 dias (segunda e quinta) conta como atividade e evita a pausa. Não escreve nada no banco.
 # Precisa dos secrets DEV_SUPABASE_URL e DEV_SUPABASE_KEY (a URL e a chave publishable do projeto acordia-dev).
 on:
   schedule:
-    - cron: "17 9 * * *"
+    - cron: "17 9 * * 1,4"
   workflow_dispatch:
 
 permissions: {}
