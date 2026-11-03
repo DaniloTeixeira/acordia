@@ -1863,6 +1863,12 @@ main {
 .item:focus-within {
   border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
 }
+/* Hover do cartão: a borda puxa só um pouco do acento (mesmo tom do foco), sem competir com os botões dentro. */
+@media (hover: hover) {
+  .item:hover:not(.armed, .dragging) {
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  }
+}
 // Número, título e ícones na mesma linha (centro em 16px); os chips ficam embaixo do título.
 .item-head {
   display: flex;
@@ -1909,6 +1915,16 @@ main {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Tom como texto, na frente do nome da música (sem bloco em volta), no gradiente da marca. */
+.item-key {
+  display: inline-block;
+  background: var(--brand-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-right: 0.5em;
+  font-variant-numeric: tabular-nums;
+}
 /* Chip do tom com largura fixa: "D" e "C#m" ficam do mesmo tamanho (com transposição, "C → D", cresce). */
 .key-chip {
   min-width: 46px;
@@ -1932,15 +1948,29 @@ main {
    (lá fica vazio), para o tom e o momento caberem lado a lado. */
 @media (max-width: 599px) {
   .item-toggle .item-chips {
-    margin-right: -84px;
+    margin-right: -97px;
     margin-top: 4px;
   }
 }
 .item-actions {
   display: flex;
+  align-items: center;
   gap: 0;
   flex-shrink: 0;
   margin-top: -1px;
+}
+/* Barra entre as ações do card e a lixeira, para ela não ser tocada sem querer. */
+.item-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 6px;
+  background: var(--line-strong);
+}
+/* Celular: sem a barra, para sobrar espaço ao nome (a lixeira continua pedindo confirmação). */
+@media (max-width: 599px) {
+  .item-sep {
+    display: none;
+  }
 }
 .item-body {
   display: grid;
@@ -2011,7 +2041,7 @@ textarea.song-text {
 }
 .add-bar {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   /* Lista longa: os botões grudam no rodapé da tela; no fim da lista voltam ao lugar.
      O fundo esmaece os cards que passam por trás. */
@@ -2028,7 +2058,7 @@ textarea.song-text {
   }
 }
 .add-bar:has(#add-medley[hidden]) {
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
 }
 /* Celular estreito: rótulos curtos para os três botões caberem em uma linha. */
 .add-bar .lbl-short {
@@ -2060,13 +2090,32 @@ textarea.song-text {
     }
   }
 }
+/* Celular: um botão por linha, com o rótulo completo e o ícone ao lado do texto. */
+@media (max-width: 599px) {
+  .add-bar,
+  .add-bar:has(#add-medley[hidden]) {
+    grid-template-columns: 1fr;
+  }
+  .add-bar .lbl-long {
+    display: inline;
+  }
+  .add-bar .lbl-short {
+    display: none;
+  }
+  /* ">" para ganhar do estilo base do botão, que vem logo abaixo. */
+  .add-bar > .btn {
+    flex-direction: row;
+    gap: 8px;
+    font-size: 0.86rem;
+  }
+}
 .add-bar .btn {
-  border-radius: var(--r-md);
+  border-radius: var(--r-full);
   min-height: 46px;
   flex-direction: column;
   gap: 2px;
   font-size: 0.8rem;
-  padding: 6px;
+  padding: 6px 14px;
 }
 @media (min-width: 500px) {
   .add-bar .btn {
@@ -2094,6 +2143,10 @@ textarea.song-text {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+/* "Todas" e PDF com a mesma altura dos círculos ao lado (40px); em 34px o texto ficava mais baixo que os ícones. */
+.sheet-toolbar .tools > .btn.sm {
+  min-height: 40px;
 }
 .pages {
   display: flex;
@@ -4501,6 +4554,30 @@ a.btn {
 /* Louvor | Pós-pregação: à direita na linha do tipo da música; no medley, acima da lista. */
 .type-row > .moment-seg {
   margin-left: auto;
+}
+/* No celular o seletor ocupa a linha toda, com as duas opções dividindo a largura. */
+@media (max-width: 599px) {
+  .type-row > .moment-seg,
+  .medley-songs > .moment-seg {
+    display: flex;
+    width: 100%;
+    margin-left: 0;
+  }
+  /* No medley a lista tem recuo de 52px à esquerda (alinha com o nome); o seletor sai desse recuo e fica com 14px
+     dos dois lados, como o resto do cartão. */
+  .medley-songs > .moment-seg {
+    margin-left: -38px;
+    width: calc(100% + 38px);
+    max-width: none;
+  }
+  .moment-seg button {
+    flex: 1;
+  }
+  /* Montar e Copiar cifra dividem a linha, sem sobrar espaço dos lados. */
+  .type-row > .btn {
+    flex: 1;
+    justify-content: center;
+  }
 }
 .moment-chip {
   background: var(--warn-soft);
