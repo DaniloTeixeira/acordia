@@ -1,7 +1,7 @@
 // Janelas do grupo: editar o grupo aberto (lápis ao lado do nome, em Grupo) e criar outro (Início, qualquer pessoa).
 import { useState } from "react";
 import { t } from "../lib/i18n";
-import { useGroups, createGroup, renameGroup, deleteGroup, groupNameTaken, ownsGroup } from "../lib/groups";
+import { useGroups, createGroup, renameGroup, deleteGroup, groupNameTaken, ownsGroup, amGroupLeader, setMembersEdit } from "../lib/groups";
 import { toast, confirmDialog, requestClose } from "../state";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
@@ -26,6 +26,12 @@ export function GroupDialog(){
     if(changed){ setBusy(true); const ok = await renameGroup(group.id, name).finally(() => setBusy(false)); if(!ok) return toast(t("profile.saveFail")); toast(t("group.saved")); }
     d?.close("ok");
   }); };
+  // "Todos podem editar" salva na hora (só o líder vê).
+  const [editBusy, setEditBusy] = useState(false);
+  const flipEdit = (on: boolean) => lock(async () => {
+    setEditBusy(true); const ok = await setMembersEdit(group.id, on).finally(() => setEditBusy(false));
+    toast(t(ok ? (on ? "group.membersEditOn" : "group.membersEditOff") : "profile.saveFail"));
+  });
   const remove = async (e: React.MouseEvent<HTMLButtonElement>) => {
     const d = e.currentTarget.closest("dialog");
     if(!await confirmDialog({title: t("group.deleteTitle"), message: t("group.deleteMsg", {name: group.name})})) return;
@@ -40,6 +46,9 @@ export function GroupDialog(){
           <input className="input" id="group-rename" maxLength={80} value={name} aria-invalid={taken || empty} aria-describedby={taken || empty ? "group-rename-err" : undefined}
             onChange={e => setName(e.target.value)} onKeyDown={enterClicks("group-save")}/>
           {(taken || empty) && <span className="field-error" id="group-rename-err">{t(taken ? "group.nameTaken" : "group.needName")}</span>}</label>
+        {amGroupLeader() && <div className="field"><label className="switch lead boxed" aria-busy={editBusy}><span>{editBusy && <Spin/>}{t("group.membersEdit")}</span>
+          <input type="checkbox" id="group-members-edit" checked={!!group.members_edit} disabled={editBusy} onChange={e => flipEdit(e.target.checked)}/></label>
+          <small className="sub">{t("group.membersEditHelp")}</small></div>}
         {ownsGroup(group) && <button type="button" className="btn ghost danger" id="group-delete" onClick={remove}><Icon name="trash" sm/> {t("group.delete")}</button>}
       </div>
       <div className="dlg-foot"><button className="btn ghost" value="cancel">{t("common.cancel")}</button>

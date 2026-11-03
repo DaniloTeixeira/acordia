@@ -15,7 +15,7 @@ import { soundOnly, type GEvent, type RosterRow, type AttendanceRow, type Unavai
 // photo: link da foto do grupo (vazio: o app mostra as iniciais do nome). photo_round: marca redonda em vez
 // de quadrada (foto e iniciais).
 // stats: os números do card de cada grupo no Início (próximos eventos, repertórios e membros).
-export interface Group { id: string; name: string; created_by?: string; photo?: string; photo_round?: boolean; stats?: {events: number; setlists: number; members: number} }
+export interface Group { id: string; name: string; created_by?: string; members_edit?: boolean; photo?: string; photo_round?: boolean; stats?: {events: number; setlists: number; members: number} }
 // out_since/out_need: marcado pelo líder como em pausa (desde quando e quantos ensaios faltam).
 export interface Member { email: string; is_admin: boolean; role: string; name: string; birthday?: string | null; photo?: string; phone?: string; out_since?: string | null; out_need?: number; active?: boolean; created_at?: string; voice_low?: number | null; voice_high?: number | null }
 export interface GroupSetlist { id: string; group_id: string; source_id: string; name: string; songs: number; code: string; shared_by: string; updated_at: string }
@@ -50,14 +50,20 @@ useAuth.subscribe(s => {
 });
 
 export const myEmail = () => useAuth.getState().email;
-export const amGroupAdmin = () => {
+// Líder de verdade (ou admin do app): liga "Todos podem editar", passa a liderança e tira o líder.
+export const amGroupLeader = () => {
   const {admin} = useAuth.getState(), me = myEmail();
   return admin || useGroups.getState().members.some(m => m.email === me && m.is_admin);
 };
+// Pode editar o grupo: o líder, ou qualquer membro quando o líder liberou ("Todos podem editar"). O banco confere igual.
+export const amGroupAdmin = () => {
+  const {groups, gid, members} = useGroups.getState();
+  return amGroupLeader() || (!!groups.find(x => x.id === gid)?.members_edit && members.some(m => m.email === myEmail()));
+};
 // Dono do grupo para excluir e trocar a foto: admin do app, ou quem o criou e ainda o lidera (o banco confere do mesmo jeito).
-export const ownsGroup = (g?: Group) => !!g && (useAuth.getState().admin || (!!g.created_by && g.created_by === myEmail() && amGroupAdmin()));
-// Pode mudar músicas e repertórios do grupo (líder ou admin do app)? Redesenha quando isso muda.
-export function useCanEdit(){ useGroups(s => s.members); useAuth(s => s.admin); useAuth(s => s.email); return amGroupAdmin(); }
+export const ownsGroup = (g?: Group) => !!g && (useAuth.getState().admin || (!!g.created_by && g.created_by === myEmail() && amGroupLeader()));
+// Pode mudar músicas e repertórios do grupo? Redesenha quando isso muda.
+export function useCanEdit(){ useGroups(s => s.members); useGroups(s => s.groups); useGroups(s => s.gid); useAuth(s => s.admin); useAuth(s => s.email); return amGroupAdmin(); }
 
 // ---------- leitura ----------
 // Eventos de até 6 meses atrás (frequência) até 1 ano à frente.
@@ -75,7 +81,8 @@ export function loadGroups(gid?: string): Promise<void> {
   const p = loading = (async () => {
     try{
       // Banco ainda sem a foto do grupo ou o formato (antes das migrações subirem): lê sem eles.
-      const g = await cloud.from("groups").select("id,name,photo,photo_round,created_by").order("name")
+      const g = await cloud.from("groups").select("id,name,photo,photo_round,created_by,members_edit").order("name")
+        .then(r => r.error ? cloud.from("groups").select("id,name,photo,photo_round,created_by").order("name") : r)
         .then(r => r.error ? cloud.from("groups").select("id,name,photo,photo_round").order("name") : r)
         .then(r => r.error ? cloud.from("groups").select("id,name,photo").order("name") : r)
         .then(r => r.error ? cloud.from("groups").select("id,name").order("name") : r);
@@ -199,6 +206,13 @@ async function run(fn: () => PromiseLike<{error: unknown}>, reload = true){
     if(reload) await loadGroups(useGroups.getState().gid);
     return true;
   }catch(e){ return false; }
+}
+// "Todos podem editar" (só o líder; o banco recusa os demais).
+export async function setMembersEdit(gid: string, on: boolean){
+  const {error} = await cloud.from("groups").update({members_edit: on}).eq("id", gid);
+  if(error) return false;
+  setGroupPhoto(gid, {members_edit: on}); saveCache();
+  return true;
 }
 export async function createGroup(name: string){
   const {data, error} = await cloud.rpc("create_group", {group_name: name.trim().slice(0, 80)});

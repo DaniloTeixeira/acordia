@@ -20,7 +20,7 @@ import { rangeType } from "../lib/voice";
 import { splitRoles, joinRoles, toggleRole, sortRoles, setDefaultRole } from "../lib/roles";
 import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone, capFirst, type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, ownsGroup, loadGroups, createGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
-  deleteEvent, respond, setCover, checkIn, setMyAttendance, markAttendance, requestAttendanceChange, declineAttendanceChange, setUnavailable, personName, voiceOf, personPhoto, amGroupAdmin, setMemberOut, outMark, isActive, setMemberActive, type GroupSetlist, type Member, type Group } from "../lib/groups";
+  deleteEvent, respond, setCover, checkIn, setMyAttendance, markAttendance, requestAttendanceChange, declineAttendanceChange, setUnavailable, personName, voiceOf, personPhoto, amGroupAdmin, amGroupLeader, setMemberOut, outMark, isActive, setMemberActive, type GroupSetlist, type Member, type Group } from "../lib/groups";
 import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, confirmUnsaved, useUnsaved, go, place, pushTrail } from "../state";
 import { Icon } from "../ui/Icon";
 import { CopyBtn } from "../ui/CopyBtn";
@@ -655,10 +655,10 @@ function Members({canEdit}: {canEdit: boolean}){
   const add = (ev: React.FormEvent) => { ev.preventDefault(); lock(async () => {
     const v = email.trim().toLowerCase();
     if(!validEmail(v)){ check.fail(); document.getElementById("member-email")?.focus(); return; }
-    setBusy("add"); const res = await addMember(g.gid, v, asAdmin && !leaderNow, joinRoles(roles), name, birthday, phone).finally(() => setBusy(""));
+    setBusy("add"); const res = await addMember(g.gid, v, asAdmin && !leaderNow && amGroupLeader(), joinRoles(roles), name, birthday, phone).finally(() => setBusy(""));
     if(res !== "ok") return toast(t(res === "unregistered" ? "group.notRegistered" : "profile.saveFail"));
     // Quem já está há muitos ensaios sem aparecer entra marcado em pausa (a volta conta daqui para frente).
-    if(asOut && !(asAdmin && !leaderNow)){
+    if(asOut && !(asAdmin && !leaderNow && amGroupLeader())){
       if(!await setMemberOut(g.gid, v, COMEBACK)) toast(t("profile.saveFail"));
       else toast(t("group.outSaved"));
     }
@@ -678,9 +678,9 @@ function Members({canEdit}: {canEdit: boolean}){
           <div className="people-add">
             <PersonFields idp="member" name={name} onName={setName} email={email} onEmail={setEmail} phone={phone} onPhone={setPhone} birthday={birthday} onBirthday={setBirthday} check={check}/>
             {!appAdmin && <small className="sub">{t("group.inviteHelp")}</small>}
-            {!leaderNow && <label className="switch lead boxed"><span>{t("group.leader")}</span><input type="checkbox" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>}
+            {!leaderNow && amGroupLeader() && <label className="switch lead boxed"><span>{t("group.leader")}</span><input type="checkbox" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>}
           </div>
-          {!(asAdmin && !leaderNow) && <div className="member-add-out">
+          {!(asAdmin && !leaderNow && amGroupLeader()) && <div className="member-add-out">
             <label className="switch lead boxed"><span>{t("group.addOut")}</span><input type="checkbox" checked={asOut} onChange={e => setAsOut(e.target.checked)}/></label>
             <small className="sub">{t("group.addOutHelp", {max: MISS_LIMIT})}</small></div>}
           <RolePicker value={roles} onChange={setRoles}/>
@@ -813,7 +813,7 @@ export function MemberManage({m}: {m: Member}){
     if(next === null) return;
     run("adm", () => next ? setGroupLeader(g.gid, next) : setMemberAdmin(g.gid, m.email, false));
   };
-  const showLead = canEdit && (m.is_admin || !leaderNow), showAct = canEdit && !self && !m.is_admin;
+  const showLead = amGroupLeader() && (m.is_admin || !leaderNow), showAct = canEdit && !self && !m.is_admin;
   if(!canEdit) return null;
   return <div className="member-manage">
     <SecHead as="h3" className="people-sub-h">{t("member.manage")}</SecHead>
