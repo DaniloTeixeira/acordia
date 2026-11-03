@@ -14,7 +14,7 @@ import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
 import { CopyBtn } from "../ui/CopyBtn";
 import { Avatar, PhoneLink, AttStat, fmtBirthday, AppAccess, PersonEdit, canManageApp } from "../views/Account";
-import { StatusChip, MemberManage, MemberRemove, MemberEditInline, eventTitle, timeOf, longDay } from "../views/Group";
+import { StatusChip, GuestChip, MemberManage, MemberRemove, MemberEditInline, eventTitle, timeOf, longDay } from "../views/Group";
 import { SecHead } from "../ui/SecHead";
 import { YouChip } from "../ui/YouChip";
 import { Spin } from "../views/Account";
@@ -24,7 +24,7 @@ const SOON_MS = 3 * 3600 * 1000;
 
 export function MemberDialog({email, eventId, person, manage}: DialogProps["member"]){
   const g = useGroups(), me = useAuth(s => s.email), owner = useAuth(s => s.owner);
-  const m = g.members.find(x => x.email === email), [editing, setEditing] = useState(false), [editApp, setEditApp] = useState(false);
+  const m = g.members.find(x => x.email === email) || (g.gone || []).find(x => x.email === email), [editing, setEditing] = useState(false), [editApp, setEditApp] = useState(false);
   // Fora do grupo aberto (aberto pela lista do Perfil): só os dados da pessoa, sem funções, frequência e escalas.
   const info = m ? {name: m.name, phone: m.phone || "", birthday: m.birthday || null, photo: personPhoto(email)} : person;
   if(!info) return null;
@@ -50,6 +50,7 @@ export function MemberDialog({email, eventId, person, manage}: DialogProps["memb
             <span className="member-chips">
               {manage?.noGroup && <span className="chip st-pending">{t("people.noGroup")}</span>}
               {m?.is_admin && <span className="chip accent">{t("group.leader")}</span>}
+              {m?.guest_until && <GuestChip m={m}/>}
               {m && !isActive(m) && <span className="chip">{t("group.inactive")}</span>}
               {load > 0 && <span className="chip" title={t("group.loadHint")}>{tn("group.load", load)}</span>}
             </span>

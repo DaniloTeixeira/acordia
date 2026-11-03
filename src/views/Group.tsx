@@ -2,6 +2,7 @@
 // presença nos ensaios, datas em que cada um não pode, repertórios compartilhados e membros.
 // Os dados vêm de lib/groups (nuvem) e as regras sem rede de lib/calendar.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { isGuest, guestDay } from "../lib/guests";
 import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
 import { useAuth, validEmail, listAllowed, initials, setPersonInfo, setAllowedInfo, type Allowed } from "../lib/cloud";
@@ -20,7 +21,7 @@ import { rangeType } from "../lib/voice";
 import { splitRoles, joinRoles, toggleRole, sortRoles, setDefaultRole } from "../lib/roles";
 import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone, capFirst, type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, ownsGroup, loadGroups, createGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
-  deleteEvent, respond, setCover, checkIn, setMyAttendance, markAttendance, requestAttendanceChange, declineAttendanceChange, setUnavailable, personName, voiceOf, personPhoto, amGroupAdmin, amGroupLeader, setMemberOut, outMark, isActive, setMemberActive, type GroupSetlist, type Member, type Group } from "../lib/groups";
+  deleteEvent, respond, setCover, checkIn, setMyAttendance, markAttendance, requestAttendanceChange, declineAttendanceChange, setUnavailable, personName, voiceOf, personPhoto, amGroupAdmin, amGroupLeader, setMemberOut, outMark, isActive, setMemberActive, makeMember, type GroupSetlist, type Member, type Group } from "../lib/groups";
 import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, confirmUnsaved, useUnsaved, go, place, pushTrail } from "../state";
 import { Icon } from "../ui/Icon";
 import { CopyBtn } from "../ui/CopyBtn";
@@ -75,9 +76,9 @@ export function ReplySeg({e, onEditing}: {e: GEvent; onEditing?: (v: boolean) =>
 }
 
 const { data } = store;
-export type Tab = "agenda" | "setlists" | "songs" | "medleys" | "members";
-// A Biblioteca é a mesma página em três modos (repertórios, músicas e medleys).
-export const LIB_TABS: Tab[] = ["setlists", "songs", "medleys"];
+export type Tab = "agenda" | "setlists" | "songs" | "medleys" | "learn" | "members";
+// A Biblioteca é a mesma página em quatro modos (repertórios, músicas, medleys e a lista Para aprender).
+export const LIB_TABS: Tab[] = ["setlists", "songs", "medleys", "learn"];
 
 // ---------- datas ----------
 export const fmt = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(locale(), o);
@@ -196,8 +197,8 @@ export function Group(){
   const canEdit = !!group && amGroupAdmin();
   // Números das abas da Biblioteca (quem só lê não conta o repertório vazio que o app cria sozinho no aparelho).
   const meds = [...data.medleys.values()].filter(m => !store.isBlank(m) && (canEdit || !isAutoSetlist(m)));
-  const libCount = {songs: [...data.songs.values()].filter(s => s.title).length, setlists: meds.filter(m => !isMedley(m)).length, medleys: meds.filter(isMedley).length};
-  const tab: Tab = (["agenda", "setlists", "songs", "medleys", "members"] as const).find(v => v === data.settings.groupTab) || "agenda";
+  const libCount = {songs: [...data.songs.values()].filter(s => s.title).length, setlists: meds.filter(m => !isMedley(m)).length, medleys: meds.filter(isMedley).length, learn: g.learn.length};
+  const tab: Tab = (["agenda", "setlists", "songs", "medleys", "learn", "members"] as const).find(v => v === data.settings.groupTab) || "agenda";
   // Modo "Selecionar" da Biblioteca (exclusão em lote): null = desligado; a seleção vale para a aba aberta.
   const [sel, setSel] = useState<Set<string> | null>(null);
   useEffect(() => setSel(null), [tab]);
@@ -216,8 +217,8 @@ export function Group(){
       : <div className="card empty-state"><Icon name="users"/><strong>{t("group.none")}</strong><span>{t(admin ? "group.noneAdmin" : "group.noneSub")}</span><NewGroup/></div>}
   </section>;
   // Botão "novo" da Biblioteca, na linha das abas: o que ele cria depende da aba.
-  const NEW_LABEL: Record<string, string> = {setlists: "group.newSetlist", songs: "lib.new", medleys: "group.newMedley"};
-  const NEW_ACT: Record<string, () => void> = {setlists: () => newMedley(), songs: () => newSong(), medleys: () => newMedleyBlock()};
+  const NEW_LABEL: Record<string, string> = {setlists: "group.newSetlist", songs: "lib.new", medleys: "group.newMedley", learn: "learn.new"};
+  const NEW_ACT: Record<string, () => void> = {setlists: () => newMedley(), songs: () => newSong(), medleys: () => newMedleyBlock(), learn: () => openDialog("learn", {id: null})};
   return <section className="view" id="view-group" data-view="group" aria-labelledby="group-h">
     {head(tn("group.members", g.members.length) + (g.error ? " · " + t("group.offline") : ""), <>
       {canEdit && tab === "agenda" && <button className="btn primary" id="group-new-event" onClick={() => openDialog("event", {id: null, day: dayKey(new Date())})}><Icon name="plus" sm/><span>{t("group.newEvent")}</span></button>}
@@ -225,9 +226,9 @@ export function Group(){
     {/* Agenda e Biblioteca estão na barra de baixo (Membros, em Mais): só a Biblioteca tem abas, as suas três listas. */}
     {LIB_TABS.includes(tab) && <div className="tabs-row">
       <Seg id="group-tabs" className="tabs" aria={t("lib.tabsAria")} value={tab} onChange={v => store.setSetting("groupTab", v)}
-      options={[{v: "setlists", label: t("lib.setlists", {n: libCount.setlists})}, {v: "songs", label: t("lib.songs", {n: libCount.songs})}, {v: "medleys", label: t("lib.mblocks", {n: libCount.medleys})}]}/>
-      {canEdit && <div className="tabs-acts">
-        <button type="button" className="btn ghost" id="lib-select" aria-pressed={!!sel} aria-label={t(sel ? "common.cancel" : "lib.select")} onClick={() => setSel(sel ? null : new Set())}><Icon name={sel ? "x" : "check"} sm/><span className="label-lg">{t(sel ? "common.cancel" : "lib.select")}</span></button>
+      options={[{v: "setlists", label: <>{t("lib.setlists")}<span className="tab-n"> ({libCount.setlists})</span></>}, {v: "songs", label: <>{t("lib.songs")}<span className="tab-n"> ({libCount.songs})</span></>}, {v: "medleys", label: <>{t("lib.mblocks")}<span className="tab-n"> ({libCount.medleys})</span></>}, {v: "learn", label: <>{t("lib.learn")}<span className="tab-n"> ({libCount.learn})</span></>}]}/>
+      {(canEdit || tab === "learn") && <div className="tabs-acts">
+        {canEdit && tab !== "learn" && <button type="button" className="btn ghost" id="lib-select" aria-pressed={!!sel} aria-label={t(sel ? "common.cancel" : "lib.select")} onClick={() => setSel(sel ? null : new Set())}><Icon name={sel ? "x" : "check"} sm/><span className="label-lg">{t(sel ? "common.cancel" : "lib.select")}</span></button>}
         <button className="btn primary" id="group-new-lib" aria-label={t(NEW_LABEL[tab])} onClick={NEW_ACT[tab]}><Icon name="plus" sm/><span className="label-lg">{t(NEW_LABEL[tab])}</span></button>
       </div>}
     </div>}
@@ -298,10 +299,10 @@ function Agenda({canEdit}: {canEdit: boolean}){
       {narrow ? <div className="card cal"><FoldCard id="cal" title={t("group.calendar")} defaultOpen={!!sel}>{calBody}</FoldCard></div>
         : <div className="card cal" aria-labelledby="cal-h"><SecHead id="cal-h">{t("group.calendar")}</SecHead>{calBody}</div>}
       <div className="card agenda-list">
-        <SecHead className="people-sub-h agenda-list-h">{t("group.events")}</SecHead>
+        <SecHead>{t("group.events")}</SecHead>
         {sel && <DayBar day={sel} off={myOff.has(sel)} canEdit={canEdit} onClear={() => setSel("")}/>}
         {list.length ? <ul className="events">{list.map(e => <EventCard key={e.id} e={e} canEdit={canEdit}/>)}</ul>
-          : <div className="card empty-state"><Icon name="calendar"/><strong>{t(sel ? "group.noEventsDay" : "group.noEvents")}</strong>
+          : <div className="empty-state"><Icon name="calendar"/><strong>{t(sel ? "group.noEventsDay" : "group.noEvents")}</strong>
             {canEdit && !sel && <span>{t("group.noEventsAdmin")}</span>}</div>}
       </div>
     </div>}
@@ -705,7 +706,7 @@ function Members({canEdit}: {canEdit: boolean}){
           <span className="people-who">
             <PersonAvatar email={m.email}/><span className="people-id">
             <span className="people-name"><button type="button" className="member-open-btn" aria-label={t("member.open", {name: m.name || m.email})}
-              onClick={() => openDialog("member", {email: m.email})}>{m.name ? <b>{m.name}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{m.is_admin && <span className="chip leader">{t("group.leader")}</span>}{m.email === me && <YouChip/>}{!isActive(m) && <span className="chip">{t("group.inactive")}</span>}</span>
+              onClick={() => openDialog("member", {email: m.email})}>{m.name ? <b>{m.name}</b> : <span className="people-missing">{t("people.noName")}</span>}</button>{m.is_admin && <span className="chip leader">{t("group.leader")}</span>}{isGuest(m) && <GuestChip m={m}/>}{m.email === me && <YouChip/>}{!isActive(m) && <span className="chip">{t("group.inactive")}</span>}</span>
             <span className="copy-row"><span className="sub people-email">{m.email}</span><CopyBtn text={m.email} kind="email"/></span>
             {m.phone ? <span className="copy-row"><PhoneLink phone={m.phone}/><CopyBtn text={m.phone} kind="phone"/></span> :<span className="phone-link people-missing"><Icon name="phone" sm/><span>{t("people.noPhone")}</span></span>}</span></span>
           {/* Escalas no mês primeiro; a situação nos ensaios (em dia, faltas seguidas, fora) por último. */}
@@ -792,6 +793,9 @@ export function MemberRemove({m, onGone}: {m: Member; onGone: () => void}){
     {busy ? <Spin/> : <Icon name="trash"/>}</button>;
 }
 
+// Chip do convidado de um evento: só até o dia do último evento dele.
+export function GuestChip({m}: {m: Member}){ const d = guestDay(m); return <span className="chip" title={t("group.guestHint")}>{d ? t("group.guestUntil", {date: shortDay(d)}) : t("group.guest")}</span>; }
+
 export function MemberManage({m}: {m: Member}){
   const g = useGroups(), me = useAuth(s => s.email), appAdmin = useAuth(s => s.admin);
   const [panel, setPanel] = useState<"" | "att" | "out">(""), [busy, setBusy] = useState(""), lock = useLock(), box = useRef<HTMLDivElement>(null);
@@ -813,13 +817,14 @@ export function MemberManage({m}: {m: Member}){
     if(next === null) return;
     run("adm", () => next ? setGroupLeader(g.gid, next) : setMemberAdmin(g.gid, m.email, false));
   };
-  const showLead = amGroupLeader() && (m.is_admin || !leaderNow), showAct = canEdit && !self && !m.is_admin;
+  const guest = isGuest(m), showLead = amGroupLeader() && !guest && (m.is_admin || !leaderNow), showAct = canEdit && !self && !m.is_admin && !guest;
   if(!canEdit) return null;
   return <div className="member-manage">
     <SecHead as="h3" className="people-sub-h">{t("member.manage")}</SecHead>
     <div className="member-manage-btns">
       {canEdit && <button type="button" className="btn ghost" aria-pressed={panel === "att"} onClick={() => open("att")}><Icon name="calendar" sm/> {t("group.attMenu")}</button>}
       {canEdit && !self && <button type="button" className="btn ghost" aria-pressed={panel === "out"} onClick={() => open("out")}><Icon name="lock" sm/> {t(sd.out ? "group.outMenuOn" : "group.outMenu")}</button>}
+      {guest && <button type="button" className="btn ghost" aria-busy={busy === "fix"} disabled={busy === "fix"} onClick={() => run("fix", () => makeMember(g.gid, m.email), "group.guestMade")}>{busy === "fix" ? <Spin/> : <Icon name="users" sm/>} {t("group.guestMake")}</button>}
       {showLead && <button type="button" className="btn ghost" aria-busy={busy === "adm"} disabled={busy === "adm"} onClick={toggleLeader}>{busy === "adm" ? <Spin/> : <Icon name="star" sm/>} {t(m.is_admin ? "group.leaderUndo" : "group.leaderMake")}</button>}
       {showAct && <button type="button" className={"btn ghost" + (act ? " member-deact" : "")} aria-busy={busy === "act"} disabled={busy === "act"}
         onClick={() => run("act", () => setMemberActive(g.gid, m.email, !act), act ? "group.deactivated" : "group.activated")}>{busy === "act" ? <Spin/> : <Icon name={act ? "eye-off" : "eye"} sm/>} {t(act ? "group.deactivateShort" : "group.activateShort")}</button>}

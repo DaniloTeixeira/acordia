@@ -655,9 +655,9 @@ export function useEmailCheck(email: string){
   return {bad: touched && (email.trim() ? !validEmail(email) : tried), empty: !email.trim(), blur: () => setTouched(true),
     fail: () => { setTouched(true); setTried(true); }, reset: () => { setTouched(false); setTried(false); }};
 }
-// Nome, e-mail e nascimento de quem está sendo adicionado, cada um com o rótulo em cima.
+// Nome, e-mail e nascimento de quem está sendo adicionado, cada um com o rótulo em cima (celular e nascimento só se pedidos).
 export function PersonFields({idp, name, onName, email, onEmail, phone, onPhone, birthday, onBirthday, check}: {idp: string; name: string; onName: (v: string) => void;
-  email: string; onEmail: (v: string) => void; phone: string; onPhone: (v: string) => void; birthday: string; onBirthday: (v: string) => void; check: ReturnType<typeof useEmailCheck>}){
+  email: string; onEmail: (v: string) => void; phone?: string; onPhone?: (v: string) => void; birthday?: string; onBirthday?: (v: string) => void; check: ReturnType<typeof useEmailCheck>}){
   return <>
     <div className="field"><label htmlFor={idp + "-name"}>{t("profile.name")}</label>
       <NameInput className="input" id={idp + "-name"} maxLength={80} autoComplete="off" placeholder={t("people.namePh")} value={name} onValue={onName}/></div>
@@ -665,10 +665,10 @@ export function PersonFields({idp, name, onName, email, onEmail, phone, onPhone,
       <input className="input" id={idp + "-email"} type="email" inputMode="email" autoComplete="off" placeholder={t("people.emailPh")} value={email}
         aria-required="true" aria-invalid={check.bad} aria-describedby={check.bad ? idp + "-email-err" : undefined} onBlur={check.blur} onChange={e => onEmail(e.target.value)}/>
       {check.bad && <span className="field-error" id={idp + "-email-err"}>{t(check.empty ? "auth.needEmail" : "auth.badEmail")}</span>}</div>
-    <div className="field phone"><label htmlFor={idp + "-phone"}>{t("profile.phone")}</label>
-      <PhoneInput className="input" id={idp + "-phone"} autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone} onValue={onPhone}/></div>
-    <div className="field birthday"><label htmlFor={idp + "-birthday"}>{t("profile.birthday")}</label>
-      <DateInput className="people-birthday" id={idp + "-birthday"} max={today()} clearable value={birthday} onChange={onBirthday}/></div>
+    {onPhone && <div className="field phone"><label htmlFor={idp + "-phone"}>{t("profile.phone")}</label>
+      <PhoneInput className="input" id={idp + "-phone"} autoComplete="off" maxLength={30} placeholder={t("profile.phonePh")} value={phone || ""} onValue={onPhone}/></div>}
+    {onBirthday && <div className="field birthday"><label htmlFor={idp + "-birthday"}>{t("profile.birthday")}</label>
+      <DateInput className="people-birthday" id={idp + "-birthday"} max={today()} clearable value={birthday || ""} onChange={onBirthday}/></div>}
   </>;
 }
 

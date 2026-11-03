@@ -34,7 +34,9 @@ todas as migrações num Supabase vazio.
   [src/styles/app.scss](src/styles/app.scss) (seção "hover padrão"), só com mouse (`@media (hover: hover)`):
   `@include hover-tint` (colorido ou suave: mantém a cor, `filter`), `@include hover-row` (linha ou botão neutro:
   fundo `--surface-2`) e `@include hover-card` (card ou atalho: borda no acento). Não escrever `:hover` solto com
-  cor própria nem repetir as três versões (claro/escuro). O `transition` de `button, a, summary, [role=button|tab]`
+  cor própria nem repetir as três versões (claro/escuro). O ícone (`.i`) de todo `button, a, summary, [role=button|tab]`
+  já tem o bounce de `@include hover-bounce` (e `hover-bounce-press` no toque, em `.icon-btn`/`.btn`); não criar
+  outro efeito de ícone. O `transition` de `button, a, summary, [role=button|tab]`
   vem de uma regra geral; elemento que não é um desses (div, span clicável) declara o seu.
 - **Tooltip só em controle ativo.** [src/ui/tooltips.ts](src/ui/tooltips.ts) ignora `:disabled` e
   `[aria-disabled=true]`; controle que parece desativado sem esses atributos recebe `aria-disabled="true"`.

@@ -5,7 +5,7 @@ import { isChordLine, sanitizeItem } from "../lib/core";
 import { t, tn, locale } from "../lib/i18n";
 import * as store from "../lib/store";
 import { ago, norm } from "../lib/util";
-import { useData, toast, confirmDialog, go } from "../state";
+import { useData, toast, confirmDialog, go, openDialog } from "../state";
 import { peekCurrent, isMedley, openMedley, songItems, usage, songKey } from "../repertoire";
 import { Icon } from "../ui/Icon";
 import { Seg } from "../ui/Seg";
@@ -16,10 +16,13 @@ import { AddButton, addAction } from "../ui/AddButton";
 import type { Medley, Song, Item } from "../lib/types";
 import { isAutoSetlist } from "../lib/syncrules";
 import { useMedia } from "../ui/hooks";
+import { useGroups, myEmail, personName, deleteLearn } from "../lib/groups";
+import { canChangeLearn, matchLearn, type LearnItem } from "../lib/learn";
+import { Spin } from "./Account";
 
 const { data } = store;
 const songsN = (n: number) => tn("song", n), medleysN = (n: number) => tn("medley", n);
-type Tab = "songs" | "setlists" | "medleys";
+type Tab = "songs" | "setlists" | "medleys" | "learn";
 
 function excerpt(s: Song){
   return s.text.split("\n").slice(1).map(l=>l.trim()).filter(l=>l && !isChordLine(l) && !/^\[.*\]$/.test(l)).slice(0, 2).join(" / ");
@@ -127,13 +130,13 @@ function EmptyCard({icon, title, text}: {icon: string; title: string; text?: str
 }
 
 // Lista de músicas (tab "songs") ou de repertórios ("setlists", com os medleys numa seção logo abaixo, quando houver).
-export function LibraryList({tab: base, canEdit, sel, setSel}: {tab: "songs" | "setlists" | "medleys"; canEdit: boolean} & SelProps){
+export function LibraryList({tab: base, canEdit, sel, setSel}: {tab: Tab; canEdit: boolean} & SelProps){
   useData();
   // O repertório vazio que o app cria sozinho no aparelho de quem só lê não é do grupo: não aparece.
   const meds = [...data.medleys.values()].filter(m => !store.isBlank(m) && (canEdit || !isAutoSetlist(m))), setlists = meds.filter(m => !isMedley(m)), blocks = meds.filter(isMedley);
   const tab: Tab = base;
   // Ordem por aba: músicas e medleys de A a Z (procura pelo nome), repertórios pelos mais recentes (o próximo culto).
-  const [sorts, setSorts] = useState<Record<Tab, string>>({songs: "az", setlists: "recent", medleys: "az"});
+  const [sorts, setSorts] = useState<Record<Tab, string>>({songs: "az", setlists: "recent", medleys: "az", learn: "recent"});
   const sort = sorts[tab], setSort = (v: string) => setSorts(x => ({...x, [tab]: v}));
   // No celular a linha esconderia chips e ações (tom, repertório a que pertence): lá só há cards.
   const narrow = useMedia(NARROW);
@@ -151,7 +154,7 @@ export function LibraryList({tab: base, canEdit, sel, setSel}: {tab: "songs" | "
         options={[{v: "cards", label: <Icon name="grid" sm/>, aria: t("lib.viewCards"), tip: "lib.viewCards"}, {v: "rows", label: <Icon name="list" sm/>, aria: t("lib.viewRows"), tip: "lib.viewRows"}]}/>}
     </div>
     <ul className={"cards" + (view === "rows" ? " rows" : "")} id="lib-list">
-      {tab === "songs" ? <SongCards all={all} q={q} sort={sort} canEdit={canEdit} sel={sel} setSel={setSel}/> : <MedleyCards rows={tab === "medleys" ? blocks : setlists} blocks={tab === "medleys"} setlists={setlists} q={q} sort={sort} canEdit={canEdit} sel={sel} setSel={setSel}/>}
+      {tab === "learn" ? <LearnCards q={q} sort={sort} canEdit={canEdit}/> : tab === "songs" ? <SongCards all={all} q={q} sort={sort} canEdit={canEdit} sel={sel} setSel={setSel}/> : <MedleyCards rows={tab === "medleys" ? blocks : setlists} blocks={tab === "medleys"} setlists={setlists} q={q} sort={sort} canEdit={canEdit} sel={sel} setSel={setSel}/>}
     </ul>
   </div>;
 }
@@ -160,6 +163,44 @@ export function openSetlist(id: string, canEdit: boolean){
   if(!canEdit) store.setSetting("pane", "sheet");
   openMedley(id);
   return go("medley");
+}
+
+// Lista Para aprender: músicas que a equipe quer ouvir e pegar. Qualquer membro sugere e muda a própria; quem edita o grupo
+// muda todas e transforma em música da Biblioteca (a sugestão sai da lista).
+function LearnCards({q, sort, canEdit}: {q: string; sort: string; canEdit: boolean}){
+  const g = useGroups(), me = myEmail(), [busy, setBusy] = useState("");
+  const rows = g.learn.filter(i => matchLearn(i, q)).sort(sort === "az" ? (a, b) => a.title.localeCompare(b.title, locale()) : (a, b) => a.created_at.localeCompare(b.created_at) * (sort === "old" ? 1 : -1));
+  if(!rows.length) return g.learn.length ? <EmptyCard icon="search" title={t("lib.noResults")} text={t("lib.noResultsText")}/> : <EmptyCard icon="headphones" title={t("learn.empty")} text={t("learn.emptyText")}/>;
+  // Uma ação de rede por vez em cada card: o card fica ocupado (spinner) e o que falhar avisa, com "Tentar de novo".
+  const act = async (i: LearnItem, run: () => Promise<boolean>, okMsg: string, then?: () => void) => {
+    if(busy) return;
+    setBusy(i.id); const ok = await run().finally(() => setBusy(""));
+    if(!ok) return toast(t("profile.saveFail"), {label: t("common.retry"), run: () => act(i, run, okMsg, then)});
+    toast(okMsg); then?.();
+  };
+  const del = async (i: LearnItem) => {
+    if(await confirmDialog({title: t("learn.deleteTitle"), message: t("learn.deleteMsg", {title: i.title})})) act(i, () => deleteLearn(i.id), t("learn.deleted", {title: i.title}));
+  };
+  // Virar música: tira da lista e cria a música (com o link de referência) já aberta para colar a cifra ou a letra.
+  const toSong = (i: LearnItem) => act(i, () => deleteLearn(i.id), t("learn.toSongDone", {title: i.title}), () => openSong(store.createSong({text: i.title, ref: i.url}).id));
+  return <>{rows.map((i, idx) => {
+    const mine = canChangeLearn(i, me, canEdit), working = busy === i.id, by = personName(i.suggested_by);
+    const edit = () => openDialog("learn", {id: i.id});
+    const menu = [i.url && {icon: "play", label: t("ref.listen"), onClick: () => openRef(i.url, i.title)},
+      mine && {icon: "edit", label: t("common.edit"), onClick: edit},
+      canEdit && {icon: "arrow-right", label: t("learn.toSong"), onClick: () => toSong(i)},
+      mine && {icon: "trash", label: t("common.delete"), onClick: () => del(i), danger: true, sep: true}].filter(Boolean) as MenuItem[];
+    return <li key={i.id} className="lib-card" aria-busy={working} style={{animationDelay: Math.min(idx, 12) * 25 + "ms"}} onClick={mine ? cardClick(edit) : undefined}>
+      <h3>{i.title}</h3>
+      <div className="meta">{i.artist && <span className="chip">{i.artist}</span>}<span className="chip">{t("learn.by", {name: by})}</span></div>
+      {i.note && <p className="excerpt">{i.note}</p>}
+      <div className="foot">
+        {i.url && <button type="button" className="btn sm" disabled={working} onClick={() => openRef(i.url, i.title)}><Icon name="play" sm/> {t("learn.listen")}</button>}
+        {canEdit && <button type="button" className="btn sm" aria-busy={working} disabled={!!busy} onClick={() => toSong(i)}>{working ? <Spin/> : <Icon name="arrow-right" sm/>} {t("learn.toSong")}</button>}
+        <span className="when foot-when" aria-hidden="true">{ago(new Date(i.created_at).getTime())}</span></div>
+      <CardActs items={menu}/>
+    </li>;
+  })}</>;
 }
 
 // Celular: ações no menu "⋯" e só cards.

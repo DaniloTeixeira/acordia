@@ -21,6 +21,7 @@ import { AuthScreen, Avatar, Profile, PeoplePage } from "./views/Account";
 import { useAuth } from "./lib/cloud";
 import { Group, openGroup, LIB_TABS } from "./views/Group";
 import { More } from "./views/More";
+import { Groups } from "./views/Groups";
 import { Home } from "./views/Home";
 import { ThemeButton, shownTheme, toggleTheme } from "./ui/theme";
 export { applyTheme, theme } from "./ui/theme";
@@ -93,7 +94,7 @@ function LangPop(){
 const accPop = () => document.getElementById("acc-pop");
 const accToggle = toggler(accPop, btn => openNear(accPop()!, btn, 240));
 function AccountMenuButton(){
-  return <button className="icon-btn" data-acc-menu aria-haspopup="menu" aria-label={t("nav.menu")} onPointerDown={accToggle.onPointerDown} onClick={accToggle.onClick}><Icon name="more"/></button>;
+  return <button className="icon-btn" data-acc-menu aria-haspopup="menu" aria-label={t("nav.menu")} onPointerDown={accToggle.onPointerDown} onClick={accToggle.onClick}><Icon name="gear"/></button>;
 }
 function AccountMenu({install}: {install: {show: boolean; run: () => void}}){
   const close = () => accPop()?.hidePopover();
@@ -142,6 +143,7 @@ const NAV: {id: NavId; icon: string; label: string; run: () => void}[] = [
 // No trilho da tela larga há espaço: o que o Mais agrupa no celular aparece direto, cada um no seu item.
 const RAIL: {id: string; icon: string; label: string; run: () => void}[] = [
   ...NAV.filter(n => n.id !== "more"),
+  {id: "groups", icon: "users", label: "groups.title", run: () => go("groups")},
   {id: "study", icon: "study", label: "nav.study", run: () => go("study")},
   {id: "tools", icon: "metro", label: "nav.tools", run: () => go("tools")},
   {id: "members", icon: "users", label: "group.membersTab", run: () => openGroup("members")},
@@ -149,7 +151,7 @@ const RAIL: {id: string; icon: string; label: string; run: () => void}[] = [
 // Usuários só no trilho (tela larga) e só para admin (o Dono também é); no celular continua pelo card do Perfil.
 const RAIL_PEOPLE = {id: "people", icon: "id", label: "people.title", run: () => go("people")};
 function railOf(v: View, groupTab: unknown, nav: string): string{
-  if(v === "study" || v === "tools" || v === "people") return v;
+  if(v === "groups" || v === "study" || v === "tools" || v === "people") return v;
   if(v === "group" && groupTab === "members") return "members";
   return nav === "more" ? "" : nav;
 }
@@ -157,7 +159,7 @@ function navOf(v: View, groupTab: unknown): NavId | "profile" | ""{
   if(v === "profile" || v === "people") return "profile";
   if(v === "medley" || v === "song") return "library";
   if(v === "group") return groupTab === "members" ? "more" : (LIB_TABS as unknown[]).includes(groupTab) ? "library" : "agenda";
-  return v === "home" ? "home" : v === "more" || v === "study" || v === "tools" ? "more" : "";
+  return v === "home" ? "home" : v === "more" || v === "groups" || v === "study" || v === "tools" ? "more" : "";
 }
 
 // Itens do trilho com o fundo do ativo deslizando entre eles (as variáveis --y e --h posicionam o fundo no CSS).
@@ -223,6 +225,7 @@ export function App(){
         {view === "medley" && <Repertoire/>}
         {view === "study" && <Study/>}
         {view === "group" && <Group/>}
+        {view === "groups" && <Groups/>}
         {view === "tools" && <Tools/>}
         {view === "more" && <More/>}
         {view === "profile" && <Profile/>}

@@ -7,12 +7,16 @@ import { t } from "../lib/i18n";
 import { Icon } from "./Icon";
 import { SecHead } from "./SecHead";
 
-export function FoldCard({id, title, aside, defaultOpen, children}: {id: string; title: string; aside?: ReactNode; defaultOpen: boolean; children: ReactNode}){
+// boxed: o conteúdo vem num quadro (.people-add-box), para seções empilhadas numa janela não se misturarem.
+// after: o que vem logo abaixo do quadro (ex.: botões de ação), fora dele; some junto quando a seção fecha.
+// onToggle: avisa quando abre ou fecha pelo título (ex.: rolar até o fim ao abrir).
+export function FoldCard({id, title, aside, defaultOpen, boxed, after, onToggle, children}: {id: string; title: string; aside?: ReactNode; defaultOpen: boolean; boxed?: boolean; after?: ReactNode; onToggle?: (open: boolean) => void; children: ReactNode}){
   const [open, setOpen] = useState(defaultOpen);
   return <section className={"fold-card" + (open ? "" : " closed")} aria-labelledby={id + "-h"}>
-    <h3 className="fold-card-head" id={id + "-h"}><button type="button" aria-expanded={open} aria-controls={id + "-body"} title={t(open ? "card.collapse" : "card.expand", {title})} onClick={() => setOpen(o => !o)}>
+    <h3 className="fold-card-head" id={id + "-h"}><button type="button" aria-expanded={open} aria-controls={id + "-body"} title={t(open ? "card.collapse" : "card.expand", {title})} onClick={() => { setOpen(!open); onToggle?.(!open); }}>
       <SecHead as="span" className="people-sub-h">{title}{aside}</SecHead>
       <span className="fold-card-chev"><Icon name="chev" sm className={"event-chev" + (open ? " up" : "")}/></span></button></h3>
-    <div className="fold-card-body" id={id + "-body"} hidden={!open}>{children}</div>
+    <div className={"fold-card-body" + (boxed ? " people-add-box" : "")} id={id + "-body"} hidden={!open}>{children}</div>
+    {after && <div className="fold-card-after" hidden={!open}>{after}</div>}
   </section>;
 }

@@ -8,17 +8,18 @@ import * as store from "../lib/store";
 import { t, tn, locale } from "../lib/i18n";
 import { useAuth } from "../lib/cloud";
 import { dayKey, eventDay, splitEvents, upcomingBirthdays, birthdayNotice, birthdayKey, needsCover, pendingReplies, type GEvent } from "../lib/calendar";
-import { useGroups, ownsGroup, chooseGroup, personName, amGroupAdmin, setMyAttendance, type GroupSetlist } from "../lib/groups";
+import { useGroups, personName, amGroupAdmin, setMyAttendance, type GroupSetlist } from "../lib/groups";
 import { useData, openDialog, toast } from "../state";
 import { openGroupSetlist } from "./Group";
 import { Spin } from "./Account";
 import { Icon } from "../ui/Icon";
 import { sortRoles } from "../lib/roles";
-import { useGroupRefresh, ReplySeg, openGroup, eventTitle, fmt, timeOf, longDay, useSquareBadge, relDay, PersonAvatar, GroupMark, GroupPhotoButton } from "./Group";
+import { useGroupRefresh, ReplySeg, openGroup, eventTitle, fmt, timeOf, longDay, useSquareBadge, relDay, PersonAvatar } from "./Group";
 import { SecHead } from "../ui/SecHead";
 import { CardSkeleton } from "../ui/Skeleton";
 import { LinkCard, IconMark } from "../ui/LinkCard";
 import { YouChip } from "../ui/YouChip";
+import { GroupCards } from "./Groups";
 
 
 export function Home(){
@@ -61,7 +62,7 @@ export function Home(){
       <p className="sub">{fmt({weekday: "long", day: "numeric", month: "long"}).format(new Date())}</p></div></div>
     <div className="home-grid">
     {group && <BirthdayNotice/>}
-    {group && <RehearsalCheck e={check}/>}
+    {group && check && <RehearsalCheck e={check}/>}
     {group ? <>
       {next ? <NextCard e={next} mine={mine.includes(next)} leader={leader} wide={topWide === "next"}/>
         : <Block id="home-next" className="home-next" wide={topWide === "next"} title={t("home.next")}><div className="empty-state home-empty"><Icon name="calendar"/><span>{t("group.noEvents")}</span></div></Block>}
@@ -203,12 +204,8 @@ function pendingRehearsal(me: string): GEvent | undefined {
     && g.roster.some(r => r.event_id === x.id && r.email === me) && !g.attendance.some(a => a.event_id === x.id && a.email === me))
     .sort((a, b) => b.starts_at.localeCompare(a.starts_at))[0];
 }
-function RehearsalCheck({e}: {e?: GEvent}){
+function RehearsalCheck({e}: {e: GEvent}){
   const [busy, setBusy] = useState("");
-  if(!e) return <section className="card home-block wide rehearsal-check" id="home-check" aria-labelledby="home-check-h">
-    <div className="home-block-head"><SecHead id="home-check-h">{t("home.wasThere")}</SecHead></div>
-    <div className="empty-state home-empty"><Icon name="check"/><span>{t("home.wasThereNone")}</span></div>
-  </section>;
   const mark = async (v: "present" | "absent") => {
     setBusy(v); const ok = await setMyAttendance(e.id, v).finally(() => setBusy(""));
     toast(t(ok ? "group.saved" : "profile.saveFail"), ok ? undefined : {label: t("common.retry"), run: () => mark(v)});
@@ -263,24 +260,9 @@ function GroupSetRow({set}: {set: GroupSetlist}){
 // Fica neste aparelho, como as outras preferências.
 function Groups({upcoming, wide}: {upcoming: number; wide: boolean}){
   const g = useGroups();
-  const pinned = store.setting<string>("pinnedGroup", "");
-  const togglePin = (id: string) => store.setSetting("pinnedGroup", pinned === id ? "" : id);
-  const ordered = [...g.groups.filter(x => x.id === pinned), ...g.groups.filter(x => x.id !== pinned)];
-  const many = g.groups.length > 1;
-  return <Block id="home-group" className="home-group" wide={wide} title={tn("home.groups", g.groups.length)} count={many ? g.groups.length : 0}
+  return <Block id="home-group" className="home-group" wide={wide} title={tn("home.groups", g.groups.length)} count={g.groups.length > 1 ? g.groups.length : 0}
     action={<button type="button" className="link-btn" id="home-new-group" onClick={() => openDialog("newGroup", {})}><Icon name="plus" sm/> {t("group.newGroupTitle")}</button>}>
-    <ul className="home-groups">{ordered.map(x => {
-      const cur = x.id === g.gid, st = cur ? {events: upcoming, members: g.members.length} : x.stats;
-      const pin = pinned === x.id;
-      return <LinkCard key={x.id} id={"home-group-" + x.id} mark={ownsGroup(x) ? <GroupPhotoButton group={x}/> : <GroupMark group={x}/>} title={x.name}
-        sub={st && tn("home.events", st.events) + " · " + tn("profile.members", st.members)}
-        onClick={() => { if(!cur) chooseGroup(x.id); openGroup("agenda"); }}
-        /* Fixar (no canto de baixo à direita) só faz sentido com mais de um grupo; excluir fica em editar o grupo. */
-        acts={many && <span className="home-group-acts">
-          <button type="button" className="icon-btn sm line home-group-pin" aria-pressed={pin}
-            aria-label={t(pin ? "group.unpin" : "group.pin") + ": " + x.name} onClick={() => togglePin(x.id)}><Icon name="pin" sm/></button>
-        </span>}/>;
-    })}</ul>
+    <GroupCards upcoming={upcoming}/>
   </Block>;
 }
 
