@@ -1,8 +1,8 @@
 name: Manter o banco dev ativo
 
 # O plano gratuito do Supabase pausa o projeto sem uso por cerca de 7 dias (o dev é o que mais fica parado).
-# Uma leitura por dia conta como atividade e evita a pausa. Não escreve nada no banco.
-# Precisa dos secrets DEV_SUPABASE_URL e DEV_SUPABASE_KEY (a URL e a chave anon do projeto acordia-dev).
+# Uma chamada por dia conta como atividade e evita a pausa. Não escreve nada no banco.
+# Precisa dos secrets DEV_SUPABASE_URL e DEV_SUPABASE_KEY (a URL e a chave publishable do projeto acordia-dev).
 on:
   schedule:
     - cron: "17 9 * * *"
@@ -14,11 +14,16 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ler o banco dev
+      - name: Chamar o banco dev
         env:
           URL: ${{ secrets.DEV_SUPABASE_URL }}
           KEY: ${{ secrets.DEV_SUPABASE_KEY }}
         run: |
           if [ -z "$URL" ] || [ -z "$KEY" ]; then echo "Faltam os secrets DEV_SUPABASE_URL e DEV_SUPABASE_KEY."; exit 1; fi
-          # O PostgREST responde o esquema na raiz; basta o banco acordar para contar como uso.
-          curl --fail --silent --show-error --max-time 30 -o /dev/null -H "apikey: $KEY" "$URL/rest/v1/"
+          # As tabelas não dão leitura ao anon (o app é só com login): o banco responde 401 com o erro 42501
+          # (sem permissão), que prova que ele está de pé e conta como uso. Projeto pausado ou fora do ar
+          # responde outra coisa e o job falha.
+          code=$(curl --silent --max-time 30 -o resp.json -w '%{http_code}' -H "apikey: $KEY" "$URL/rest/v1/groups?select=id&limit=1" || true)
+          echo "HTTP $code"
+          if [ "$code" = "200" ] || { [ "$code" = "401" ] && grep -q '"42501"' resp.json; }; then echo "Banco dev respondeu."; exit 0; fi
+          cat resp.json 2>/dev/null; exit 1
