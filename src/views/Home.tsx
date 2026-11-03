@@ -61,7 +61,7 @@ export function Home(){
       <p className="sub">{fmt({weekday: "long", day: "numeric", month: "long"}).format(new Date())}</p></div></div>
     <div className="home-grid">
     {group && <BirthdayNotice/>}
-    {group && <RehearsalCheck e={check}/>}
+    {group && check && <RehearsalCheck e={check}/>}
     {group ? <>
       {next ? <NextCard e={next} mine={mine.includes(next)} leader={leader} wide={topWide === "next"}/>
         : <Block id="home-next" className="home-next" wide={topWide === "next"} title={t("home.next")}><div className="empty-state home-empty"><Icon name="calendar"/><span>{t("group.noEvents")}</span></div></Block>}
@@ -203,12 +203,8 @@ function pendingRehearsal(me: string): GEvent | undefined {
     && g.roster.some(r => r.event_id === x.id && r.email === me) && !g.attendance.some(a => a.event_id === x.id && a.email === me))
     .sort((a, b) => b.starts_at.localeCompare(a.starts_at))[0];
 }
-function RehearsalCheck({e}: {e?: GEvent}){
+function RehearsalCheck({e}: {e: GEvent}){
   const [busy, setBusy] = useState("");
-  if(!e) return <section className="card home-block wide rehearsal-check" id="home-check" aria-labelledby="home-check-h">
-    <div className="home-block-head"><SecHead id="home-check-h">{t("home.wasThere")}</SecHead></div>
-    <div className="empty-state home-empty"><Icon name="check"/><span>{t("home.wasThereNone")}</span></div>
-  </section>;
   const mark = async (v: "present" | "absent") => {
     setBusy(v); const ok = await setMyAttendance(e.id, v).finally(() => setBusy(""));
     toast(t(ok ? "group.saved" : "profile.saveFail"), ok ? undefined : {label: t("common.retry"), run: () => mark(v)});

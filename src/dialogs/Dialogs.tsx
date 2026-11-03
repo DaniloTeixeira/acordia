@@ -17,6 +17,7 @@ import { PhotoDialog } from "./PhotoDialog";
 import { EventDetailDialog } from "./EventDetailDialog";
 import { MemberDialog } from "./MemberDialog";
 import { GroupDialog, NewGroupDialog } from "./GroupDialog";
+import { LearnDialog } from "./LearnDialog";
 
 const { data } = store;
 const songsN = (n: number) => tn("song", n);
@@ -40,6 +41,7 @@ export function Dialogs(){
     {d.eventDetail && <EventDetailDialog {...d.eventDetail}/>}
     {d.group && <GroupDialog/>}
     {d.newGroup && <NewGroupDialog/>}
+    {d.learn && <LearnDialog {...d.learn}/>}
   </>;
 }
 
@@ -179,7 +181,7 @@ function LeaderDialog({group, current, options, allowNone, mine, resolve}: Dialo
 }
 
 // ---------- guia "Como usar" de cada página ----------
-export const HELP_STEPS = {home: 3, medley: 8, library: 2, group: 6, study: 2, tools: 5} as const;
+export const HELP_STEPS = {home: 3, medley: 8, library: 3, group: 6, study: 2, tools: 5} as const;
 export function seenHelp(page: string){ const s = Object.assign({}, data.settings.seenHelp || {}) as Record<string, boolean>; if(!s[page]){ s[page] = true; store.setSetting("seenHelp", s); } }
 function HelpDialog({page}: DialogProps["help"]){
   useEffect(() => seenHelp(page), [page]);

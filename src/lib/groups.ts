@@ -7,9 +7,11 @@ import { create } from "zustand";
 import { cleanRange, type VoiceRange } from "./voice";
 import { cloud, useAuth, validBirthday, cleanPhone, uploadPhoto, cleanPhotos } from "./cloud";
 import { ROLES_MAX } from "./roles";
+import { splitGuests, guestUntil, extendedUntil, guestGone } from "./guests";
 import { unseenJoins, type JoinNotice } from "./notices";
 import { toast } from "../state";
 import { t } from "./i18n";
+import { cleanLearn, type LearnItem, type LearnFields } from "./learn";
 import { soundOnly, type GEvent, type RosterRow, type AttendanceRow, type Unavail, type Answer, type Presence, type EventKind, type OutMark } from "./calendar";
 
 // photo: link da foto do grupo (vazio: o app mostra as iniciais do nome). photo_round: marca redonda em vez
@@ -17,15 +19,16 @@ import { soundOnly, type GEvent, type RosterRow, type AttendanceRow, type Unavai
 // stats: os números do card de cada grupo no Início (próximos eventos, repertórios e membros).
 export interface Group { id: string; name: string; created_by?: string; members_edit?: boolean; photo?: string; photo_round?: boolean; stats?: {events: number; setlists: number; members: number} }
 // out_since/out_need: marcado pelo líder como em pausa (desde quando e quantos ensaios faltam).
-export interface Member { email: string; is_admin: boolean; role: string; name: string; birthday?: string | null; photo?: string; phone?: string; out_since?: string | null; out_need?: number; active?: boolean; created_at?: string; voice_low?: number | null; voice_high?: number | null }
+export interface Member { email: string; is_admin: boolean; role: string; name: string; birthday?: string | null; photo?: string; phone?: string; out_since?: string | null; out_need?: number; active?: boolean; guest_until?: string | null; created_at?: string; voice_low?: number | null; voice_high?: number | null }
 export interface GroupSetlist { id: string; group_id: string; source_id: string; name: string; songs: number; code: string; shared_by: string; updated_at: string }
 
+// gone: convidados de um evento que já passou do prazo (fora das listas; o nome ainda aparece no histórico).
 interface GroupState {
-  groups: Group[]; gid: string; members: Member[]; setlists: GroupSetlist[]; events: GEvent[];
+  groups: Group[]; gid: string; members: Member[]; gone: Member[]; setlists: GroupSetlist[]; events: GEvent[]; learn: LearnItem[];
   roster: RosterRow[]; attendance: AttendanceRow[]; unavail: Unavail[];
   loading: boolean; error: boolean; loaded: boolean;
 }
-const EMPTY: GroupState = {groups: [], gid: "", members: [], setlists: [], events: [], roster: [], attendance: [], unavail: [], loading: false, error: false, loaded: false};
+const EMPTY: GroupState = {groups: [], gid: "", members: [], gone: [], setlists: [], events: [], learn: [], roster: [], attendance: [], unavail: [], loading: false, error: false, loaded: false};
 export const useGroups = create<GroupState>(() => ({...EMPTY}));
 
 // ---------- cópia no aparelho ----------
@@ -38,7 +41,7 @@ function saveCache(){
 function loadCache(){
   try{
     const v = JSON.parse(localStorage.getItem(CACHE) || "null");
-    if(v && v.email === useAuth.getState().email){ delete v.email; useGroups.setState({...v, loading: false, error: false}); }
+    if(v && v.email === useAuth.getState().email){ delete v.email; useGroups.setState({learn: [], ...v, loading: false, error: false}); }
   }catch(e){ /* cópia estragada: ignora */ }
 }
 // Ao sair da conta (ou perder o acesso), a agenda desta pessoa sai do aparelho. Enquanto a sessão
@@ -90,10 +93,10 @@ export function loadGroups(gid?: string): Promise<void> {
       const groups = g.data as Group[];
       // Os números de cada grupo para os cards do Início (só as colunas de grupo; se falhar, o card fica sem eles).
       const now = new Date().toISOString(), tally = (rows: {group_id: string}[] | null) => {
-        const m = new Map<string, number>(); (rows || []).forEach(r => m.set(r.group_id, (m.get(r.group_id) || 0) + 1)); return m;
+        const m = new Map<string, number>(); (rows || []).filter(r => !guestGone(r as {guest_until?: string | null})).forEach(r => m.set(r.group_id, (m.get(r.group_id) || 0) + 1)); return m;
       };
       const [cm, cs, ce] = await Promise.all([
-        cloud.from("group_members").select("group_id"),
+        cloud.from("group_members").select("group_id,guest_until").then(r => r.error ? cloud.from("group_members").select("group_id") : r),
         cloud.from("group_setlists").select("group_id"),
         cloud.from("group_events").select("group_id").gte("starts_at", now),
       ]);
@@ -104,15 +107,18 @@ export function loadGroups(gid?: string): Promise<void> {
       const want = gid || useGroups.getState().gid, cur = groups.find(x => x.id === want) ? want : groups[0]?.id || "";
       if(!cur){ useGroups.setState({...EMPTY, groups, loaded: true}); saveCache(); return; }
       const from = new Date(Date.now() - PAST_DAYS * 864e5).toISOString(), to = new Date(Date.now() + FUTURE_DAYS * 864e5).toISOString();
-      const [mem, people, sets, evs, un] = await Promise.all([
-        // Banco ainda sem o ativo/inativo ou sem a marcação de em pausa (antes da migração subir): lê sem eles.
-        cloud.from("group_members").select("email,is_admin,role,out_since,out_need,active,created_at").eq("group_id", cur).order("email")
+      const [mem, people, sets, evs, un, lrn] = await Promise.all([
+        // Banco ainda sem o convidado, o ativo/inativo ou a marcação de em pausa (antes da migração subir): lê sem eles.
+        cloud.from("group_members").select("email,is_admin,role,out_since,out_need,active,guest_until,created_at").eq("group_id", cur).order("email")
+          .then(r => r.error ? cloud.from("group_members").select("email,is_admin,role,out_since,out_need,active,created_at").eq("group_id", cur).order("email") : r)
           .then(r => r.error ? cloud.from("group_members").select("email,is_admin,role,out_since,out_need,created_at").eq("group_id", cur).order("email") : r)
           .then(r => r.error ? cloud.from("group_members").select("email,is_admin,role,created_at").eq("group_id", cur).order("email") : r),
         cloud.rpc("group_people", {gid: cur}),
         cloud.from("group_setlists").select("id,group_id,source_id,name,songs,code,shared_by,updated_at").eq("group_id", cur).order("updated_at", {ascending: false}),
         cloud.from("group_events").select("id,group_id,kind,title,starts_at,call_at,place,notes,setlist_id,updated_at").eq("group_id", cur).gte("starts_at", from).lte("starts_at", to).order("starts_at"),
         cloud.from("unavailable").select("email,day,note").gte("day", from.slice(0, 10)),
+        // Lista "Para aprender". Banco ainda sem a tabela (antes da migração subir): segue sem ela, sem derrubar o resto.
+        cloud.from("group_learn").select("id,group_id,title,artist,url,note,suggested_by,created_at").eq("group_id", cur).order("created_at", {ascending: false}),
       ]);
       for(const r of [mem, people, sets, evs, un]) if(r.error) throw r.error;
       const ids = (evs.data as GEvent[]).map(e => e.id);
@@ -139,10 +145,13 @@ export function loadGroups(gid?: string): Promise<void> {
       const vr = emails.length ? await cloud.from("profiles").select("email,voice_low,voice_high").in("email", emails) : null;
       const voices = new Map(((vr && !vr.error ? vr.data : []) as {email: string; voice_low: number | null; voice_high: number | null}[]).map(v => [v.email, cleanRange(v.voice_low, v.voice_high)]));
       const people_ = new Map((people.data as {email: string; name: string; birthday: string | null; photo?: string; phone?: string}[]).map(p => [p.email, p]));
-      const members = (mem.data as Omit<Member, "name">[]).map(m => ({...m, name: people_.get(m.email)?.name || "", birthday: people_.get(m.email)?.birthday || null,
+      const all = (mem.data as Omit<Member, "name">[]).map(m => ({...m, name: people_.get(m.email)?.name || "", birthday: people_.get(m.email)?.birthday || null,
         photo: people_.get(m.email)?.photo || "", phone: people_.get(m.email)?.phone || "", voice_low: voices.get(m.email)?.low ?? null, voice_high: voices.get(m.email)?.high ?? null}));
+      const {current: members, gone} = splitGuests(all);
       if(my !== seq) return;
-      useGroups.setState({groups, gid: cur, members, setlists: sets.data as GroupSetlist[], events: evs.data as GEvent[], roster, attendance,
+      // Falhou a leitura da lista: mantém a que já estava na tela (se for deste grupo).
+      const learn = lrn.error ? useGroups.getState().learn.filter(x => x.group_id === cur) : lrn.data as LearnItem[];
+      useGroups.setState({groups, gid: cur, members, gone, setlists: sets.data as GroupSetlist[], events: evs.data as GEvent[], learn, roster, attendance,
         unavail: un.data as Unavail[], loading: false, error: false, loaded: true});
       saveCache();
       announceJoins(cur, groups.find(x => x.id === cur)?.name || "");
@@ -187,14 +196,15 @@ export function chooseGroup(gid: string){ useGroups.setState({gid}); return load
 // Extensão vocal de quem está no grupo aberto (vazia se não mediu).
 export const voiceOf = (email: string) => { const m = useGroups.getState().members.find(x => x.email === email); return {voice_low: m?.voice_low, voice_high: m?.voice_high}; };
 export function personName(email: string){
-  const m = useGroups.getState().members.find(x => x.email === email);
+  const {members, gone} = useGroups.getState(), m = members.find(x => x.email === email) || (gone || []).find(x => x.email === email);
   return m?.name || email.split("@")[0];
 }
 // Foto: a do perfil; a própria pessoa usa a da sessão (aparece mesmo antes de o grupo recarregar).
 export function personPhoto(email: string){
   const me = useAuth.getState();
   if(email === me.email && me.profile) return me.profile.photo || "";
-  return useGroups.getState().members.find(x => x.email === email)?.photo || "";
+  const {members, gone} = useGroups.getState();
+  return (members.find(x => x.email === email) || (gone || []).find(x => x.email === email))?.photo || "";
 }
 
 // ---------- mudanças ----------
@@ -270,6 +280,19 @@ export async function addMember(gid: string, email: string, admin: boolean, role
   });
   return ok ? "ok" : /not registered/.test(err) ? "unregistered" : "fail";
 }
+// Convida alguém só até o evento acabar (starts: as datas do evento, repetido ou não). "unregistered": quem não é
+// admin do app só convida quem já está cadastrado em Usuários.
+export async function addGuest(gid: string, email: string, role: string, name: string, starts: string[]): Promise<"ok" | "unregistered" | "fail">{
+  let err = "";
+  const ok = await run(async () => {
+    const r = await cloud.rpc("add_group_guest", {gid, guest_email: email.trim().toLowerCase(), guest_role: role.trim().slice(0, ROLES_MAX), guest_name: name.trim().slice(0, 80), until: guestUntil(starts)});
+    err = r.error?.message || "";
+    return r;
+  });
+  return ok ? "ok" : /not registered/.test(err) ? "unregistered" : "fail";
+}
+// Convidado vira membro fixo (tira o prazo).
+export const makeMember = (gid: string, email: string) => run(() => cloud.from("group_members").update({guest_until: null}).eq("group_id", gid).eq("email", email));
 // Passa a liderança (um líder só por grupo): quem era vira membro e a pessoa escolhida vira líder. Banco ainda
 // sem set_group_leader (antes da migração subir): faz os dois passos à mão.
 export const setGroupLeader = (gid: string, email: string) => run(async () => {
@@ -289,12 +312,16 @@ export const outMark = (m?: Pick<Member, "out_since" | "out_need" | "role">): Ou
 // Inativo: afastado do grupo, sem sair dele. Não aparece para escalar nem na chamada; o histórico fica.
 export const isActive = (m: Pick<Member, "active">) => m.active !== false;
 export const setMemberActive = (gid: string, email: string, active: boolean) => run(() => cloud.from("group_members").update({active}).eq("group_id", gid).eq("email", email));
+// Lista "Para aprender": qualquer membro sugere; quem sugeriu ou quem edita o grupo muda e apaga (o banco confere).
+export const addLearn = (gid: string, f: LearnFields) => { const c = cleanLearn(f); return c ? run(() => cloud.from("group_learn").insert({...c, group_id: gid})) : Promise.resolve(false); };
+export const editLearn = (id: string, f: LearnFields) => { const c = cleanLearn(f); return c ? run(() => cloud.from("group_learn").update(c).eq("id", id)) : Promise.resolve(false); };
+export const deleteLearn = (id: string) => run(() => cloud.from("group_learn").delete().eq("id", id));
 export const removeMember = (gid: string, email: string) => run(() => cloud.from("group_members").delete().eq("group_id", gid).eq("email", email));
 // E-mails que estão em algum grupo. O admin do app lê os membros de todos os grupos (is_member vale para ele); a página
 // Usuários usa isto para marcar quem está sem grupo. null se falhar: aí ela não marca ninguém.
 export async function listGroupedEmails(): Promise<Set<string> | null> {
-  const {data, error} = await cloud.from("group_members").select("email");
-  return error || !data ? null : new Set((data as {email: string}[]).map(r => r.email));
+  const r = await cloud.from("group_members").select("email,guest_until").then(x => x.error ? cloud.from("group_members").select("email") : x);
+  return r.error || !r.data ? null : new Set((r.data as {email: string; guest_until?: string | null}[]).filter(x => !guestGone(x)).map(x => x.email));
 }
 
 
@@ -311,6 +338,12 @@ export async function saveEvent(gid: string, id: string | null, ev: EventInput, 
     const clean = roster.filter(r => r.email).map(r => ({email: r.email, role: r.role.trim().slice(0, 40)}));
     const unique = [...new Map(clean.map(r => [r.email + "|" + r.role, r])).values()];
     const when = id || !dates?.length ? [{starts_at: ev.starts_at, call_at: ev.call_at}] : dates;
+    // Convidado escalado para depois do prazo dele: estende (o banco só deixa quem edita o grupo).
+    const until = guestUntil(when.map(w => w.starts_at));
+    for(const r of unique){
+      const m = useGroups.getState().members.find(x => x.email === r.email), to = m && extendedUntil(m.guest_until, until);
+      if(to){ const {error} = await cloud.from("group_members").update({guest_until: to}).eq("group_id", gid).eq("email", r.email); if(error) return false; }
+    }
     for(const w of when){
       const row = {...ev, ...w, group_id: gid, updated_at: new Date().toISOString()};
       let eid = id;

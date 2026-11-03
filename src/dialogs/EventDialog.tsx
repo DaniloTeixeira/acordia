@@ -1,9 +1,10 @@
 // Criar ou editar um evento da agenda do grupo (só quem lidera o grupo): tipo, data, horários, local,
 // repertório, observações, repetição semanal e a escala, com avisos de quem não pode, já está em
 // outro evento no dia ou já recusou. Na escala, cada pessoa pode ter mais de uma função (tocar e cantar).
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { t, tn } from "../lib/i18n";
-import { useGroups, saveEvent, personName, outMark, isActive, type RosterInput } from "../lib/groups";
+import { useGroups, saveEvent, addGuest, personName, outMark, isActive, type RosterInput } from "../lib/groups";
+import { useAuth, validEmail, listAllowed, type Allowed } from "../lib/cloud";
 import { warningsFor, rehearsalStanding, monthLoad, weekly, dayKey, rosterByPerson, soundOnly, type EventKind, type GEvent } from "../lib/calendar";
 import { toast, confirmDialog, requestClose, type DialogProps } from "../state";
 import { Dialog, DialogHead } from "../ui/Dialog";
@@ -13,7 +14,7 @@ import { Select } from "../ui/Select";
 import { DateInput } from "../ui/DateInput";
 import { eventTitle, roleOptions } from "../views/Group";
 import { splitRoles, sortRoles, toggleRole } from "../lib/roles";
-import { Spin } from "../views/Account";
+import { Spin, PersonFields, useEmailCheck } from "../views/Account";
 import { FoldCard } from "../ui/FoldCard";
 
 const hhmm = (iso: string | null) => { if(!iso) return ""; const d = new Date(iso); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
@@ -37,7 +38,7 @@ export function EventDialog({id, day}: DialogProps["event"]){
   const [weeks, setWeeks] = useState("1");
   // Uma linha por pessoa, com as funções dela neste evento; ao salvar vira uma linha por função.
   const [roster, setRoster] = useState<Row[]>(() => ev ? byName(rosterByPerson(g.roster.filter(r => r.event_id === ev.id)).map(p => ({email: p.email, roles: p.roles}))) : []);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(false), [inviting, setInviting] = useState(false);
   // Alterado = diferente de quando abriu (voltar ao que era não conta). done: salvou ou cancelou.
   const snap = () => JSON.stringify([kind, title, date, time, call, place, notes, setlist, weeks, roster]);
   const start = useRef<string | null>(null); if(start.current === null) start.current = snap();
@@ -57,6 +58,8 @@ export function EventDialog({id, day}: DialogProps["event"]){
   const free = g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email));
   // Quem está em pausa (ou só tem Mesa de som, em qualquer evento) não é convocado: fica de fora do "Escalar todos" (o líder ainda pode escalar à mão).
   const callable = free.filter(m => !soundOnly(m.role || "") && !rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster).out);
+  // Datas do evento (com a repetição semanal), que dão o prazo do convidado.
+  const guestDates = () => starts ? (id ? [starts] : weekly(starts, +weeks)).map(d => d.toISOString()) : [];
   const save = async () => {
     if(!starts) return toast(t("group.needDate"));
     setBusy(true);
@@ -131,8 +134,10 @@ export function EventDialog({id, day}: DialogProps["event"]){
         <datalist id="event-roles">{roleOptions().map(r => <option key={r} value={r}/>)}</datalist>
         <div className="roster-add">
           <button type="button" className="btn soft sm" id="event-add-person" disabled={!free.length} onClick={() => { setRoster(rs => [...rs, {email: "", roles: []}]); }}><Icon name="plus" sm/> {t("group.addPerson")}</button>
+          <button type="button" className="btn ghost sm" id="event-add-guest" aria-expanded={inviting} onClick={() => setInviting(v => !v)}><Icon name="user" sm/> {t("group.inviteGuest")}</button>
           {callable.length > 0 && <button type="button" className="btn ghost sm" onClick={() => { setRoster(rs => byName([...rs.filter(r => r.email), ...callable.map(m => ({email: m.email, roles: firstRole(m.email)}))])); }}><Icon name="users" sm/> {t("group.addEveryone")}</button>}
         </div>
+        {inviting && <GuestBox dates={guestDates} onDone={email => { setInviting(false); setRoster(rs => byName([...rs.filter(r => r.email && r.email !== email), {email, roles: []}])); }} onCancel={() => setInviting(false)}/>}
         </FoldCard>
       </div>
       <div className="dlg-foot"><button type="button" className="btn ghost" onClick={() => { const d = form.current?.closest("dialog"); if(d) requestClose(d); }}>{t("common.cancel")}</button>
@@ -157,6 +162,41 @@ function RoleChips({roles, value, onChange}: {roles: string[]; value: string[]; 
           {/* O mouse/toque no botão não tira o foco do campo antes do clique (senão o blur adicionaria e sumiria com o botão). */}
           <button type="button" className="btn primary" onMouseDown={e => e.preventDefault()} onClick={add}>{t("common.add")}</button></div>
         : <button type="button" className="link-btn role-other" onClick={() => setAdding(true)}>{t("group.roleOther")}</button>}
+    </div>
+  </div>;
+}
+
+// Convidar alguém de fora do grupo só para este evento: entra como convidado até o evento acabar e já fica escalado.
+// Admin do app também escolhe entre quem já está cadastrado em Usuários (de convites anteriores). Sem <form>: está
+// dentro do formulário do evento, então o Enter dos campos convida.
+function GuestBox({dates, onDone, onCancel}: {dates: () => string[]; onDone: (email: string) => void; onCancel: () => void}){
+  const g = useGroups(), appAdmin = useAuth(s => s.admin);
+  const [email, setEmail] = useState(""), [name, setName] = useState(""), [busy, setBusy] = useState(false), check = useEmailCheck(email);
+  const [allowed, setAllowed] = useState<Allowed[] | null>(null);
+  useEffect(() => { if(appAdmin) listAllowed().then(r => setAllowed(a => r || a || [])); }, [appAdmin]);
+  // Quem já tem acesso e ainda não é do grupo (nem convidado vigente).
+  const outside = (allowed || []).filter(a => !g.members.some(m => m.email === a.email));
+  const pick = (v: string) => { const a = outside.find(x => x.email === v); if(a){ setEmail(a.email); setName(a.profileName || a.name); } };
+  const invite = async () => {
+    if(busy) return;
+    const v = email.trim().toLowerCase(), when = dates();
+    if(!validEmail(v)){ check.fail(); document.getElementById("guest-email")?.focus(); return; }
+    if(!when.length) return toast(t("group.needDate"));
+    setBusy(true);
+    const res = await addGuest(g.gid, v, "", name, when).finally(() => setBusy(false));
+    if(res === "ok"){ toast(t("group.guestAdded", {email: v})); return onDone(v); }
+    toast(t(res === "unregistered" ? "group.notRegistered" : "profile.saveFail"), res === "fail" ? {label: t("common.retry"), run: invite} : undefined);
+  };
+  return <div className="people-add-box guest-box" onKeyDown={e => { if(e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT"){ e.preventDefault(); invite(); } }}>
+    <p className="sub">{t("group.guestHelp")}</p>
+    {appAdmin && (allowed === null ? <Select id="guest-pick" aria={t("auth.loading")} disabled value="" onChange={() => {}} options={[{value: "", label: t("auth.loading")}]}/>
+      : outside.length > 0 && <Select id="guest-pick" aria={t("group.pickUser")} value={outside.some(a => a.email === email) ? email : ""} onChange={pick}
+        options={[{value: "", label: t("group.pickUser")}, ...outside.map(a => ({value: a.email, label: a.profileName || a.name || a.email, sub: (a.profileName || a.name) ? a.email : undefined}))]}/>)}
+    <div className="people-add"><PersonFields idp="guest" name={name} onName={setName} email={email} onEmail={setEmail} check={check}/></div>
+    {!appAdmin && <small className="sub">{t("group.inviteHelp")}</small>}
+    <div className="member-roles-foot">
+      <button type="button" className="btn ghost" onClick={onCancel}>{t("common.cancel")}</button>
+      <button type="button" className="btn primary" aria-busy={busy} disabled={busy} onClick={invite}>{busy ? <Spin/> : <Icon name="plus" sm/>} {t("group.inviteGuestGo")}</button>
     </div>
   </div>;
 }

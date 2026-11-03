@@ -13,7 +13,7 @@ presença nos ensaios, e repertórios compartilhados.
 Lista completa, tela por tela, para testar e decidir o que fica. Marque `[x]` no que já foi conferido.
 
 ### Em todas as telas
-- [ ] **Navegação** entre Início, Agenda, Biblioteca (Repertórios, Músicas e Medleys) e Mais (Membros, Usuários só para admin, Estudo e Ferramentas): barra de abas no celular. No topo do celular, a foto do perfil fica à esquerda (abre o Perfil) e o menu (⋯) à direita reúne instalar, idioma, volume e tema; a ajuda (?) fica solta ao lado dele. No computador o trilho
+- [ ] **Navegação** entre Início, Agenda, Biblioteca (Repertórios, Músicas, Medleys e Aprender) e Mais (Membros, Usuários só para admin, Estudo e Ferramentas): barra de abas no celular. No topo do celular, a foto do perfil fica à esquerda (abre o Perfil) e o menu (⋯) à direita reúne instalar, idioma, volume e tema; a ajuda (?) fica solta ao lado dele. No computador o trilho
       lateral mostra tudo direto (Início, Agenda, Biblioteca, Membros, Estudo e Ferramentas), sem o Mais. Membros, Estudo, Ferramentas, Perfil e Usuários têm o link "Voltar para <tela>" no topo, que leva à tela de onde a pessoa veio (sem histórico, ao Mais ou ao Início). No celular ele fica fixo no topo e continua visível ao rolar. Cada página tem endereço próprio, então o "voltar" do navegador (e do mouse) funciona e fecha primeiro a janela ou o Palco abertos. O repertório aberto conta como Grupo e o voltar leva aos Repertórios. Tocar de novo na
       página atual volta ao topo.
 - [ ] **Tema** claro ou escuro. Até a primeira escolha, segue o aparelho.
@@ -66,7 +66,7 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
       (quando sobra um, ele ocupa a linha toda); no celular, em uma, na mesma ordem.
 - [ ] **Aviso de aniversário**: no dia, um cartão no topo lembra de enviar uma mensagem de parabéns ("Hoje é aniversário de Ana e
       Pedro!"). O próprio aniversariante vê um "Feliz aniversário". Fechar (X) vale até o aniversário do ano seguinte e fica neste aparelho.
-- [ ] **Você foi ao ensaio?** (cartão fixo no topo, com aviso quando não há nada): depois que o ensaio começa, quem estava na escala marca **Estive / Não estive** ali mesmo, sem abrir a Agenda, por até 7 dias. O ensaio que já começou deixa de ser o "próximo compromisso".
+- [ ] **Você foi ao ensaio?** (cartão no topo, que só aparece quando há ensaio para confirmar): depois que o ensaio começa, quem estava na escala marca **Estive / Não estive** ali mesmo, sem abrir a Agenda, por até 7 dias. O ensaio que já começou deixa de ser o "próximo compromisso".
 - [ ] **Próximo compromisso** em destaque (fixo, com aviso "Nenhum evento marcado" quando não há), com **Confirmar / Não posso** e **Estudar repertório** (abre a folha) ou Palco, sem sair do Início.
 - [ ] **Precisam de substituto** (só quem lidera): ao lado do destaque, os eventos em que alguém disse que
       não pode.
@@ -141,11 +141,13 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] Atalhos: setas / PageDown / espaço avançam e voltam, + e − mudam a fonte, Esc sai.
 
 ### Músicas e repertórios do grupo
-Tudo é do grupo, nas abas **Repertórios** e **Músicas** do Grupo: todos os membros veem e baixam para o aparelho
-(abre sem internet); só quem lidera o grupo e os admins do app criam, editam e excluem. Quem só lê abre o repertório
-direto na folha, sem Editar, e não vê os botões de mudar.
+Tudo é do grupo, nas abas **Repertórios**, **Músicas**, **Medleys** e **Aprender** da Biblioteca: todos os membros veem e baixam para o aparelho
+(abre sem internet); só quem lidera o grupo e os admins do app criam, editam e excluem (ou qualquer membro, se o líder ligar
+"Todos podem editar"). Quem só lê abre o repertório direto na folha, sem Editar, e não vê os botões de mudar; na aba Aprender
+qualquer membro sugere.
 - [ ] Abas **Repertórios** (com **Medleys** ao lado quando houver) e **Músicas**, com busca.
 - [ ] Músicas: busca e ordem A–Z ou Recentes.
+- [ ] **Aprender** (4ª aba da Biblioteca): lista do grupo com as músicas que a equipe quer ouvir e pegar no futuro. Qualquer membro **sugere** (nome, artista, link para ouvir e uma nota) e edita ou exclui a própria sugestão; quem pode editar o grupo mexe em todas. **Ouvir** abre o link; **Virar música** (só quem edita) tira a sugestão da lista e cria a música na Biblioteca, com o link como referência, já aberta para colar a cifra. Busca e ordem como nas outras abas.
 - [ ] **Cartão de música**: tom, BPM, em quantos repertórios está, trecho da letra e quando foi
       editada; Adicionar ao repertório, ▶, Editar e Excluir.
 - [ ] **Cartão de repertório/medley**: Abrir, **Duplicar** ("(cópia)") e Excluir.
@@ -185,11 +187,12 @@ também libera o acesso ao app para eles).
   - **Anteriores** segue o layout da Biblioteca: busca, filtro por mês, cards ou linhas (no computador, uma linha só por evento) com a sua presença, repertório, quantos foram e o dia (resumido, ex.: "sex., 23 de out."), hora e local; nos cards o "há x dias" fica no canto de cima; tocar abre os detalhes numa janela. O ensaio que já começou é anterior.;
   - **Presente** (verde mais forte, só contorno) e **Confirmado** (azul) têm cores diferentes;
   - lista de próximos; cada evento abre com a data, o título e os chips no topo do card, sem bloco "Detalhes"; quem está na escala de um evento futuro também responde ali, em "Sua resposta" (o mesmo bloco do topo da Agenda). No ensaio, nas 12 h antes do início, a resposta e a presença viram um estado só para quem está na escala: o selo mostra Presente, Você confirmou ou Você não vai, com um único "Alterar resposta" e as opções **Cheguei** (também confirma a resposta) e **Não posso** (desmarca a presença); quem está na escala também tem ali **Adicionar ao calendário**, com a explicação.
-- [ ] **Evento** (só quem lidera cria e edita; Editar e Excluir ficam no alto do evento, logo abaixo de "Adicionar ao calendário": um em cada ponta no celular e juntos à esquerda no computador):
+- [ ] **Evento** (só quem edita o grupo cria e edita; Editar e Excluir ficam no alto do evento, logo abaixo de "Adicionar ao calendário": um em cada ponta no celular e juntos à esquerda no computador):
   - tipo Culto ou Ensaio, título, data, início, **hora de chegada**, local, repertório do grupo e observações;
   - **repetir** toda semana (2 a 26 vezes);
   - **escala**: quem toca o quê, com funções sugeridas e "Escalar todos" (não convoca quem está em pausa nem quem só tem a função Mesa de som, em culto ou ensaio; o líder ainda escala à mão); no computador é uma tabela (pessoa e funções
     numa linha, "Outra função" como link à direita), no celular cada pessoa é um cartão; "Outra função" abre um campo com o botão **Adicionar**;
+  - **Convidar de fora** (na escala): convida alguém que não é do grupo só para aquele evento (admin do app escolhe entre quem já está em Usuários; quem lidera sem ser admin só convida quem já foi cadastrado). A pessoa entra como **Convidado** (chip com o dia do último evento), já escalada, e o acesso ao grupo acaba sozinho 12 h depois do evento (em evento repetido, depois do último; escalar de novo estende). Convidado não edita nada, nem com "Todos podem editar", e não gera aviso de entrada. Ela some das listas de escalar e da chamada, o histórico do evento fica e o cadastro continua em Usuários; **Tornar membro** (detalhes da pessoa) a deixa fixa;
   - tocar numa pessoa da escala abre os detalhes dela e, para quem lidera, o botão **Escalar neste evento** (ou **Tirar da escala**, com confirmação), que grava na hora e mostra os avisos de conflito sem bloquear;
   - **Detalhes** e **Escala** abrem e fecham pelo título: no computador os dois abrem abertos; no celular só a Escala;
   - avisos ao escalar: marcou que não pode no dia, já está em outro evento no dia ou já recusou; cada pessoa
@@ -206,7 +209,7 @@ também libera o acesso ao app para eles).
       Tocar na linha de uma pessoa abre os detalhes dela, com o **histórico nos ensaios** (os últimos 12: Presente, Falta ou Justificada).
       Ao alterar a resposta, o link "Alterar resposta" vira "Cancelar" no mesmo lugar e a linha mantém a altura.
 - [ ] **Adicionar ao calendário** (.ics): todas as suas escalas de uma vez (botão no card "Suas próximas escalas"), com lembrete 1 dia e 2 h antes.
-- [ ] **Repertórios do grupo**: quem lidera compartilha um repertório seu (compartilhar de novo atualiza);
+- [ ] **Repertórios do grupo**: o que quem lidera monta aparece para o grupo sozinho, sem botão de compartilhar (cada mudança publica a versão nova; excluído ou sem músicas, sai do grupo);
       todos abrem ("Salvar e abrir" ou "Atualizar") ou vão direto ao **Palco**.
 - [ ] **Copiar e-mail e celular**: ao lado de cada e-mail e celular (Membros, Usuários e janela da pessoa) há um botão que copia o texto e mostra "✓" por um instante.
 - [ ] **Membros**: nome, e-mail, funções (várias, como Vocal e Violão; cada um edita as suas, e a **função padrão** ★ já vem marcada ao escalar), selo Líder, **frequência nos ensaios** (6 meses)
@@ -303,7 +306,7 @@ npm run typecheck  # TypeScript estrito
 Cobrem parser, detecção de acordes e tom, graus, transposição, transições, teoria (escalas, campo
 harmônico, relativas), perguntas do treino, layout das folhas, repertórios compactados para o grupo,
 instrumentos, afinador, traduções, requisitos de senha, validação de e-mail, as regras da sincronização com a
-nuvem e a agenda do grupo (calendário, avisos da escala, frequência, repetição, .ics).
+nuvem e a agenda do grupo (calendário, avisos da escala, frequência, repetição, .ics), a lista Aprender e os convidados.
 
 ## Publicar
 

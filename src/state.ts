@@ -44,6 +44,8 @@ export interface DialogProps {
   // Editar o grupo aberto (foto, nome, excluir) e criar outro grupo.
   group: Record<string, never>;
   newGroup: Record<string, never>;
+  // Sugerir uma música para a lista Para aprender do grupo (id null) ou editar uma sugestão.
+  learn: {id: string | null};
 }
 export type DialogName = keyof DialogProps;
 

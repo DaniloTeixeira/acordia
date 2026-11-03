@@ -8546,6 +8546,10 @@ dialog.event-dlg {
   padding: 0 12px;
   font-size: 0.82rem;
 }
+/* Convidar de fora, logo abaixo dos botões da escala */
+.guest-box {
+  margin-top: 10px;
+}
 /* Membros (a foto tem o tamanho da lista "Com acesso", em .people-who .avatar) */
 .members .people-who {
   flex: 1 1 180px;
