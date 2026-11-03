@@ -175,7 +175,7 @@ direto na folha, sem Editar, e não vê os botões de mudar.
 - [ ] "Abrir no YouTube". Link que não é do YouTube abre numa aba nova.
 
 ### Grupo
-Abre pelo Início (cartão do grupo ou de uma escala). Qualquer pessoa cria o próprio grupo (e vira o líder dele, só os membros o veem; quem criou também o exclui); quem lidera um grupo inclui os membros pelo e-mail (o que
+Abre pelo Início (cartão do grupo ou de uma escala). Qualquer pessoa cria o próprio grupo (e vira o líder dele, só os membros o veem; quem criou também o exclui); o líder pode ligar **"Todos podem editar"** (lápis ao lado do nome do grupo): qualquer membro passa a criar e editar repertórios, agenda, escala e membros; só o líder liga/desliga isso, passa a liderança, exclui o grupo e troca a foto; quem lidera um grupo inclui os membros pelo e-mail (o que
 também libera o acesso ao app para eles).
 - [ ] **Agenda**:
   - calendário do mês com cultos e ensaios, os dias em que a pessoa está escalada e os dias em que não pode;
