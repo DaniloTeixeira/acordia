@@ -226,7 +226,7 @@ export function Group(){
     {/* Agenda e Biblioteca estão na barra de baixo (Membros, em Mais): só a Biblioteca tem abas, as suas três listas. */}
     {LIB_TABS.includes(tab) && <div className="tabs-row">
       <Seg id="group-tabs" className="tabs" aria={t("lib.tabsAria")} value={tab} onChange={v => store.setSetting("groupTab", v)}
-      options={[{v: "setlists", label: t("lib.setlists", {n: libCount.setlists})}, {v: "songs", label: t("lib.songs", {n: libCount.songs})}, {v: "medleys", label: t("lib.mblocks", {n: libCount.medleys})}, {v: "learn", label: t("lib.learn", {n: libCount.learn})}]}/>
+      options={[{v: "setlists", label: <>{t("lib.setlists")}<span className="tab-n"> ({libCount.setlists})</span></>}, {v: "songs", label: <>{t("lib.songs")}<span className="tab-n"> ({libCount.songs})</span></>}, {v: "medleys", label: <>{t("lib.mblocks")}<span className="tab-n"> ({libCount.medleys})</span></>}, {v: "learn", label: <>{t("lib.learn")}<span className="tab-n"> ({libCount.learn})</span></>}]}/>
       {(canEdit || tab === "learn") && <div className="tabs-acts">
         {canEdit && tab !== "learn" && <button type="button" className="btn ghost" id="lib-select" aria-pressed={!!sel} aria-label={t(sel ? "common.cancel" : "lib.select")} onClick={() => setSel(sel ? null : new Set())}><Icon name={sel ? "x" : "check"} sm/><span className="label-lg">{t(sel ? "common.cancel" : "lib.select")}</span></button>}
         <button className="btn primary" id="group-new-lib" aria-label={t(NEW_LABEL[tab])} onClick={NEW_ACT[tab]}><Icon name="plus" sm/><span className="label-lg">{t(NEW_LABEL[tab])}</span></button>

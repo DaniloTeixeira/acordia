@@ -1121,6 +1121,10 @@ input.input[type="time"]::-webkit-date-and-time-value {
     padding-inline: 8px;
     font-size: 0.82rem;
   }
+  /* A contagem das abas só aparece onde há espaço: no celular o nome sozinho já ocupa a largura. */
+  .seg.tabs .tab-n {
+    display: none;
+  }
 }
 @media (max-width: 360px) {
   .seg.tabs button {
