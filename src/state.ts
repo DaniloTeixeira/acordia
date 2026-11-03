@@ -11,8 +11,8 @@ import type { Allowed } from "./lib/cloud";
 
 // A barra de abas tem Início, Grupo e Mais. O repertório (medley) fica dentro do Grupo; o perfil abre pela
 // bolinha e Usuários (só admin) pelo Perfil.
-export type View = "home" | "medley" | "group" | "study" | "tools" | "more" | "profile" | "people" | "song";
-export const VIEWS: View[] = ["home", "medley", "group", "study", "tools", "more", "profile", "people", "song"];
+export type View = "home" | "medley" | "group" | "groups" | "study" | "tools" | "more" | "profile" | "people" | "song";
+export const VIEWS: View[] = ["home", "medley", "group", "groups", "study", "tools", "more", "profile", "people", "song"];
 
 export interface ToastAction { label: string; run: () => void }
 export interface Toast { id: number; msg: string; action?: ToastAction; sticky?: boolean; out?: boolean }

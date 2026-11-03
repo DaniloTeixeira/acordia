@@ -33,19 +33,23 @@ end $$;
 
 -- Convida alguém só até "until". Quem já é membro fixo continua fixo; quem já é convidado fica com o prazo mais
 -- distante. O e-mail precisa estar cadastrado (o gatilho on_allowed_invite barra quem não é admin do app).
-create or replace function public.add_group_guest(gid uuid, guest_email text, guest_role text, guest_name text, until timestamptz) returns void
+create or replace function public.add_group_guest(gid uuid, guest_email text, guest_role text, guest_name text, guest_phone text, guest_birthday date, until timestamptz) returns void
 language plpgsql security definer set search_path = public as $$
-declare e text := lower(trim(guest_email)); n text := left(trim(coalesce(guest_name, '')), 80);
+declare e text := lower(trim(guest_email)); n text := left(trim(coalesce(guest_name, '')), 80); ph text := left(trim(coalesce(guest_phone, '')), 30);
 begin
   if not is_group_admin(gid) then raise exception 'acordia: not group admin'; end if;
   if e !~ '^[^\s@]+@[^\s@]+\.[^\s@]+$' then raise exception 'acordia: bad email'; end if;
   if until is null or until <= now() then raise exception 'acordia: bad guest date'; end if;
-  insert into allowed_emails(email, name) values (e, n)
-    on conflict (email) do update set name = case when n <> '' and allowed_emails.name = '' then n else allowed_emails.name end;
+  -- Cadastro novo leva nome, celular e nascimento; quem já está cadastrado só ganha o que ainda faltava.
+  insert into allowed_emails(email, name, birthday, phone) values (e, n, guest_birthday, ph)
+    on conflict (email) do update set
+      name = case when allowed_emails.name = '' then n else allowed_emails.name end,
+      birthday = coalesce(allowed_emails.birthday, guest_birthday),
+      phone = case when allowed_emails.phone = '' then ph else allowed_emails.phone end;
   insert into group_members(group_id, email, is_admin, role, guest_until) values (gid, e, false, left(coalesce(guest_role, ''), 200), until)
     on conflict (group_id, email) do update set guest_until = case
       when group_members.guest_until is null then null
       else greatest(group_members.guest_until, excluded.guest_until) end;
 end $$;
-grant execute on function public.add_group_guest(uuid, text, text, text, timestamptz) to authenticated;
-revoke execute on function public.add_group_guest(uuid, text, text, text, timestamptz) from anon, public;
+grant execute on function public.add_group_guest(uuid, text, text, text, text, date, timestamptz) to authenticated;
+revoke execute on function public.add_group_guest(uuid, text, text, text, text, date, timestamptz) from anon, public;

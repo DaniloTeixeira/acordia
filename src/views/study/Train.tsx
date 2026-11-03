@@ -8,6 +8,7 @@ import { useUI, toast } from "../../state";
 import { repertoireEntries } from "../../repertoire";
 import { Icon } from "../../ui/Icon";
 import { Seg } from "../../ui/Seg";
+import { SecHead } from "../../ui/SecHead";
 import { studyState, setStudy } from "./Study";
 
 const ROUND = 10;
@@ -77,17 +78,17 @@ function Setup({start, bestKey}: {start: () => void; bestKey: string}){
   const best = ((store.data.settings.best || {}) as Record<string, number>)[bestKey];
   const noRep = st.kind === "repertorio" && !makeRepertoireQuestion(repertoireEntries());
   return <div className="train-setup" style={{marginTop: 16}}>
-    <h2>{t("train.kind")}</h2>
-    <div className="kinds">{KINDS.map(k => { const [a, b] = kindLabel(k); return <button key={k} className="kind" data-k={k} aria-pressed={k === st.kind} onClick={() => setStudy({kind: k})}><b>{a}</b><span>{b}</span></button>; })}</div>
+    <section className="card"><SecHead>{t("train.kind")}</SecHead>
+    <div className="kinds">{KINDS.map(k => { const [a, b] = kindLabel(k); return <button key={k} className="kind" data-k={k} aria-pressed={k === st.kind} onClick={() => setStudy({kind: k})}><b>{a}</b><span>{b}</span></button>; })}</div></section>
     <div className="setup-row">
-      <div><h2>{t("train.level")}</h2>
+      <section className="card"><SecHead>{t("train.level")}</SecHead>
         <Seg id="tr-level" aria={t("train.level")} value={st.level} onChange={level => setStudy({level})}
           options={[{v: "facil", label: t("train.easy")}, {v: "medio", label: t("train.medium")}, {v: "dificil", label: t("train.hard")}]}/>
-        <p className="sub" style={{marginTop: 6}}>{t("train.levelD." + st.level)}</p></div>
-      <div><h2>{t("train.answers")}</h2>
+        <p className="sub" style={{marginTop: 6}}>{t("train.levelD." + st.level)}</p></section>
+      <section className="card"><SecHead>{t("train.answers")}</SecHead>
         <Seg id="tr-mode" aria={t("train.answers")} value={st.mode} onChange={mode => setStudy({mode})}
           options={[{v: "choice", label: t("train.choice")}, {v: "full", label: t("train.full")}]}/>
-        <p className="sub" style={{marginTop: 6}}>{t(st.mode === "full" ? "train.fullD" : "train.choiceD")}</p></div>
+        <p className="sub" style={{marginTop: 6}}>{t(st.mode === "full" ? "train.fullD" : "train.choiceD")}</p></section>
     </div>
     <div className="study-row"><button className="btn primary" id="tr-start" disabled={noRep} onClick={start}><Icon name="play" sm/> {t("train.start")}</button>
       {noRep && <span className="note">{t("train.needRepertoire")}</span>}

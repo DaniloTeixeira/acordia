@@ -282,10 +282,10 @@ export async function addMember(gid: string, email: string, admin: boolean, role
 }
 // Convida alguém só até o evento acabar (starts: as datas do evento, repetido ou não). "unregistered": quem não é
 // admin do app só convida quem já está cadastrado em Usuários.
-export async function addGuest(gid: string, email: string, role: string, name: string, starts: string[]): Promise<"ok" | "unregistered" | "fail">{
+export async function addGuest(gid: string, email: string, role: string, name: string, phone: string, birthday: string, starts: string[]): Promise<"ok" | "unregistered" | "fail">{
   let err = "";
   const ok = await run(async () => {
-    const r = await cloud.rpc("add_group_guest", {gid, guest_email: email.trim().toLowerCase(), guest_role: role.trim().slice(0, ROLES_MAX), guest_name: name.trim().slice(0, 80), until: guestUntil(starts)});
+    const r = await cloud.rpc("add_group_guest", {gid, guest_email: email.trim().toLowerCase(), guest_role: role.trim().slice(0, ROLES_MAX), guest_name: name.trim().slice(0, 80), guest_phone: cleanPhone(phone), guest_birthday: validBirthday(birthday) || null, until: guestUntil(starts)});
     err = r.error?.message || "";
     return r;
   });

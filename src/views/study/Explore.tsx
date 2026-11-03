@@ -19,7 +19,7 @@ function FnLegend({field, fnName}: {field: FieldChord[]; fnName: Record<string, 
   const by = (f: string) => field.filter(c => c.fn === f);
   const ex = ["T","SD","D","T"].map(f => { const c = by(f)[0]; return c ? c.name : ""; }).filter(Boolean).join(" → ");
   return <div className="fn-legend">
-    <h3>{t("study.fnTitle")}</h3><p className="sub">{t("study.fnIntro")}</p>
+    <SecHead as="h3" className="people-sub-h">{t("study.fnTitle")}</SecHead><p className="sub">{t("study.fnIntro")}</p>
     <div className="fn-grid">{["T","SD","D"].map(f => <div key={f} className={"fn-item " + f}>
       <div className="fn-name"><span className={"fn " + f}>{f}</span> {fnName[f]}</div>
       <p>{t("study.fn" + f + "D")}</p>

@@ -6,6 +6,7 @@ import { t, tn } from "../lib/i18n";
 import { useGroups, saveEvent, addGuest, personName, outMark, isActive, type RosterInput } from "../lib/groups";
 import { useAuth, validEmail, listAllowed, type Allowed } from "../lib/cloud";
 import { warningsFor, rehearsalStanding, monthLoad, weekly, dayKey, rosterByPerson, soundOnly, type EventKind, type GEvent } from "../lib/calendar";
+import { reduced } from "../lib/util";
 import { toast, confirmDialog, requestClose, type DialogProps } from "../state";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
@@ -27,11 +28,12 @@ const byName = (rs: Row[]) => [...rs.filter(r => r.email).sort((a, b) => personN
 
 export function EventDialog({id, day}: DialogProps["event"]){
   const g = useGroups(), ev = id ? g.events.find(e => e.id === id) : undefined;
-  const [kind, setKind] = useState<EventKind>(ev?.kind || "service");
+  const [kind, setKind] = useState<EventKind>(ev?.kind || "rehearsal");
   const [title, setTitle] = useState(ev?.title || "");
   const [date, setDate] = useState(ev ? dayKey(new Date(ev.starts_at)) : day);
   const [time, setTime] = useState(ev ? hhmm(ev.starts_at) : "19:00");
-  const [call, setCall] = useState(ev ? hhmm(ev.call_at) : "");
+  // A chegada não tem mais campo: eventos antigos mantêm o valor ao salvar.
+  const [call] = useState(ev ? hhmm(ev.call_at) : "");
   const [place, setPlace] = useState(ev?.place || "");
   const [notes, setNotes] = useState(ev?.notes || "");
   const [setlist, setSetlist] = useState(ev?.setlist_id || "");
@@ -43,9 +45,11 @@ export function EventDialog({id, day}: DialogProps["event"]){
   const snap = () => JSON.stringify([kind, title, date, time, call, place, notes, setlist, weeks, roster]);
   const start = useRef<string | null>(null); if(start.current === null) start.current = snap();
   const done = useRef(false), dirty = () => !done.current && snap() !== start.current;
-  const form = useRef<HTMLFormElement>(null);
-  // Tela larga abre Detalhes e Escala; no celular só a Escala (os detalhes ficam a um toque).
-  const wide = window.matchMedia("(min-width: 900px)").matches;
+  const form = useRef<HTMLFormElement>(null), rosterEnd = useRef<HTMLDivElement>(null);
+  // Ao abrir a Escala, rola a janela até o fim dela (a lista e os botões de escalar e convidar ficam embaixo dos detalhes).
+  const toEnd = () => requestAnimationFrame(() => rosterEnd.current?.scrollIntoView({block: "end", behavior: reduced() ? "auto" : "smooth"}));
+  // Evento novo sempre abre os Detalhes (é onde se preenche); ao editar, só na tela larga (no celular ficam a um toque).
+  const wide = !id || window.matchMedia("(min-width: 900px)").matches;
   const starts = date && time ? at(date, time) : null;
   const probe: Pick<GEvent, "id" | "starts_at"> = {id: id || "new", starts_at: (starts || new Date()).toISOString()};
   const load = monthLoad(date || dayKey(new Date()), g.events, g.roster);
@@ -82,26 +86,38 @@ export function EventDialog({id, day}: DialogProps["event"]){
     }}>
       <DialogHead id="event-h" title={t(id ? "group.editEvent" : "group.newEvent")} closeLabel={t("common.close")}/>
       <div className="dlg-body">
-        <FoldCard id="event-data" title={t("group.details")} defaultOpen={wide}>
+        <FoldCard id="event-data" title={t("group.details")} defaultOpen={wide} boxed>
         <Seg className="block" id="event-kind" aria={t("group.kindLabel")} value={kind} onChange={setKind}
           options={[{v: "service", label: t("group.kind.service")}, {v: "rehearsal", label: t("group.kind.rehearsal")}]}/>
         <label className="field"><span>{t("group.eventTitle")}</span><input className="input" id="event-title" maxLength={80} placeholder={t(kind === "service" ? "group.titlePhService" : "group.titlePhRehearsal")} value={title} onChange={e => setTitle(e.target.value)}/></label>
         <div className="event-row">
           <label className="field"><span>{t("group.date")}</span><DateInput id="event-date" aria={t("group.date")} value={date} onChange={v => setDate(v)}/></label>
           <label className="field"><span>{t("group.time")}</span><input className="input" id="event-time" type="time" required value={time} onChange={e => setTime(e.target.value)}/></label>
-          <label className="field" title={t("group.callHint")}><span>{t("group.call")}</span><input className="input" id="event-call" type="time" value={call} onChange={e => setCall(e.target.value)}/></label>
+          <label className="field"><span>{t("group.place")}</span><input className="input" id="event-place" maxLength={120} placeholder={t("group.placePh")} value={place} onChange={e => setPlace(e.target.value)}/></label>
         </div>
-        <label className="field"><span>{t("group.place")}</span><input className="input" id="event-place" maxLength={120} placeholder={t("group.placePh")} value={place} onChange={e => setPlace(e.target.value)}/></label>
-        <label className="field"><span>{t("group.setlist")}</span><Select id="event-setlist" value={setlist} onChange={setSetlist}
-          options={[{value: "", label: t("group.noSetlist")}, ...g.setlists.map(s => ({value: s.id, label: s.name}))]}/></label>
+        {/* Repertório e Repetir lado a lado (empilham no celular). */}
+        <div className="event-pair">
+          <label className="field"><span>{t("group.setlist")}</span><Select id="event-setlist" value={setlist} onChange={setSetlist}
+            options={[{value: "", label: t("group.noSetlist")}, ...g.setlists.map(s => ({value: s.id, label: s.name}))]}/></label>
+          {!id && <label className="field"><span>{t("group.repeat")}</span><Select id="event-repeat" value={weeks} onChange={setWeeks}
+            options={["1", "2", "4", "8", "12", "26"].map(n => ({value: n, label: n === "1" ? t("group.repeatNo") : t("group.repeatWeeks", {n})}))}/></label>}
+        </div>
         {!g.setlists.length && <p className="sub">{t("group.setlistHint")}</p>}
-        {!id && <label className="field"><span>{t("group.repeat")}</span><Select id="event-repeat" value={weeks} onChange={setWeeks}
-          options={["1", "2", "4", "8", "12", "26"].map(n => ({value: n, label: n === "1" ? t("group.repeatNo") : t("group.repeatWeeks", {n})}))}/></label>}
         <label className="field"><span>{t("group.notes")}</span><textarea className="input" id="event-notes" rows={3} maxLength={1000} placeholder={t("group.notesPh")} value={notes} onChange={e => setNotes(e.target.value)}/></label>
         </FoldCard>
 
-        <FoldCard id="event-roster" title={t("group.roster")} aside={<span className="sub">{tn("group.people", roster.filter(r => r.email).length)}</span>} defaultOpen>
-        <ul className="roster-edit">
+        <FoldCard id="event-roster" onToggle={open => { if(open) toEnd(); }} title={t("group.roster")} aside={<span className="sub">{tn("group.people", roster.filter(r => r.email).length)}</span>} defaultOpen boxed
+          after={<>
+          <datalist id="event-roles">{roleOptions().map(r => <option key={r} value={r}/>)}</datalist>
+          <div className="roster-add">
+            <button type="button" className="btn soft sm" id="event-add-person" disabled={!free.length} onClick={() => { setRoster(rs => [...rs, {email: "", roles: []}]); }}><Icon name="plus" sm/> {t("group.addPerson")}</button>
+            {callable.length > 0 && <button type="button" className="btn ghost sm" onClick={() => { setRoster(rs => byName([...rs.filter(r => r.email), ...callable.map(m => ({email: m.email, roles: firstRole(m.email)}))])); }}><Icon name="users" sm/> {t("group.addEveryone")}</button>}
+            <button type="button" className="btn ghost sm" id="event-add-guest" aria-expanded={inviting} onClick={() => { setInviting(!inviting); if(!inviting) toEnd(); }}><Icon name="user" sm/> {t("group.inviteGuest")}</button>
+          </div>
+          {inviting && <GuestBox dates={guestDates} onDone={email => { setInviting(false); setRoster(rs => byName([...rs.filter(r => r.email && r.email !== email), {email, roles: []}])); }} onCancel={() => setInviting(false)}/>}
+          <div ref={rosterEnd}/>
+          </>}>
+        {roster.length > 0 && <ul className="roster-edit">
           {/* Cabeçalho da tabela: só na tela larga (no celular cada pessoa é um cartão). */}
           {roster.some(r => r.email) && <li className="roster-head" aria-hidden="true"><span>{t("people.colPerson")}</span><span>{t("group.roles")}</span><span/></li>}
           {roster.map((r, i) => {
@@ -130,14 +146,8 @@ export function EventDialog({id, day}: DialogProps["event"]){
             {warns.map((w, k) => <p key={k} className={"roster-warn " + w.kind} role="status"><Icon name={w.kind === "busy" ? "calendar" : "x"} sm/>
               {w.kind === "unavailable" ? t("group.warnOff") + (w.note ? ": " + w.note : "") : w.kind === "busy" ? t("group.warnBusy", {title: w.title}) : t("group.warnDeclined")}</p>)}
           </li>;
-        })}</ul>
-        <datalist id="event-roles">{roleOptions().map(r => <option key={r} value={r}/>)}</datalist>
-        <div className="roster-add">
-          <button type="button" className="btn soft sm" id="event-add-person" disabled={!free.length} onClick={() => { setRoster(rs => [...rs, {email: "", roles: []}]); }}><Icon name="plus" sm/> {t("group.addPerson")}</button>
-          <button type="button" className="btn ghost sm" id="event-add-guest" aria-expanded={inviting} onClick={() => setInviting(v => !v)}><Icon name="user" sm/> {t("group.inviteGuest")}</button>
-          {callable.length > 0 && <button type="button" className="btn ghost sm" onClick={() => { setRoster(rs => byName([...rs.filter(r => r.email), ...callable.map(m => ({email: m.email, roles: firstRole(m.email)}))])); }}><Icon name="users" sm/> {t("group.addEveryone")}</button>}
-        </div>
-        {inviting && <GuestBox dates={guestDates} onDone={email => { setInviting(false); setRoster(rs => byName([...rs.filter(r => r.email && r.email !== email), {email, roles: []}])); }} onCancel={() => setInviting(false)}/>}
+        })}</ul>}
+        {!roster.length && <div className="empty-state"><Icon name="users"/><strong>{t("group.noRoster")}</strong></div>}
         </FoldCard>
       </div>
       <div className="dlg-foot"><button type="button" className="btn ghost" onClick={() => { const d = form.current?.closest("dialog"); if(d) requestClose(d); }}>{t("common.cancel")}</button>
@@ -167,23 +177,23 @@ function RoleChips({roles, value, onChange}: {roles: string[]; value: string[]; 
 }
 
 // Convidar alguém de fora do grupo só para este evento: entra como convidado até o evento acabar e já fica escalado.
-// Admin do app também escolhe entre quem já está cadastrado em Usuários (de convites anteriores). Sem <form>: está
+// Admin do app cadastra a pessoa aqui mesmo (nome, celular e nascimento, sem sair do evento) ou escolhe entre quem já está em Usuários. Sem <form>: está
 // dentro do formulário do evento, então o Enter dos campos convida.
 function GuestBox({dates, onDone, onCancel}: {dates: () => string[]; onDone: (email: string) => void; onCancel: () => void}){
   const g = useGroups(), appAdmin = useAuth(s => s.admin);
-  const [email, setEmail] = useState(""), [name, setName] = useState(""), [busy, setBusy] = useState(false), check = useEmailCheck(email);
+  const [email, setEmail] = useState(""), [name, setName] = useState(""), [phone, setPhone] = useState(""), [birthday, setBirthday] = useState(""), [busy, setBusy] = useState(false), check = useEmailCheck(email);
   const [allowed, setAllowed] = useState<Allowed[] | null>(null);
   useEffect(() => { if(appAdmin) listAllowed().then(r => setAllowed(a => r || a || [])); }, [appAdmin]);
   // Quem já tem acesso e ainda não é do grupo (nem convidado vigente).
   const outside = (allowed || []).filter(a => !g.members.some(m => m.email === a.email));
-  const pick = (v: string) => { const a = outside.find(x => x.email === v); if(a){ setEmail(a.email); setName(a.profileName || a.name); } };
+  const pick = (v: string) => { const a = outside.find(x => x.email === v); if(a){ setEmail(a.email); setName(a.profileName || a.name); setPhone(a.profilePhone || a.phone); setBirthday(a.profileBirthday || a.birthday || ""); } };
   const invite = async () => {
     if(busy) return;
     const v = email.trim().toLowerCase(), when = dates();
     if(!validEmail(v)){ check.fail(); document.getElementById("guest-email")?.focus(); return; }
     if(!when.length) return toast(t("group.needDate"));
     setBusy(true);
-    const res = await addGuest(g.gid, v, "", name, when).finally(() => setBusy(false));
+    const res = await addGuest(g.gid, v, "", name, phone, birthday, when).finally(() => setBusy(false));
     if(res === "ok"){ toast(t("group.guestAdded", {email: v})); return onDone(v); }
     toast(t(res === "unregistered" ? "group.notRegistered" : "profile.saveFail"), res === "fail" ? {label: t("common.retry"), run: invite} : undefined);
   };
@@ -192,8 +202,9 @@ function GuestBox({dates, onDone, onCancel}: {dates: () => string[]; onDone: (em
     {appAdmin && (allowed === null ? <Select id="guest-pick" aria={t("auth.loading")} disabled value="" onChange={() => {}} options={[{value: "", label: t("auth.loading")}]}/>
       : outside.length > 0 && <Select id="guest-pick" aria={t("group.pickUser")} value={outside.some(a => a.email === email) ? email : ""} onChange={pick}
         options={[{value: "", label: t("group.pickUser")}, ...outside.map(a => ({value: a.email, label: a.profileName || a.name || a.email, sub: (a.profileName || a.name) ? a.email : undefined}))]}/>)}
-    <div className="people-add"><PersonFields idp="guest" name={name} onName={setName} email={email} onEmail={setEmail} check={check}/></div>
-    {!appAdmin && <small className="sub">{t("group.inviteHelp")}</small>}
+    <div className="people-add"><PersonFields idp="guest" name={name} onName={setName} email={email} onEmail={setEmail} check={check}
+      {...(appAdmin ? {phone, onPhone: setPhone, birthday, onBirthday: setBirthday} : {})}/></div>
+    <small className="sub">{t(appAdmin ? "group.guestAdminHelp" : "group.inviteHelp")}</small>
     <div className="member-roles-foot">
       <button type="button" className="btn ghost" onClick={onCancel}>{t("common.cancel")}</button>
       <button type="button" className="btn primary" aria-busy={busy} disabled={busy} onClick={invite}>{busy ? <Spin/> : <Icon name="plus" sm/>} {t("group.inviteGuestGo")}</button>

@@ -13,10 +13,11 @@ presença nos ensaios, e repertórios compartilhados.
 Lista completa, tela por tela, para testar e decidir o que fica. Marque `[x]` no que já foi conferido.
 
 ### Em todas as telas
-- [ ] **Navegação** entre Início, Agenda, Biblioteca (Repertórios, Músicas, Medleys e Aprender) e Mais (Membros, Usuários só para admin, Estudo e Ferramentas): barra de abas no celular. No topo do celular, a foto do perfil fica à esquerda (abre o Perfil) e o menu (⋯) à direita reúne instalar, idioma, volume e tema; a ajuda (?) fica solta ao lado dele. No computador o trilho
+- [ ] **Navegação** entre Início, Agenda, Biblioteca (Repertórios, Músicas, Medleys e Aprender) e Mais (Grupos, Membros, Usuários só para admin, Estudo e Ferramentas): barra de abas no celular. **Grupos** é uma página só com a lista de todos os grupos da pessoa (fixar, "Novo grupo"), em Mais no celular e como item do trilho na tela larga; a mesma lista continua no Início. No topo do celular, a foto do perfil fica à esquerda (abre o Perfil) e o menu (⋯) à direita reúne instalar, idioma, volume e tema; a ajuda (?) fica solta ao lado dele. No computador o trilho
       lateral mostra tudo direto (Início, Agenda, Biblioteca, Membros, Estudo e Ferramentas), sem o Mais. Membros, Estudo, Ferramentas, Perfil e Usuários têm o link "Voltar para <tela>" no topo, que leva à tela de onde a pessoa veio (sem histórico, ao Mais ou ao Início). No celular ele fica fixo no topo e continua visível ao rolar. Cada página tem endereço próprio, então o "voltar" do navegador (e do mouse) funciona e fecha primeiro a janela ou o Palco abertos. O repertório aberto conta como Grupo e o voltar leva aos Repertórios. Tocar de novo na
       página atual volta ao topo.
 - [ ] **Tema** claro ou escuro. Até a primeira escolha, segue o aparelho.
+- [ ] **Ícones com ação** dão um bounce discreto ao passar o mouse (crescem de leve e voltam com uma mola curta). No toque o ícone "aperta" enquanto o dedo está em cima. Desligado para quem pede menos movimento no aparelho.
 - [ ] **Idioma**: português, inglês e espanhol. O inicial vem do navegador ou do fuso horário.
 - [ ] **Volume**:
   - controle de 0 a 100%, silenciar e acorde de teste;
@@ -188,7 +189,7 @@ também libera o acesso ao app para eles).
   - **Presente** (verde mais forte, só contorno) e **Confirmado** (azul) têm cores diferentes;
   - lista de próximos; cada evento abre com a data, o título e os chips no topo do card, sem bloco "Detalhes"; quem está na escala de um evento futuro também responde ali, em "Sua resposta" (o mesmo bloco do topo da Agenda). No ensaio, nas 12 h antes do início, a resposta e a presença viram um estado só para quem está na escala: o selo mostra Presente, Você confirmou ou Você não vai, com um único "Alterar resposta" e as opções **Cheguei** (também confirma a resposta) e **Não posso** (desmarca a presença); quem está na escala também tem ali **Adicionar ao calendário**, com a explicação.
 - [ ] **Evento** (só quem edita o grupo cria e edita; Editar e Excluir ficam no alto do evento, logo abaixo de "Adicionar ao calendário": um em cada ponta no celular e juntos à esquerda no computador):
-  - tipo Culto ou Ensaio, título, data, início, **hora de chegada**, local, repertório do grupo e observações;
+  - tipo Culto ou Ensaio, título, data, horário, local, repertório do grupo e observações;
   - **repetir** toda semana (2 a 26 vezes);
   - **escala**: quem toca o quê, com funções sugeridas e "Escalar todos" (não convoca quem está em pausa nem quem só tem a função Mesa de som, em culto ou ensaio; o líder ainda escala à mão); no computador é uma tabela (pessoa e funções
     numa linha, "Outra função" como link à direita), no celular cada pessoa é um cartão; "Outra função" abre um campo com o botão **Adicionar**;

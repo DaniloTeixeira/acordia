@@ -299,10 +299,10 @@ function Agenda({canEdit}: {canEdit: boolean}){
       {narrow ? <div className="card cal"><FoldCard id="cal" title={t("group.calendar")} defaultOpen={!!sel}>{calBody}</FoldCard></div>
         : <div className="card cal" aria-labelledby="cal-h"><SecHead id="cal-h">{t("group.calendar")}</SecHead>{calBody}</div>}
       <div className="card agenda-list">
-        <SecHead className="people-sub-h agenda-list-h">{t("group.events")}</SecHead>
+        <SecHead>{t("group.events")}</SecHead>
         {sel && <DayBar day={sel} off={myOff.has(sel)} canEdit={canEdit} onClear={() => setSel("")}/>}
         {list.length ? <ul className="events">{list.map(e => <EventCard key={e.id} e={e} canEdit={canEdit}/>)}</ul>
-          : <div className="card empty-state"><Icon name="calendar"/><strong>{t(sel ? "group.noEventsDay" : "group.noEvents")}</strong>
+          : <div className="empty-state"><Icon name="calendar"/><strong>{t(sel ? "group.noEventsDay" : "group.noEvents")}</strong>
             {canEdit && !sel && <span>{t("group.noEventsAdmin")}</span>}</div>}
       </div>
     </div>}

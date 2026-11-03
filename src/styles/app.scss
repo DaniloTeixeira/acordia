@@ -48,6 +48,8 @@
   --ink: #0f172a;
   --ink-2: #334155;
   --muted: #56657c;
+  --ic-caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2356657c' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  --ic-clock: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2356657c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E");
   --line: #d5dce8;
   --line-strong: #b4bfcf;
   --accent: #2a63e6;
@@ -134,6 +136,8 @@
     --ink: #e8ecf7;
     --ink-2: #c4cce0;
     --muted: #8f9cb8;
+    --ic-caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238f9cb8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    --ic-clock: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238f9cb8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E");
     --line: #232d45;
     --line-strong: #323e5e;
     --accent: #6e9bff;
@@ -212,6 +216,8 @@
   --ink: #e8ecf7;
   --ink-2: #c4cce0;
   --muted: #8f9cb8;
+  --ic-caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238f9cb8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  --ic-clock: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238f9cb8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E");
   --line: #232d45;
   --line-strong: #323e5e;
   --accent: #6e9bff;
@@ -579,6 +585,32 @@ textarea::-webkit-scrollbar {
     }
   }
 }
+/* hover-bounce: o ícone filho de um clicável cresce de leve no hover e volta ao sair, nos dois sentidos com uma mola
+   curta (a curva passa do ponto e assenta). É `transition` (e não animation) para a volta também ser animada.
+   Usa `scale` (propriedade própria) para não brigar com o `transform` de giro das setas nem com o `translate` de
+   quem desliza. Só com mouse e só em controle ativo; `prefers-reduced-motion` desliga. */
+@mixin hover-bounce($icon: ".i:not(.chev-right)") {
+  > #{$icon} {
+    transition: scale .32s cubic-bezier(.34, 1.8, .64, 1);
+  }
+  @media (hover: hover) {
+    &:hover:where(:not(:disabled, [aria-disabled="true"])) > #{$icon} {
+      scale: 1.1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    > #{$icon} {
+      transition: none;
+      scale: none !important;
+    }
+  }
+}
+/* hover-bounce-press: no toque (sem hover) o feedback é o ícone "apertar" enquanto o dedo está em cima. */
+@mixin hover-bounce-press($icon: ".i") {
+  &:active:where(:not(:disabled, [aria-disabled="true"])) > #{$icon} {
+    scale: .94;
+  }
+}
 /* Transição padrão de tudo que se clica; regras de componente com `transition` próprio têm prioridade (especificidade zero aqui). */
 :where(button, a, summary, [role="button"], [role="tab"]) {
   transition:
@@ -677,7 +709,6 @@ textarea::-webkit-scrollbar {
 }
 /* Nessa altura o texto fica 1px abaixo do centro do ícone (a caixa do texto leva espaço de descendente): o ícone desce 1px. */
 .btn.sm > .i { position: relative; top: 1px; }
-.btn.sm:has(> .i) { padding-bottom: 3px; } /* conteúdo (ícone e texto) 1,5px mais alto: o texto estava baixo no botão */
 /* Desabilitado: sem hover, sem clique encolhendo e sem a mãozinha (as regras de hover e active excluem :disabled). */
 .btn:disabled {
   opacity: 0.45;
@@ -789,7 +820,7 @@ select.input {
   appearance: none;
   padding-right: 32px;
   cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-image: var(--ic-caret);
   background-repeat: no-repeat;
   background-position: right 12px center;
 }
@@ -797,12 +828,27 @@ select.input {
 input.input[type="time"] {
   appearance: none;
   display: block;
-  padding-right: 16px;
   text-align: left;
 }
+/* O ícone nativo do relógio muda entre navegadores e fica branco no tema escuro: some, e o relógio do
+   tema (--ic-clock, --muted) é desenhado no lugar. O indicador nativo continua cobrindo o campo, invisível,
+   para o toque seguir abrindo o seletor. */
+input.input[type="time"] {
+  position: relative;
+  padding-right: 40px;
+  background-image: var(--ic-clock);
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
 input.input[type="time"]::-webkit-calendar-picker-indicator {
-  margin: 0 0 0 4px;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
   padding: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 input.input[type="time"]::-webkit-date-and-time-value {
   text-align: left;
@@ -3536,10 +3582,11 @@ textarea.song-text {
   gap: 16px 32px;
   flex-wrap: wrap;
 }
-.setup-row > div {
+.setup-row > .card {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex: 1;
   min-width: 240px;
 }
 .quiz .back-link {
@@ -4984,9 +5031,13 @@ body[data-menu-open] .people-list li {
 .select-btn[aria-expanded="true"] .chev-down {
   transform: rotate(180deg);
 }
-/* Setas dos dropdowns no gradiente da marca. */
+/* Setas dos dropdowns neutras (--muted), como os demais ícones dos campos; abertas, na cor do texto. */
 .chev-down {
-  stroke: url(#g-logo);
+  color: var(--muted);
+  transition: color var(--t-fast), transform var(--t-fast) var(--ease);
+}
+.select-btn[aria-expanded="true"] .chev-down {
+  color: var(--ink);
 }
 .select-btn:disabled {
   opacity: 0.5;
@@ -6970,10 +7021,10 @@ dialog.ear-dlg {
 .people-page .fold-card-head .people-sub-h { font-size: 0.95rem; }
 .people-page .fold-card-head .people-sub-h > .sec-bar { width: 4px; }
 .people-page .fold-card-head .people-sub-h > .sec-bar::before { height: 0.85em; border-radius: 2px; }
-/* O Calendário da Agenda também leva o traço (barra) em vez do ponto. */
-.cal .fold-card-head .people-sub-h { font-size: 0.95rem; }
-.cal .fold-card-head .people-sub-h > .sec-bar { width: 4px; }
-.cal .fold-card-head .people-sub-h > .sec-bar::before { height: 0.85em; border-radius: 2px; }
+/* O Calendário da Agenda e o Detalhes/Escala da janela do evento também levam o traço (barra) em vez do ponto. */
+:is(.cal, .event-dlg) .fold-card-head .people-sub-h { font-size: 0.95rem; }
+:is(.cal, .event-dlg) .fold-card-head .people-sub-h > .sec-bar { width: 4px; }
+:is(.cal, .event-dlg) .fold-card-head .people-sub-h > .sec-bar::before { height: 0.85em; border-radius: 2px; }
 /* Texto de ajuda das seções do Perfil: colado no que explica, menor e sem negrito, para não parecer título. */
 .profile-sec small.sub {
   margin-top: 2px;
@@ -7719,6 +7770,12 @@ dialog.ear-dlg {
    porque a lista pode ficar longa. */
 .agenda-grid > .agenda-list {
   order: -1;
+  /* Estica até a altura do calendário (o card nunca fica menor que ele); o aviso de vazio ocupa o espaço que sobra. */
+  align-self: stretch;
+}
+.agenda-grid > .agenda-list > .empty-state {
+  flex: 1;
+  justify-content: center;
 }
 @media (max-width: 899px) {
   .agenda-grid > .agenda-list {
@@ -7826,10 +7883,6 @@ dialog.ear-dlg {
   margin: 0 0 10px;
   font-size: 1rem;
 }
-.agenda-list-h {
-  margin: 0;
-  font-size: 1rem;
-}
 .cal-head {
   display: flex;
   align-items: center;
@@ -7867,6 +7920,13 @@ dialog.ear-dlg {
   .link-btn.go:hover .i {
     translate: none;
   }
+}
+/* Bounce dos ícones de quem tem ação (mixin hover-bounce, no topo). A seta de atalho (.chev-right) fica de fora: tem o seu deslize. */
+:is(button, a, summary, [role="button"], [role="tab"]) {
+  @include hover-bounce;
+}
+:is(.icon-btn, .btn) {
+  @include hover-bounce-press;
 }
 .cal-grid {
   display: grid;
@@ -8301,14 +8361,20 @@ dialog.event-dlg {
 }
 .event-row {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+/* Repertório e Repetir: lado a lado quando cabe, um embaixo do outro no celular. */
+.event-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 10px;
 }
 @media (max-width: 520px) {
   .event-row {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
-  .event-row .field:first-child {
+  .event-row .field:last-child {
     grid-column: 1 / -1;
   }
 }
@@ -8347,6 +8413,13 @@ dialog.event-dlg {
   color: var(--muted);
   transition: background var(--t) var(--ease);
 }
+/* Seta de quem abre e fecha (Fold e FoldCard): para baixo fechado, para cima aberto. Mesma convenção dos selects e dos outros recolhíveis. */
+.event-chev {
+  transition: transform var(--t) var(--ease-out);
+}
+.event-chev.up {
+  transform: rotate(180deg);
+}
 @media (hover: hover) {
   .fold-card-head > button:hover .fold-card-chev {
     background: var(--surface-2);
@@ -8357,6 +8430,10 @@ dialog.event-dlg {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+/* Estado vazio dentro do quadro de uma seção: menos folga que o da página, que já tem o respiro do quadro. */
+.people-add-box > .empty-state {
+  padding: 14px 0;
 }
 .fold-card-body[hidden] {
   display: none;
@@ -8549,6 +8626,21 @@ dialog.event-dlg {
   min-height: 32px;
   padding: 0 12px;
   font-size: 0.82rem;
+}
+/* A Escala dentro do quadro da seção (fundo --surface-2): os cartões (celular) e a tabela (tela larga) passam para --surface para aparecer. */
+.people-add-box .roster-card {
+  background: var(--surface);
+}
+@media (min-width: 900px) {
+  .people-add-box .roster-edit {
+    background: var(--surface);
+  }
+  .people-add-box .roster-edit > .roster-card {
+    background: transparent;
+  }
+  .people-add-box .roster-edit > .roster-card:nth-child(odd) {
+    background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+  }
 }
 /* Convidar de fora, logo abaixo dos botões da escala */
 .guest-box {
