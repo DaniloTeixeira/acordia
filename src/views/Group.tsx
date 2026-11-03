@@ -90,6 +90,8 @@ export function relDay(iso: string){
 export const timeOf = (iso: string) => fmt({hour: "2-digit", minute: "2-digit"}).format(new Date(iso));
 export const eventTitle = (e: Pick<GEvent, "title" | "kind">) => e.title || t("group.kind." + e.kind);
 export const longDay = (d: Date) => fmt({weekday: "long", day: "numeric", month: "long"}).format(d);
+// Resumida ("sex., 23 de out.") para linhas de lista, onde a data por extenso quebra em duas linhas no celular.
+export const shortDay = (d: Date) => fmt({weekday: "short", day: "numeric", month: "short"}).format(d);
 
 // Bolinha de um membro: a foto do perfil (conta Google) ou as iniciais.
 export const PersonAvatar = ({email}: {email: string}) => <Avatar person={{name: personName(email), email, photo: personPhoto(email)}}/>;
@@ -332,18 +334,16 @@ function PastEvents({past}: {past: GEvent[]}){
       {rows.map((e, idx) => {
         const att = g.attendance.find(a => a.event_id === e.id && a.email === me)?.status, set = g.setlists.find(x => x.id === e.setlist_id);
         const roster = g.roster.filter(r => r.event_id === e.id), people = new Set(roster.map(r => r.email)).size;
-        const roles = sortRoles(roster.filter(r => r.email === me).map(r => r.role).filter(Boolean));
         const here = g.attendance.filter(a => a.event_id === e.id && a.status === "present").length;
         const open = () => openDialog("eventDetail", {id: e.id});
         return <li key={e.id} className="lib-card" role="button" tabIndex={0} aria-haspopup="dialog" style={{animationDelay: Math.min(idx, 12) * 25 + "ms"}} onClick={open}
           onKeyDown={ev => { if(ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); open(); } }}>
           <h3>{eventTitle(e)}</h3>
           <div className="meta">{e.kind === "rehearsal" && (att === "present" || att === "absent") && <span className={"chip " + (att === "present" ? "st-here" : "st-no")}>{t("group.att." + att)}</span>}
-            {roles.map(x => <span key={x} className="chip role">{x}</span>)}
             {set && <span className="chip"><Icon name="music" sm/> {set.name}</span>}
             {(people > 0 || here > 0) && <span className="chip"><Icon name="users" sm/> {e.kind === "rehearsal" ? t("group.attCount", {n: here, total: Math.max(people, here)}) : tn("group.people", people)}</span>}
             <span className="when">{relDay(e.starts_at)}</span></div>
-          <p className="excerpt">{longDay(new Date(e.starts_at))} · {timeOf(e.starts_at)}{e.call_at && " · " + t("group.callAt", {time: timeOf(e.call_at)})}{e.place && " · " + e.place}{e.notes && " · " + e.notes}</p>
+          <p className="excerpt">{shortDay(new Date(e.starts_at))} · {timeOf(e.starts_at)}{e.call_at && " · " + t("group.callAt", {time: timeOf(e.call_at)})}{e.place && " · " + e.place}{e.notes && " · " + e.notes}</p>
           <div className="foot"><span className="when foot-when" aria-hidden="true">{relDay(e.starts_at)}</span></div>
         </li>;
       })}
