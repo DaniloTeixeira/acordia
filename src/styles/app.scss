@@ -793,6 +793,21 @@ select.input {
   background-repeat: no-repeat;
   background-position: right 12px center;
 }
+/* Hora: no celular o navegador desenha a seta do seletor colada na borda; afasta ela (e o texto) como nos outros campos. */
+input.input[type="time"] {
+  appearance: none;
+  display: block;
+  padding-right: 16px;
+  text-align: left;
+}
+input.input[type="time"]::-webkit-calendar-picker-indicator {
+  margin: 0 0 0 4px;
+  padding: 0;
+}
+input.input[type="time"]::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+}
 .field {
   display: flex;
   flex-direction: column;
@@ -8087,10 +8102,10 @@ dialog.ear-dlg {
   padding-top: 12px;
   border-top: 1px solid var(--line);
 }
-/* Editar e Excluir: no celular ocupam a linha toda, um em cada ponta; no desktop ficam juntos, na direita da barra. */
-.event-admin { display: flex; justify-content: space-between; gap: 12px; flex: 1 1 100%; }
+/* Editar e Excluir (logo abaixo do "Adicionar ao calendário"): no celular um em cada ponta da linha; no desktop juntos, à esquerda. */
+.event-admin { display: flex; justify-content: space-between; gap: 12px; }
 @media (min-width: 900px) {
-  .event-admin { flex: 0 0 auto; margin-left: auto; }
+  .event-admin { justify-content: flex-start; }
 }.roster {
   list-style: none;
   margin: 0;
@@ -8399,10 +8414,21 @@ dialog.event-dlg {
   border: 1px dashed var(--line-strong);
   box-shadow: none;
 }
-.roster-card .role-input.sm {
-  min-height: 0;
-  padding: 1px 8px;
-  font-size: 0.74rem;
+/* Função avulsa: campo com a altura dos outros campos (40px) e o botão Adicionar ao lado, na linha toda. */
+.roster-card .role-add {
+  display: flex;
+  gap: 8px;
+  flex: 1 1 100%;
+}
+.roster-card .role-add .role-input {
+  flex: 1;
+  max-width: none;
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+}
+.roster-card .role-add .btn {
+  flex: none;
 }
 /* Funções da pessoa no evento: botões de marcar, mais de um ao mesmo tempo. */
 .roster-roles {
@@ -9388,6 +9414,12 @@ dialog.member-dlg {
 .role-chips {
   display: flex;
   flex-wrap: wrap;
+  gap: 6px;
+}
+/* Função padrão: escolhe entre as funções marcadas qual já vem selecionada na escala. */
+.role-default {
+  display: flex;
+  flex-direction: column;
   gap: 6px;
 }
 .role-chip {

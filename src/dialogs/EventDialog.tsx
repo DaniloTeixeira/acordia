@@ -152,8 +152,10 @@ function RoleChips({roles, value, onChange}: {roles: string[]; value: string[]; 
     <div className="role-chips" role="group" aria-label={t("group.roles")}>{roles.map(r =>
       <button type="button" key={r} className="role-chip" aria-pressed={has(r)} onClick={() => onChange(toggleRole(value, r))}>{r}</button>)}
       {adding
-        ? <input className="input role-input sm" list="event-roles" maxLength={40} autoFocus placeholder={t("group.roleOther")} aria-label={t("group.roleOther")} value={other}
+        ? <div className="role-add"><input className="input role-input" list="event-roles" maxLength={40} autoFocus placeholder={t("group.roleOther")} aria-label={t("group.roleOther")} value={other}
             onChange={e => setOther(e.target.value)} onBlur={add} onKeyDown={e => { if(e.key === "Enter"){ e.preventDefault(); add(); } }}/>
+          {/* O mouse/toque no botão não tira o foco do campo antes do clique (senão o blur adicionaria e sumiria com o botão). */}
+          <button type="button" className="btn primary" onMouseDown={e => e.preventDefault()} onClick={add}>{t("common.add")}</button></div>
         : <button type="button" className="link-btn role-other" onClick={() => setAdding(true)}>{t("group.roleOther")}</button>}
     </div>
   </div>;

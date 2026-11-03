@@ -15,7 +15,7 @@ import { soundOnly, type GEvent, type RosterRow, type AttendanceRow, type Unavai
 // photo: link da foto do grupo (vazio: o app mostra as iniciais do nome). photo_round: marca redonda em vez
 // de quadrada (foto e iniciais).
 // stats: os números do card de cada grupo no Início (próximos eventos, repertórios e membros).
-export interface Group { id: string; name: string; photo?: string; photo_round?: boolean; stats?: {events: number; setlists: number; members: number} }
+export interface Group { id: string; name: string; created_by?: string; photo?: string; photo_round?: boolean; stats?: {events: number; setlists: number; members: number} }
 // out_since/out_need: marcado pelo líder como em pausa (desde quando e quantos ensaios faltam).
 export interface Member { email: string; is_admin: boolean; role: string; name: string; birthday?: string | null; photo?: string; phone?: string; out_since?: string | null; out_need?: number; active?: boolean; created_at?: string; voice_low?: number | null; voice_high?: number | null }
 export interface GroupSetlist { id: string; group_id: string; source_id: string; name: string; songs: number; code: string; shared_by: string; updated_at: string }
@@ -54,6 +54,8 @@ export const amGroupAdmin = () => {
   const {admin} = useAuth.getState(), me = myEmail();
   return admin || useGroups.getState().members.some(m => m.email === me && m.is_admin);
 };
+// Dono do grupo para excluir e trocar a foto: admin do app, ou quem o criou e ainda o lidera (o banco confere do mesmo jeito).
+export const ownsGroup = (g?: Group) => !!g && (useAuth.getState().admin || (!!g.created_by && g.created_by === myEmail() && amGroupAdmin()));
 // Pode mudar músicas e repertórios do grupo (líder ou admin do app)? Redesenha quando isso muda.
 export function useCanEdit(){ useGroups(s => s.members); useAuth(s => s.admin); useAuth(s => s.email); return amGroupAdmin(); }
 
@@ -73,7 +75,8 @@ export function loadGroups(gid?: string): Promise<void> {
   const p = loading = (async () => {
     try{
       // Banco ainda sem a foto do grupo ou o formato (antes das migrações subirem): lê sem eles.
-      const g = await cloud.from("groups").select("id,name,photo,photo_round").order("name")
+      const g = await cloud.from("groups").select("id,name,photo,photo_round,created_by").order("name")
+        .then(r => r.error ? cloud.from("groups").select("id,name,photo,photo_round").order("name") : r)
         .then(r => r.error ? cloud.from("groups").select("id,name,photo").order("name") : r)
         .then(r => r.error ? cloud.from("groups").select("id,name").order("name") : r);
       if(g.error) throw g.error;
@@ -238,14 +241,21 @@ export async function deleteGroup(gid: string){
   if(ok){ if(useGroups.getState().gid === gid) useGroups.setState({gid: ""}); await loadGroups(); }
   return ok;
 }
-export const addMember = (gid: string, email: string, admin: boolean, role: string, name = "", birthday = "", phone = "") => run(async () => {
+// "unregistered": quem não é admin do app só convida quem já tem acesso (cadastrado por um admin).
+export async function addMember(gid: string, email: string, admin: boolean, role: string, name = "", birthday = "", phone = ""): Promise<"ok" | "unregistered" | "fail">{
+  let err = "";
+  const ok = await run(async () => {
   const base = {gid, member_email: email.trim().toLowerCase(), admin, member_role: role.trim().slice(0, ROLES_MAX)};
   const info = {...base, member_name: name.trim().slice(0, 80), member_birthday: validBirthday(birthday) || null};
   let r = await cloud.rpc("add_group_member", {...info, member_phone: cleanPhone(phone)});
   // Banco ainda sem a versão com celular, ou com nome e data (antes da migração subir): adiciona com o que der.
   if(r.error) r = await cloud.rpc("add_group_member", info);
-  return r.error ? cloud.rpc("add_group_member", base) : r;
-});
+  r = r.error ? await cloud.rpc("add_group_member", base) : r;
+  err = r.error?.message || "";
+  return r;
+  });
+  return ok ? "ok" : /not registered/.test(err) ? "unregistered" : "fail";
+}
 // Passa a liderança (um líder só por grupo): quem era vira membro e a pessoa escolhida vira líder. Banco ainda
 // sem set_group_leader (antes da migração subir): faz os dois passos à mão.
 export const setGroupLeader = (gid: string, email: string) => run(async () => {

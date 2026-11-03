@@ -8,7 +8,7 @@ import * as store from "../lib/store";
 import { t, tn, locale } from "../lib/i18n";
 import { useAuth } from "../lib/cloud";
 import { dayKey, eventDay, splitEvents, upcomingBirthdays, birthdayNotice, birthdayKey, needsCover, pendingReplies, type GEvent } from "../lib/calendar";
-import { useGroups, chooseGroup, personName, amGroupAdmin, setMyAttendance, type GroupSetlist } from "../lib/groups";
+import { useGroups, ownsGroup, chooseGroup, personName, amGroupAdmin, setMyAttendance, type GroupSetlist } from "../lib/groups";
 import { useData, openDialog, toast } from "../state";
 import { openGroupSetlist } from "./Group";
 import { Spin } from "./Account";
@@ -40,14 +40,11 @@ export function Home(){
   const name = (profile?.name || me.split("@")[0]).split(" ")[0];
   const bdays = group ? upcomingBirthdays(g.members, dayKey(new Date()), 7) : [];
   const study = studyList(next?.setlist_id);
-  // Os grupos só aparecem para quem tem mais de um (para trocar) ou é admin (para criar outro); com um grupo só,
-  // a aba Grupo já leva até ele.
-  const showGroups = g.groups.length > 1 || admin;
   // Embaixo, Estudo, Grupos e Aniversários em pares, na ordem; um número ímpar deixa o último na linha toda.
   // Com mais de dois grupos o bloco cresce muito e esticaria o vizinho: fica sozinho na linha, antes dos outros.
   const nGroups = g.groups.length;
   const groupsSolo = nGroups > 2;
-  const bottom = [study.length > 0 && "study", group && showGroups && "groups", group && "birthdays"].filter(Boolean) as string[];
+  const bottom = [study.length > 0 && "study", group && "groups", group && "birthdays"].filter(Boolean) as string[];
   const paired = groupsSolo ? bottom.filter(k => k !== "groups") : bottom;
   const bottomWide = paired.length % 2 ? paired[paired.length - 1] : "";
   const bottomOrder = groupsSolo ? ["groups", ...paired] : paired;
@@ -83,7 +80,7 @@ export function Home(){
     </> : <>
       {!g.loaded || g.loading ? <><CardSkeleton wide lines={4}/><CardSkeleton wide/></>
         : <div className="card empty-state wide"><Icon name="users"/><strong>{t("group.none")}</strong><span>{t(admin ? "group.noneAdmin" : "group.noneSub")}</span>
-          {admin && <button className="btn primary" onClick={() => openDialog("newGroup", {})}><Icon name="plus" sm/> {t("group.create")}</button>}</div>}
+          <button className="btn primary" onClick={() => openDialog("newGroup", {})}><Icon name="plus" sm/> {t("group.create")}</button></div>}
     </>}
       {bottomOrder.map(k => bottomBlock[k])}
     </div>
@@ -261,21 +258,21 @@ function GroupSetRow({set}: {set: GroupSetlist}){
   return <LinkCard mark={<IconMark name="music"/>} title={set.name} sub={tn("song", set.songs)} onClick={() => openGroupSetlist(set)}/>;
 }
 
-// Os grupos (só com mais de um ou para o admin): tocar abre o grupo. O aberto agora usa os números já carregados.
+// Os grupos (todos veem, com "Novo grupo"): tocar abre o grupo. O aberto agora usa os números já carregados.
 // Fixar: um grupo só, que vem primeiro (os outros seguem em ordem alfabética). Fixar outro troca o fixado.
 // Fica neste aparelho, como as outras preferências.
 function Groups({upcoming, wide}: {upcoming: number; wide: boolean}){
-  const g = useGroups(), admin = useAuth(s => s.admin);
+  const g = useGroups();
   const pinned = store.setting<string>("pinnedGroup", "");
   const togglePin = (id: string) => store.setSetting("pinnedGroup", pinned === id ? "" : id);
   const ordered = [...g.groups.filter(x => x.id === pinned), ...g.groups.filter(x => x.id !== pinned)];
   const many = g.groups.length > 1;
   return <Block id="home-group" className="home-group" wide={wide} title={tn("home.groups", g.groups.length)} count={many ? g.groups.length : 0}
-    action={admin && <button type="button" className="link-btn" id="home-new-group" onClick={() => openDialog("newGroup", {})}><Icon name="plus" sm/> {t("group.newGroupTitle")}</button>}>
+    action={<button type="button" className="link-btn" id="home-new-group" onClick={() => openDialog("newGroup", {})}><Icon name="plus" sm/> {t("group.newGroupTitle")}</button>}>
     <ul className="home-groups">{ordered.map(x => {
       const cur = x.id === g.gid, st = cur ? {events: upcoming, members: g.members.length} : x.stats;
       const pin = pinned === x.id;
-      return <LinkCard key={x.id} id={"home-group-" + x.id} mark={admin ? <GroupPhotoButton group={x}/> : <GroupMark group={x}/>} title={x.name}
+      return <LinkCard key={x.id} id={"home-group-" + x.id} mark={ownsGroup(x) ? <GroupPhotoButton group={x}/> : <GroupMark group={x}/>} title={x.name}
         sub={st && tn("home.events", st.events) + " · " + tn("profile.members", st.members)}
         onClick={() => { if(!cur) chooseGroup(x.id); openGroup("agenda"); }}
         /* Fixar (no canto de baixo à direita) só faz sentido com mais de um grupo; excluir fica em editar o grupo. */

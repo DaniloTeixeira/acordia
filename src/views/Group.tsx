@@ -17,9 +17,9 @@ import { saveBlob } from "../lib/pdf";
 import { reduced } from "../lib/util";
 import { VoiceChip } from "../ui/VoiceChip";
 import { rangeType } from "../lib/voice";
-import { splitRoles, joinRoles, toggleRole, sortRoles } from "../lib/roles";
+import { splitRoles, joinRoles, toggleRole, sortRoles, setDefaultRole } from "../lib/roles";
 import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone, capFirst, type GEvent, type Presence } from "../lib/calendar";
-import { useGroups, loadGroups, createGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
+import { useGroups, ownsGroup, loadGroups, createGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
   deleteEvent, respond, setCover, checkIn, setMyAttendance, markAttendance, requestAttendanceChange, declineAttendanceChange, setUnavailable, personName, voiceOf, personPhoto, amGroupAdmin, setMemberOut, outMark, isActive, setMemberActive, type GroupSetlist, type Member, type Group } from "../lib/groups";
 import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, confirmUnsaved, useUnsaved, go, place, pushTrail } from "../state";
 import { Icon } from "../ui/Icon";
@@ -203,7 +203,7 @@ export function Group(){
   const head = (sub: string, actions?: React.ReactNode) => <>
     <BackLink id="group-back" fallback={tab === "members" ? "more" : "home"}/>
     <div className="view-head"><div>
-    <div className="group-title">{group && (admin ? <GroupPhotoButton group={group}/> : <GroupMark group={group}/>)}
+    <div className="group-title">{group && (ownsGroup(group) ? <GroupPhotoButton group={group}/> : <GroupMark group={group}/>)}
       <div>{group && <span className="group-kicker">{t(tab === "members" ? "group.membersTab" : tab === "agenda" ? "group.agenda" : "lib.title")}</span>}<h1 id="group-h">{group ? group.name : t("group.title")}{canEdit && <button type="button" className="icon-btn sm group-edit-btn" id="group-edit"
         aria-label={t("group.edit")} title={t("group.edit")} onClick={() => openDialog("group", {})}><Icon name="edit" sm/></button>}</h1><p className="sub">{sub}</p></div></div></div>
     {actions && <div className="actions">{actions}</div>}</div></>;
@@ -211,7 +211,7 @@ export function Group(){
     {head(t("group.sub"))}
     {!g.loaded || g.loading ? <CardSkeleton lines={4}/>
       : g.error ? <div className="card empty-state"><Icon name="sync"/><strong>{t("group.loadFail")}</strong><button className="btn ghost" onClick={() => loadGroups()}>{t("group.retry")}</button></div>
-      : <div className="card empty-state"><Icon name="users"/><strong>{t("group.none")}</strong><span>{t(admin ? "group.noneAdmin" : "group.noneSub")}</span>{admin && <NewGroup/>}</div>}
+      : <div className="card empty-state"><Icon name="users"/><strong>{t("group.none")}</strong><span>{t(admin ? "group.noneAdmin" : "group.noneSub")}</span><NewGroup/></div>}
   </section>;
   // Botão "novo" da Biblioteca, na linha das abas: o que ele cria depende da aba.
   const NEW_LABEL: Record<string, string> = {setlists: "group.newSetlist", songs: "lib.new", medleys: "group.newMedley"};
@@ -520,6 +520,11 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
     <div className="event-more">
       {mineRows.length > 0 && !isPast && <div className="event-sec event-ics"><button type="button" className="btn soft sm" onClick={() => downloadICS([e], eventTitle(e))}><Icon name="calendar" sm/> {t("group.addAllToCal")}</button>
         <p className="sub">{t("group.addToCalHint")}</p></div>}
+      {/* Editar e Excluir logo abaixo do "Adicionar ao calendário", no alto, onde o líder já está olhando. */}
+      {canEdit && <div className="event-sec event-admin"><button className="btn ghost sm" onClick={() => openDialog("event", {id: e.id, day: eventDay(e)})}><Icon name="edit" sm/> {t("common.edit")}</button>
+        <button className="btn ghost sm danger" onClick={async () => {
+          if(await confirmDialog({title: t("group.deleteEventTitle"), message: t("group.deleteEventMsg", {name: eventTitle(e), day: longDay(d)})})) act("del", () => deleteEvent(e.id), "group.eventDeleted");
+        }}><Icon name="trash" sm/> {t("common.delete")}</button></div>}
       {/* A resposta vem antes da escala: quem abre o evento responde primeiro e depois confere quem vai. */}
       {/* Ensaio que já passou e ainda sem marcação: a pergunta "você estava?" sobe para logo abaixo do cabeçalho (antes ficava no fim do card e ninguém achava). */}
       {(reply || (e.kind === "rehearsal" && canCheckIn(e))) && <div className={"event-sec" + (e.kind === "rehearsal" && canCheckIn(e) && pastNow && !myMark ? " reply-first" : "")}><SecHead as="h3" className="people-sub-h">{t("group.myReply")}</SecHead><div className="event-actions boxed">
@@ -575,14 +580,10 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
       {e.kind === "rehearsal" && !isPast && mineRows.length === 0 && g.members.some(m => m.email === me && isActive(m)) && <div className="not-scaled" role="note"><span className="chip st-pending"><span><b>{t("group.notScaled")}.</b> {t("group.notScaledWhy")}</span></span></div>}</div>
       {e.notes && <div className="event-sec"><SecHead as="h3" className="people-sub-h">{t("group.notes")}</SecHead><p className="event-notes">{e.notes}</p></div>}
       {e.kind === "rehearsal" && canEdit && Date.now() >= d.getTime() - 12 * 3600 * 1000 && <Attendance e={e}/>}
-      <div className="event-foot">
-        {set && <><button className="btn ghost sm" onClick={() => openGroupSetlist(set)}><Icon name="music" sm/> {t("group.openSetlist")}</button>
-          <button className="btn ghost sm" onClick={() => openGroupSetlist(set, true)}><Icon name="stage" sm/> {t("medley.stage")}</button></>}
-        {canEdit && <div className="event-admin"><button className="btn ghost sm" onClick={() => openDialog("event", {id: e.id, day: eventDay(e)})}><Icon name="edit" sm/> {t("common.edit")}</button>
-          <button className="btn ghost sm danger" onClick={async () => {
-            if(await confirmDialog({title: t("group.deleteEventTitle"), message: t("group.deleteEventMsg", {name: eventTitle(e), day: longDay(d)})})) act("del", () => deleteEvent(e.id), "group.eventDeleted");
-          }}><Icon name="trash" sm/> {t("common.delete")}</button></div>}
-      </div>
+      {set && <div className="event-foot">
+        <button className="btn ghost sm" onClick={() => openGroupSetlist(set)}><Icon name="music" sm/> {t("group.openSetlist")}</button>
+        <button className="btn ghost sm" onClick={() => openGroupSetlist(set, true)}><Icon name="stage" sm/> {t("medley.stage")}</button>
+      </div>}
     </div>
   </li>;
 }
@@ -654,8 +655,8 @@ function Members({canEdit}: {canEdit: boolean}){
   const add = (ev: React.FormEvent) => { ev.preventDefault(); lock(async () => {
     const v = email.trim().toLowerCase();
     if(!validEmail(v)){ check.fail(); document.getElementById("member-email")?.focus(); return; }
-    setBusy("add"); const ok = await addMember(g.gid, v, asAdmin && !leaderNow, joinRoles(roles), name, birthday, phone).finally(() => setBusy(""));
-    if(!ok) return toast(t("profile.saveFail"));
+    setBusy("add"); const res = await addMember(g.gid, v, asAdmin && !leaderNow, joinRoles(roles), name, birthday, phone).finally(() => setBusy(""));
+    if(res !== "ok") return toast(t(res === "unregistered" ? "group.notRegistered" : "profile.saveFail"));
     // Quem já está há muitos ensaios sem aparecer entra marcado em pausa (a volta conta daqui para frente).
     if(asOut && !(asAdmin && !leaderNow)){
       if(!await setMemberOut(g.gid, v, COMEBACK)) toast(t("profile.saveFail"));
@@ -676,6 +677,7 @@ function Members({canEdit}: {canEdit: boolean}){
             options={[{value: "", label: t("group.pickUser")}, ...outside.map(a => ({value: a.email, label: a.profileName || a.name || a.email, sub: (a.profileName || a.name) ? a.email : undefined}))]}/>)}
           <div className="people-add">
             <PersonFields idp="member" name={name} onName={setName} email={email} onEmail={setEmail} phone={phone} onPhone={setPhone} birthday={birthday} onBirthday={setBirthday} check={check}/>
+            {!appAdmin && <small className="sub">{t("group.inviteHelp")}</small>}
             {!leaderNow && <label className="switch lead boxed"><span>{t("group.leader")}</span><input type="checkbox" checked={asAdmin} onChange={e => setAsAdmin(e.target.checked)}/></label>}
           </div>
           {!(asAdmin && !leaderNow) && <div className="member-add-out">
@@ -730,7 +732,7 @@ function Members({canEdit}: {canEdit: boolean}){
 function MemberEdit({m, full, onDone, inline}: {m: Member; full: boolean; onDone: () => void; inline?: boolean}){
   const gid = useGroups(s => s.gid), id = "medit-" + m.email;
   const [name, setName] = useState(m.name), [phone, setPhone] = useState(maskPhone(m.phone || "")), [birthday, setBirthday] = useState(m.birthday || "");
-  const [roles, setRoles] = useState(() => sortRoles(splitRoles(m.role))), [busy, setBusy] = useState(false), lock = useLock();
+  const [roles, setRoles] = useState(() => splitRoles(m.role)), [busy, setBusy] = useState(false), lock = useLock();
   // Alterado = diferente de quando abriu: sair (Cancelar, fechar a janela, trocar de página) pergunta antes.
   const root = useRef<HTMLElement>(null), snap = JSON.stringify([name, phone, birthday, roles]), start = useRef(snap);
   useUnsaved(root, snap !== start.current);
@@ -907,6 +909,12 @@ export function RolePicker({value, onChange, label}: {value: string[]; onChange:
     <span className="lbl">{label || t("group.roles")}</span>
     <div className="role-chips" role="group" aria-label={t("group.roles")}>{opts.map(r =>
       <button type="button" key={r} className="role-chip" aria-pressed={has(r)} onClick={() => onChange(toggleRole(value, r))}>{has(r) && <Icon name="check" sm/>}{r}</button>)}</div>
+    {value.length > 1 && <div className="role-default">
+      <span className="lbl">{t("group.defaultRole")}</span>
+      <div className="role-chips" role="group" aria-label={t("group.defaultRole")}>{sortRoles(value).map(r =>
+        <button type="button" key={r} className="role-chip" aria-pressed={r === value[0]} onClick={() => onChange(setDefaultRole(value, r))}>{r === value[0] && <Icon name="star" sm/>}{r}</button>)}</div>
+      <small className="sub">{t("group.defaultRoleHelp")}</small>
+    </div>}
     <div className="role-other">
       <input className="input sm" maxLength={40} placeholder={t("group.roleOther")} aria-label={t("group.roleOther")} value={other} onChange={e => setOther(e.target.value)}
         onKeyDown={e => { if(e.key === "Enter"){ e.preventDefault(); add(); } }}/>
@@ -919,7 +927,7 @@ export function RolePicker({value, onChange, label}: {value: string[]; onChange:
 // ficam num bloco à parte, que na lista de membros vai para a direita.
 export function MemberRoles({m, editable, busy, onSave, before, after, lead, showEmpty = editable}: {m: Member; lead?: React.ReactNode; editable: boolean; busy: boolean; onSave: (v: string) => void; before?: React.ReactNode; after?: React.ReactNode; showEmpty?: boolean}){
   const [editing, setEditing] = useState<string[] | null>(null);
-  const roles = sortRoles(splitRoles(m.role)), box = useRef<HTMLDivElement>(null);
+  const roles = sortRoles(splitRoles(m.role)), deflt = splitRoles(m.role)[0], box = useRef<HTMLDivElement>(null);
   const changed = !!editing && joinRoles(editing) !== m.role;
   useUnsaved(box, changed);
   if(editing) return <div className="member-roles editing" ref={box}>
@@ -931,8 +939,8 @@ export function MemberRoles({m, editable, busy, onSave, before, after, lead, sho
   </div>;
   return <span className="member-roles">
     {lead}
-    {roles.length ? roles.map(r => <span key={r} className="chip role">{r}</span>) : showEmpty && <span className="people-missing">{t("group.noRoles")}</span>}
-    {editable && <button type="button" className="icon-btn sm" aria-label={t("group.editRoles") + ": " + personName(m.email)} title={t("group.editRoles")} onClick={() => setEditing(roles)}><Icon name="edit" sm/></button>}
+    {roles.length ? roles.map(r => <span key={r} className="chip role">{roles.length > 1 && r === deflt && <Icon name="star" sm/>}{r}</span>) : showEmpty && <span className="people-missing">{t("group.noRoles")}</span>}
+    {editable && <button type="button" className="icon-btn sm" aria-label={t("group.editRoles") + ": " + personName(m.email)} title={t("group.editRoles")} onClick={() => setEditing(splitRoles(m.role))}><Icon name="edit" sm/></button>}
     {busy && <Spin/>}
     {(before || after) && <span className="member-role-actions">{before}{after}</span>}
   </span>;

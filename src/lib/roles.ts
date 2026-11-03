@@ -26,6 +26,12 @@ export function joinRoles(roles: string[]): string {
 export function sortRoles(roles: string[]): string[] {
   return [...roles].sort((a, b) => a.localeCompare(b, undefined, {sensitivity: "base"}));
 }
+// A função padrão da pessoa é a primeira da lista (a que já vem marcada na escala). Passa uma função para a frente.
+export function setDefaultRole(roles: string[], role: string): string[] {
+  const k = role.trim().toLocaleLowerCase();
+  const hit = roles.find(r => r.toLocaleLowerCase() === k);
+  return hit ? [hit, ...roles.filter(r => r !== hit)] : roles;
+}
 // Liga ou desliga uma função na lista.
 export function toggleRole(roles: string[], role: string): string[] {
   const k = role.trim().toLocaleLowerCase();

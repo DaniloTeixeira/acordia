@@ -608,7 +608,7 @@ export function PersonEdit({r, onDone, inline}: {r: Allowed; onDone: (saved: boo
   const [busy, setBusy] = useState(false), lock = useLock();
   // Funções no grupo aberto, se a pessoa está nele (com mais de um grupo, o rótulo diz qual).
   const g = useGroups(), group = g.groups.find(x => x.id === g.gid), member = group ? g.members.find(x => x.email === r.email) : undefined;
-  const [roles, setRoles] = useState<string[]>(() => member ? sortRoles(splitRoles(member.role)) : []);
+  const [roles, setRoles] = useState<string[]>(() => member ? splitRoles(member.role) : []);
   // Alterado = diferente de quando abriu: sair (Cancelar, fechar a janela, trocar de página) pergunta antes.
   const root = useRef<HTMLElement>(null), snap = JSON.stringify([name, phone, birthday, roles]), start = useRef(snap);
   useUnsaved(root, snap !== start.current);
