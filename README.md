@@ -182,14 +182,14 @@ também libera o acesso ao app para eles).
   - tocar num dia mostra os eventos dele e a chave **"Não posso neste dia"** (indisponibilidade);
   - **Seu próximo compromisso** no topo: as suas funções, Confirmar / Não posso de cada escala (e quem cobre, para quem não pode), sem abrir o evento;
   - **Próximos / Anteriores** ficam no topo da Agenda, como as abas da Biblioteca, das Ferramentas e do Estudo: um padrão só, com a linha toda no celular e só o tamanho do texto no computador. Só Próximos tem o calendário (no celular ele é um bloco que abre e fecha, começa fechado e fica acima da lista).
-  - **Anteriores** segue o layout da Biblioteca: busca, filtro por mês, cards ou linhas (no computador, uma linha só por evento) com a sua presença, funções, repertório, quantos foram e o dia, hora e local; tocar abre os detalhes numa janela. O ensaio que já começou é anterior.;
+  - **Anteriores** segue o layout da Biblioteca: busca, filtro por mês, cards ou linhas (no computador, uma linha só por evento) com a sua presença, repertório, quantos foram e o dia (resumido, ex.: "sex., 23 de out."), hora e local; nos cards o "há x dias" fica no canto de cima; tocar abre os detalhes numa janela. O ensaio que já começou é anterior.;
   - **Presente** (verde mais forte, só contorno) e **Confirmado** (azul) têm cores diferentes;
   - lista de próximos; cada evento abre com a data, o título e os chips no topo do card, sem bloco "Detalhes"; quem está na escala de um evento futuro também responde ali, em "Sua resposta" (o mesmo bloco do topo da Agenda). No ensaio, nas 12 h antes do início, a resposta e a presença viram um estado só para quem está na escala: o selo mostra Presente, Você confirmou ou Você não vai, com um único "Alterar resposta" e as opções **Cheguei** (também confirma a resposta) e **Não posso** (desmarca a presença); quem está na escala também tem ali **Adicionar ao calendário**, com a explicação.
-- [ ] **Evento** (só quem lidera cria e edita; Editar e Excluir ficam um em cada ponta no celular e juntos à direita no computador):
+- [ ] **Evento** (só quem lidera cria e edita; Editar e Excluir ficam no alto do evento, logo abaixo de "Adicionar ao calendário": um em cada ponta no celular e juntos à esquerda no computador):
   - tipo Culto ou Ensaio, título, data, início, **hora de chegada**, local, repertório do grupo e observações;
   - **repetir** toda semana (2 a 26 vezes);
-  - **escala**: quem toca o quê, com funções sugeridas e "Escalar todos"; no computador é uma tabela (pessoa e funções
-    numa linha, "Outra função" como link à direita), no celular cada pessoa é um cartão;
+  - **escala**: quem toca o quê, com funções sugeridas e "Escalar todos" (não convoca quem está em pausa nem quem só tem a função Mesa de som, em culto ou ensaio; o líder ainda escala à mão); no computador é uma tabela (pessoa e funções
+    numa linha, "Outra função" como link à direita), no celular cada pessoa é um cartão; "Outra função" abre um campo com o botão **Adicionar**;
   - tocar numa pessoa da escala abre os detalhes dela e, para quem lidera, o botão **Escalar neste evento** (ou **Tirar da escala**, com confirmação), que grava na hora e mostra os avisos de conflito sem bloquear;
   - **Detalhes** e **Escala** abrem e fecham pelo título: no computador os dois abrem abertos; no celular só a Escala;
   - avisos ao escalar: marcou que não pode no dia, já está em outro evento no dia ou já recusou; cada pessoa
@@ -320,6 +320,8 @@ A `main` é o que está no ar e é protegida: nada entra sem PR e sem o CI passa
 `v2026.10.18-1`). Publica de novo aquele código em uns 2 minutos. O banco não volta: se o problema for uma
 migração, corrigir com uma migração nova. Depois, corrigir na `main` por PR (o próximo merge publica a `main`
 de novo).
+
+**Banco dev sempre ativo:** o workflow [manter-dev-ativo.yml](.github/workflows/manter-dev-ativo.yml) faz uma chamada por dia ao projeto dev, para o Supabase gratuito não pausá-lo por falta de uso (a produção não precisa). Usa os secrets `DEV_SUPABASE_URL` e `DEV_SUPABASE_KEY`. Se o projeto já estiver pausado, restaure no painel do Supabase (no plano gratuito só dá por cerca de 90 dias).
 
 Em cada deploy, o CI roda typecheck, testes, `npm run build` e publica no GitHub Pages. O build lista todos os arquivos no service worker
 ([src/sw.ts](src/sw.ts)), que guarda o app inteiro na instalação; quem já instalou recebe a versão nova no
