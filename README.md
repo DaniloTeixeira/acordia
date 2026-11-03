@@ -89,12 +89,12 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] **Novo**: cria outro repertório. O anterior continua salvo.
 - [ ] **Palco**.
 - [ ] **Editar / Ver folha**: alterna os painéis no celular; no computador ficam lado a lado.
-- [ ] **Adicionar**: "Adicionar música" (cole a cifra ou a letra; o tipo "Só letra" é detectado sozinho: texto sem nenhum acorde), "Biblioteca" (escolha várias, com busca) e "Medley".
+- [ ] **Adicionar** (botões outlined e arredondados, dividindo a linha; no celular, um por linha): "Adicionar música" (cole a cifra ou a letra; o tipo "Só letra" é detectado sozinho: texto sem nenhum acorde), "Biblioteca" (escolha várias, com busca) e "Medley".
 - [ ] **Cartão de cada música**:
   - **arrastar o cartão** para outro lugar (menos pelos botões e campos): no mouse, clicar e arrastar (só clicar
     abre e fecha); no celular, segurar ~¼ s e arrastar; Esc cancela; no teclado, Tab até o número e ↑ ↓;
-  - tirar do repertório (com Desfazer);
-  - chips: tom → tom para tocar, BPM e solo;
+  - botões só com ícone no alto à direita do card: **Ouvir** (play, só com link de referência) ou **Editar** (lápis, medley), **mostrar/ocultar** a música (olho) e, depois de uma barra (no celular some, para sobrar espaço ao nome), a **lixeira**, que tira do repertório (com confirmação e Desfazer);
+  - tom (ou tom → tom para tocar) em texto com o gradiente da marca, na frente do nome; chips para BPM, solo e Pós-pregação;
   - tipo detectado sozinho ("Só letra" quando não há acorde);
   - texto: título na primeira linha, depois cifra e letra;
   - os mesmos campos no repertório e no medley: **Tom** (automático ou um dos 24), Solo, BPM e link de

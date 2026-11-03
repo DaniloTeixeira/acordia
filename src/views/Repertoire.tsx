@@ -114,6 +114,12 @@ function moveItem(id: string, dir: number){
   };
   if(tr) tr.finished.finally(after); else setTimeout(after);
 }
+// Pede confirmação antes de tirar a música (ou o medley) do repertório; a música em si continua nas do grupo.
+async function askRemove(id: string, li: HTMLElement | null){
+  const it = current().items.find(x => x.id === id); if(!it) return;
+  const title = it.type === "medley" ? data.medleys.get(it.medleyId)?.name || t("ctx.medley") : data.songs.get(it.songId)?.title || t("item.song");
+  if(await confirmDialog({title: t("item.removeTitle"), message: t("item.removeMsg", {title})})) removeItem(id, li);
+}
 function removeItem(id: string, li: HTMLElement | null){
   const m = current(), i = m.items.findIndex(x=>x.id===id); if(i < 0) return;
   li?.classList.add("leaving");
@@ -190,9 +196,9 @@ export function Repertoire({song}: {song?: boolean} = {}){
         {!song && m.items.length > 1 && <DragHint at="top"/>}
         {song ? <ol className="items"><ItemCard m={m} it={sit.current!} i={0} bare/></ol> : <Items m={m}/>}
         {!song && <div className="add-bar">
-          <button className="btn soft" id="add-chords" onClick={() => addItem("")}><Icon name="plus"/><span className="lbl-long">{t("add.song")}</span><span className="lbl-short">{t("add.songShort")}</span></button>
-          <button className="btn soft" id="add-library" data-tip-key="tip.addLibrary" onClick={() => openDialog("picker", {})}><Icon name="library"/><span className="lbl-long">{t("add.library")}</span><span className="lbl-short">{t("add.libraryShort")}</span></button>
-          <button className="btn soft" id="add-medley" data-tip-key="tip.addMedley" hidden={isMedley(m)} onClick={addMedleyBlock}><Icon name="link"/><span>{t("add.medley")}</span></button>
+          <button className="btn ghost" id="add-chords" onClick={() => addItem("")}><Icon name="plus"/><span className="lbl-long">{t("add.song")}</span><span className="lbl-short">{t("add.songShort")}</span></button>
+          <button className="btn ghost" id="add-library" data-tip-key="tip.addLibrary" onClick={() => openDialog("picker", {})}><Icon name="library"/><span className="lbl-long">{t("add.library")}</span><span className="lbl-short">{t("add.libraryShort")}</span></button>
+          <button className="btn ghost" id="add-medley" data-tip-key="tip.addMedley" hidden={isMedley(m)} onClick={addMedleyBlock}><Icon name="link"/><span>{t("add.medley")}</span></button>
         </div>}
       </div>
       <SheetPane m={m}><Sheet m={m}/></SheetPane>
@@ -244,11 +250,17 @@ function DragHandle({id, n}: {id: string; n: number}){
     <span className="num"><span className="num-n">{n}</span><Icon name="grip" sm className="grip-hover"/></span>
   </button>;
 }
+// Só ícones, no alto à direita: o que é do item (Ouvir, Editar), mostrar/ocultar a música e, depois de uma barra,
+// a lixeira (tirar do repertório, com confirmação).
 function ItemActions({it, children, after}: {it: {id: string}; children?: React.ReactNode; after?: React.ReactNode}){
-  return <div className="item-actions">{children}
-    <button className="icon-btn sm danger" data-a="rm" aria-label={t("item.remove")} onClick={e => removeItem(it.id, e.currentTarget.closest(".item"))}><Icon name="x" sm/></button>
-    {after}
+  return <div className="item-actions">{children}{after}
+    <span className="item-sep" aria-hidden="true"/>
+    <button className="icon-btn sm danger" data-a="rm" aria-label={t("item.remove")} onClick={e => askRemove(it.id, e.currentTarget.closest(".item"))}><Icon name="trash" sm/></button>
   </div>;
+}
+// Olho aberto mostra a música; riscado, esconde. A seta sozinha não deixava claro o que o botão faz.
+function ToggleBtn({open, onClick}: {open: boolean; onClick: (e: React.MouseEvent) => void}){
+  return <button className="icon-btn sm" data-a="toggle" aria-expanded={open} aria-label={t(open ? "common.close" : "common.open")} onClick={onClick}><Icon name={open ? "eye-off" : "eye"} sm/></button>;
 }
 
 // Momento do culto (Louvor, o padrão, ou Pós-pregação) de uma música ou de um medley no repertório.
@@ -281,10 +293,10 @@ function MedleyCard({m, it, i}: {m: Medley; it: MedleyItem; i: number}){
   return <li className={"item medley-item" + (open ? "" : " collapsed")} data-id={it.id}>
     <div className="item-head">
       <DragHandle id={it.id} n={i+1}/>
-      <button className="item-toggle" aria-expanded={open} onClick={toggle}><span className="item-title">{md ? md.name : t("mblock.missing")}</span>
-        <span className="item-chips">{keys.length > 0 && <span className="chip accent key-chip">{keys.join(" → ")}</span>}
+      <button className="item-toggle" aria-expanded={open} onClick={toggle}><span className="item-title">{keys.length > 0 && <span className="item-key">{keys.join(" → ")}</span>}{md ? md.name : t("mblock.missing")}</span>
+        <span className="item-chips">
           <span className="chip"><Icon name="link" sm/> {t("mblock.chip", {songs: songsN(titles.length)})}</span>{momentChip(it)}</span></button>
-      <ItemActions it={it} after={<button className="icon-btn sm" data-a="toggle" aria-label={t(open ? "common.close" : "common.open")} onClick={toggle}><Icon name="chev" sm className="chev"/></button>}>
+      <ItemActions it={it} after={<ToggleBtn open={open} onClick={toggle}/>}>
         {md && <button className="icon-btn sm" data-a="open-medley" aria-label={t("mblock.edit")} onClick={edit}><Icon name="edit" sm/></button>}
       </ItemActions>
     </div>
@@ -312,7 +324,7 @@ function ItemCard({m, it, i, bare}: {m: Medley; it: SongItem; i: number; bare?: 
   const key = songKey(song);
   // A primeira linha fica toda para o nome; tom, Pós-pregação e o resto vão na de baixo.
   const chips: React.ReactNode[] = [];
-  if(!letra && key && song.text.trim()) chips.push(<span key="k" className="chip accent key-chip">{e.target && e.target !== key ? key + " → " + e.target : key}</span>);
+  const keyText = !letra && key && song.text.trim() ? (e.target && e.target !== key ? key + " → " + e.target : key) : "";
   if(!isMedley(m)) chips.push(momentChip(it));
   if(letra) chips.push(<span key="l" className="chip">{t("item.lyricsOnly")}</span>);
   else {
@@ -337,16 +349,16 @@ function ItemCard({m, it, i, bare}: {m: Medley; it: SongItem; i: number; bare?: 
     {!bare && <div className="item-head">
       <DragHandle id={it.id} n={i+1}/>
       <button className="item-toggle" aria-expanded={open} onClick={toggle}>
-        <span className="item-title">{song.title || t("item.newSong")}</span>
+        <span className="item-title">{keyText && <span className="item-key">{keyText}</span>}{song.title || t("item.newSong")}</span>
         {chips.some(Boolean) && <span className="item-chips">{chips}</span>}</button>
-      <ItemActions it={it} after={<button className="icon-btn sm" data-a="toggle" aria-label={t(open ? "common.close" : "common.open")} onClick={toggle}><Icon name="chev" sm className="chev"/></button>}>
-        <button className="icon-btn sm ref-btn" data-a="ref" aria-label={t("ref.listen")} title={t("ref.listen")} hidden={!song.ref} onClick={() => openRef(song.ref || "", song.title)}><Icon name="play" sm/></button>
+      <ItemActions it={it} after={<ToggleBtn open={open} onClick={toggle}/>}>
+        {song.ref && <button className="icon-btn sm ref-btn" data-a="ref" aria-label={t("ref.listen")} title={t("ref.listen")} onClick={() => openRef(song.ref || "", song.title)}><Icon name="play" sm/></button>}
       </ItemActions>
     </div>}
     <div className="item-body"><div><div className="item-inner">
       <div className="type-row">
-        <button type="button" className="btn soft sm" data-a="ear" data-tip-key="tip.ear" disabled={!song.title} onClick={ear}><Icon name="music" sm/> {t("ear.open")}</button>
-        {!bare && <button type="button" className="btn soft sm" data-a="copy-lyrics" disabled={!song.title} onClick={() => { const s = sheetSongs(m).find(x => x.itemId === it.id); if(s) copySheet(m, [s]); }}><Icon name="copy" sm/> {t("item.copy." + sheetMode())}</button>}
+        <button type="button" className="btn ghost sm" data-a="ear" data-tip-key="tip.ear" disabled={!song.title} onClick={ear}><Icon name="music" sm/> {t("ear.open")}</button>
+        {!bare && <button type="button" className="btn ghost sm" data-a="copy-lyrics" disabled={!song.title} onClick={() => { const s = sheetSongs(m).find(x => x.itemId === it.id); if(s) copySheet(m, [s]); }}><Icon name="copy" sm/> {t("item.copy." + sheetMode())}</button>}
         {!isMedley(m) && !bare && <MomentSeg m={m} it={it}/>}</div>
       <textarea className="input song-text" spellCheck={false} aria-label={t("item.textAria", {n:i+1})} placeholder={t(letra ? "item.phLyrics" : "item.phChords")} autoFocus={bare}
         value={text} onChange={ev => { const v = ev.target.value; setText(v); song.text = v; song.title = songTitle(v);
