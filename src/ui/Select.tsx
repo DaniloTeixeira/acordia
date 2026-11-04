@@ -2,6 +2,7 @@
 // para leitores de tela e testes; a pessoa usa o botão e a lista em popover.
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
+import { getLang } from "../lib/i18n";
 import { Icon } from "./Icon";
 import { placeNear, toggler } from "./popover";
 
@@ -9,12 +10,22 @@ import { placeNear, toggler } from "./popover";
 export interface Opt { value: string; label: string; sub?: string }
 export interface OptGroup { group: string; options: Opt[] }
 export type Options = (Opt | OptGroup)[];
+// Ordem padrão de toda lista: alfabética no idioma atual, com a opção de valor vazio ("Nenhum", "Escolha…") sempre
+// no topo. Lista com ordem própria (números, tons, meses, ordenação) passa `keepOrder`.
+const az = (o: Opt[]) => {
+  const l = getLang(), c = new Intl.Collator(l === "pt" ? "pt-BR" : l, {sensitivity: "base", numeric: true});
+  return [...o.filter(x => !x.value), ...o.filter(x => x.value).sort((a, b) => c.compare(a.label, b.label))];
+};
+const sorted = (o: Options): Options => o.some(x => "group" in x)
+  ? o.map(x => "group" in x ? {...x, options: az(x.options)} : x)
+  : az(o as Opt[]);
 const flat = (o: Options) => o.flatMap(x => "group" in x ? x.options : [x]);
 
-export function Select({value, options, onChange, id, className = "", aria, style, disabled, dataInstrument, f}: {
+export function Select({value, options: given, onChange, id, className = "", aria, style, disabled, dataInstrument, f, keepOrder}: {
   value: string; options: Options; onChange: (v: string) => void; id?: string; className?: string; aria?: string;
-  style?: CSSProperties; disabled?: boolean; dataInstrument?: boolean; f?: string;
+  style?: CSSProperties; disabled?: boolean; dataInstrument?: boolean; f?: string; keepOrder?: boolean;
 }){
+  const options = keepOrder ? given : sorted(given);
   const btn = useRef<HTMLButtonElement>(null), pop = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   // Dentro de uma janela modal, a lista vai para dentro dela: fora, a janela deixa tudo inerte e a lista

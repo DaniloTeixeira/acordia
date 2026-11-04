@@ -147,7 +147,7 @@ export function LibraryList({tab: base, canEdit, sel, setSel}: {tab: Tab; canEdi
   return <div className="group-lib">
     <div className="lib-toolbar">
       <div className="search"><Icon name="search" sm/><input type="search" className="input" id="lib-q" placeholder={t("lib.search")} aria-label={t("lib.searchAria")} value={query} onChange={e => setQuery(e.target.value)}/></div>
-      <Select id="lib-sort" style={{width: "auto"}} aria={t("lib.sortAria")} value={sort} onChange={setSort}
+      <Select keepOrder id="lib-sort" style={{width: "auto"}} aria={t("lib.sortAria")} value={sort} onChange={setSort}
         options={[{value: "az", label: t("lib.az")}, {value: "recent", label: t("lib.recent")}, {value: "old", label: t("lib.old")}]}/>
       {/* Cards ou linhas: vale para as abas e fica guardado no aparelho. Só na tela larga: no celular a lista é sempre de cards. */}
       {!narrow && <Seg className="view-seg" id="lib-view" aria={t("lib.viewAria")} value={view} onChange={v => store.setSetting("libView", v)}

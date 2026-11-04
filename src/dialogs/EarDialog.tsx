@@ -57,7 +57,7 @@ export function EarDialog({text, songKey, onApply}: DialogProps["ear"]){
       <div className="dlg-body" ref={body}>
         <p className="sub ear-hint">{t("ear.hint")}</p>
         <div className="ear-tools">
-          <label className="field ear-key"><span>{t("ear.key")}</span><Select id="ear-key" value={key} onChange={changeKey} options={keyOpts()}/></label>
+          <label className="field ear-key"><span>{t("ear.key")}</span><Select keepOrder id="ear-key" value={key} onChange={changeKey} options={keyOpts()}/></label>
           <Seg className="sm" id="ear-mode" aria={t("ear.show")} value={mode} onChange={setMode} options={[{v: "graus", label: t("ear.degrees")}, {v: "cifras", label: t("ear.chords")}]}/>
         </div>
         <div className="ear-field" role="group" aria-label={t("ear.field")}>

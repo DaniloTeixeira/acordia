@@ -21,7 +21,7 @@ import { rangeType } from "../lib/voice";
 import { splitRoles, joinRoles, toggleRole, sortRoles, setDefaultRole } from "../lib/roles";
 import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone, capFirst, type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, ownsGroup, loadGroups, createGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
-  deleteEvent, respond, setCover, checkIn, setMyAttendance, markAttendance, requestAttendanceChange, declineAttendanceChange, setUnavailable, personName, voiceOf, personPhoto, amGroupAdmin, amGroupLeader, setMemberOut, outMark, isActive, setMemberActive, makeMember, type GroupSetlist, type Member, type Group } from "../lib/groups";
+  deleteEvent, respond, setCover, checkIn, setMyAttendance, markAttendance, requestAttendanceChange, declineAttendanceChange, setUnavailable, personName, voiceOf, personPhoto, amGroupAdmin, amGroupLeader, setMemberOut, outMark, isActive, setMemberActive, makeMember, chooseGroup, type GroupSetlist, type Member, type Group } from "../lib/groups";
 import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, confirmUnsaved, useUnsaved, go, place, pushTrail } from "../state";
 import { Icon } from "../ui/Icon";
 import { CopyBtn } from "../ui/CopyBtn";
@@ -210,7 +210,11 @@ export function Group(){
     <div className="view-head"><div>
     <div className="group-title">{group && (ownsGroup(group) ? <GroupPhotoButton group={group}/> : <GroupMark group={group}/>)}
       <div>{group && <span className="group-kicker">{t(tab === "members" ? "group.membersTab" : tab === "agenda" ? "group.agenda" : "lib.title")}</span>}<h1 id="group-h">{group ? group.name : t("group.title")}{canEdit && <button type="button" className="icon-btn sm group-edit-btn" id="group-edit"
-        aria-label={t("group.edit")} title={t("group.edit")} onClick={() => openDialog("group", {})}><Icon name="edit" sm/></button>}</h1><p className="sub">{sub}</p></div></div></div>
+        aria-label={t("group.edit")} title={t("group.edit")} onClick={() => openDialog("group", {})}><Icon name="edit" sm/></button>}</h1>
+        {/* Com mais de um grupo, trocar sem sair da tela (a escolha vale também para Agenda e Membros). */}
+        {g.groups.length > 1 && <Select id="group-switch" className="group-switch" aria={t("group.switch")} value={g.gid} disabled={g.loading}
+          options={g.groups.map(x => ({value: x.id, label: x.name}))} onChange={v => chooseGroup(v)}/>}
+        <p className="sub">{sub}</p></div></div></div>
     {actions && <div className="actions">{actions}</div>}</div></>;
   if(!group) return <section className="view" id="view-group" data-view="group" aria-labelledby="group-h">
     {head(t("group.sub"))}
@@ -327,7 +331,7 @@ function PastEvents({past}: {past: GEvent[]}){
   return <div className="group-lib">
     <div className="lib-toolbar">
       <div className="search"><Icon name="search" sm/><input type="search" className="input" id="past-q" placeholder={t("lib.search")} aria-label={t("lib.searchAria")} value={query} onChange={e => setQuery(e.target.value)}/></div>
-      <Select id="past-month" className="past-month" aria={t("group.monthAria")} value={mf || "all"} onChange={setMonthF}
+      <Select keepOrder id="past-month" className="past-month" aria={t("group.monthAria")} value={mf || "all"} onChange={setMonthF}
         options={[...months.map(k => ({value: k, label: monthLabel(k)})), {value: "all", label: t("group.allMonths")}]}/>
       {!narrow && <Seg className="view-seg" id="past-view" aria={t("lib.viewAria")} value={view} onChange={v => store.setSetting("libView", v)}
         options={[{v: "cards", label: <Icon name="grid" sm/>, aria: t("lib.viewCards"), tip: "lib.viewCards"}, {v: "rows", label: <Icon name="list" sm/>, aria: t("lib.viewRows"), tip: "lib.viewRows"}]}/>}

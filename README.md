@@ -39,7 +39,7 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
   - campo de senha: olho para mostrar (esconde sozinho ao enviar, ao sair do app e ao trocar de tela) e aviso de
     Caps Lock;
   - e-mail validado embaixo do campo;
-  - avisos (erro, informação, confirmar e-mail) sempre no mesmo lugar, abaixo do título;
+  - avisos (erro, informação, confirmar e-mail) sempre no mesmo lugar, abaixo do título; se o e-mail de confirmação não puder ser enviado, o aviso diz isso e já oferece o reenvio;
   - botões com indicador de carregamento, sem enviar duas vezes;
   - nota "O acesso é por convite".
 - [ ] **Criar conta** (só para e-mails convidados):
@@ -56,7 +56,7 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
   - **Sair**: tenta subir o que falta, avisa se algo vai se perder e apaga os dados deste aparelho.
 - [ ] **Usuários** do app (só admins, pelo card no Perfil ou pela aba Usuários do menu lateral da tela larga; é a lista de todos com acesso, com ou sem grupo): cadastrar usuário sem grupo (no celular o card de cadastro abre fechado; nome, e-mail, celular e nascimento; depois dá para colocar em um grupo em Grupo → Membros), todos com acesso ao app, com busca e ordem; editar os dados,
       tornar ou tirar admin (só o Dono, com confirmação ao dar) e excluir a pessoa do sistema (acesso, grupos e conta de login). A lista mostra só a pessoa
-      (nome, e-mail, celular e uma linha de chips: "Acessou" ou "Não acessou" (ainda não fez login) e "Sem grupo" para quem não está em nenhum grupo); as ações ficam na janela de detalhes, em "Acesso ao app".
+      (nome, e-mail, celular e uma linha de chips: "Acessou" (confirmou o e-mail ou entrou com o Google) ou "Não acessou" e "Sem grupo" para quem não está em nenhum grupo); as ações ficam na janela de detalhes, em "Acesso ao app".
 - [ ] **Músicas e repertórios na nuvem**, iguais em todos os aparelhos da conta:
   - funciona sem internet, e as mudanças sobem depois;
   - no primeiro login de um aparelho, o que já estava nele sobe para a conta;
@@ -78,9 +78,9 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
       (os próximos eventos com gente que ainda não respondeu) e o botão **Novo evento** embaixo da semana.
 - [ ] **Para estudar**, ao lado de **Grupos**: só os repertórios do grupo ligados a um evento que ainda vai acontecer (menos o do próximo
       compromisso), até cinco; sem nenhum, o bloco some.
-- [ ] **Grupos** (com mais de um grupo, ou para o admin): nome, próximos eventos e membros; leva à agenda.
+- [ ] **Grupos** (com mais de um grupo): só os grupos de que você é membro (o admin do app vê todos na página Grupos, não no Início); nome, próximos eventos e membros; leva à agenda.
       Fixar põe um grupo em primeiro. O admin cria um grupo novo por aqui.
-- [ ] **Aniversariantes** do grupo nos próximos 7 dias, por último. Na tela larga, os blocos de baixo (Para estudar, Grupos e
+- [ ] **Aniversariantes** de todos os seus grupos nos próximos 7 dias, por último. Na tela larga, os blocos de baixo (Para estudar, Grupos e
       Aniversariantes) ficam em pares; o último, se sobrar, ocupa a linha toda. Com mais de dois grupos, Grupos ocupa a linha sozinho, antes dos outros. O card fica sempre, com um aviso quando
       ninguém faz aniversário na semana.
 
@@ -143,7 +143,7 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] Atalhos: setas / PageDown / espaço avançam e voltam, + e − mudam a fonte, Esc sai.
 
 ### Músicas e repertórios do grupo
-Tudo é do grupo, nas abas **Repertórios**, **Músicas**, **Medleys** e **Aprender** da Biblioteca: todos os membros veem e baixam para o aparelho
+Tudo é do grupo, nas abas **Repertórios**, **Músicas**, **Medleys** e **Aprender** da Biblioteca (quem está em mais de um grupo troca de grupo por um seletor logo abaixo do nome, no topo da Biblioteca, da Agenda e de Membros): todos os membros veem e baixam para o aparelho
 (abre sem internet); só quem lidera o grupo e os admins do app criam, editam e excluem (ou qualquer membro, se o líder ligar
 "Todos podem editar"). Quem só lê abre o repertório direto na folha, sem Editar, e não vê os botões de mudar; na aba Aprender
 qualquer membro sugere.
@@ -243,7 +243,7 @@ também libera o acesso ao app para eles).
   - acento no 1º tempo;
   - **Descobrir BPM**;
   - atalhos: espaço, setas e T.
-- [ ] **Afinador**: pelo microfone, com A4 de 432 a 446 Hz e ponteiro em cents. Modo próprio (Violão/guitarra, Baixo, Ukulele, Cavaquinho ou Cromático para voz, sopro e teclado, que mostra a nota mais próxima); nas cordas, as notas são botões grandes: o app acha a corda sozinho ou, tocando numa, mede só contra ela (toque de novo para soltar); afinado (±5 cents) o ponteiro trava no centro e tudo fica verde, e só solta passando de ±10; a falha do microfone usa o mesmo aviso fixo da Voz.
+- [ ] **Afinador**: pelo microfone, com A4 de 432 a 446 Hz e ponteiro em cents. Modo próprio (Violão/guitarra, Baixo, Ukulele, Cavaquinho ou Cromático para voz, sopro e teclado, que mostra a nota mais próxima); nas cordas, as notas são botões grandes, todos na mesma linha: o app acha a corda sozinho ou, tocando numa, toca a nota de referência (som de corda dedilhada) e mede só contra ela (a escolha fica até tocar em outra corda); liga o microfone sozinho ao abrir a aba (o botão "Ligar afinador" só aparece se o microfone falhar); afinado (±5 cents) o ponteiro trava no centro e tudo fica verde, e só solta passando de ±10; a falha do microfone usa o mesmo aviso fixo da Voz.
 - [ ] **Pad infinito**:
   - tom, 6 estilos (Original, Discreto, Quente, Brilhante, Etéreo, Profundo), volume e filtro;
   - swell em 4 ou 8 compassos;

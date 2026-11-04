@@ -150,9 +150,12 @@ export async function signIn(email: string, password: string): Promise<"ok" | "b
 // Criar conta: o banco recusa e-mails fora da lista; a conta só vale depois do link de confirmação,
 // para ninguém criar a conta com o e-mail de outra pessoa da lista.
 // "weak": o Supabase recusou a senha; detail traz a mensagem dele (diz o que falta, ver password.ts).
-export async function signUp(email: string, password: string): Promise<{r: "confirm" | "ok" | "notAllowed" | "exists" | "weak" | "error"; detail?: string}> {
+export async function signUp(email: string, password: string): Promise<{r: "confirm" | "ok" | "notAllowed" | "exists" | "weak" | "mail" | "error"; detail?: string}> {
   const {data, error} = await cloud.auth.signUp({email: clean(email), password, options: {emailRedirectTo: home()}});
+  // "mail": a conta pode ter sido criada, mas o e-mail de confirmação não saiu (limite de envios ou
+  // provedor recusou). Não é falta de internet: a pessoa pode pedir o reenvio.
   if(error) return notAllowed(error.message) ? {r: "notAllowed"} : /already registered/i.test(error.message) ? {r: "exists"}
+    : /sending|rate limit|email_send/i.test(error.message + " " + (error as {code?: string}).code) ? {r: "mail"}
     : /password/i.test(error.message) ? {r: "weak", detail: error.message} : {r: "error"};
   // Conta que já existe: o Supabase responde sem identidades (para não revelar quem tem conta).
   if(data.user && !(data.user.identities || []).length) return {r: "exists"};
@@ -230,10 +233,13 @@ export async function listAllowed(): Promise<Allowed[] | null> {
   if(a.error) a = await cloud.from("allowed_emails").select("email,is_admin,created_at").order("email");
   if(p.error) p = await cloud.from("profiles").select("email,name");
   if(a.error || p.error) return null;
+  // "Acessou" = confirmou o e-mail ou entrou de fato. Banco sem a função ainda: vale ter perfil.
+  const c = await cloud.rpc("confirmed_emails");
+  const confirmed = c.error ? null : new Set((c.data as string[] | null) || []);
   const prof = new Map((p.data as {email: string; name: string; birthday: string | null; phone?: string; photo?: string}[]).map(x => [x.email, x]));
   return (a.data as Partial<Allowed>[]).map(r => ({email: r.email!, is_admin: !!r.is_admin, is_owner: !!r.is_owner, name: r.name || "", birthday: r.birthday || null, phone: r.phone || "",
     profileName: prof.get(r.email!)?.name || "", profileBirthday: prof.get(r.email!)?.birthday || null, profilePhone: prof.get(r.email!)?.phone || "",
-    profilePhoto: prof.get(r.email!)?.photo || "", created_at: r.created_at || "", joined: prof.has(r.email!)}));
+    profilePhoto: prof.get(r.email!)?.photo || "", created_at: r.created_at || "", joined: confirmed ? confirmed.has(r.email!) : prof.has(r.email!)}));
 }
 // Nome, data e celular vazios não vão juntos, para não apagar o que já estava na lista.
 export async function addAllowed(email: string, admin: boolean, name = "", birthday = "", phone = ""){

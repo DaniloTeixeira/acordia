@@ -38,6 +38,7 @@ todas as migrações num Supabase vazio.
   já tem o bounce de `@include hover-bounce` (e `hover-bounce-press` no toque, em `.icon-btn`/`.btn`); não criar
   outro efeito de ícone. O `transition` de `button, a, summary, [role=button|tab]`
   vem de uma regra geral; elemento que não é um desses (div, span clicável) declara o seu.
+- **Listas suspensas em ordem alfabética.** `<Select>` ordena sozinho pelo texto no idioma atual, com a opção de valor vazio ("Nenhum", "Escolha…") no topo. Lista com ordem própria (Hz, tons, meses, ordenação, repetição) passa `keepOrder`.
 - **Tooltip só em controle ativo.** [src/ui/tooltips.ts](src/ui/tooltips.ts) ignora `:disabled` e
   `[aria-disabled=true]`; controle que parece desativado sem esses atributos recebe `aria-disabled="true"`.
   Dica vem de `data-tip-key` (chave traduzida), `data-tip` ou do `aria-label` de botão só com ícone.
