@@ -1,7 +1,7 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import { parseChord, voicings, shapeText, suggestCapo, INSTRUMENTS } from "../src/lib/instruments";
-import { detectPitch, noteFromFreq, nearestString } from "../src/lib/tuner";
+import { detectPitch, noteFromFreq, nearestString, tuneTarget } from "../src/lib/tuner";
 
 const first = (c, i = "guitar") => shapeText(voicings(c, i, 1)[0]);
 const ivs = c => parseChord(c).tones.map(t => t.iv);
@@ -87,4 +87,17 @@ test("afinador: nota, cents e corda mais próxima", () => {
   assert.equal(s.name, "A2"); assert.equal(s.cents, -10);
   assert.equal(nearestString(392, "ukulele").name, "G4");
   assert.equal(nearestString(100, "keys"), null);
+});
+
+test("afinador: corda fixada mede só contra ela; sem fixar usa a mais próxima; cromático mostra a nota", () => {
+  const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+  // Lá grave do violão (A2, MIDI 45) 40 cents abaixo.
+  const f = hz(45 - 0.4);
+  assert.deepEqual(tuneTarget(f, "guitar"), {name: "A2", cents: -40, string: 1});
+  // Fixando a corda E2 (MIDI 40), a leitura é contra ela, mesmo 460 cents acima.
+  assert.equal(tuneTarget(f, "guitar", 440, 0).string, 0);
+  assert.equal(tuneTarget(f, "guitar", 440, 0).cents, 460);
+  // Cromático (ou instrumento sem corda): nota mais próxima, sem índice de corda.
+  assert.deepEqual(tuneTarget(hz(60), "chromatic"), {name: "C4", cents: 0, string: null});
+  assert.equal(tuneTarget(hz(60), "keys", 440, 2).string, null);
 });

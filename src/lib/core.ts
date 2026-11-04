@@ -576,15 +576,19 @@ export function makeRepertoireQuestion(entries: RepertoireEntry[] | null | undef
 type Raw = any;
 const str = (v: unknown) => typeof v === "string" ? v : "";
 export function sanitizeEntry(r: Raw): SongEntry | null {
-  if(!r || typeof r.text !== "string" || !songTitle(r.text)) return null;
+  if(!r || typeof r.text !== "string") return null;
+  const chartUrl = sanitizeUrl(r.chartUrl), ref = sanitizeUrl(r.ref);
+  // Sem texto, a música só vale com título e algum link (música só com link).
+  if(!songTitle(r.text) && !(str(r.title).trim() && (chartUrl || ref))) return null;
   return {
     id: typeof r.id === "string" && r.id ? r.id : "",
-    title: str(r.title).trim() || songTitle(r.text),
+    title: str(r.title).trim().slice(0, 120) || songTitle(r.text),
     text: r.text,
     type: r.type === "letra" ? "letra" : "",
     key: validKey(r.key),
     bpm: Number.isFinite(+r.bpm) && +r.bpm > 0 && +r.bpm < 400 ? String(Math.round(+r.bpm)) : "",
-    ref: sanitizeUrl(r.ref),
+    ref,
+    ...(chartUrl ? {chartUrl} : {}),
     arrangements: sanitizeArrangements(r.arrangements),
     ...(Number.isInteger(r.high) && r.high >= 36 && r.high <= 96 ? {high: r.high} : {}),
     updatedAt: Number.isFinite(r.updatedAt) ? r.updatedAt : Date.now()

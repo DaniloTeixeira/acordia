@@ -18,6 +18,7 @@ import { EventDetailDialog } from "./EventDetailDialog";
 import { MemberDialog } from "./MemberDialog";
 import { GroupDialog, NewGroupDialog } from "./GroupDialog";
 import { LearnDialog } from "./LearnDialog";
+import { LinkSongsDialog } from "./LinkSongsDialog";
 
 const { data } = store;
 const songsN = (n: number) => tn("song", n);
@@ -42,6 +43,7 @@ export function Dialogs(){
     {d.group && <GroupDialog/>}
     {d.newGroup && <NewGroupDialog/>}
     {d.learn && <LearnDialog {...d.learn}/>}
+    {d.linkSongs && <LinkSongsDialog/>}
   </>;
 }
 

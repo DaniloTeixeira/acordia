@@ -16,6 +16,7 @@ import { useDragSort } from "../ui/dragSort";
 import { useGroups, loadGroups, useCanEdit } from "../lib/groups";
 import { Sheet, SheetPane, copySheet, sheetMode } from "./Sheet";
 import { confirmDeleteMedley, deleteSong } from "./Library";
+import { isLinkOnly, LINK_TITLE_MAX, type LinkSong } from "../lib/links";
 import type { Medley, MedleyItem, SongItem, Song, Moment } from "../lib/types";
 
 const { data } = store;
@@ -86,6 +87,13 @@ function addItem(type: "" | "letra"){
   store.saveMedley(m); setPane("edit");
   focusItem(it.id);
 }
+// Músicas só com link entram no fim do repertório aberto (e ficam na Biblioteca). Salva uma vez só.
+export function addLinkSongs(list: LinkSong[]){
+  const m = current();
+  list.forEach(l => m.items.push(store.newItem(store.createSong({title: l.title, text: "", chartUrl: l.chartUrl, ref: l.ref}).id)));
+  store.saveMedley(m); setPane("edit");
+  const last = m.items[m.items.length - 1]; if(last) requestAnimationFrame(() => document.querySelector(`.item[data-id="${last.id}"]`)?.scrollIntoView({behavior: reduced() ? "auto" : "smooth", block: "center"}));
+}
 function addMedleyBlock(){
   const m = current(); if(isMedley(m)) return;
   const n = [...data.medleys.values()].filter(isMedley).length + 1;
@@ -129,7 +137,7 @@ function removeItem(id: string, li: HTMLElement | null){
     const undo = {label:t("common.undo"), run:()=>{ m.items.splice(i, 0, it); store.saveMedley(m); }};
     if(it.type === "medley"){ const md = data.medleys.get(it.medleyId); return toast(t("item.removed", {title: md ? md.name : t("ctx.medley")}), undo); }
     const s = data.songs.get(it.songId);
-    if(s && !s.text.trim()){ store.deleteSong(s.id); return; }
+    if(s && !s.text.trim() && !isLinkOnly(s)){ store.deleteSong(s.id); return; }
     toast(t("item.removed", {title: (s && s.title) || t("item.song")}), undo);
   }, reduced() ? 0 : 220);
 }
@@ -199,6 +207,7 @@ export function Repertoire({song}: {song?: boolean} = {}){
           <button className="btn ghost" id="add-chords" onClick={() => addItem("")}><Icon name="plus"/><span className="lbl-long">{t("add.song")}</span><span className="lbl-short">{t("add.songShort")}</span></button>
           <button className="btn ghost" id="add-library" data-tip-key="tip.addLibrary" onClick={() => openDialog("picker", {})}><Icon name="library"/><span className="lbl-long">{t("add.library")}</span><span className="lbl-short">{t("add.libraryShort")}</span></button>
           <button className="btn ghost" id="add-medley" data-tip-key="tip.addMedley" hidden={isMedley(m)} onClick={addMedleyBlock}><Icon name="link"/><span>{t("add.medley")}</span></button>
+          <button className="btn ghost" id="add-links" data-tip-key="tip.addLinks" onClick={() => openDialog("linkSongs", {})}><Icon name="play"/><span>{t("add.links")}</span></button>
         </div>}
       </div>
       <SheetPane m={m}><Sheet m={m}/></SheetPane>
@@ -314,10 +323,14 @@ function ItemCard({m, it, i, bare}: {m: Medley; it: SongItem; i: number; bare?: 
   const expanded = useUI(st => st.expanded.has(it.id)), open = bare || expanded;
   const ref = useRef<HTMLLIElement>(null);
   // A música fica enxuta, no repertório e no medley: só tom, solo, BPM e referência.
-  const letra = isLyricsOnly(song), a = arrangementOf(song, it), e = eff(song, it);
+  const letra = isLyricsOnly(song), a = arrangementOf(song, it), e = eff(song, it), linkOnly = isLinkOnly(song);
   const [text, setText] = useSynced(song.text);
   const [bpm, setBpm] = useSynced(song.bpm || "");
   const [refUrl, setRef] = useSynced(song.ref || "");
+  const [chartUrl, setChart] = useSynced(song.chartUrl || "");
+  const [name, setName] = useSynced(song.title);
+  // O campo Nome só existe na música que nasceu só com link (o nome dela não vem da primeira linha da cifra).
+  const hasName = useRef(linkOnly).current;
   const saveSong = () => store.saveSong(song);
   // Com um arranjo antigo escolhido, o tom muda o arranjo (vale em todos os repertórios que o usam).
   const setTarget = (v: string) => { if(bare){ song.key = v; saveSong(); } else if(a){ a.target = v; saveSong(); } else { it.target = v; store.saveMedley(m); } };
@@ -326,7 +339,8 @@ function ItemCard({m, it, i, bare}: {m: Medley; it: SongItem; i: number; bare?: 
   const chips: React.ReactNode[] = [];
   const keyText = !letra && key && song.text.trim() ? (e.target && e.target !== key ? key + " → " + e.target : key) : "";
   if(!isMedley(m)) chips.push(momentChip(it));
-  if(letra) chips.push(<span key="l" className="chip">{t("item.lyricsOnly")}</span>);
+  if(linkOnly) chips.push(<span key="lk" className="chip">{t("item.linkOnly")}</span>);
+  else if(letra) chips.push(<span key="l" className="chip">{t("item.lyricsOnly")}</span>);
   else {
     if(a) chips.push(<span key="a" className="chip">{a.name}</span>);
     if(e.capo) chips.push(<span key="c" className="chip">{t("item.capoChip", {n:e.capo})}</span>);
@@ -352,30 +366,43 @@ function ItemCard({m, it, i, bare}: {m: Medley; it: SongItem; i: number; bare?: 
         <span className="item-title">{keyText && <span className="item-key">{keyText}</span>}{song.title || t("item.newSong")}</span>
         {chips.some(Boolean) && <span className="item-chips">{chips}</span>}</button>
       <ItemActions it={it} after={<ToggleBtn open={open} onClick={toggle}/>}>
+        {song.chartUrl && <button className="icon-btn sm ref-btn" data-a="chart" aria-label={t("chart.open")} title={t("chart.open")} onClick={() => window.open(song.chartUrl, "_blank", "noopener")}><Icon name="link" sm/></button>}
         {song.ref && <button className="icon-btn sm ref-btn" data-a="ref" aria-label={t("ref.listen")} title={t("ref.listen")} onClick={() => openRef(song.ref || "", song.title)}><Icon name="play" sm/></button>}
       </ItemActions>
     </div>}
     <div className="item-body"><div><div className="item-inner">
       <div className="type-row">
-        <button type="button" className="btn ghost sm" data-a="ear" data-tip-key="tip.ear" disabled={!song.title} onClick={ear}><Icon name="music" sm/> {t("ear.open")}</button>
-        {!bare && <button type="button" className="btn ghost sm" data-a="copy-lyrics" disabled={!song.title} onClick={() => { const s = sheetSongs(m).find(x => x.itemId === it.id); if(s) copySheet(m, [s]); }}><Icon name="copy" sm/> {t("item.copy." + sheetMode())}</button>}
+        {!linkOnly && <button type="button" className="btn ghost sm" data-a="ear" data-tip-key="tip.ear" disabled={!song.title} onClick={ear}><Icon name="music" sm/> {t("ear.open")}</button>}
+        {!bare && !linkOnly && <button type="button" className="btn ghost sm" data-a="copy-lyrics" disabled={!song.title} onClick={() => { const s = sheetSongs(m).find(x => x.itemId === it.id); if(s) copySheet(m, [s]); }}><Icon name="copy" sm/> {t("item.copy." + sheetMode())}</button>}
         {!isMedley(m) && !bare && <MomentSeg m={m} it={it}/>}</div>
+      {hasName && !song.text.trim() && <label className="field">{t("item.name")}<input className="input" data-f="name" maxLength={LINK_TITLE_MAX} autoComplete="off" value={name}
+        onChange={ev => { setName(ev.target.value); if(ev.target.value.trim()){ song.title = ev.target.value.trim(); saveSong(); } }}
+        onBlur={ev => { setName(song.title); flashSaved(ev.currentTarget); }}/></label>}
       <textarea className="input song-text" spellCheck={false} aria-label={t("item.textAria", {n:i+1})} placeholder={t(letra ? "item.phLyrics" : "item.phChords")} autoFocus={bare}
-        value={text} onChange={ev => { const v = ev.target.value; setText(v); song.text = v; song.title = songTitle(v);
+        value={text} onChange={ev => { const v = ev.target.value; setText(v); song.text = v; song.title = songTitle(v) || (song.chartUrl || song.ref ? song.title : "");
           // O tipo acompanha o texto: sem nenhum acorde é só letra.
           song.type = v.trim() && !parseSong(v).blocks.some(b => b.some(x => x.chord)) ? "letra" : ""; saveSong(); }}/>
       <p className="note song-hint">{t("item.chorusHint")}</p>
       {/* Só o tom fica à vista (o tom em que a música toca; a cifra é transposta para ele). Solo, BPM e referência
           ficam em "Mais detalhes", aberto sozinho quando algum já está preenchido. */}
       <div className="fields item-fields">
-        <label className="field" data-key-field hidden={letra}>{t("item.keyShort")}<Select f="target" value={bare ? song.key : e.target}
+        <label className="field" data-key-field hidden={letra || linkOnly}>{t("item.keyShort")}<Select f="target" value={bare ? song.key : e.target}
           options={keyOptions(key ? t("item.autoKey", {key}) : t("item.auto"))} onChange={setTarget}/></label>
       </div>
-      <details className="item-more" open={!!(it.solo || song.bpm || song.ref) || !!bare}><summary>{t("item.more")}</summary>
+      <details className="item-more" open={!!(it.solo || song.bpm || song.ref || song.chartUrl) || !!bare}><summary>{t("item.more")}</summary>
       <div className="fields item-fields">
         <SoloField hidden={letra || !!bare} value={it.solo || ""} onChange={v => { it.solo = v; store.saveMedley(m); }}/>
         <label className="field" hidden={letra}>{t("item.bpm")}<input className="input" data-f="bpm" type="number" inputMode="numeric" min={20} max={300} placeholder="—" value={bpm}
           onChange={ev => { setBpm(ev.target.value); const v = +ev.target.value; song.bpm = v > 0 && v < 400 ? String(Math.round(v)) : ""; saveSong(); }}/></label>
+        <label className="field wide">{t("item.chart")}<input className="input" data-f="chart" type="url" inputMode="url" autoComplete="off" placeholder={t("item.chartPh")} value={chartUrl}
+          onChange={ev => setChart(ev.target.value)}
+          onBlur={ev => {
+            const v = sanitizeUrl(ev.target.value);
+            if(ev.target.value.trim() && !v) toast(t("ref.bad"));
+            else if(v !== (song.chartUrl || "")) flashSaved(ev.currentTarget);
+            if(v) song.chartUrl = v; else delete song.chartUrl;
+            setChart(v); saveSong();
+          }}/></label>
         <label className="field wide">{t("item.ref")}<input className="input" data-f="ref" type="url" inputMode="url" autoComplete="off" placeholder={t("item.refPh")} value={refUrl}
           onChange={ev => setRef(ev.target.value)}
           onBlur={ev => {

@@ -113,9 +113,11 @@ export async function openGroupSetlist(s: GroupSetlist, stage = false){
   if(stage) useUI.setState({stageOpen: true});
 }
 function findOrCreateSong(e: IncomingSong){
-  const same = [...data.songs.values()].find(x => norm(x.title) === norm(songTitle(e.text)) && x.text.trim() === e.text.trim());
+  const title = songTitle(e.text) || e.title;
+  const same = [...data.songs.values()].find(x => norm(x.title) === norm(title) && x.text.trim() === e.text.trim());
   if(same && e.ref && !same.ref){ same.ref = e.ref; store.saveSong(same); }
-  return same || store.createSong({text:e.text, type:e.type, key:e.key, bpm:e.bpm, ref:e.ref});
+  if(same && e.chartUrl && !same.chartUrl){ same.chartUrl = e.chartUrl; store.saveSong(same); }
+  return same || store.createSong({text:e.text, title, type:e.type, key:e.key, bpm:e.bpm, ref:e.ref, ...(e.chartUrl ? {chartUrl: e.chartUrl} : {})});
 }
 // Já recebeu este repertório antes? Então atualiza a cópia em vez de criar outra.
 function saveIncoming(med: IncomingMedley){

@@ -16,7 +16,8 @@ async function pipe(bytes: Uint8Array, stream: CompressionStream | Decompression
   return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer());
 }
 
-export interface SharedSong { text: string; type?: string; key?: string; bpm?: string; ref?: string; target?: string; capo?: string; singer?: string; solo?: string; notes?: string; moment?: string; g?: number }
+// title e chartUrl só vão na música sem texto (só com link).
+export interface SharedSong { text: string; title?: string; chartUrl?: string; type?: string; key?: string; bpm?: string; ref?: string; target?: string; capo?: string; singer?: string; solo?: string; notes?: string; moment?: string; g?: number }
 export interface SharedMedley { name: string; options: Options; kind?: "setlist" | "medley"; groups?: string[]; songs: SharedSong[]; sourceId?: string }
 export type IncomingSong = SongEntry & ItemFields & {g?: number};
 export interface IncomingMedley { name: string; sourceId: string; options: Options; kind: "setlist" | "medley"; groups: string[]; songs: IncomingSong[] }
@@ -24,6 +25,8 @@ export interface IncomingMedley { name: string; sourceId: string; options: Optio
 export async function encodeMedley(medley: SharedMedley){
   const compact = {v:1, i: medley.sourceId || undefined, n:medley.name, o:medley.options, k: medley.kind === "medley" ? "m" : undefined, gn: medley.groups && medley.groups.length ? medley.groups : undefined, s:medley.songs.map(s=>{
     const o: Record<string, unknown> = {t:s.text};
+    if(s.title) o.ti = s.title;
+    if(s.chartUrl) o.cu = s.chartUrl;
     (["type","key","bpm","ref","target","capo","singer","solo","notes","moment"] as const).forEach(k=>{ if(s[k]) o[k] = s[k]; });
     if(Number.isInteger(s.g)) o.g = s.g; return o;
   })};
@@ -43,7 +46,7 @@ export async function decodeMedley(code: string): Promise<IncomingMedley | null>
     const groups: string[] = Array.isArray(d.gn) ? d.gn.slice(0, 50).map((x: unknown) => typeof x === "string" && x.trim() ? x.trim().slice(0, 80) : t("ctx.medley")) : [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const songs = d.s.map((s: any): IncomingSong | null => {
-      const e = s && sanitizeEntry({text:s.t, type:s.type, key:s.key, bpm:s.bpm, ref:s.ref});
+      const e = s && sanitizeEntry({text:s.t, title:s.ti, chartUrl:s.cu, type:s.type, key:s.key, bpm:s.bpm, ref:s.ref});
       if(!e) return null;
       const out: IncomingSong = Object.assign(e, sanitizeItem(s));
       if(Number.isInteger(s.g) && s.g >= 0 && s.g < groups.length) out.g = s.g;

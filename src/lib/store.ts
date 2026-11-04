@@ -3,6 +3,7 @@
 // banco é agrupada por registro, para digitar numa música não gravar a cada tecla.
 import { sanitizeOptions, songTitle, DEFAULT_OPTIONS } from "./core";
 import { t } from "./i18n";
+import { isLinkOnly } from "./links";
 import type { Song, Medley, Item, SongItem, MedleyItem, Options, Settings } from "./types";
 
 const OPEN_LIMIT = 4000;
@@ -165,5 +166,5 @@ export const newMedleyItem = (medleyId: string): MedleyItem => ({id:newId("i"), 
 function cleanup(){
   dropStaleDrafts();
   const used = new Set([...data.medleys.values()].flatMap(m=>m.items.map(i=>i.type === "medley" ? "" : i.songId)));
-  [...data.songs.values()].forEach(s=>{ if(!s.text.trim() && !used.has(s.id)) deleteSong(s.id); });
+  [...data.songs.values()].forEach(s=>{ if(!s.text.trim() && !used.has(s.id) && !isLinkOnly(s)) deleteSong(s.id); });
 }

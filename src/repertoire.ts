@@ -3,6 +3,7 @@
 import { KEYS, MINOR_KEYS, parseSong, dedupeBlocks, detectKey, keyShift, parseKey, sanitizeOptions, transposeKey } from "./lib/core";
 import { chordLine, type SheetSong } from "./lib/layout";
 import { t } from "./lib/i18n";
+import { isLinkOnly, shortUrl } from "./lib/links";
 import * as store from "./lib/store";
 import { useUI } from "./state";
 import type { Medley, Song, SongItem, Item, Moment } from "./lib/types";
@@ -82,10 +83,18 @@ export function lastPlayKey(m: Medley){
   return "";
 }
 
-export interface SheetEntry extends SheetSong { auto: string; itemId: string; ref: string; meta: {bpm: string; capo: string; singer: string; solo: string; notes: string; moment: string} }
+// linkOnly: música só com link; a folha mostra o nome e o endereço, e o Palco os botões Cifra e Ouvir.
+export interface SheetEntry extends SheetSong { auto: string; itemId: string; ref: string; chartUrl: string; linkOnly: boolean; meta: {bpm: string; capo: string; singer: string; solo: string; notes: string; moment: string} }
 export function sheetSongs(m: Medley): SheetEntry[] {
   let list = songItems(m).map(({it, group, gname, moment}): SheetEntry | null => {
-    const s = data.songs.get(it.songId); if(!s || !s.text.trim()) return null;
+    const s = data.songs.get(it.songId); if(!s) return null;
+    if(isLinkOnly(s)){
+      const e = eff(s, it), pos = isMedley(m) ? "" : t(moment === "pos" ? "item.momentPos" : "item.momentLouvor");
+      return {title: s.title, blocks: [[{kind: "lyric", lyric: shortUrl(s.chartUrl || s.ref || "")}]], chorus: [false], key: "", target: "", shift: 0, auto: "", itemId: it.id,
+        ref: s.ref || "", chartUrl: s.chartUrl || "", linkOnly: true, group, gname, gpos: group && !isMedley(m) ? pos : "",
+        meta: {bpm: "", capo: "", singer: it.singer, solo: "", notes: e.notes, moment: group ? "" : pos}};
+    }
+    if(!s.text.trim()) return null;
     const letra = isLyricsOnly(s), p = parseSong(s.text, letra);
     if(!p.title) return null;
     const e = eff(s, it);
@@ -101,7 +110,7 @@ export function sheetSongs(m: Medley): SheetEntry[] {
     // Momento (Louvor ou Pós-pregação): no medley vai junto do nome do medley (uma vez só); na música avulsa,
     // na linha de detalhes. Editando um medley sozinho não tem momento (é o do repertório onde ele entra).
     const pos = isMedley(m) ? "" : t(moment === "pos" ? "item.momentPos" : "item.momentLouvor");
-    return Object.assign(p, {key, target, shift: target ? keyShift(key, target) : 0, auto, itemId: it.id, ref: s.ref || "", group,
+    return Object.assign(p, {key, target, shift: target ? keyShift(key, target) : 0, auto, itemId: it.id, ref: s.ref || "", chartUrl: s.chartUrl || "", linkOnly: false, group,
       gname, gpos: group && !isMedley(m) ? pos : "",
       meta: {bpm: letra ? "" : s.bpm, capo, singer: it.singer, solo: it.solo || "", notes: e.notes, moment: group ? "" : pos}});
   }).filter((x): x is SheetEntry => !!x);
@@ -125,9 +134,9 @@ export const itemSongId = (i: Item) => i.type === "medley" ? "" : i.songId;
 export function medleyPayload(m: Medley){
   const groups: string[] = [], gi = new Map<string, number>();
   const list = songItems(m).map(({it, group, gname, moment}) => {
-    const s = data.songs.get(it.songId); if(!s || !s.text.trim()) return null;
-    const e = eff(s, it), o: {text: string; type: string; key: string; bpm: string; ref?: string; target: string; capo: string; singer: string; solo: string; notes: string; moment: string; g?: number} =
-      {text:s.text, type:s.type, key:s.key, bpm:s.bpm, ref:s.ref, target:e.target, capo:e.capo, singer:it.singer, solo:it.solo || "", notes:e.notes, moment};
+    const s = data.songs.get(it.songId); if(!s || !(s.text.trim() || isLinkOnly(s))) return null;
+    const e = eff(s, it), o: {text: string; title?: string; chartUrl?: string; type: string; key: string; bpm: string; ref?: string; target: string; capo: string; singer: string; solo: string; notes: string; moment: string; g?: number} =
+      {text:s.text, ...(s.text.trim() ? {} : {title: s.title}), chartUrl:s.chartUrl, type:s.type, key:s.key, bpm:s.bpm, ref:s.ref, target:e.target, capo:e.capo, singer:it.singer, solo:it.solo || "", notes:e.notes, moment};
     if(group && !isMedley(m)){ if(!gi.has(group)){ gi.set(group, groups.length); groups.push(gname); } o.g = gi.get(group); }
     return o;
   }).filter((x): x is NonNullable<typeof x> => !!x);

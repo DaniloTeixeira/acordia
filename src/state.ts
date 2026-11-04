@@ -46,6 +46,8 @@ export interface DialogProps {
   newGroup: Record<string, never>;
   // Sugerir uma música para a lista Para aprender do grupo (id null) ou editar uma sugestão.
   learn: {id: string | null};
+  // Adicionar músicas ao repertório aberto só com links (uma por linha).
+  linkSongs: Record<string, never>;
 }
 export type DialogName = keyof DialogProps;
 
