@@ -89,7 +89,8 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] **Novo**: cria outro repertório. O anterior continua salvo.
 - [ ] **Palco**.
 - [ ] **Editar / Ver folha**: alterna os painéis no celular; no computador ficam lado a lado.
-- [ ] **Adicionar** (botões outlined e arredondados, dividindo a linha; no celular, um por linha): "Adicionar música" (cole a cifra ou a letra; o tipo "Só letra" é detectado sozinho: texto sem nenhum acorde), "Biblioteca" (escolha várias, com busca) e "Medley".
+- [ ] **Adicionar** (botões outlined e arredondados, dividindo a linha; no celular, um por linha): "Adicionar música" (cole a cifra ou a letra; o tipo "Só letra" é detectado sozinho: texto sem nenhum acorde), "Biblioteca" (escolha várias, com busca), "Medley" e "Por link" (no celular são dois botões por linha).
+- [ ] **Por link** (música só com link, sem colar cifra): a janela "Adicionar por link" recebe uma música por linha, com o nome e o link da cifra (Cifra Club ou outro) e/ou do vídeo (YouTube), em qualquer ordem. Sem nome, o app tira do endereço do Cifra Club (sem acento; dá para ajustar no campo **Nome** do card). A janela mostra o que entendeu de cada linha e quais ficaram de fora (sem nome ou sem link); até 60 linhas por vez. A música entra no fim do repertório e na Biblioteca com o chip **Só link**; o card tem os botões **Abrir cifra** e **Ouvir**, e todo card ganha o campo **Link da cifra** em "Mais detalhes". A folha mostra o nome e o endereço; o Palco, os botões Cifra e Ouvir; e o grupo recebe a música junto do repertório.
 - [ ] **Cartão de cada música**:
   - **arrastar o cartão** para outro lugar (menos pelos botões e campos): no mouse, clicar e arrastar (só clicar
     abre e fecha); no celular, segurar ~¼ s e arrastar; Esc cancela; no teclado, Tab até o número e ↑ ↓;
@@ -242,7 +243,7 @@ também libera o acesso ao app para eles).
   - acento no 1º tempo;
   - **Descobrir BPM**;
   - atalhos: espaço, setas e T.
-- [ ] **Afinador**: pelo microfone, com A4 de 432 a 446 Hz, ponteiro em cents e a corda mais próxima; afinado (±5 cents) o ponteiro trava no centro e tudo fica verde, e só solta passando de ±10; a falha do microfone usa o mesmo aviso fixo da Voz.
+- [ ] **Afinador**: pelo microfone, com A4 de 432 a 446 Hz e ponteiro em cents. Modo próprio (Violão/guitarra, Baixo, Ukulele, Cavaquinho ou Cromático para voz, sopro e teclado, que mostra a nota mais próxima); nas cordas, as notas são botões grandes: o app acha a corda sozinho ou, tocando numa, mede só contra ela (toque de novo para soltar); afinado (±5 cents) o ponteiro trava no centro e tudo fica verde, e só solta passando de ±10; a falha do microfone usa o mesmo aviso fixo da Voz.
 - [ ] **Pad infinito**:
   - tom, 6 estilos (Original, Discreto, Quente, Brilhante, Etéreo, Profundo), volume e filtro;
   - swell em 4 ou 8 compassos;

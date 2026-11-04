@@ -1,7 +1,7 @@
 // Ferramentas: metrônomo, afinador, pad infinito e voz (medir a extensão).
 import { useEffect, useRef, useState } from "react";
-import { detectPitch, noteFromFreq, nearestString, midiName } from "../lib/tuner";
-import { INSTRUMENTS, isInstrument } from "../lib/instruments";
+import { detectPitch, tuneTarget, midiName } from "../lib/tuner";
+import { INSTRUMENTS, INSTRUMENT_IDS, isInstrument } from "../lib/instruments";
 import { t } from "../lib/i18n";
 import * as store from "../lib/store";
 import { useData } from "../state";
@@ -16,7 +16,6 @@ import { MetronomeUI } from "./Metronome";
 import { PadUI } from "./Pad";
 import { Voice } from "./Voice";
 import { pad } from "../pad";
-import { InstrumentSelect } from "./InstrumentSelect";
 
 const { data } = store;
 
@@ -44,12 +43,16 @@ interface Reading { label: string; oct: string; cents: number; ok: boolean; hz: 
 function Tuner(){
   useData();
   const a4 = (data.settings.a4 as number) || 440;
-  const inst = (data.settings.instrument as string) || "guitar";
-  const I = INSTRUMENTS[isInstrument(inst) ? inst : "guitar"];
+  // Modo próprio do afinador: teclado e voz não têm corda para afinar, então o "Cromático" mostra a nota mais próxima.
+  const gl = (data.settings.instrument as string) || "guitar";
+  const mode = store.setting<string>("tunerMode", isInstrument(gl) && INSTRUMENTS[gl].kind === "strings" ? gl : "chromatic");
+  const inst = isInstrument(mode) && INSTRUMENTS[mode].kind === "strings" ? mode : "chromatic";
+  const I = isInstrument(inst) ? INSTRUMENTS[inst] : null;
+  const [pick, setPick] = useState<number | null>(null);
   const [on, setOn] = useState(false);
   const [r, setR] = useState<Reading | null>(null);
   const [quiet, setQuiet] = useState(false);
-  const live = useRef({a4, inst}); live.current = {a4, inst};
+  const live = useRef({a4, inst, pick}); live.current = {a4, inst, pick};
   const stopRef = useRef<() => void>(() => {});
   const stop = () => { stopRef.current(); stopRef.current = () => {}; setOn(false); };
   const start = async () => {
@@ -71,14 +74,12 @@ function Tuner(){
       if(!f){ locked = false; setQuiet(true); return; }
       smooth.push(f); if(smooth.length > 5) smooth.shift();
       const fm = [...smooth].sort((x, y) => x - y)[smooth.length >> 1];
-      const {a4, inst} = live.current;
-      const n = noteFromFreq(fm, a4), s = nearestString(fm, inst, a4);
-      const near = s && Math.abs(s.cents) <= 150;
-      const cents = near ? s!.cents : n.cents, label = near ? s!.name : n.name + n.octave;
+      const {a4, inst, pick} = live.current;
+      const {name: label, cents, string} = tuneTarget(fm, inst, a4, pick);
       // Histerese: entra na afinação com até 5 cents e só sai com mais de 10, para o ponteiro não tremer na borda.
       locked = Math.abs(cents) <= (locked ? 10 : 5);
       setQuiet(false);
-      setR({label: label.replace(/-?\d+$/, ""), oct: label.match(/-?\d+$/)?.[0] || "", cents, ok: locked, hz: fm, string: near ? s!.index : null});
+      setR({label: label.replace(/-?\d+$/, ""), oct: label.match(/-?\d+$/)?.[0] || "", cents, ok: locked, hz: fm, string});
     };
     loop(); setOn(true);
     stopRef.current = () => { cancelAnimationFrame(raf); stream.getTracks().forEach(tr => tr.stop()); ctx.close().catch(()=>{}); };
@@ -86,7 +87,10 @@ function Tuner(){
   useEffect(() => () => stopRef.current(), []);
   const clamped = r ? Math.max(-50, Math.min(50, r.cents)) : 0;
   return <div className="card tuner">
-    <div className="tuner-top"><InstrumentSelect/>
+    <div className="tuner-top">
+      <label className="field inst-field"><span>{t("inst.label")}</span>
+        <Select id="tu-inst" value={inst} onChange={v => { store.setSetting("tunerMode", v); setPick(null); }}
+          options={[...INSTRUMENT_IDS.filter(id => INSTRUMENTS[id].kind === "strings").map(id => ({value: id, label: t("inst." + id)})), {value: "chromatic", label: t("tuner.chromatic")}]}/></label>
       <label className="field a4" title={t("tuner.refHelp")}><span>{t("tuner.ref")}</span>
         <Select id="tu-a4" value={String(a4)} onChange={v => store.setSetting("a4", +v)}
           options={[432,436,438,440,442,444,446].map(v => ({value: String(v), label: v + " Hz" + (v === 440 ? " · " + t("tuner.default") : "")}))}/></label></div>
@@ -94,14 +98,17 @@ function Tuner(){
       <div className="tuner-note"><b id="tu-note">{r ? r.label : "—"}</b><small id="tu-oct">{r ? r.oct : ""}</small></div>
       <div className="tuner-meter"><div className="tuner-scale">{[-50,-25,0,25,50].map(v => <span key={v} style={{left: (50 + v * 0.9) + "%"}}>{v > 0 ? "+" + v : v}</span>)}</div>
         <div className="tuner-needle" id="tu-needle" style={r ? {left: (r.ok ? 50 : 50 + clamped * 0.9) + "%"} : undefined}/><div className="tuner-zone"/></div>
-      <p className="tuner-cents" id="tu-cents">{!r ? t("tuner.idle") : r.ok ? t("tuner.inTune") : t(r.cents < 0 ? "tuner.low" : "tuner.high", {c: Math.abs(r.cents)}) + ` · ${r.hz.toFixed(1)} Hz`}</p>
+      <p className="tuner-cents" id="tu-cents">{!r ? (pick !== null && I ? t("tuner.idlePick", {n: midiName(I.strings[pick]).replace(/\d/, "")}) : t(I ? "tuner.idle" : "tuner.idleChromatic")) : r.ok ? t("tuner.inTune") : t(r.cents < 0 ? "tuner.low" : "tuner.high", {c: Math.abs(r.cents)}) + ` · ${r.hz.toFixed(1)} Hz`}</p>
     </div>
-    {I.kind === "strings" && <div className="tuner-strings">{I.strings.map((m, i) => <span key={i} className={"tstring" + (r && !quiet && r.string === i ? " on" : "")} data-i={i}>
-      <b>{midiName(m).replace(/\d/, "")}</b><small>{midiName(m).replace(/\D/g, "")}</small></span>)}</div>}
+    {I && <div className="tuner-strings">{I.strings.map((m, i) => <button type="button" key={i} aria-pressed={pick === i}
+      className={"tstring" + (pick === i || (pick === null && r && !quiet && r.string === i) ? " on" : "")} data-i={i}
+      onClick={() => setPick(pick === i ? null : i)}>
+      <b>{midiName(m).replace(/\d/, "")}</b><small>{midiName(m).replace(/\D/g, "")}</small></button>)}</div>}
+    {I && <p className="sub">{t(pick === null ? "tuner.pickHint" : "tuner.pickedHint")}</p>}
     <button className={"btn primary metro-go" + (on ? " running" : "")} id="tu-toggle" onClick={() => on ? stop() : start()}>
       {on ? <><Icon name="x" sm/> {t("tuner.stop")}</> : <><Icon name="sound" sm/> {t("tuner.start")}</>}</button>
     <MicHelp/>
-    <p className="sub">{t("tuner.hint")}</p>
+    <p className="sub">{t(I ? "tuner.hint" : "tuner.hintChromatic")}</p>
     <p className="sub">{t("tuner.refHelp")}</p>
   </div>;
 }

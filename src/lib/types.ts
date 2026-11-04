@@ -6,6 +6,8 @@ export interface Arrangement { id: string; name: string; target: string; capo: s
 export interface Song {
   id: string; title: string; text: string; type: SongType; key: string; bpm: string;
   ref?: string; arrangements?: Arrangement[]; createdAt?: number; updatedAt?: number;
+  // Link da cifra (ex.: Cifra Club). Sem texto, a música vale só pelos links (ver isLinkOnly).
+  chartUrl?: string;
   // Nota mais aguda da melodia (MIDI), para sugerir o tom pela extensão de quem canta.
   high?: number;
   // Desativada: fica na Biblioteca, mas não aparece para adicionar.
@@ -14,7 +16,7 @@ export interface Song {
 // Música validada vinda de fora (link compartilhado, arquivo importado).
 export interface SongEntry {
   id: string; title: string; text: string; type: SongType; key: string; bpm: string;
-  ref: string; arrangements: Arrangement[]; updatedAt: number; high?: number;
+  ref: string; arrangements: Arrangement[]; updatedAt: number; high?: number; chartUrl?: string;
 }
 
 // Momento do culto: "" é louvor (o padrão); "pos" é pós-pregação.

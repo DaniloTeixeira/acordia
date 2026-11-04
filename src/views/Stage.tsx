@@ -317,6 +317,7 @@ export function Stage(){
               {/* O momento (Louvor, Pós-pregação) vai dentro do título, logo depois do nome: quebra junto com ele. */}
               <div className="stage-song-head"><h2><span className="stage-num">{si + 1}</span>{s.title}
                 {s.meta.moment && <span className={"chip moment-chip" + (s.meta.moment === t("item.momentLouvor") ? " louvor" : "")}>{s.meta.moment}</span>}</h2>
+                {s.chartUrl && <button className="stage-ref" onClick={e => { e.stopPropagation(); window.open(s.chartUrl, "_blank", "noopener"); }}><Icon name="link" sm/> {t("chart.open")}</button>}
                 {s.ref && <button className="stage-ref" onClick={e => { e.stopPropagation(); openRef(s.ref, s.title); }}><Icon name="play" sm/> {t("ref.listen")}</button>}
                 {/* Tom alinhado à esquerda: legenda e o tom atual entre baixar e subir meio tom. */}
                 {key && !L && <div className="stage-key" role="group" aria-label={t("stage.key")}>
@@ -326,7 +327,7 @@ export function Stage(){
                   <button className="stage-key-btn" aria-label={t("stage.up")} title={t("stage.up")} onClick={e => { e.stopPropagation(); shiftItemKey(s.itemId, 1); }}>+½</button>
                 </div>}</div>
               {meta && <p className="meta">{meta}</p>}
-              {s.blocks.map((b, bi) => <div key={bi} className="stage-block">{b.map((it, ii) => {
+              {!s.linkOnly && s.blocks.map((b, bi) => <div key={bi} className="stage-block">{b.map((it, ii) => {
                 const cl = it.chord !== undefined && it.chord !== null && !L ? chordLine(it.chord, s, mode, m.options.degreeStyle) : null;
                 const parts = wrapCols(cl?.text || "", it.lyric || "", cols), one = parts.length === 1;
                 return <div key={ii} style={{display: "contents"}}>{parts.map(([a, z]) => {

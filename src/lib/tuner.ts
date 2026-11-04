@@ -72,3 +72,15 @@ export function nearestString(f: number, instId: string, a4 = 440){
   const m = inst.strings[best];
   return {index: best, midi: m, name: midiName(m), cents: Math.round((midiF - m) * 100)};
 }
+// Alvo da leitura do afinador. Com corda fixada (pick), mede só contra ela, por mais longe que esteja, para dar
+// para afinar uma corda muito frouxa. Sem pick usa a corda mais próxima (até 150 cents); fora disso, ou no modo
+// cromático (instrId vazio), mostra a nota mais próxima.
+export function tuneTarget(f: number, instId: string, a4 = 440, pick: number | null = null){
+  const inst = isInstrument(instId) ? INSTRUMENTS[instId] : null;
+  if(inst && inst.kind === "strings" && pick !== null && pick >= 0 && pick < inst.strings.length){
+    const m = inst.strings[pick];
+    return {name: midiName(m), cents: Math.round((69 + 12 * Math.log2(f / a4) - m) * 100), string: pick};
+  }
+  const n = noteFromFreq(f, a4), s = nearestString(f, instId, a4);
+  return s && Math.abs(s.cents) <= 150 ? {name: s.name, cents: s.cents, string: s.index} : {name: n.name + n.octave, cents: n.cents, string: null};
+}

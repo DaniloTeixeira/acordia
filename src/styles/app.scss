@@ -2041,7 +2041,7 @@ textarea.song-text {
 }
 .add-bar {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   /* Lista longa: os botões grudam no rodapé da tela; no fim da lista voltam ao lugar.
      O fundo esmaece os cards que passam por trás. */
@@ -2058,7 +2058,7 @@ textarea.song-text {
   }
 }
 .add-bar:has(#add-medley[hidden]) {
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
 }
 /* Celular estreito: rótulos curtos para os três botões caberem em uma linha. */
 .add-bar .lbl-short {
@@ -2090,17 +2090,17 @@ textarea.song-text {
     }
   }
 }
-/* Celular: um botão por linha, com o rótulo completo e o ícone ao lado do texto. */
+/* Celular: dois botões por linha (são quatro), com o rótulo curto e o ícone ao lado do texto. */
 @media (max-width: 599px) {
   .add-bar,
   .add-bar:has(#add-medley[hidden]) {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
   .add-bar .lbl-long {
-    display: inline;
+    display: none;
   }
   .add-bar .lbl-short {
-    display: none;
+    display: inline;
   }
   /* ">" para ganhar do estilo base do botão, que vem logo abaixo. */
   .add-bar > .btn {
@@ -3967,6 +3967,36 @@ textarea.song-text {
 dialog.player {
   --dlg-w: 860px;
 }
+/* Adicionar por link: o que o app entendeu de cada linha colada. */
+.link-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.link-preview li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+.link-preview .tt {
+  flex: 1 1 140px;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.link-preview li.skip {
+  color: var(--bad);
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
 .player-box {
   position: relative;
   width: 100%;
@@ -4520,12 +4550,20 @@ a.btn {
 .tstring {
   display: flex;
   align-items: baseline;
+  justify-content: center;
   gap: 1px;
+  min-width: 48px;
+  min-height: 48px;
   padding: 8px 12px;
   border-radius: var(--r-md);
   border: 1.5px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink);
   font-family: var(--font-display);
+  font-size: 1rem;
+  cursor: pointer;
   transition: all var(--t-fast);
+  @include hover-row;
 }
 .tstring small {
   font-size: 0.7rem;
@@ -8269,9 +8307,10 @@ dialog.ear-dlg {
   border-top: 1px solid var(--line);
 }
 /* Editar e Excluir (logo abaixo do "Adicionar ao calendário"): no celular um em cada ponta da linha; no desktop juntos, à esquerda. */
-.event-admin { display: flex; justify-content: space-between; gap: 12px; }
+.event-sec.event-admin { flex-direction: row; gap: 12px; }
+.event-admin > .btn { flex: 1 1 0; min-width: 0; }
 @media (min-width: 900px) {
-  .event-admin { justify-content: flex-start; }
+  .event-admin > .btn { flex: 0 0 auto; }
 }.roster {
   list-style: none;
   margin: 0;
