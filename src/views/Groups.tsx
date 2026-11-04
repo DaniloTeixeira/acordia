@@ -15,12 +15,12 @@ import { useGroupRefresh, openGroup, GroupMark, GroupPhotoButton } from "./Group
 // Os grupos (tocar abre o grupo). O aberto agora usa os números já carregados.
 // Fixar: um grupo só, que vem primeiro (os outros seguem em ordem alfabética). Fixar outro troca o fixado.
 // Fica neste aparelho, como as outras preferências.
-export function GroupCards({upcoming}: {upcoming: number}){
-  const g = useGroups();
+export function GroupCards({upcoming, onlyMine}: {upcoming: number; onlyMine?: boolean}){
+  const g = useGroups(), list = onlyMine ? g.groups.filter(x => x.mine) : g.groups;
   const pinned = store.setting<string>("pinnedGroup", "");
   const togglePin = (id: string) => store.setSetting("pinnedGroup", pinned === id ? "" : id);
-  const ordered = [...g.groups.filter(x => x.id === pinned), ...g.groups.filter(x => x.id !== pinned)];
-  const many = g.groups.length > 1;
+  const ordered = [...list.filter(x => x.id === pinned), ...list.filter(x => x.id !== pinned)];
+  const many = list.length > 1;
   return <ul className="home-groups">{ordered.map(x => {
     const cur = x.id === g.gid, st = cur ? {events: upcoming, members: g.members.length} : x.stats;
     const pin = pinned === x.id;

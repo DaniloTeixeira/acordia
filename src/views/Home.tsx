@@ -42,11 +42,13 @@ export function Home(){
   // O próximo compromisso é a primeira escala da pessoa; sem escala, o próximo evento do grupo (sem resposta).
   const next = mine[0] || upcoming.find(e => !started(e)), rest = mine.slice(1);
   const name = (profile?.name || me.split("@")[0]).split(" ")[0];
-  const bdays = group ? upcomingBirthdays(g.members, dayKey(new Date()), 7) : [];
+  // Aniversariantes de todos os grupos em que estou (sem repetir quem está em mais de um).
+  const everyone = [...g.members, ...(g.people || []).filter(p => !g.members.some(m => m.email === p.email))];
+  const bdays = group ? upcomingBirthdays(everyone, dayKey(new Date()), 7) : [];
   const study = studyList(next?.setlist_id);
   // Embaixo, Estudo, Grupos e Aniversários em pares, na ordem; um número ímpar deixa o último na linha toda.
   // Com mais de dois grupos o bloco cresce muito e esticaria o vizinho: fica sozinho na linha, antes dos outros.
-  const nGroups = g.groups.length;
+  const nGroups = g.groups.filter(x => x.mine).length;
   const groupsSolo = nGroups > 2;
   const bottom = [study.length > 0 && "study", group && "groups", group && "birthdays"].filter(Boolean) as string[];
   const paired = groupsSolo ? bottom.filter(k => k !== "groups") : bottom;
@@ -262,10 +264,10 @@ function GroupSetRow({set}: {set: GroupSetlist}){
 // Fixar: um grupo só, que vem primeiro (os outros seguem em ordem alfabética). Fixar outro troca o fixado.
 // Fica neste aparelho, como as outras preferências.
 function Groups({upcoming, wide}: {upcoming: number; wide: boolean}){
-  const g = useGroups();
-  return <Block id="home-group" className="home-group" wide={wide} title={tn("home.groups", g.groups.length)} count={g.groups.length > 1 ? g.groups.length : 0}
+  const g = useGroups(), n = g.groups.filter(x => x.mine).length;
+  return <Block id="home-group" className="home-group" wide={wide} title={tn("home.groups", n)} count={n > 1 ? n : 0}
     action={<button type="button" className="link-btn" id="home-new-group" onClick={() => openDialog("newGroup", {})}><Icon name="plus" sm/> {t("group.newGroupTitle")}</button>}>
-    <GroupCards upcoming={upcoming}/>
+    <GroupCards upcoming={upcoming} onlyMine/>
   </Block>;
 }
 

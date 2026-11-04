@@ -386,7 +386,7 @@ function ItemCard({m, it, i, bare}: {m: Medley; it: SongItem; i: number; bare?: 
       {/* Só o tom fica à vista (o tom em que a música toca; a cifra é transposta para ele). Solo, BPM e referência
           ficam em "Mais detalhes", aberto sozinho quando algum já está preenchido. */}
       <div className="fields item-fields">
-        <label className="field" data-key-field hidden={letra || linkOnly}>{t("item.keyShort")}<Select f="target" value={bare ? song.key : e.target}
+        <label className="field" data-key-field hidden={letra || linkOnly}>{t("item.keyShort")}<Select keepOrder f="target" value={bare ? song.key : e.target}
           options={keyOptions(key ? t("item.autoKey", {key}) : t("item.auto"))} onChange={setTarget}/></label>
       </div>
       <details className="item-more" open={!!(it.solo || song.bpm || song.ref || song.chartUrl) || !!bare}><summary>{t("item.more")}</summary>

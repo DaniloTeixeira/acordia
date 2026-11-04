@@ -104,7 +104,7 @@ function SheetOptions({m}: {m: Medley}){
       <div className="row"><span>{t("opt.degrees")}</span><Seg className="sm" value={o.degreeStyle} onChange={v => change("degreeStyle", v)}
         options={[{v: "roman", label: "I IV V"}, {v: "arabic", label: "1 4 5"}]}/></div>
       <div className="row"><label htmlFor="opt-minfont">{t("opt.minFont")}</label>
-        <Select id="opt-minfont" style={{width: "auto"}} value={String(o.minFont)} onChange={v => change("minFont", +v)}
+        <Select keepOrder id="opt-minfont" style={{width: "auto"}} value={String(o.minFont)} onChange={v => change("minFont", +v)}
           options={[7,8,9,10,11,12].map(n => ({value: String(n), label: n + " pt"}))}/></div>
     </div>
   </>;

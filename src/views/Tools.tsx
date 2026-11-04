@@ -38,6 +38,30 @@ export function Tools(){
   </section>;
 }
 
+// Toca a nota da corda (referência para afinar de ouvido). Som de corda dedilhada: parciais harmônicos com ataque
+// seco e os agudos morrendo antes dos graves, como numa corda real. Altura exata (sem atraso inteiro de Karplus-Strong,
+// que desafinaria alguns cents). Contexto próprio, fechado ao fim do som.
+let mutedUntil = 0;
+function playNote(midi: number, a4: number){
+  mutedUntil = performance.now() + 4300;
+  try{
+    const C = window.AudioContext || (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext;
+    const ctx = new C(), now = ctx.currentTime, f0 = a4 * Math.pow(2, (midi - 69) / 12), out = ctx.createGain();
+    ctx.resume().catch(() => {});
+    out.gain.value = 0.5; out.connect(ctx.destination);
+    for(let n = 1; n <= 12 && f0 * n < 6000; n++){
+      const o = ctx.createOscillator(), g = ctx.createGain(), dur = 4 / (1 + (n - 1) * 0.55);
+      o.type = "sine"; o.frequency.value = f0 * n;
+      // Amplitude cai com o harmônico; o 2º e o 3º dão o "corpo" do violão.
+      g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.7 / Math.pow(n, 0.9), now + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0005, now + dur);
+      o.connect(g); g.connect(out); o.start(now); o.stop(now + dur + 0.05);
+    }
+    // O parcial mais grave é o que dura mais (4 s): fecha o contexto depois dele.
+    setTimeout(() => { ctx.close().catch(() => {}); }, 4300);
+  }catch(e){ /* sem áudio no aparelho: a seleção da corda continua valendo */ }
+}
+
 interface Reading { label: string; oct: string; cents: number; ok: boolean; hz: number; string: number | null }
 
 function Tuner(){
@@ -54,22 +78,27 @@ function Tuner(){
   const [quiet, setQuiet] = useState(false);
   const live = useRef({a4, inst, pick}); live.current = {a4, inst, pick};
   const stopRef = useRef<() => void>(() => {});
-  const stop = () => { stopRef.current(); stopRef.current = () => {}; setOn(false); };
+  const alive = useRef(true);
   const start = async () => {
     // O microfone ouviria o pad no lugar do instrumento.
     pad.stop();
     let stream: MediaStream;
     try{ stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:false}}); }
     catch(e){ return micFailed(e, start); }
+    // Saiu da aba enquanto o aparelho pedia o microfone: solta sem ligar.
+    if(!alive.current){ stream.getTracks().forEach(tr => tr.stop()); return; }
     micOk();
     const C = window.AudioContext || (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext;
-    const ctx = new C(), src = ctx.createMediaStreamSource(stream), an = ctx.createAnalyser(); an.fftSize = 4096; src.connect(an);
+    const ctx = new C(); ctx.resume().catch(() => {});
+    const src = ctx.createMediaStreamSource(stream), an = ctx.createAnalyser(); an.fftSize = 4096; src.connect(an);
     const buf = new Float32Array(an.fftSize), smooth: number[] = [];
     let raf = 0, last = 0, locked = false;
     const loop = () => {
       raf = requestAnimationFrame(loop);
       const now = performance.now(); if(now - last < 60) return; last = now;
       an.getFloatTimeDomainData(buf);
+      // Enquanto toca a nota de referência, o microfone ouviria o próprio app.
+      if(now < mutedUntil){ smooth.length = 0; return; }
       const f = detectPitch(buf, ctx.sampleRate);
       if(!f){ locked = false; setQuiet(true); return; }
       smooth.push(f); if(smooth.length > 5) smooth.shift();
@@ -84,7 +113,8 @@ function Tuner(){
     loop(); setOn(true);
     stopRef.current = () => { cancelAnimationFrame(raf); stream.getTracks().forEach(tr => tr.stop()); ctx.close().catch(()=>{}); };
   };
-  useEffect(() => () => stopRef.current(), []);
+  // Liga sozinho ao abrir a aba; se o microfone falhar, o botão fica disponível para tentar de novo.
+  useEffect(() => { alive.current = true; start(); return () => { alive.current = false; stopRef.current(); }; }, []);
   const clamped = r ? Math.max(-50, Math.min(50, r.cents)) : 0;
   return <div className="card tuner">
     <div className="tuner-top">
@@ -92,7 +122,7 @@ function Tuner(){
         <Select id="tu-inst" value={inst} onChange={v => { store.setSetting("tunerMode", v); setPick(null); }}
           options={[...INSTRUMENT_IDS.filter(id => INSTRUMENTS[id].kind === "strings").map(id => ({value: id, label: t("inst." + id)})), {value: "chromatic", label: t("tuner.chromatic")}]}/></label>
       <label className="field a4" title={t("tuner.refHelp")}><span>{t("tuner.ref")}</span>
-        <Select id="tu-a4" value={String(a4)} onChange={v => store.setSetting("a4", +v)}
+        <Select keepOrder id="tu-a4" value={String(a4)} onChange={v => store.setSetting("a4", +v)}
           options={[432,436,438,440,442,444,446].map(v => ({value: String(v), label: v + " Hz" + (v === 440 ? " · " + t("tuner.default") : "")}))}/></label></div>
     <div className={"tuner-dial" + (quiet ? " quiet" : "") + (r && r.ok && !quiet ? " ok" : "")} aria-live="polite">
       <div className="tuner-note"><b id="tu-note">{r ? r.label : "—"}</b><small id="tu-oct">{r ? r.oct : ""}</small></div>
@@ -102,11 +132,10 @@ function Tuner(){
     </div>
     {I && <div className="tuner-strings">{I.strings.map((m, i) => <button type="button" key={i} aria-pressed={pick === i}
       className={"tstring" + (pick === i || (pick === null && r && !quiet && r.string === i) ? " on" : "")} data-i={i}
-      onClick={() => setPick(pick === i ? null : i)}>
+      onClick={() => { setPick(i); playNote(m, a4); }}>
       <b>{midiName(m).replace(/\d/, "")}</b><small>{midiName(m).replace(/\D/g, "")}</small></button>)}</div>}
     {I && <p className="sub">{t(pick === null ? "tuner.pickHint" : "tuner.pickedHint")}</p>}
-    <button className={"btn primary metro-go" + (on ? " running" : "")} id="tu-toggle" onClick={() => on ? stop() : start()}>
-      {on ? <><Icon name="x" sm/> {t("tuner.stop")}</> : <><Icon name="sound" sm/> {t("tuner.start")}</>}</button>
+    {!on && <button className="btn primary metro-go" id="tu-toggle" onClick={() => start()}><Icon name="sound" sm/> {t("tuner.start")}</button>}
     <MicHelp/>
     <p className="sub">{t(I ? "tuner.hint" : "tuner.hintChromatic")}</p>
     <p className="sub">{t("tuner.refHelp")}</p>

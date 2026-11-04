@@ -16,19 +16,22 @@ import { soundOnly, type GEvent, type RosterRow, type AttendanceRow, type Unavai
 
 // photo: link da foto do grupo (vazio: o app mostra as iniciais do nome). photo_round: marca redonda em vez
 // de quadrada (foto e iniciais).
+// mine: a pessoa é membro (o admin do app enxerga todos os grupos, mas o Início mostra só os dela).
 // stats: os números do card de cada grupo no Início (próximos eventos, repertórios e membros).
-export interface Group { id: string; name: string; created_by?: string; members_edit?: boolean; photo?: string; photo_round?: boolean; stats?: {events: number; setlists: number; members: number} }
+export interface Group { id: string; name: string; created_by?: string; members_edit?: boolean; photo?: string; photo_round?: boolean; mine?: boolean; stats?: {events: number; setlists: number; members: number} }
 // out_since/out_need: marcado pelo líder como em pausa (desde quando e quantos ensaios faltam).
 export interface Member { email: string; is_admin: boolean; role: string; name: string; birthday?: string | null; photo?: string; phone?: string; out_since?: string | null; out_need?: number; active?: boolean; guest_until?: string | null; created_at?: string; voice_low?: number | null; voice_high?: number | null }
+// Pessoa de qualquer grupo meu (para os aniversariantes do Início, que somam todos os grupos).
+export interface Person { email: string; name: string; birthday: string | null; photo?: string }
 export interface GroupSetlist { id: string; group_id: string; source_id: string; name: string; songs: number; code: string; shared_by: string; updated_at: string }
 
 // gone: convidados de um evento que já passou do prazo (fora das listas; o nome ainda aparece no histórico).
 interface GroupState {
-  groups: Group[]; gid: string; members: Member[]; gone: Member[]; setlists: GroupSetlist[]; events: GEvent[]; learn: LearnItem[];
+  groups: Group[]; people: Person[]; gid: string; members: Member[]; gone: Member[]; setlists: GroupSetlist[]; events: GEvent[]; learn: LearnItem[];
   roster: RosterRow[]; attendance: AttendanceRow[]; unavail: Unavail[];
   loading: boolean; error: boolean; loaded: boolean;
 }
-const EMPTY: GroupState = {groups: [], gid: "", members: [], gone: [], setlists: [], events: [], learn: [], roster: [], attendance: [], unavail: [], loading: false, error: false, loaded: false};
+const EMPTY: GroupState = {groups: [], people: [], gid: "", members: [], gone: [], setlists: [], events: [], learn: [], roster: [], attendance: [], unavail: [], loading: false, error: false, loaded: false};
 export const useGroups = create<GroupState>(() => ({...EMPTY}));
 
 // ---------- cópia no aparelho ----------
@@ -41,7 +44,7 @@ function saveCache(){
 function loadCache(){
   try{
     const v = JSON.parse(localStorage.getItem(CACHE) || "null");
-    if(v && v.email === useAuth.getState().email){ delete v.email; useGroups.setState({learn: [], ...v, loading: false, error: false}); }
+    if(v && v.email === useAuth.getState().email){ delete v.email; useGroups.setState({learn: [], people: [], ...v, loading: false, error: false}); }
   }catch(e){ /* cópia estragada: ignora */ }
 }
 // Ao sair da conta (ou perder o acesso), a agenda desta pessoa sai do aparelho. Enquanto a sessão
@@ -96,15 +99,17 @@ export function loadGroups(gid?: string): Promise<void> {
         const m = new Map<string, number>(); (rows || []).filter(r => !guestGone(r as {guest_until?: string | null})).forEach(r => m.set(r.group_id, (m.get(r.group_id) || 0) + 1)); return m;
       };
       const [cm, cs, ce] = await Promise.all([
-        cloud.from("group_members").select("group_id,guest_until").then(r => r.error ? cloud.from("group_members").select("group_id") : r),
+        cloud.from("group_members").select("group_id,email,guest_until").then(r => r.error ? cloud.from("group_members").select("group_id,email") : r),
         cloud.from("group_setlists").select("group_id"),
         cloud.from("group_events").select("group_id").gte("starts_at", now),
       ]);
       if(!cm.error && !cs.error && !ce.error){
         const [nm, ns, ne] = [tally(cm.data), tally(cs.data), tally(ce.data)];
+      const me = myEmail();
+      if(!cm.error) for(const r of cm.data as {group_id: string; email: string}[]) if(r.email === me) groups.find(x => x.id === r.group_id)!.mine = true;
         groups.forEach(x => x.stats = {members: nm.get(x.id) || 0, setlists: ns.get(x.id) || 0, events: ne.get(x.id) || 0});
       }
-      const want = gid || useGroups.getState().gid, cur = groups.find(x => x.id === want) ? want : groups[0]?.id || "";
+      const want = gid || useGroups.getState().gid, cur = groups.find(x => x.id === want) ? want : (groups.find(x => x.mine) || groups[0])?.id || "";
       if(!cur){ useGroups.setState({...EMPTY, groups, loaded: true}); saveCache(); return; }
       const from = new Date(Date.now() - PAST_DAYS * 864e5).toISOString(), to = new Date(Date.now() + FUTURE_DAYS * 864e5).toISOString();
       const [mem, people, sets, evs, un, lrn] = await Promise.all([
@@ -148,10 +153,19 @@ export function loadGroups(gid?: string): Promise<void> {
       const all = (mem.data as Omit<Member, "name">[]).map(m => ({...m, name: people_.get(m.email)?.name || "", birthday: people_.get(m.email)?.birthday || null,
         photo: people_.get(m.email)?.photo || "", phone: people_.get(m.email)?.phone || "", voice_low: voices.get(m.email)?.low ?? null, voice_high: voices.get(m.email)?.high ?? null}));
       const {current: members, gone} = splitGuests(all);
+      // Aniversariantes: gente de todos os grupos em que estou (não só o aberto). Falhou: fica só o grupo aberto.
+      const others: Person[] = [];
+      try{
+        const mineIds = groups.filter(x => x.mine && x.id !== cur).map(x => x.id);
+        const rs = await Promise.all(mineIds.map(id => cloud.rpc("group_people", {gid: id})));
+        for(const r of rs) if(!r.error) others.push(...(r.data as Person[]));
+        // Algum grupo falhou: mantém a lista anterior em vez de a pessoa sumir do card até a próxima carga.
+        if(rs.some(r => r.error)) others.push(...useGroups.getState().people.filter(p => !others.some(o => o.email === p.email)));
+      }catch(e){ others.push(...useGroups.getState().people); }
       if(my !== seq) return;
       // Falhou a leitura da lista: mantém a que já estava na tela (se for deste grupo).
       const learn = lrn.error ? useGroups.getState().learn.filter(x => x.group_id === cur) : lrn.data as LearnItem[];
-      useGroups.setState({groups, gid: cur, members, gone, setlists: sets.data as GroupSetlist[], events: evs.data as GEvent[], learn, roster, attendance,
+      useGroups.setState({groups, people: others, gid: cur, members, gone, setlists: sets.data as GroupSetlist[], events: evs.data as GEvent[], learn, roster, attendance,
         unavail: un.data as Unavail[], loading: false, error: false, loaded: true});
       saveCache();
       announceJoins(cur, groups.find(x => x.id === cur)?.name || "");
@@ -196,15 +210,15 @@ export function chooseGroup(gid: string){ useGroups.setState({gid}); return load
 // Extensão vocal de quem está no grupo aberto (vazia se não mediu).
 export const voiceOf = (email: string) => { const m = useGroups.getState().members.find(x => x.email === email); return {voice_low: m?.voice_low, voice_high: m?.voice_high}; };
 export function personName(email: string){
-  const {members, gone} = useGroups.getState(), m = members.find(x => x.email === email) || (gone || []).find(x => x.email === email);
+  const {members, gone, people} = useGroups.getState(), m = members.find(x => x.email === email) || (gone || []).find(x => x.email === email) || (people || []).find(x => x.email === email);
   return m?.name || email.split("@")[0];
 }
 // Foto: a do perfil; a própria pessoa usa a da sessão (aparece mesmo antes de o grupo recarregar).
 export function personPhoto(email: string){
   const me = useAuth.getState();
   if(email === me.email && me.profile) return me.profile.photo || "";
-  const {members, gone} = useGroups.getState();
-  return (members.find(x => x.email === email) || (gone || []).find(x => x.email === email))?.photo || "";
+  const {members, gone, people} = useGroups.getState();
+  return (members.find(x => x.email === email) || (gone || []).find(x => x.email === email) || (people || []).find(x => x.email === email))?.photo || "";
 }
 
 // ---------- mudanças ----------

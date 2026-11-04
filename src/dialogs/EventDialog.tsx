@@ -99,7 +99,7 @@ export function EventDialog({id, day}: DialogProps["event"]){
         <div className="event-pair">
           <label className="field"><span>{t("group.setlist")}</span><Select id="event-setlist" value={setlist} onChange={setSetlist}
             options={[{value: "", label: t("group.noSetlist")}, ...g.setlists.map(s => ({value: s.id, label: s.name}))]}/></label>
-          {!id && <label className="field"><span>{t("group.repeat")}</span><Select id="event-repeat" value={weeks} onChange={setWeeks}
+          {!id && <label className="field"><span>{t("group.repeat")}</span><Select keepOrder id="event-repeat" value={weeks} onChange={setWeeks}
             options={["1", "2", "4", "8", "12", "26"].map(n => ({value: n, label: n === "1" ? t("group.repeatNo") : t("group.repeatWeeks", {n})}))}/></label>}
         </div>
         {!g.setlists.length && <p className="sub">{t("group.setlistHint")}</p>}

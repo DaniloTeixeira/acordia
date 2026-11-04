@@ -187,6 +187,7 @@ export function AuthScreen(){
       if(r === "ok") done = true;
       // Conta criada: volta direto para entrar, com o e-mail preenchido e o quadro de confirmar pelo link.
       if(r === "confirm"){ go("signin"); setConfirmFor(email.trim().toLowerCase()); }
+      else if(r === "mail"){ const em = email.trim().toLowerCase(); go("signin"); setConfirmFor(em); setMsg(t("auth.mailFail")); }
       else if(r === "weak") setMsg(weakMsg(detail || "", policy, pw, setPolicy));
       else if(r !== "ok") setMsg(t(r === "notAllowed" ? "auth.notAllowed" : r === "exists" ? "auth.exists" : "auth.fail"));
     } else if(mode === "forgot"){
@@ -698,7 +699,7 @@ export function PeopleTools({idp, f}: {idp: string; f: ReturnType<typeof usePeop
   return <div className="people-tools">
     <div className="search people-search"><Icon name="search" sm/><input type="search" className="input" id={idp + "-q"} placeholder={t("people.searchPh")}
       aria-label={t("people.searchPh")} value={f.q} onChange={e => f.setQ(e.target.value)}/></div>
-    <Select id={idp + "-order"} className="people-order" aria={t("people.order")} value={f.order} onChange={f.setOrder}
+    <Select keepOrder id={idp + "-order"} className="people-order" aria={t("people.order")} value={f.order} onChange={f.setOrder}
       options={[{value: "az", label: t("people.orderAz")}, {value: "new", label: t("people.orderNew")}, {value: "old", label: t("people.orderOld")}]}/></div>;
 }
 
