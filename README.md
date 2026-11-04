@@ -243,7 +243,7 @@ também libera o acesso ao app para eles).
   - acento no 1º tempo;
   - **Descobrir BPM**;
   - atalhos: espaço, setas e T.
-- [ ] **Afinador**: pelo microfone, com A4 de 432 a 446 Hz e ponteiro em cents. Modo próprio (Violão/guitarra, Baixo, Ukulele, Cavaquinho ou Cromático para voz, sopro e teclado, que mostra a nota mais próxima); nas cordas, as notas são botões grandes, todos na mesma linha: o app acha a corda sozinho ou, tocando numa, toca a nota de referência (som de corda dedilhada) e mede só contra ela (a escolha fica até tocar em outra corda); liga o microfone sozinho ao abrir a aba (o botão "Ligar afinador" só aparece se o microfone falhar); afinado (±5 cents) o ponteiro trava no centro e tudo fica verde, e só solta passando de ±10; a falha do microfone usa o mesmo aviso fixo da Voz.
+- [ ] **Afinador**: pelo microfone, com A4 de 432 a 446 Hz e ponteiro em cents. Modo próprio (Violão/guitarra, Baixo, Ukulele, Cavaquinho ou Cromático para voz, sopro e teclado, que mostra a nota mais próxima); nas cordas, as notas são botões grandes, todos na mesma linha: o app acha a corda sozinho ou, tocando numa, toca a nota de referência (som de corda dedilhada) e mede só contra ela (a escolha fica até tocar em outra corda); o microfone só liga no botão "Ligar afinador" (vira "Desligar" enquanto escuta e solta o microfone ao sair da aba); afinado (±5 cents) o ponteiro trava no centro e tudo fica verde, e só solta passando de ±10; a falha do microfone usa o mesmo aviso fixo da Voz.
 - [ ] **Pad infinito**:
   - tom, 6 estilos (Original, Discreto, Quente, Brilhante, Etéreo, Profundo), volume e filtro;
   - swell em 4 ou 8 compassos;
