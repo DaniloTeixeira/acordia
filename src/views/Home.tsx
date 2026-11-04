@@ -35,7 +35,10 @@ export function Home(){
   const rosterOf = (e: GEvent) => g.roster.filter(r => r.event_id === e.id);
   const needs = leader ? upcoming.filter(e => needsCover(rosterOf(e)).length > 0) : [];
   // Para o líder: os próximos eventos com gente que ainda não respondeu (fora os que já pedem substituto).
-  const waiting = leader ? upcoming.filter(e => !needs.includes(e) && pendingReplies(rosterOf(e)).length > 0).slice(0, 5) : [];
+  const waitingAll = leader ? upcoming.filter(e => !needs.includes(e) && pendingReplies(rosterOf(e)).length > 0) : [];
+  const waiting = waitingAll.slice(0, 5);
+  // O número do título é de pessoas sem resposta (como o texto de cada evento), não de eventos.
+  const waitingPeople = waitingAll.reduce((n, e) => n + pendingReplies(rosterOf(e)).length, 0);
   // O próximo compromisso é a primeira escala da pessoa; sem escala, o próximo evento do grupo (sem resposta).
   const next = mine[0] || upcoming.find(e => !started(e)), rest = mine.slice(1);
   const name = (profile?.name || me.split("@")[0]).split(" ")[0];
@@ -69,7 +72,7 @@ export function Home(){
       {needs.length > 0 && <Block id="home-needs" className="home-needs" wide={topWide === "needs"} title={t("home.needsSub")} count={needs.length}>
         <ul className="my-next-list">{needs.map(e => <EventRow key={e.id} e={e} chip={<span className="event-chips need-end"><span className="chip st-no">{tn("group.needSub", needsCover(rosterOf(e)).length)}</span></span>} extra={<span className="event-chips need-under"><span className="chip st-no">{tn("group.needSub", needsCover(rosterOf(e)).length)}</span></span>}/>)}</ul>
       </Block>}
-      {waiting.length > 0 && <Block id="home-waiting" className="home-needs home-waiting" wide={topWide === "waiting"} title={t("home.pendingTitle")} count={waiting.length} link={{label: t("home.seeAgenda"), run: () => openGroup("agenda")}}>
+      {waiting.length > 0 && <Block id="home-waiting" className="home-needs home-waiting" wide={topWide === "waiting"} title={t("home.pendingTitle")} count={waitingPeople} link={{label: t("home.seeAgenda"), run: () => openGroup("agenda")}}>
         <ul className="home-waiting-list">{waiting.map(e => <WaitingItem key={e.id} e={e}/>)}</ul>
       </Block>}
       {/* A semana sempre; embaixo, as outras escalas da pessoa (a primeira já está em destaque). */}
