@@ -113,8 +113,9 @@ function Tuner(){
     loop(); setOn(true);
     stopRef.current = () => { cancelAnimationFrame(raf); stream.getTracks().forEach(tr => tr.stop()); ctx.close().catch(()=>{}); };
   };
-  // Liga sozinho ao abrir a aba; se o microfone falhar, o botão fica disponível para tentar de novo.
-  useEffect(() => { alive.current = true; start(); return () => { alive.current = false; stopRef.current(); }; }, []);
+  const stop = () => { stopRef.current(); stopRef.current = () => {}; setOn(false); setR(null); setQuiet(false); };
+  // O microfone só liga no botão; ao sair da aba solta o aparelho (e cancela um pedido de permissão em andamento).
+  useEffect(() => { alive.current = true; return () => { alive.current = false; stopRef.current(); }; }, []);
   const clamped = r ? Math.max(-50, Math.min(50, r.cents)) : 0;
   return <div className="card tuner">
     <div className="tuner-top">
@@ -135,7 +136,8 @@ function Tuner(){
       onClick={() => { setPick(i); playNote(m, a4); }}>
       <b>{midiName(m).replace(/\d/, "")}</b><small>{midiName(m).replace(/\D/g, "")}</small></button>)}</div>}
     {I && <p className="sub">{t(pick === null ? "tuner.pickHint" : "tuner.pickedHint")}</p>}
-    {!on && <button className="btn primary metro-go" id="tu-toggle" onClick={() => start()}><Icon name="sound" sm/> {t("tuner.start")}</button>}
+    <button className={"btn primary metro-go" + (on ? " running" : "")} id="tu-toggle" onClick={() => on ? stop() : start()}>
+      {on ? <><Icon name="x" sm/> {t("tuner.stop")}</> : <><Icon name="sound" sm/> {t("tuner.start")}</>}</button>
     <MicHelp/>
     <p className="sub">{t(I ? "tuner.hint" : "tuner.hintChromatic")}</p>
     <p className="sub">{t("tuner.refHelp")}</p>
