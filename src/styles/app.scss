@@ -8366,81 +8366,8 @@ dialog.ear-dlg {
     padding-left: 0;
   }
 }
-/* O título fica fora do card, como em Detalhes e Escala; o card só existe com a chamada aberta. */
-.att-box {
-  padding: 8px 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background: var(--surface-2);
-}
-/* Pedido de mudança de presença: o chip e os botões ocupam a linha toda, abaixo do nome, para caber no celular. */
-.att-box .att-req {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  flex-basis: 100%;
-}
-/* A linha toda do título abre e fecha a chamada (alvo de toque grande); fechada, só sobra essa linha. */
-.att-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  /* Alvo de toque maior sem deslocar o texto: o padding sai da conta pela margem negativa, e o texto
-     fica na mesma linha do ponto do título (.sec-bar). */
-  padding: 12px 0;
-  margin: -12px 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: start;
-  cursor: pointer;
-}
-.att-chev {
-  flex-shrink: 0;
-  box-sizing: content-box;
-  padding: 4px;
-  border-radius: 50%;
-  color: var(--muted);
-  transition: transform var(--t) var(--ease-out), background var(--t) var(--ease);
-}
-/* Mesmo realce da seta do card que recolhe (.fold-chev): círculo suave e seta na cor do texto. */
-@media (hover: hover) {
-  .att-toggle:hover .att-chev {
-    background: var(--surface);
-    color: var(--ink);
-  }
-}
-.att-chev.up {
-  transform: rotate(180deg);
-}
-.attendance ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.attendance li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-/* Linhas suaves só entre as pessoas da chamada e da escala. */
-.attendance ul,
 .roster {
   gap: 0;
-}
-.attendance li,
-.roster li {
-  padding: 6px 0;
-}
-.attendance li + li {
-  border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
 }
 /* Escala do evento: uma linha bem visível entre as pessoas; funções em chips na linha de baixo. */
 .roster li {
@@ -8465,28 +8392,6 @@ dialog.ear-dlg {
 }
 .att-pending .sub {
   flex: 1 1 200px;
-}
-.attendance .seg button {
-  min-width: 38px;
-}
-/* Chamada: só a opção escolhida ganha cor (Presente em verde, Falta em laranja); a outra fica neutra. */
-.attendance .seg::before {
-  transition:
-    transform var(--t) var(--ease-out),
-    width var(--t) var(--ease-out),
-    background-color var(--t-fast);
-}
-.attendance .seg:has([data-v="present"][aria-pressed="true"])::before {
-  background: var(--ok-soft);
-}
-.attendance .seg:has([data-v="absent"][aria-pressed="true"])::before {
-  background: var(--warn-soft);
-}
-.attendance .seg [data-v="present"][aria-pressed="true"] {
-  color: var(--ok);
-}
-.attendance .seg [data-v="absent"][aria-pressed="true"] {
-  color: var(--warn);
 }
 /* Janela do evento */
 dialog.event-dlg {
@@ -8935,9 +8840,10 @@ dialog.member-dlg {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
-/* Celular: Desativar fica sozinho na última linha, largura toda. */
+/* Celular: Líder e Desativar ficam sozinhos na linha, largura toda. */
 @media (max-width: 599px) {
-  .member-manage-btns .btn.member-deact {
+  .member-manage-btns .btn.member-deact,
+  .member-manage-btns .btn.member-lead {
     grid-column: 1 / -1;
   }
 }
@@ -10338,7 +10244,6 @@ dialog.member-dlg {
    deixavam 28–34 px. A linha da tabela cresce junto (o seletor repete o de .quick-att .seg button para vencer). */
 @media (max-width: 899px) {
   .quick-att .seg button,
-  .attendance .seg.sm button { min-height: 40px; font-size: 0.9rem; }
   .quick-att .seg button { padding-top: 6px; padding-bottom: 6px; }
 }
 
@@ -10915,3 +10820,11 @@ main:has(> .view > .back-link:first-child) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* Chamada na escala do ensaio (líder): a resposta de cada pessoa é uma lista compacta, do tamanho do chip que ela substitui.
+   Presente em verde e Falta em laranja, como o chip. Pendente, WhatsApp e pedido de mudança ficam numa segunda linha. */
+.roster-tbl .call-ctl { display: inline-flex; align-items: center; gap: 6px; }
+.roster-tbl .call-sel.select-btn { width: auto; min-width: 104px; min-height: 36px; padding: 0 8px 0 10px; font-size: 0.85rem; gap: 4px; }
+.roster-tbl .call-sel.yes { color: var(--ok); }
+.roster-tbl .call-sel.no { color: var(--warn); }
+.roster-tbl .call-extra { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex-basis: 100%; white-space: normal; }
