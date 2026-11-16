@@ -14,7 +14,7 @@ import { DateInput } from "../ui/DateInput";
 import { FieldLabel } from "../ui/FieldLabel";
 import { useGroups, loadGroups, chooseGroup, setMemberRole, outMark, listGroupedEmails } from "../lib/groups";
 import { attendanceRate, attendanceHistory, rehearsalStanding, comebackProgress, type Standing, type OutMark, MISS_LIMIT, COMEBACK, streakLevel, fmtPhone, maskPhone } from "../lib/calendar";
-import { sortRoles, joinRoles, splitRoles } from "../lib/roles";
+import { sortRoles, parseRoleSel, selString, emptySel, type RoleSel } from "../lib/roles";
 import { MemberRoles, RolePicker, ReplySeg, GroupMark, eventTitle, timeOf, longDay, openGroup } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
 import { SecHead } from "../ui/SecHead";
@@ -609,7 +609,7 @@ export function PersonEdit({r, onDone, inline}: {r: Allowed; onDone: (saved: boo
   const [busy, setBusy] = useState(false), lock = useLock();
   // Funções no grupo aberto, se a pessoa está nele (com mais de um grupo, o rótulo diz qual).
   const g = useGroups(), group = g.groups.find(x => x.id === g.gid), member = group ? g.members.find(x => x.email === r.email) : undefined;
-  const [roles, setRoles] = useState<string[]>(() => member ? splitRoles(member.role) : []);
+  const [roles, setRoles] = useState<RoleSel>(() => member ? parseRoleSel(member.role) : emptySel);
   // Alterado = diferente de quando abriu: sair (Cancelar, fechar a janela, trocar de página) pergunta antes.
   const root = useRef<HTMLElement>(null), snap = JSON.stringify([name, phone, birthday, roles]), start = useRef(snap);
   useUnsaved(root, snap !== start.current);
@@ -619,7 +619,7 @@ export function PersonEdit({r, onDone, inline}: {r: Allowed; onDone: (saved: boo
     setBusy(true);
     // Banco sem admin_set_person ainda: grava só na lista de acesso (o que a pessoa preencheu continua valendo).
     const ok = await setPersonInfo(r.email, name, phone, birthday).then(done => done || setAllowedInfo(r.email, name, birthday, phone))
-      .then(async ok => { const v = joinRoles(roles); if(ok && group && member && v !== member.role) await setMemberRole(group.id, r.email, v); return ok; })
+      .then(async ok => { const v = selString(roles); if(ok && group && member && v !== selString(parseRoleSel(member.role))) await setMemberRole(group.id, r.email, v); return ok; })
       .finally(() => setBusy(false));
     toast(t(ok ? "people.infoSaved" : "profile.saveFail", {email: r.email}));
     // Editou a si mesmo: "Meus dados" mostra o novo na hora (sem esperar entrar de novo).

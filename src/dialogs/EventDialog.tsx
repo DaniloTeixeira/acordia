@@ -14,7 +14,7 @@ import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
 import { DateInput } from "../ui/DateInput";
 import { eventTitle, roleOptions } from "../views/Group";
-import { splitRoles, sortRoles, toggleRole } from "../lib/roles";
+import { splitRoles, sortRoles, toggleRole, rosterRoles } from "../lib/roles";
 import { Spin, PersonFields, useEmailCheck } from "../views/Account";
 import { FoldCard } from "../ui/FoldCard";
 
@@ -55,7 +55,7 @@ export function EventDialog({id, day}: DialogProps["event"]){
   const load = monthLoad(date || dayKey(new Date()), g.events, g.roster);
   // Ao escalar, a função sugerida é a primeira da pessoa; as outras dela aparecem para marcar também.
   const rolesOf = (email: string) => splitRoles(g.members.find(m => m.email === email)?.role || "");
-  const firstRole = (email: string) => rolesOf(email).slice(0, 1);
+  const firstRole = (email: string) => rosterRoles(g.members.find(m => m.email === email)?.role || "").filter(Boolean);
   const memberOpts = [{value: "", label: t("group.pickPerson")}, ...g.members.filter(m => isActive(m) || roster.some(r => r.email === m.email)).map(m => ({value: m.email,
     label: personName(m.email),
     sub: [m.role ? sortRoles(splitRoles(m.role)).join(", ") : "", (load.get(m.email) || 0) ? tn("group.load", load.get(m.email)!) : ""].filter(Boolean).join(" · ") || undefined}))];

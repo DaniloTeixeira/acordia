@@ -8534,11 +8534,23 @@ dialog.event-dlg {
 .role-chip.add {
   border-style: dashed;
 }
+/* Sua função no evento (Group.tsx, MyRoles): botões de tocar, maiores que os da escala. */
+.my-roles .role-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.my-roles .role-chips .role-chip {
+  min-height: 36px;
+  padding: 4px 14px;
+  font-size: 0.85rem;
+}
 /* Chips menores só na escala do evento (as cores continuam as do sistema). */
 .roster-card .role-chips {
   gap: 4px;
 }
-.roster-card .role-chip {
+.roster-card .role-chip,
+.my-roles .role-chip {
   min-height: 0;
   padding: 2px 9px;
   border: 0;
@@ -8548,7 +8560,8 @@ dialog.event-dlg {
   box-shadow: inset 0 0 0 1px var(--line-strong);
 }
 /* Marcado = o mesmo chip roxo de função da tela de Membros (.chip.role). */
-.roster-card .role-chip[aria-pressed="true"] {
+.roster-card .role-chip[aria-pressed="true"],
+.my-roles .role-chip[aria-pressed="true"] {
   background: var(--role-soft);
   color: var(--role-ink);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent);
@@ -10824,7 +10837,7 @@ main:has(> .view > .back-link:first-child) {
 /* Chamada na escala do ensaio (líder): a resposta de cada pessoa é uma lista compacta, do tamanho do chip que ela substitui.
    Presente em verde e Falta em laranja, como o chip. Pendente, WhatsApp e pedido de mudança ficam numa segunda linha. */
 .roster-tbl .call-ctl { display: inline-flex; align-items: center; gap: 6px; }
-.roster-tbl .call-sel.select-btn { width: auto; min-width: 104px; min-height: 36px; padding: 0 8px 0 10px; font-size: 0.85rem; gap: 4px; }
+.roster-tbl .call-sel.select-btn { width: 128px; min-width: 128px; max-width: 100%; min-height: 36px; padding: 0 8px 0 10px; font-size: 0.85rem; gap: 4px; }
 .roster-tbl .call-sel.yes { color: var(--ok); }
 .roster-tbl .call-sel.no { color: var(--warn); }
 .roster-tbl .call-extra { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex-basis: 100%; white-space: normal; }
