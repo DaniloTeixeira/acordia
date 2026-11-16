@@ -1,7 +1,7 @@
 // Funções dos membros do grupo: separar, juntar e ligar/desligar.
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { splitRoles, joinRoles, toggleRole, sortRoles, rosterRoles, setDefaultRole, ROLES_MAX } from "../src/lib/roles";
+import { splitRoles, joinRoles, toggleRole, sortRoles, rosterRoles, parseRoleSel, selString, toggleFav, toggleSelRole, ROLES_MAX } from "../src/lib/roles";
 
 test("separa as funções, sem vazias nem repetidas", () => {
   assert.deepEqual(splitRoles(""), []);
@@ -28,13 +28,42 @@ test("sortRoles: ordem alfabética sem diferenciar maiúsculas e acentos", () =>
   assert.deepEqual(sortRoles(["Vocal", "baixo", "Violão", "Áudio", "Teclado"]), ["Áudio", "baixo", "Teclado", "Violão", "Vocal"]);
 });
 
-test("rosterRoles: entra com a primeira função, ou sem função", () => {
-  assert.deepEqual(rosterRoles(["Vocal", "Violão"]), ["Vocal"]);
-  assert.deepEqual(rosterRoles([]), [""]);
+test("rosterRoles: sem marca vale a primeira função; com marca, as favoritas; sem função, linha vazia", () => {
+  assert.deepEqual(rosterRoles("Vocal, Violão"), ["Vocal"]);
+  assert.deepEqual(rosterRoles("Vocal*, Violão*, Baixo"), ["Vocal", "Violão"]);
+  assert.deepEqual(rosterRoles(""), [""]);
 });
 
-test("setDefaultRole: passa a função para a frente (a padrão na escala) sem perder as outras", () => {
-  assert.deepEqual(setDefaultRole(["Vocal", "Violão", "Teclado"], "teclado"), ["Teclado", "Vocal", "Violão"]);
-  assert.deepEqual(setDefaultRole(["Vocal"], "Baixo"), ["Vocal"]);
-  assert.deepEqual(rosterRoles(setDefaultRole(["Vocal", "Violão"], "Violão")), ["Violão"]);
+test("favoritas: no máximo uma voz e um instrumento, nunca dois instrumentos", () => {
+  assert.deepEqual(parseRoleSel("Violão*, Baixo*, Vocal").favs, ["Violão"]);
+  assert.deepEqual(parseRoleSel("Violão*, Vocal*").favs, ["Violão", "Vocal"]);
+  assert.deepEqual(splitRoles("Vocal*, Violão"), ["Vocal", "Violão"]);
+  let sel = parseRoleSel("Vocal, Violão, Baixo");
+  sel = toggleFav(sel, "Baixo");
+  assert.deepEqual(sel.favs, ["Vocal", "Baixo"]);
+  sel = toggleFav(sel, "Violão");
+  assert.deepEqual(sel.favs, ["Vocal", "Violão"]);
+  sel = toggleFav(sel, "Vocal");
+  assert.deepEqual(sel.favs, ["Violão"]);
+});
+
+test("favoritas: mesa de som é só mesa, nunca com outra coisa", () => {
+  assert.deepEqual(parseRoleSel("Mesa de som*, Vocal*").favs, ["Mesa de som"]);
+  let sel = parseRoleSel("Vocal, Violão, Mesa de som");
+  sel = toggleFav(sel, "Mesa de som");
+  assert.deepEqual(sel.favs, ["Mesa de som"]);
+  sel = toggleFav(sel, "Violão");
+  assert.deepEqual(sel.favs, ["Violão"]);
+  assert.deepEqual(rosterRoles(selString(toggleFav(parseRoleSel("Vocal, Mesa de som"), "Mesa de som"))), ["Mesa de som"]);
+});
+
+test("selString: formato antigo quando só a primeira é favorita, marcas quando há mais", () => {
+  assert.equal(selString(parseRoleSel("Vocal, Violão")), "Vocal, Violão");
+  assert.equal(selString(toggleFav(parseRoleSel("Vocal, Violão"), "Violão")), "Vocal*, Violão*");
+  assert.deepEqual(parseRoleSel(selString(toggleFav(parseRoleSel("Vocal, Violão"), "Violão"))).favs, ["Vocal", "Violão"]);
+});
+
+test("tirar uma função tira também a favorita", () => {
+  const sel = toggleSelRole(parseRoleSel("Vocal*, Violão*"), "Violão");
+  assert.deepEqual(sel, {roles: ["Vocal"], favs: ["Vocal"]});
 });

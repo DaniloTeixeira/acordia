@@ -18,10 +18,10 @@ import { saveBlob } from "../lib/pdf";
 import { reduced } from "../lib/util";
 import { VoiceChip } from "../ui/VoiceChip";
 import { rangeType } from "../lib/voice";
-import { splitRoles, joinRoles, toggleRole, sortRoles, setDefaultRole } from "../lib/roles";
+import { splitRoles, toggleRole, sortRoles, parseRoleSel, selString, toggleSelRole, addSelRole, toggleFav, emptySel, type RoleSel } from "../lib/roles";
 import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone, capFirst, type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, ownsGroup, loadGroups, createGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
-  deleteEvent, respond, setCover, checkIn, setMyAttendance, markAttendance, requestAttendanceChange, declineAttendanceChange, setUnavailable, personName, voiceOf, personPhoto, amGroupAdmin, amGroupLeader, setMemberOut, outMark, isActive, setMemberActive, makeMember, chooseGroup, type GroupSetlist, type Member, type Group } from "../lib/groups";
+  deleteEvent, respond, setCover, setMyRoles, checkIn, setMyAttendance, markAttendance, requestAttendanceChange, declineAttendanceChange, setUnavailable, personName, voiceOf, personPhoto, amGroupAdmin, amGroupLeader, setMemberOut, outMark, isActive, setMemberActive, makeMember, chooseGroup, type GroupSetlist, type Member, type Group } from "../lib/groups";
 import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, confirmUnsaved, useUnsaved, go, place, pushTrail } from "../state";
 import { Icon } from "../ui/Icon";
 import { CopyBtn } from "../ui/CopyBtn";
@@ -410,6 +410,26 @@ function RehearsalReply({e, act}: {e: GEvent; act: (key: string, fn: () => Promi
   </div>;
 }
 
+// Troca da própria função no evento (até ele começar): as funções do cadastro da pessoa como botões de marcar,
+// sempre com ao menos uma. Cada toque grava na hora, com o spinner no botão e o aviso de salvo ou de erro.
+function MyRoles({e, act}: {e: GEvent; act: (key: string, fn: () => Promise<boolean>, ok?: string) => Promise<unknown>}){
+  const g = useGroups(), me = useAuth(s => s.email), [busy, setBusy] = useState("");
+  const cur = g.roster.filter(r => r.event_id === e.id && r.email === me).map(r => r.role).filter(Boolean);
+  const mine = g.members.find(m => m.email === me)?.role || "";
+  const all = sortRoles(splitRoles([mine, ...cur].join(",")));
+  if(all.length < 2) return null;
+  const has = (r: string) => cur.some(x => x.toLocaleLowerCase() === r.toLocaleLowerCase());
+  const toggle = async (r: string) => {
+    const next = toggleRole(cur, r);
+    if(!next.length) return;
+    setBusy(r); await act("role", () => setMyRoles(e.id, next)); setBusy("");
+  };
+  return <div className="event-sec my-roles"><SecHead as="h3" className="people-sub-h">{t("group.myRole")}</SecHead>
+    <div className="event-actions boxed"><span className="sub">{t("group.myRoleHint")}</span>
+      <div className="role-chips" role="group" aria-label={t("group.myRole")}>{all.map(r =>
+        <button type="button" key={r} className="role-chip" aria-pressed={has(r)} aria-busy={busy === r} disabled={busy !== ""} onClick={() => toggle(r)}>{busy === r && <Spin/>}{r}</button>)}</div></div></div>;
+}
+
 export function StatusChip({status, noIcon}: {status: string; noIcon?: boolean}){
   // Sem resposta não é problema: fica neutro ("st-wait"), para o laranja não competir com o vermelho de Indisponível.
   return <span className={"chip st-" + (status === "pending" ? "wait" : status === "yes" ? "conf" : status)}>{!noIcon && <><Icon name={status === "yes" ? "check" : status === "no" ? "x" : "dot"} sm/> </>}{t("group.status." + status)}</span>;
@@ -491,6 +511,8 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
     {label}<span className="qa-sort-dir" aria-hidden="true"><Icon name="arrow-up" sm className={order.by === by && !order.desc ? "on" : ""}/><Icon name="arrow-down" sm className={order.by === by && order.desc ? "on" : ""}/></span></button>;
   // Quem não foi escalado (como quem está em pausa) só pode marcar presença: falta não conta para ele, e o banco recusa.
   const myOut = mineRows.length === 0;
+  // Quem está em pausa vê quantos ensaios faltam para voltar (só a presença conta, mesmo sem estar na escala).
+  const meMember = g.members.find(m => m.email === me), myPause = meMember ? rehearsalStanding(me, g.events, g.attendance, Date.now(), outMark(meMember), g.roster).need : 0;
   const act = (key: string, fn: () => Promise<boolean>, ok?: string) => lock(async () => { setBusy(key); const r = await fn().finally(() => setBusy("")); toast(t(r ? ok || "group.saved" : "profile.saveFail")); return r; });
   // Resposta de quem está na escala de um evento futuro: o mesmo bloco do topo da Agenda.
   // Ensaio na janela da chamada: resposta e presença são um bloco só (RehearsalReply). Depois que o ensaio começa só vale a presença.
@@ -592,6 +614,7 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
           {myIn && editIn && !busy && <button type="button" className="link-btn" onClick={() => setEditIn(false)}>{t("common.cancel")}</button>}</div>}
       </div>
       </div>}
+      {mineRows.length > 0 && d.getTime() > Date.now() && <MyRoles e={e} act={act}/>}
       {/* Cada pessoa: nome e situação em cima, as funções neste evento como chips embaixo. */}
       {/* Ensaio é de todos: quem não foi escalado também aparece (sem resposta a dar), com o selo "Não escalado" (ou "Em pausa"). */}
       <div className="event-sec"><SecHead as="h3" className="people-sub-h">{t("group.roster")}{calling && <> <span className="sub">{t("group.attCount", {n: att.filter(a => a.status === "present").length, total: called.length})}</span></>}</SecHead>
@@ -625,7 +648,7 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
         {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}</li>)}</ul>
         : <p className="sub">{t("group.noRoster")}</p>}
       {/* Quem não foi escalado não tem resposta a dar: avisa o porquê, senão parece que os botões sumiram. */}
-      {e.kind === "rehearsal" && !isPast && mineRows.length === 0 && g.members.some(m => m.email === me && isActive(m)) && <div className="not-scaled" role="note"><span className="chip st-pending"><span><b>{t("group.notScaled")}.</b> {t("group.notScaledWhy")}</span></span></div>}</div>
+      {e.kind === "rehearsal" && !isPast && mineRows.length === 0 && g.members.some(m => m.email === me && isActive(m)) && <div className="not-scaled" role="note"><span className="chip st-pending"><span><b>{t("group.notScaled")}.</b> {t("group.notScaledWhy")}{myPause > 0 && <> {tn("group.pauseBack", myPause)}</>}</span></span></div>}</div>
       {e.notes && <div className="event-sec"><SecHead as="h3" className="people-sub-h">{t("group.notes")}</SecHead><p className="event-notes">{e.notes}</p></div>}
       {set && <div className="event-foot">
         <button className="btn ghost sm" onClick={() => openGroupSetlist(set)}><Icon name="music" sm/> {t("group.openSetlist")}</button>
@@ -648,7 +671,7 @@ function waText(e: GEvent, who: {name: string} | {names: string[]}){
 // ---------- membros ----------
 function Members({canEdit}: {canEdit: boolean}){
   const g = useGroups(), me = useAuth(s => s.email), appAdmin = useAuth(s => s.admin);
-  const [email, setEmail] = useState(""), [name, setName] = useState(""), [birthday, setBirthday] = useState(""), [phone, setPhone] = useState(""), [roles, setRoles] = useState<string[]>([]), [asAdmin, setAsAdmin] = useState(false), [asOut, setAsOut] = useState(false), [busy, setBusy] = useState(""), lock = useLock(), check = useEmailCheck(email);
+  const [email, setEmail] = useState(""), [name, setName] = useState(""), [birthday, setBirthday] = useState(""), [phone, setPhone] = useState(""), [roles, setRoles] = useState<RoleSel>(emptySel), [asAdmin, setAsAdmin] = useState(false), [asOut, setAsOut] = useState(false), [busy, setBusy] = useState(""), lock = useLock(), check = useEmailCheck(email);
   // Um líder só por grupo: o cadastro só pergunta "Líder" quando o grupo ainda não tem.
   const leaderNow = g.members.find(m => m.is_admin);
   const load = monthLoad(dayKey(new Date()), g.events, g.roster);
@@ -665,14 +688,14 @@ function Members({canEdit}: {canEdit: boolean}){
   const add = (ev: React.FormEvent) => { ev.preventDefault(); lock(async () => {
     const v = email.trim().toLowerCase();
     if(!validEmail(v)){ check.fail(); document.getElementById("member-email")?.focus(); return; }
-    setBusy("add"); const res = await addMember(g.gid, v, asAdmin && !leaderNow && amGroupLeader(), joinRoles(roles), name, birthday, phone).finally(() => setBusy(""));
+    setBusy("add"); const res = await addMember(g.gid, v, asAdmin && !leaderNow && amGroupLeader(), selString(roles), name, birthday, phone).finally(() => setBusy(""));
     if(res !== "ok") return toast(t(res === "unregistered" ? "group.notRegistered" : "profile.saveFail"));
     // Quem já está há muitos ensaios sem aparecer entra marcado em pausa (a volta conta daqui para frente).
     if(asOut && !(asAdmin && !leaderNow && amGroupLeader())){
       if(!await setMemberOut(g.gid, v, COMEBACK)) toast(t("profile.saveFail"));
       else toast(t("group.outSaved"));
     }
-    toast(t("group.memberAdded", {email: v})); setEmail(""); setName(""); setBirthday(""); setPhone(""); setRoles([]); setAsAdmin(false); setAsOut(false); check.reset();
+    toast(t("group.memberAdded", {email: v})); setEmail(""); setName(""); setBirthday(""); setPhone(""); setRoles(emptySel); setAsAdmin(false); setAsOut(false); check.reset();
   }); };
   // Busca e ordem, como na lista "Com acesso" do Perfil (recentes: pela data em que entrou no grupo).
   const filter = usePeopleFilter(g.members, "acordia-members-order", m => m.name, m => m.created_at || ""), shown = filter.shown || [];
@@ -742,7 +765,7 @@ function Members({canEdit}: {canEdit: boolean}){
 function MemberEdit({m, full, onDone, inline}: {m: Member; full: boolean; onDone: () => void; inline?: boolean}){
   const gid = useGroups(s => s.gid), id = "medit-" + m.email;
   const [name, setName] = useState(m.name), [phone, setPhone] = useState(maskPhone(m.phone || "")), [birthday, setBirthday] = useState(m.birthday || "");
-  const [roles, setRoles] = useState(() => splitRoles(m.role)), [busy, setBusy] = useState(false), lock = useLock();
+  const [roles, setRoles] = useState(() => parseRoleSel(m.role)), [busy, setBusy] = useState(false), lock = useLock();
   // Alterado = diferente de quando abriu: sair (Cancelar, fechar a janela, trocar de página) pergunta antes.
   const root = useRef<HTMLElement>(null), snap = JSON.stringify([name, phone, birthday, roles]), start = useRef(snap);
   useUnsaved(root, snap !== start.current);
@@ -751,8 +774,8 @@ function MemberEdit({m, full, onDone, inline}: {m: Member; full: boolean; onDone
     setBusy(true);
     // Banco sem admin_set_person ainda: grava só na lista de acesso (o que a pessoa preencheu continua valendo).
     let ok = !full || await setPersonInfo(m.email, name, phone, birthday).then(done => done || setAllowedInfo(m.email, name, birthday, phone));
-    const v = joinRoles(roles);
-    if(ok && v !== m.role) ok = await setMemberRole(gid, m.email, v);
+    const v = selString(roles);
+    if(ok && v !== selString(parseRoleSel(m.role))) ok = await setMemberRole(gid, m.email, v);
     setBusy(false);
     toast(t(ok ? "people.infoSaved" : "profile.saveFail", {email: m.email}));
     if(ok){
@@ -914,19 +937,20 @@ export function roleOptions(){
   return sortRoles(splitRoles([...ROLES.map(r => t("group.roles." + r)), ...g.members.map(m => m.role), ...g.roster.map(r => r.role)].join(",")));
 }
 // Botões para ligar e desligar cada função, e um campo para incluir outra.
-export function RolePicker({value, onChange, label}: {value: string[]; onChange: (v: string[]) => void; label?: string}){
+export function RolePicker({value, onChange, label}: {value: RoleSel; onChange: (v: RoleSel) => void; label?: string}){
   const [other, setOther] = useState("");
-  const has = (r: string) => value.some(x => x.toLocaleLowerCase() === r.toLocaleLowerCase());
-  const opts = sortRoles(splitRoles([...roleOptions(), ...value].join(",")));
-  const add = () => { const r = other.trim().replace(/,/g, " "); if(r && !has(r)) onChange([...value, r]); setOther(""); };
+  const has = (r: string) => value.roles.some(x => x.toLocaleLowerCase() === r.toLocaleLowerCase());
+  const fav = (r: string) => value.favs.some(x => x.toLocaleLowerCase() === r.toLocaleLowerCase());
+  const opts = sortRoles(splitRoles([...roleOptions(), ...value.roles].join(",")));
+  const add = () => { const r = other.trim().replace(/[,*]/g, " ").trim(); if(r && !has(r)) onChange(addSelRole(value, r)); setOther(""); };
   return <div className="role-picker">
     <span className="lbl">{label || t("group.roles")}</span>
     <div className="role-chips" role="group" aria-label={t("group.roles")}>{opts.map(r =>
-      <button type="button" key={r} className="role-chip" aria-pressed={has(r)} onClick={() => onChange(toggleRole(value, r))}>{has(r) && <Icon name="check" sm/>}{r}</button>)}</div>
-    {value.length > 1 && <div className="role-default">
+      <button type="button" key={r} className="role-chip" aria-pressed={has(r)} onClick={() => onChange(toggleSelRole(value, r))}>{has(r) && <Icon name="check" sm/>}{r}</button>)}</div>
+    {value.roles.length > 1 && <div className="role-default">
       <span className="lbl">{t("group.defaultRole")}</span>
-      <div className="role-chips" role="group" aria-label={t("group.defaultRole")}>{sortRoles(value).map(r =>
-        <button type="button" key={r} className="role-chip" aria-pressed={r === value[0]} onClick={() => onChange(setDefaultRole(value, r))}>{r === value[0] && <Icon name="star" sm/>}{r}</button>)}</div>
+      <div className="role-chips" role="group" aria-label={t("group.defaultRole")}>{sortRoles(value.roles).map(r =>
+        <button type="button" key={r} className="role-chip" aria-pressed={fav(r)} onClick={() => onChange(toggleFav(value, r))}>{fav(r) && <Icon name="star" sm/>}{r}</button>)}</div>
       <small className="sub">{t("group.defaultRoleHelp")}</small>
     </div>}
     <div className="role-other">
@@ -940,21 +964,21 @@ export function RolePicker({value, onChange, label}: {value: string[]; onChange:
 // O lápis fica junto dos chips (edita as funções); before e after (o toggle de líder e excluir o membro)
 // ficam num bloco à parte, que na lista de membros vai para a direita.
 export function MemberRoles({m, editable, busy, onSave, before, after, lead, showEmpty = editable}: {m: Member; lead?: React.ReactNode; editable: boolean; busy: boolean; onSave: (v: string) => void; before?: React.ReactNode; after?: React.ReactNode; showEmpty?: boolean}){
-  const [editing, setEditing] = useState<string[] | null>(null);
-  const roles = sortRoles(splitRoles(m.role)), deflt = splitRoles(m.role)[0], box = useRef<HTMLDivElement>(null);
-  const changed = !!editing && joinRoles(editing) !== m.role;
+  const [editing, setEditing] = useState<RoleSel | null>(null);
+  const sel = parseRoleSel(m.role), roles = sortRoles(sel.roles), box = useRef<HTMLDivElement>(null);
+  const changed = !!editing && selString(editing) !== selString(sel);
   useUnsaved(box, changed);
   if(editing) return <div className="member-roles editing" ref={box}>
     <RolePicker value={editing} onChange={setEditing}/>
     <div className="member-roles-foot">
       <button type="button" className="btn ghost sm" onClick={async () => { if(!changed || await confirmUnsaved()) setEditing(null); }}>{t("common.cancel")}</button>
-      <button type="button" className="btn primary sm" onClick={() => { const v = joinRoles(editing); setEditing(null); if(v !== m.role) onSave(v); }}>{t("common.save")}</button>
+      <button type="button" className="btn primary sm" onClick={() => { const v = selString(editing); setEditing(null); if(v !== selString(sel)) onSave(v); }}>{t("common.save")}</button>
     </div>
   </div>;
   return <span className="member-roles">
     {lead}
-    {roles.length ? roles.map(r => <span key={r} className="chip role">{roles.length > 1 && r === deflt && <Icon name="star" sm/>}{r}</span>) : showEmpty && <span className="people-missing">{t("group.noRoles")}</span>}
-    {editable && <button type="button" className="icon-btn sm" aria-label={t("group.editRoles") + ": " + personName(m.email)} title={t("group.editRoles")} onClick={() => setEditing(splitRoles(m.role))}><Icon name="edit" sm/></button>}
+    {roles.length ? roles.map(r => <span key={r} className="chip role">{roles.length > 1 && sel.favs.includes(r) && <Icon name="star" sm/>}{r}</span>) : showEmpty && <span className="people-missing">{t("group.noRoles")}</span>}
+    {editable && <button type="button" className="icon-btn sm" aria-label={t("group.editRoles") + ": " + personName(m.email)} title={t("group.editRoles")} onClick={() => setEditing(sel)}><Icon name="edit" sm/></button>}
     {busy && <Spin/>}
     {(before || after) && <span className="member-role-actions">{before}{after}</span>}
   </span>;

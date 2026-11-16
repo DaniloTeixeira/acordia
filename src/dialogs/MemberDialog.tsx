@@ -115,7 +115,7 @@ function MemberRoster({m, e}: {m: Member; e: GEvent}){
     if(busy) return;
     if(on && !await confirmDialog({title: t("group.removeFromRosterTitle"), message: t("member.rosterRemoveMsg", {name: personName(m.email)}), confirm: t("group.removeFromRoster")})) return;
     setBusy(true);
-    const ok = await setOnRoster(e.id, m.email, on ? null : rosterRoles(splitRoles(m.role || ""))).finally(() => setBusy(false));
+    const ok = await setOnRoster(e.id, m.email, on ? null : rosterRoles(m.role || "")).finally(() => setBusy(false));
     if(ok) toast(t(on ? "member.rosterRemoved" : "member.rosterAdded"));
     else toast(t("profile.saveFail"), {label: t("common.retry"), run: toggle});
   };

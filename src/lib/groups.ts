@@ -382,6 +382,8 @@ export const deleteEvent = (id: string) => run(() => cloud.from("group_events").
 export const respond = (eventId: string, answer: Answer, reason = "") => run(() => cloud.rpc("respond_event", {eid: eventId, answer, why: reason}));
 // Quem disse "não posso" indica quem cobre a vaga (vazio tira a indicação).
 export const setCover = (eventId: string, email: string) => run(() => cloud.rpc("set_event_cover", {eid: eventId, cover: email}));
+// A própria pessoa escalada troca as funções dela num evento que ainda não começou (o banco confere as permitidas).
+export const setMyRoles = (eventId: string, roles: string[]) => run(() => cloud.rpc("set_my_event_roles", {eid: eventId, new_roles: roles}));
 export const checkIn = (eventId: string, on: boolean) => run(() => cloud.rpc("check_in", {eid: eventId, on_: on}));
 // A própria presença ou falta (null volta a "sem marcação"). Banco sem a função nova: presente e desfazer ainda
 // funcionam pelo check_in; marcar falta só existe com a migração.
