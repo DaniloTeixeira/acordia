@@ -70,10 +70,14 @@ export const callClosed = (e: Pick<GEvent, "starts_at">, now = Date.now()) => ne
 // Falta só vale para quem estava na escala do ensaio (roster); sem a escala informada, vale para todos.
 // Justificada e pausa ficam fora da conta (nem falta, nem presença).
 const skipped = (status?: Presence) => status === "excused" || status === "paused";
+// Ensaio que entra na conta: com a chamada fechada ou, antes disso, em que a pessoa já tem presença marcada
+// (presença não depende de a chamada fechar; só a falta espera, porque até lá a pessoa ainda pode chegar).
+const counted = (e: GEvent, email: string, att: AttendanceRow[], now: number) =>
+  e.kind === "rehearsal" && (callClosed(e, now) || new Date(e.starts_at).getTime() <= now && att.some(a => a.event_id === e.id && a.email === email && a.status === "present"));
 const notCalled = (e: GEvent, email: string, status: Presence | undefined, roster?: RosterRow[]) =>
   !!roster && status !== "present" && !roster.some(r => r.event_id === e.id && r.email === email);
 export function attendanceRate(email: string, events: GEvent[], att: AttendanceRow[], now = Date.now(), roster?: RosterRow[]): {present: number; total: number} {
-  const past = events.filter(e => e.kind === "rehearsal" && callClosed(e, now));
+  const past = events.filter(e => counted(e, email, att, now));
   let present = 0, total = 0;
   past.forEach(e => {
     const rows = att.filter(a => a.event_id === e.id); if(!rows.length) return;
@@ -89,7 +93,7 @@ export function attendanceRate(email: string, events: GEvent[], att: AttendanceR
 export interface HistoryRow { event: GEvent; status: Presence }
 export function attendanceHistory(email: string, events: GEvent[], att: AttendanceRow[], now = Date.now(), roster?: RosterRow[], limit = 12): HistoryRow[] {
   const out: HistoryRow[] = [];
-  events.filter(e => e.kind === "rehearsal" && callClosed(e, now)).sort((a, b) => b.starts_at.localeCompare(a.starts_at)).forEach(e => {
+  events.filter(e => counted(e, email, att, now)).sort((a, b) => b.starts_at.localeCompare(a.starts_at)).forEach(e => {
     if(out.length >= limit) return;
     const rows = att.filter(a => a.event_id === e.id); if(!rows.length) return;
     const st = rows.find(a => a.email === email)?.status;
@@ -125,7 +129,7 @@ export function comebackProgress(sd: Pick<Standing, "need" | "marked">, mark?: O
   return {done, total, pct: Math.round(100 * done / total)};
 }
 export function rehearsalStanding(email: string, events: GEvent[], att: AttendanceRow[], now = Date.now(), mark?: OutMark | null, roster?: RosterRow[]): Standing {
-  const past = events.filter(e => e.kind === "rehearsal" && callClosed(e, now))
+  const past = events.filter(e => counted(e, email, att, now))
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
   const s: Standing = {out: false, streak: 0, need: 0, called: 0};
   if(mark?.exempt) return s;

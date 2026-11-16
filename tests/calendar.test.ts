@@ -108,6 +108,10 @@ test("chamada aberta: pendente até 12 h depois; depois vira falta", () => {
   assert.deepEqual(attendanceRate("x", [e], [other], at + 12 * 3600e3), {present: 0, total: 1});
   assert.equal(rehearsalStanding("x", [e], [other], at + 11 * 3600e3).called, 0);
   assert.equal(rehearsalStanding("x", [e], [other], at + 12 * 3600e3).streak, 1);
+  // Presença conta na hora, sem esperar a chamada fechar (a volta da pausa atualiza ao marcar).
+  const hereNow = {...other, email: "x"}, markOut = {since: "", need: 2};
+  assert.equal(rehearsalStanding("x", [e], [hereNow], at + 3600e3, markOut).need, 1);
+  assert.deepEqual(attendanceRate("x", [e], [hereNow], at + 3600e3), {present: 1, total: 1});
   // Falta só conta para quem estava na escala; quem não estava fica fora da conta (mas a presença vale).
   const scaled = [{event_id: "e", email: "x", role: "", status: "yes" as const, reason: ""}], end = at + 12 * 3600e3;
   assert.deepEqual(attendanceRate("x", [e], [other], end, []), {present: 0, total: 0});
