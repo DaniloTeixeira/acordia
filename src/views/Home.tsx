@@ -60,7 +60,9 @@ export function Home(){
     birthdays: <Birthdays key="birthdays" list={bdays} wide={bottomWide === "birthdays"}/>};
   // Em cima, na tela larga: próximo compromisso ao lado do que o líder precisa resolver (substituto e respostas),
   // depois a semana na linha toda e, por fim, os blocos de baixo. Um número ímpar de blocos deixa o último na linha toda.
-  const top = ["next", needs.length > 0 && "needs", waiting.length > 0 && "waiting"].filter(Boolean);
+  // Se o próximo compromisso já pede substituto, o aviso vai como chip nele e o evento sai da lista (sem repetir).
+  const needsOther = needs.filter(e => e !== next);
+  const top = ["next", needsOther.length > 0 && "needs", waiting.length > 0 && "waiting"].filter(Boolean);
   const topWide = top.length % 2 ? top[top.length - 1] : "";
   return <section className="view" id="view-home" data-view="home" aria-labelledby="home-h">
     <div className="view-head"><div><h1 id="home-h">{t("home.hello", {name})}</h1>
@@ -69,10 +71,10 @@ export function Home(){
     {group && <BirthdayNotice/>}
     {group && check && <RehearsalCheck e={check}/>}
     {group ? <>
-      {next ? <NextCard e={next} mine={mine.includes(next)} leader={leader} wide={topWide === "next"}/>
+      {next ? <NextCard e={next} mine={mine.includes(next)} leader={leader} needSub={needs.includes(next) ? needsCover(rosterOf(next)).length : 0} wide={topWide === "next"}/>
         : <Block id="home-next" className="home-next" wide={topWide === "next"} title={t("home.next")}><div className="empty-state home-empty"><Icon name="calendar"/><span>{t("group.noEvents")}</span></div></Block>}
-      {needs.length > 0 && <Block id="home-needs" className="home-needs" wide={topWide === "needs"} title={t("home.needsSub")} count={needs.length}>
-        <ul className="my-next-list">{needs.map(e => <EventRow key={e.id} e={e} chip={<span className="event-chips need-end"><span className="chip st-no">{tn("group.needSub", needsCover(rosterOf(e)).length)}</span></span>} extra={<span className="event-chips need-under"><span className="chip st-no">{tn("group.needSub", needsCover(rosterOf(e)).length)}</span></span>}/>)}</ul>
+      {needsOther.length > 0 && <Block id="home-needs" className="home-needs" wide={topWide === "needs"} title={t("home.needsSub")} count={needsOther.length}>
+        <ul className="my-next-list">{needsOther.map(e => <EventRow key={e.id} e={e} chip={<span className="event-chips need-end"><span className="chip st-no">{tn("group.needSub", needsCover(rosterOf(e)).length)}</span></span>} extra={<span className="event-chips need-under"><span className="chip st-no">{tn("group.needSub", needsCover(rosterOf(e)).length)}</span></span>}/>)}</ul>
       </Block>}
       {waiting.length > 0 && <Block id="home-waiting" className="home-needs home-waiting" wide={topWide === "waiting"} title={t("home.pendingTitle")} count={waitingPeople} link={{label: t("home.seeAgenda"), run: () => openGroup("agenda")}}>
         <ul className="home-waiting-list">{waiting.map(e => <WaitingItem key={e.id} e={e}/>)}</ul>
@@ -274,7 +276,7 @@ function Groups({upcoming, wide}: {upcoming: number; wide: boolean}){
 // O próximo compromisso, em destaque: quando, onde, minha função, as duas respostas (Confirmar / Não posso) e
 // "Estudar" (abre o repertório da data na folha) sem sair do Início. Quem não está na escala vê o evento e o
 // aviso de que não está escalado; o líder vê também quantos já confirmaram.
-function NextCard({e, mine, leader, wide}: {e: GEvent; mine: boolean; leader: boolean; wide: boolean}){
+function NextCard({e, mine, leader, needSub, wide}: {e: GEvent; mine: boolean; leader: boolean; needSub: number; wide: boolean}){
   const g = useGroups(), me = useAuth(s => s.email);
   const rows = g.roster.filter(r => r.event_id === e.id && r.email === me), set = g.setlists.find(x => x.id === e.setlist_id);
   const d = new Date(e.starts_at), roles = sortRoles(rows.map(r => r.role).filter(Boolean));
@@ -284,6 +286,7 @@ function NextCard({e, mine, leader, wide}: {e: GEvent; mine: boolean; leader: bo
     {(e.place || roles.length > 0) && <span className="sub next-meta">{e.place}{roles.length > 0 && <span className="roster-chips">{roles.map(x => <span key={x} className="chip role">{x}</span>)}</span>}</span>}
     {!mine && <span className="sub">{t("home.noScales")}</span>}
     {leader && <Replies e={e}/>}
+    {needSub > 0 && <span className="event-chips"><span className="chip st-no">{tn("group.needSub", needSub)}</span></span>}
     {mine && <ReplySeg e={e}/>}
     {set && <div className="next-acts"><button type="button" className="btn primary sm" onClick={() => openGroupSetlist(set)}><Icon name="music" sm/> {t("home.study")}</button>
       <button type="button" className="btn ghost sm" onClick={() => openGroupSetlist(set, true)}><Icon name="stage" sm/> {t("medley.stage")}</button></div>}

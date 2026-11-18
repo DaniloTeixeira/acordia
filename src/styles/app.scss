@@ -9605,7 +9605,7 @@ dialog.member-dlg {
   gap: 4px;
   justify-content: center;
   min-height: 32px;
-  padding: 0 12px 2px; /* o Segoe UI assenta baixo na linha: 2px embaixo sobe o texto ao centro */
+  padding: 0 12px; /* simétrico: um ajuste só embaixo (feito para o Segoe UI) deixava o texto alto no Roboto do celular */
   border-radius: var(--r-full);
   border: 1px solid var(--line-strong);
   background: var(--surface);
