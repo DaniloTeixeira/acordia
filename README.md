@@ -70,7 +70,7 @@ O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] **Você foi ao ensaio?** (cartão no topo, que só aparece quando há ensaio para confirmar): depois que o ensaio começa, quem estava na escala marca **Estive / Não estive** ali mesmo, sem abrir a Agenda, por até 7 dias. O ensaio que já começou deixa de ser o "próximo compromisso".
 - [ ] **Próximo compromisso** em destaque (fixo, com aviso "Nenhum evento marcado" quando não há), com **Confirmar / Não posso** e **Estudar repertório** (abre a folha) ou Palco, sem sair do Início.
 - [ ] **Precisam de substituto** (só quem lidera): ao lado do destaque, os eventos em que alguém disse que
-      não pode.
+      não pode. Se o próximo compromisso já pede substituto, o aviso vira um chip nele e o evento não se repete aqui.
 - [ ] **Próximos 7 dias**: a semana com um ponto nos dias com evento (destacado quando a pessoa está escalada).
       Embaixo, **Minhas escalas**: as outras escalas em linhas (data, título, hora, "em 3 dias", função) com
       Confirmar / Não posso. Tocar abre o evento na agenda.
