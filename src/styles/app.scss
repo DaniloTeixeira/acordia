@@ -109,7 +109,7 @@
   --r-md: 12px;
   --r-lg: 18px;
   --r-full: 999px;
-  --r-chip: 6px; /* chip (rótulo, não clicável) é retângulo arredondado; só botão é pílula (--r-full) */
+  --r-chip: 4px; /* chip (rótulo, não clicável) é retângulo arredondado; só botão é pílula (--r-full) */
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --t-fast: 0.15s;
@@ -10109,11 +10109,10 @@ dialog.member-dlg {
   align-items: center;
   gap: 6px;
   min-height: 34px;
-  padding: 0 12px;
-  border-radius: var(--r-chip);
+  padding: 0;
   font-weight: 600;
   font-size: 0.85rem;
-  background: transparent; /* só o contorno (vem da regra dos chips de situação) */
+  background: transparent; /* só texto (com o ícone), sem contorno de chip */
   color: var(--ok);
 }
 .reply-done.no .reply-badge {
@@ -10277,20 +10276,19 @@ dialog.member-dlg {
 /* Borda de 1 px na cor do próprio texto do chip (mais acesa que o fundo). Em sombra interna para o chip não crescer. */
 .member-roles .chip:not(.leader, .current),
 .chip.role,
-.reply-badge,
 .chip:is(.st-yes, .st-conf, .st-no, .st-pending) {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent);
 }
 /* Início: "Você foi ao ensaio?" depois do ensaio; botões do tamanho dos de Confirmar / Não posso. */
 .rehearsal-check .reply-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 /* Presente (chegou) é um verde a mais que Confirmado: só contorno, mais grosso e vivo, e negrito. */
-.chip.st-here,
-.reply-badge.here {
+.chip.st-here {
   background: transparent;
   color: var(--ok);
   font-weight: 700;
   box-shadow: inset 0 0 0 1.5px var(--ok-vivid);
 }
+.reply-badge.here { color: var(--ok); font-weight: 700; }
 
 /* Chip de função: só contorno, em roxo mais vivo que o tom de --role-ink. Vale em todo lugar que mostra função. */
 .chip.role,
@@ -10371,7 +10369,7 @@ dialog.member-dlg {
    na ponta direita. O bloco vira display: contents para o link poder passar do substituto (order). */
 @media (max-width: 899px) {
   .event-actions > .reply-done { display: contents; }
-  .event-actions > .reply-done .reply-badge { flex: 1 1 100%; justify-content: center; }
+  .event-actions > .reply-done .reply-badge { flex: 1 1 100%; justify-content: flex-start; }
   .event-actions > .event-cover { order: 1; flex-basis: 100%; flex-wrap: nowrap; }
   .event-actions > .event-cover .select-btn { flex: 1 1 auto; min-width: 0; }
   .event-actions > .reply-done .link-btn { order: 2; margin-left: auto; }
@@ -10659,10 +10657,13 @@ main:has(> .view > .back-link:first-child) {
 }
 /* Resposta (topo da Agenda e card do evento), no celular: Confirmar e Não posso dividem a largura toda do card. */
 @media (max-width: 599px) {
-  .reply-block .reply-btns {
+  .reply-btns,
+  .event-actions > .reply-btns {
     width: 100%;
+    flex-wrap: nowrap;
   }
-  .reply-block .reply-btns .btn {
+  .reply-btns .btn,
+  .event-actions > .reply-btns .btn {
     flex: 1 1 0;
   }
 }
