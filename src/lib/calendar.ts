@@ -6,7 +6,7 @@ export type Answer = "pending" | "yes" | "no";
 export type Presence = "present" | "absent" | "excused" | "paused";
 export interface GEvent {
   id: string; group_id: string; kind: EventKind; title: string; starts_at: string; call_at: string | null;
-  place: string; notes: string; setlist_id: string | null; updated_at?: string;
+  place: string; notes: string; setlist_id: string | null; setlist_url?: string; updated_at?: string;
 }
 // cover: e-mail de quem cobre a vaga de quem disse "não posso" (vazio ou ausente = ninguém indicado).
 export interface RosterRow { event_id: string; email: string; role: string; status: Answer; reason: string; cover?: string }

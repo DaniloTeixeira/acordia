@@ -7,6 +7,7 @@ import { useGroups, saveEvent, addGuest, personName, outMark, isActive, type Ros
 import { useAuth, validEmail, listAllowed, type Allowed } from "../lib/cloud";
 import { warningsFor, rehearsalStanding, monthLoad, weekly, dayKey, rosterByPerson, soundOnly, type EventKind, type GEvent } from "../lib/calendar";
 import { reduced } from "../lib/util";
+import { sanitizeUrl } from "../lib/core";
 import { toast, confirmDialog, requestClose, type DialogProps } from "../state";
 import { Dialog, DialogHead } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
@@ -37,12 +38,14 @@ export function EventDialog({id, day}: DialogProps["event"]){
   const [place, setPlace] = useState(ev?.place || "");
   const [notes, setNotes] = useState(ev?.notes || "");
   const [setlist, setSetlist] = useState(ev?.setlist_id || "");
+  // Link do repertório montado fora do app (ex.: Cifra Club): a equipe abre direto no evento.
+  const [url, setUrl] = useState(ev?.setlist_url || ""), [urlBad, setUrlBad] = useState(false);
   const [weeks, setWeeks] = useState("1");
   // Uma linha por pessoa, com as funções dela neste evento; ao salvar vira uma linha por função.
   const [roster, setRoster] = useState<Row[]>(() => ev ? byName(rosterByPerson(g.roster.filter(r => r.event_id === ev.id)).map(p => ({email: p.email, roles: p.roles}))) : []);
   const [busy, setBusy] = useState(false), [inviting, setInviting] = useState(false);
   // Alterado = diferente de quando abriu (voltar ao que era não conta). done: salvou ou cancelou.
-  const snap = () => JSON.stringify([kind, title, date, time, call, place, notes, setlist, weeks, roster]);
+  const snap = () => JSON.stringify([kind, title, date, time, call, place, notes, setlist, url, weeks, roster]);
   const start = useRef<string | null>(null); if(start.current === null) start.current = snap();
   const done = useRef(false), dirty = () => !done.current && snap() !== start.current;
   const form = useRef<HTMLFormElement>(null), rosterEnd = useRef<HTMLDivElement>(null);
@@ -66,9 +69,12 @@ export function EventDialog({id, day}: DialogProps["event"]){
   const guestDates = () => starts ? (id ? [starts] : weekly(starts, +weeks)).map(d => d.toISOString()) : [];
   const save = async () => {
     if(!starts) return toast(t("group.needDate"));
+    // Link preenchido mas que não é endereço válido: avisa no campo em vez de gravar errado.
+    const link = url.trim() ? sanitizeUrl(url) : "";
+    if(url.trim() && !link){ setUrlBad(true); document.getElementById("event-url")?.focus(); return; }
     setBusy(true);
     const callAt = call ? at(date, call) : null;
-    const input = {kind, title: title.trim().slice(0, 80), starts_at: starts.toISOString(), call_at: callAt ? callAt.toISOString() : null, place: place.trim(), notes: notes.trim(), setlist_id: setlist || null};
+    const input = {kind, title: title.trim().slice(0, 80), starts_at: starts.toISOString(), call_at: callAt ? callAt.toISOString() : null, place: place.trim(), notes: notes.trim(), setlist_id: setlist || null, setlist_url: link};
     const n = id ? 1 : +weeks;
     const dates = n > 1 ? weekly(starts, n).map((s, i) => ({starts_at: s.toISOString(), call_at: callAt ? new Date(callAt.getFullYear(), callAt.getMonth(), callAt.getDate() + 7 * i, callAt.getHours(), callAt.getMinutes()).toISOString() : null})) : undefined;
     const rows: RosterInput[] = roster.filter(r => r.email).flatMap(r => r.roles.length ? r.roles.map(role => ({email: r.email, role})) : [{email: r.email, role: ""}]);
@@ -103,6 +109,9 @@ export function EventDialog({id, day}: DialogProps["event"]){
             options={["1", "2", "4", "8", "12", "26"].map(n => ({value: n, label: n === "1" ? t("group.repeatNo") : t("group.repeatWeeks", {n})}))}/></label>}
         </div>
         {!g.setlists.length && <p className="sub">{t("group.setlistHint")}</p>}
+        <label className="field"><span>{t("group.setlistUrl")}</span><input className="input" id="event-url" inputMode="url" maxLength={600} autoCapitalize="off" autoCorrect="off" spellCheck={false} autoComplete="off"
+          placeholder={t("group.setlistUrlPh")} aria-invalid={urlBad} aria-describedby={urlBad ? "event-url-err" : undefined} value={url} onChange={e => { setUrl(e.target.value); setUrlBad(false); }}/>
+          {urlBad && <span className="field-error" id="event-url-err">{t("group.setlistUrlBad")}</span>}</label>
         <label className="field"><span>{t("group.notes")}</span><textarea className="input" id="event-notes" rows={3} maxLength={1000} placeholder={t("group.notesPh")} value={notes} onChange={e => setNotes(e.target.value)}/></label>
         </FoldCard>
 

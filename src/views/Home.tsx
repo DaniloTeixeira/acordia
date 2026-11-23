@@ -288,7 +288,9 @@ function NextCard({e, mine, leader, needSub, wide}: {e: GEvent; mine: boolean; l
     {leader && <Replies e={e}/>}
     {needSub > 0 && <span className="event-chips"><span className="chip st-no">{tn("group.needSub", needSub)}</span></span>}
     {mine && <ReplySeg e={e}/>}
-    {set && <div className="next-acts"><button type="button" className="btn primary sm" onClick={() => openGroupSetlist(set)}><Icon name="music" sm/> {t("home.study")}</button>
-      <button type="button" className="btn ghost sm" onClick={() => openGroupSetlist(set, true)}><Icon name="stage" sm/> {t("medley.stage")}</button></div>}
+    {(set || e.setlist_url) && <div className="next-acts">
+      {set && <button type="button" className="btn primary sm" onClick={() => openGroupSetlist(set)}><Icon name="music" sm/> {t("home.study")}</button>}
+      {set && <button type="button" className="btn ghost sm" onClick={() => openGroupSetlist(set, true)}><Icon name="stage" sm/> {t("medley.stage")}</button>}
+      {e.setlist_url && <a className={"btn sm " + (set ? "ghost" : "primary")} href={e.setlist_url} target="_blank" rel="noopener noreferrer"><Icon name="link" sm/> {t("group.openSetlistUrl")}</a>}</div>}
   </Block>;
 }

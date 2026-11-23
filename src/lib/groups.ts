@@ -120,7 +120,9 @@ export function loadGroups(gid?: string): Promise<void> {
           .then(r => r.error ? cloud.from("group_members").select("email,is_admin,role,created_at").eq("group_id", cur).order("email") : r),
         cloud.rpc("group_people", {gid: cur}),
         cloud.from("group_setlists").select("id,group_id,source_id,name,songs,code,shared_by,updated_at").eq("group_id", cur).order("updated_at", {ascending: false}),
-        cloud.from("group_events").select("id,group_id,kind,title,starts_at,call_at,place,notes,setlist_id,updated_at").eq("group_id", cur).gte("starts_at", from).lte("starts_at", to).order("starts_at"),
+        // Banco ainda sem o link do repertório (antes da migração subir): lê sem ele.
+        cloud.from("group_events").select("id,group_id,kind,title,starts_at,call_at,place,notes,setlist_id,setlist_url,updated_at").eq("group_id", cur).gte("starts_at", from).lte("starts_at", to).order("starts_at")
+          .then(r => r.error ? cloud.from("group_events").select("id,group_id,kind,title,starts_at,call_at,place,notes,setlist_id,updated_at").eq("group_id", cur).gte("starts_at", from).lte("starts_at", to).order("starts_at") : r),
         cloud.from("unavailable").select("email,day,note").gte("day", from.slice(0, 10)),
         // Lista "Para aprender". Banco ainda sem a tabela (antes da migração subir): segue sem ela, sem derrubar o resto.
         cloud.from("group_learn").select("id,group_id,title,artist,url,note,suggested_by,created_at").eq("group_id", cur).order("created_at", {ascending: false}),
@@ -339,7 +341,7 @@ export async function listGroupedEmails(): Promise<Set<string> | null> {
 }
 
 
-export interface EventInput { kind: EventKind; title: string; starts_at: string; call_at: string | null; place: string; notes: string; setlist_id: string | null }
+export interface EventInput { kind: EventKind; title: string; starts_at: string; call_at: string | null; place: string; notes: string; setlist_id: string | null; setlist_url: string }
 export interface RosterInput { email: string; role: string }
 // Grava o evento e a escala. Quem continua escalado na mesma função mantém a resposta que já deu.
 // dates: com mais de uma, cria um evento igual em cada data (evento repetido).
@@ -360,9 +362,18 @@ export async function saveEvent(gid: string, id: string | null, ev: EventInput, 
     }
     for(const w of when){
       const row = {...ev, ...w, group_id: gid, updated_at: new Date().toISOString()};
+      // Banco ainda sem a coluna do link: sem link, grava como antes; com link, falha de verdade (não perde o link em silêncio).
+      const {setlist_url: _url, ...old_row} = row;
       let eid = id;
-      if(eid){ const {error} = await cloud.from("group_events").update(row).eq("id", eid); if(error) return false; }
-      else { const {data, error} = await cloud.from("group_events").insert(row).select("id").single(); if(error) return false; eid = (data as {id: string}).id; }
+      if(eid){
+        let {error} = await cloud.from("group_events").update(row).eq("id", eid);
+        if(error && !_url) ({error} = await cloud.from("group_events").update(old_row).eq("id", eid));
+        if(error) return false;
+      }else{
+        let {data, error} = await cloud.from("group_events").insert(row).select("id").single();
+        if(error && !_url) ({data, error} = await cloud.from("group_events").insert(old_row).select("id").single());
+        if(error) return false; eid = (data as {id: string}).id;
+      }
       const old = useGroups.getState().roster.filter(r => r.event_id === eid);
       const keep = new Set(unique.map(r => r.email + "|" + r.role));
       const gone = old.filter(r => !keep.has(r.email + "|" + r.role));
