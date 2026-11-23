@@ -10468,9 +10468,6 @@ dialog.member-dlg {
   gap: 4px 10px;
   align-items: baseline;
 }
-.next-when b {
-  text-transform: capitalize;
-}
 .next-title {
   font-size: 1.3rem;
   line-height: 1.2;
@@ -10485,6 +10482,10 @@ dialog.member-dlg {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+/* Link do repertório: no celular ocupa a linha toda (os botões Estudar/Palco ficam lado a lado acima dele). */
+@media (max-width: 599px) {
+  .setlist-url { flex: 1 1 100%; justify-content: center; }
 }
 /* Sua resposta (Agenda): por escala, título e data em cima, Confirmar / Não posso embaixo na largura toda. */
 /* Mesmo padrão dos cards da Agenda (Calendário e Eventos): respiro de 14px, título de 1rem e 10px até a primeira linha. */
