@@ -9025,9 +9025,14 @@ dialog.member-dlg {
 .home-day:hover:not(:disabled) {
   border-color: var(--accent);
 }
-.home-day.today {
-  background: var(--accent-soft);
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+/* Hoje: contorno com o gradiente do logo (fundo suave por dentro, gradiente na borda) e a bolinha do número também. */
+.home-day.today,
+.home-day.today:hover:not(:disabled) {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--accent-soft), var(--accent-soft)) padding-box,
+    linear-gradient(var(--surface-2), var(--surface-2)) padding-box,
+    var(--range-grad) border-box;
 }
 .home-day:disabled {
   cursor: default;
@@ -9048,7 +9053,7 @@ dialog.member-dlg {
   font-size: 0.95rem;
 }
 .home-day.today b {
-  background: var(--accent);
+  background: var(--accent-grad);
   color: var(--accent-ink, #fff);
 }
 .home-day-dot {
@@ -9467,10 +9472,11 @@ dialog.member-dlg {
   margin-right: 6px;
   color: var(--warn);
 }
-/* Celular: sempre duas colunas, qualquer que seja a largura (nomes longos cortam com reticências). */
+/* Celular: sempre três colunas, qualquer que seja a largura (são só primeiros nomes; os longos cortam com reticências). */
 @media (max-width: 599px) {
   .home-waiting-who {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 8px;
   }
   .home-waiting-who li {
     overflow: hidden;
