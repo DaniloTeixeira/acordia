@@ -9025,9 +9025,14 @@ dialog.member-dlg {
 .home-day:hover:not(:disabled) {
   border-color: var(--accent);
 }
-.home-day.today {
-  background: var(--accent-soft);
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+/* Hoje: contorno com o gradiente do logo (fundo suave por dentro, gradiente na borda) e a bolinha do número também. */
+.home-day.today,
+.home-day.today:hover:not(:disabled) {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--accent-soft), var(--accent-soft)) padding-box,
+    linear-gradient(var(--surface-2), var(--surface-2)) padding-box,
+    var(--range-grad) border-box;
 }
 .home-day:disabled {
   cursor: default;
@@ -9048,7 +9053,7 @@ dialog.member-dlg {
   font-size: 0.95rem;
 }
 .home-day.today b {
-  background: var(--accent);
+  background: var(--accent-grad);
   color: var(--accent-ink, #fff);
 }
 .home-day-dot {
