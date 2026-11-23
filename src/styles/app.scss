@@ -10073,7 +10073,7 @@ dialog.member-dlg {
 .reply-done {
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-template-rows: minmax(40px, auto) 32px; /* a linha de baixo tem a altura do selo e dos botões: o card não muda ao alternar */
+  grid-template-rows: minmax(40px, auto) 34px; /* a linha de baixo tem a altura do selo e dos botões: o card não muda ao alternar */
   align-items: center;
   gap: 8px;
 }
@@ -10089,7 +10089,7 @@ dialog.member-dlg {
 .reply-edit.editing {
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-template-rows: minmax(40px, auto) 32px; /* a linha de baixo tem a altura do selo e dos botões: o card não muda ao alternar */
+  grid-template-rows: minmax(40px, auto) 34px; /* a linha de baixo tem a altura do selo e dos botões: o card não muda ao alternar */
   align-items: center;
   gap: 8px;
 }
@@ -10106,11 +10106,11 @@ dialog.member-dlg {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 26px;
-  padding: 0 10px;
+  min-height: 34px;
+  padding: 0 12px;
   border-radius: 999px;
   font-weight: 600;
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   background: transparent; /* só o contorno (vem da regra dos chips de situação) */
   color: var(--ok);
 }
@@ -10406,11 +10406,11 @@ dialog.member-dlg {
   overflow-wrap: anywhere;
   border-radius: var(--r-full);
   /* Todo chip e selo de situação do evento tem a mesma altura do selo de resposta (.reply-badge), em qualquer tela. */
-  min-height: 26px;
-  padding: 0 10px;
+  min-height: 34px;
+  padding: 0 12px;
   box-sizing: border-box;
   justify-content: center;
-  font-size: 0.78rem;
+  font-size: 0.85rem;
 }
 /* Chip "não pode ir · falta substituto": só texto vermelho, sem fundo nem contorno (teste a pedido). */
 .event-chips .chip.st-no {
@@ -10468,9 +10468,6 @@ dialog.member-dlg {
   gap: 4px 10px;
   align-items: baseline;
 }
-.next-when b {
-  text-transform: capitalize;
-}
 .next-title {
   font-size: 1.3rem;
   line-height: 1.2;
@@ -10485,6 +10482,10 @@ dialog.member-dlg {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+/* Link do repertório: no celular ocupa a linha toda (os botões Estudar/Palco ficam lado a lado acima dele). */
+@media (max-width: 599px) {
+  .setlist-url { flex: 1 1 100%; justify-content: center; }
 }
 /* Sua resposta (Agenda): por escala, título e data em cima, Confirmar / Não posso embaixo na largura toda. */
 /* Mesmo padrão dos cards da Agenda (Calendário e Eventos): respiro de 14px, título de 1rem e 10px até a primeira linha. */
@@ -10535,7 +10536,7 @@ dialog.member-dlg {
   }
 }
 .reply-block .reply-btns .btn {
-  min-height: 32px; /* um pouco mais alto que o selo (.reply-badge), mais fácil de tocar */
+  min-height: 34px; /* mesma altura do selo (.reply-badge) */
 }
 .my-reply-list li + li {
   padding-top: 16px;

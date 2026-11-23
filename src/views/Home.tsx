@@ -7,14 +7,14 @@ import { useState, type ReactNode } from "react";
 import * as store from "../lib/store";
 import { t, tn, locale } from "../lib/i18n";
 import { useAuth } from "../lib/cloud";
-import { dayKey, eventDay, splitEvents, upcomingBirthdays, birthdayNotice, birthdayKey, needsCover, pendingReplies, type GEvent } from "../lib/calendar";
+import { dayKey, eventDay, splitEvents, upcomingBirthdays, birthdayNotice, birthdayKey, needsCover, capFirst, pendingReplies, type GEvent } from "../lib/calendar";
 import { useGroups, personName, amGroupAdmin, setMyAttendance, type GroupSetlist } from "../lib/groups";
 import { useData, openDialog, toast } from "../state";
 import { openGroupSetlist } from "./Group";
 import { Spin } from "./Account";
 import { Icon } from "../ui/Icon";
 import { sortRoles } from "../lib/roles";
-import { useGroupRefresh, ReplySeg, openGroup, eventTitle, fmt, timeOf, longDay, useSquareBadge, relDay, PersonAvatar } from "./Group";
+import { useGroupRefresh, ReplySeg, openGroup, eventTitle, fmt, timeOf, longDay, shortDay, useSquareBadge, relDay, PersonAvatar } from "./Group";
 import { SecHead } from "../ui/SecHead";
 import { CardSkeleton } from "../ui/Skeleton";
 import { LinkCard, IconMark } from "../ui/LinkCard";
@@ -281,7 +281,7 @@ function NextCard({e, mine, leader, needSub, wide}: {e: GEvent; mine: boolean; l
   const rows = g.roster.filter(r => r.event_id === e.id && r.email === me), set = g.setlists.find(x => x.id === e.setlist_id);
   const d = new Date(e.starts_at), roles = sortRoles(rows.map(r => r.role).filter(Boolean));
   return <Block id="home-next" className={"home-next " + e.kind} wide={wide} title={t(mine ? "home.next" : "home.nextGroup")} link={{label: t("home.details"), run: () => openGroup("agenda", e.id)}}>
-    <div className="next-when"><b>{longDay(d)}</b><span>{timeOf(e.starts_at)}{e.call_at && " · " + t("group.callAt", {time: timeOf(e.call_at)})}</span><span className="sub">{relDay(e.starts_at)}</span></div>
+    <div className="next-when"><b>{capFirst(shortDay(d))}</b><span>· {timeOf(e.starts_at)}{e.call_at && " · " + t("group.callAt", {time: timeOf(e.call_at)})}</span><span className="sub">{relDay(e.starts_at)}</span></div>
     <b className="next-title">{eventTitle(e)}</b>
     {(e.place || roles.length > 0) && <span className="sub next-meta">{e.place}{roles.length > 0 && <span className="roster-chips">{roles.map(x => <span key={x} className="chip role">{x}</span>)}</span>}</span>}
     {!mine && <span className="sub">{t("home.noScales")}</span>}
@@ -291,6 +291,6 @@ function NextCard({e, mine, leader, needSub, wide}: {e: GEvent; mine: boolean; l
     {(set || e.setlist_url) && <div className="next-acts">
       {set && <button type="button" className="btn primary sm" onClick={() => openGroupSetlist(set)}><Icon name="music" sm/> {t("home.study")}</button>}
       {set && <button type="button" className="btn ghost sm" onClick={() => openGroupSetlist(set, true)}><Icon name="stage" sm/> {t("medley.stage")}</button>}
-      {e.setlist_url && <a className={"btn sm " + (set ? "ghost" : "primary")} href={e.setlist_url} target="_blank" rel="noopener noreferrer"><Icon name="link" sm/> {t("group.openSetlistUrl")}</a>}</div>}
+      {e.setlist_url && <a className={"btn sm setlist-url " + (set ? "ghost" : "primary")} href={e.setlist_url} target="_blank" rel="noopener noreferrer"><Icon name="link" sm/> {t("group.openSetlistUrl")}</a>}</div>}
   </Block>;
 }
