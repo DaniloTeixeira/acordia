@@ -13,6 +13,7 @@ presença nos ensaios, e repertórios compartilhados.
 Lista completa, tela por tela, para testar e decidir o que fica. Marque `[x]` no que já foi conferido.
 
 ### Em todas as telas
+- [ ] **Formas**: botão é pílula (cantos totalmente redondos) e chip, que só informa, é um retângulo de cantos suaves, para os dois não se confundirem.
 - [ ] **Navegação** entre Início, Agenda, Biblioteca (Repertórios, Músicas, Medleys e Aprender) e Mais (Grupos, Membros, Usuários só para admin, Estudo e Ferramentas): barra de abas no celular. **Grupos** é uma página só com a lista de todos os grupos da pessoa (fixar, "Novo grupo"), em Mais no celular e como item do trilho na tela larga; a mesma lista continua no Início. No topo do celular, a foto do perfil fica à esquerda (abre o Perfil) e o menu (⋯) à direita reúne instalar, idioma, volume e tema; a ajuda (?) fica solta ao lado dele. No computador o trilho
       lateral mostra tudo direto (Início, Agenda, Biblioteca, Membros, Estudo e Ferramentas), sem o Mais. Membros, Estudo, Ferramentas, Perfil e Usuários têm o link "Voltar para <tela>" no topo, que leva à tela de onde a pessoa veio (sem histórico, ao Mais ou ao Início). No celular ele fica fixo no topo e continua visível ao rolar. Cada página tem endereço próprio, então o "voltar" do navegador (e do mouse) funciona e fecha primeiro a janela ou o Palco abertos. O repertório aberto conta como Grupo e o voltar leva aos Repertórios. Tocar de novo na
       página atual volta ao topo.
