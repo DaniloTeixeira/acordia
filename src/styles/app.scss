@@ -8536,16 +8536,11 @@ dialog.event-dlg {
 .role-chip.add {
   border-style: dashed;
 }
-/* Sua função no evento (Group.tsx, MyRoles): botões de tocar, maiores que os da escala. */
+/* Sua função no evento (Group.tsx, MyRoles): mesmo tamanho dos chips de função da escala. */
 .my-roles .role-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-}
-.my-roles .role-chips .role-chip {
-  min-height: 36px;
-  padding: 4px 14px;
-  font-size: 0.85rem;
+  gap: 4px;
 }
 /* Chips menores só na escala do evento (as cores continuam as do sistema). */
 .roster-card .role-chips {
@@ -10368,11 +10363,12 @@ dialog.member-dlg {
 /* Celular: o selo da resposta ocupa a linha toda, o substituto vem embaixo (largura toda) e "Alterar resposta" por último,
    na ponta direita. O bloco vira display: contents para o link poder passar do substituto (order). */
 @media (max-width: 899px) {
-  .event-actions > .reply-done { display: contents; }
-  .event-actions > .reply-done .reply-badge { flex: 1 1 100%; justify-content: flex-start; }
+  /* Sem substituto (ex.: presença do ensaio) o bloco continua em grade: "Alterar presença" fica no canto de cima, no mesmo lugar do "Cancelar". */
+  .event-actions:has(> .event-cover) > .reply-done { display: contents; }
+  .event-actions:has(> .event-cover) > .reply-done .reply-badge { flex: 1 1 100%; justify-content: flex-start; }
   .event-actions > .event-cover { order: 1; flex-basis: 100%; flex-wrap: nowrap; }
   .event-actions > .event-cover .select-btn { flex: 1 1 auto; min-width: 0; }
-  .event-actions > .reply-done .link-btn { order: 2; margin-left: auto; }
+  .event-actions:has(> .event-cover) > .reply-done .link-btn { order: 2; margin-left: auto; }
 }
 /* Tela larga: o selo da resposta ("Você não vai" + Alterar resposta) e a lista de substituto ficam lado a lado. */
 @media (min-width: 900px) {
