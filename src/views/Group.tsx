@@ -653,7 +653,7 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
       {(set || e.setlist_url) && <div className="event-foot">
         {set && <button className="btn ghost sm" onClick={() => openGroupSetlist(set)}><Icon name="music" sm/> {t("group.openSetlist")}</button>}
         {set && <button className="btn ghost sm" onClick={() => openGroupSetlist(set, true)}><Icon name="stage" sm/> {t("medley.stage")}</button>}
-        {e.setlist_url && <a className="btn ghost sm" href={e.setlist_url} target="_blank" rel="noopener noreferrer"><Icon name="link" sm/> {t("group.openSetlistUrl")}</a>}
+        {e.setlist_url && <a className="btn ghost sm setlist-url" href={e.setlist_url} target="_blank" rel="noopener noreferrer"><Icon name="link" sm/> {t("group.openSetlistUrl")}</a>}
       </div>}
     </div>
   </li>;
