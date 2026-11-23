@@ -650,9 +650,10 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
       {/* Quem não foi escalado não tem resposta a dar: avisa o porquê, senão parece que os botões sumiram. */}
       {e.kind === "rehearsal" && !isPast && mineRows.length === 0 && g.members.some(m => m.email === me && isActive(m)) && <div className="not-scaled" role="note"><span className="chip st-pending"><span><b>{t("group.notScaled")}.</b> {t("group.notScaledWhy")}{myPause > 0 && <> {tn("group.pauseBack", myPause)}</>}</span></span></div>}</div>
       {e.notes && <div className="event-sec"><SecHead as="h3" className="people-sub-h">{t("group.notes")}</SecHead><p className="event-notes">{e.notes}</p></div>}
-      {set && <div className="event-foot">
-        <button className="btn ghost sm" onClick={() => openGroupSetlist(set)}><Icon name="music" sm/> {t("group.openSetlist")}</button>
-        <button className="btn ghost sm" onClick={() => openGroupSetlist(set, true)}><Icon name="stage" sm/> {t("medley.stage")}</button>
+      {(set || e.setlist_url) && <div className="event-foot">
+        {set && <button className="btn ghost sm" onClick={() => openGroupSetlist(set)}><Icon name="music" sm/> {t("group.openSetlist")}</button>}
+        {set && <button className="btn ghost sm" onClick={() => openGroupSetlist(set, true)}><Icon name="stage" sm/> {t("medley.stage")}</button>}
+        {e.setlist_url && <a className="btn ghost sm" href={e.setlist_url} target="_blank" rel="noopener noreferrer"><Icon name="link" sm/> {t("group.openSetlistUrl")}</a>}
       </div>}
     </div>
   </li>;
