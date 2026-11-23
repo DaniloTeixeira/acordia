@@ -35,6 +35,7 @@ Lista completa, tela por tela, para testar e decidir o que fica. Marque `[x]` no
 O app só abre depois de entrar (ver [Conta e nuvem](#conta-e-nuvem-supabase)).
 - [ ] **Tela de entrar**:
   - visual: notas musicais no fundo, borda animada, idioma e tema no canto;
+  - formas diferentes: botão é pílula (cantos totalmente redondos) e chip, que só informa, é um retângulo de cantos suaves, para os dois não se confundirem;
   - formas de entrar: **Entrar com Google**, ou **e-mail e senha**;
   - campo de senha: olho para mostrar (esconde sozinho ao enviar, ao sair do app e ao trocar de tela) e aviso de
     Caps Lock;

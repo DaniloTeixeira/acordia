@@ -109,6 +109,7 @@
   --r-md: 12px;
   --r-lg: 18px;
   --r-full: 999px;
+  --r-chip: 6px; /* chip (rótulo, não clicável) é retângulo arredondado; só botão é pílula (--r-full) */
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --t-fast: 0.15s;
@@ -1548,7 +1549,7 @@ main {
   align-items: center;
   gap: 4px;
   padding: 2px 9px;
-  border-radius: var(--r-full);
+  border-radius: var(--r-chip);
   font-size: 0.74rem;
   font-weight: 600;
   background: var(--chip-bg);
@@ -1582,7 +1583,7 @@ main {
   margin-bottom: 2px;
 }
 /* Em Acesso ao app os botões são menores: largura do conteúdo, lado a lado (quebram de linha se faltar espaço), com o
-   mesmo formato (cantos --r-md) dos de Gerenciar. */
+   mesmo formato (pílula) dos de Gerenciar. */
 .member-access .member-manage-btns {
   display: flex;
   flex-wrap: wrap;
@@ -1592,7 +1593,7 @@ main {
   min-height: 36px;
   height: 36px;
   padding: 0 14px;
-  border-radius: var(--r-md);
+  border-radius: var(--r-full);
 }
 .member-access .member-manage-btns .switch.boxed.people-admin {
   justify-content: center;
@@ -2548,6 +2549,7 @@ textarea.song-text {
 }
 /* "No repertório atual" é um botão (tira, ou abre a lista de repertórios) com cara de chip. */
 .lib-card .foot .chip-btn {
+  border-radius: var(--r-full); /* é botão (clicável): pílula, ao contrário do chip */
   min-width: 0;
   max-width: 60%;
   border: none;
@@ -8869,7 +8871,7 @@ dialog.member-dlg {
   font-size: 13px;
   text-align: center;
   white-space: normal;
-  border-radius: var(--r-md);
+  border-radius: var(--r-full);
 }
 /* Tela larga: 3 por linha (o Remover fica na lixeira do cabeçalho). */
 @media (min-width: 600px) {
@@ -9339,7 +9341,7 @@ dialog.member-dlg {
   min-width: 24px;
   height: 24px;
   padding: 0 7px;
-  border-radius: var(--r-full);
+  border-radius: var(--r-chip);
   background: var(--surface-2);
   color: var(--ink-2);
   font-size: 0.78rem;
@@ -9442,7 +9444,7 @@ dialog.member-dlg {
   padding: 0 12px;
   box-sizing: border-box;
   font-size: 0.85rem;
-  border-radius: var(--r-full);
+  border-radius: var(--r-chip);
   /* Sem o contorno dos chips de status: só o fundo suave, como o botão "Adicionar ao calendário" da outra tela. */
   box-shadow: none;
 }
@@ -9606,7 +9608,7 @@ dialog.member-dlg {
   justify-content: center;
   min-height: 32px;
   padding: 0 12px; /* simétrico: um ajuste só embaixo (feito para o Segoe UI) deixava o texto alto no Roboto do celular */
-  border-radius: var(--r-full);
+  border-radius: var(--r-chip);
   border: 1px solid var(--line-strong);
   background: var(--surface);
   color: var(--ink-2);
@@ -10108,7 +10110,7 @@ dialog.member-dlg {
   gap: 6px;
   min-height: 34px;
   padding: 0 12px;
-  border-radius: 999px;
+  border-radius: var(--r-chip);
   font-weight: 600;
   font-size: 0.85rem;
   background: transparent; /* só o contorno (vem da regra dos chips de situação) */
@@ -10404,7 +10406,7 @@ dialog.member-dlg {
   max-width: 100%;
   white-space: normal;
   overflow-wrap: anywhere;
-  border-radius: var(--r-full);
+  border-radius: var(--r-chip);
   /* Todo chip e selo de situação do evento tem a mesma altura do selo de resposta (.reply-badge), em qualquer tela. */
   min-height: 34px;
   padding: 0 12px;
@@ -10599,7 +10601,7 @@ dialog.member-dlg {
 }
 
 .not-scaled{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:10px 2px 0;line-height:1.4}
-.not-scaled .chip{white-space:normal;border-radius:14px;padding:8px 12px;font-size:0.82rem;line-height:1.4;text-align:left}
+.not-scaled .chip{white-space:normal;border-radius:var(--r-chip);padding:8px 12px;font-size:0.82rem;line-height:1.4;text-align:left}
 
 /* Escalar ou tirar a pessoa da escala do evento (diálogo do membro aberto pela escala): chip da situação e o botão na mesma linha. */
 .member-roster-row {
