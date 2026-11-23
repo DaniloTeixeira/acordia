@@ -9467,10 +9467,11 @@ dialog.member-dlg {
   margin-right: 6px;
   color: var(--warn);
 }
-/* Celular: sempre duas colunas, qualquer que seja a largura (nomes longos cortam com reticências). */
+/* Celular: sempre três colunas, qualquer que seja a largura (são só primeiros nomes; os longos cortam com reticências). */
 @media (max-width: 599px) {
   .home-waiting-who {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 8px;
   }
   .home-waiting-who li {
     overflow: hidden;
