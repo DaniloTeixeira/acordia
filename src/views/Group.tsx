@@ -597,6 +597,7 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
         {/* Ensaio que já começou: três estados, presente, falta ou sem marcação (um botão por marcação, como na resposta). */}
         {reply}
         {e.kind === "rehearsal" && canCheckIn(e) && pastNow && myMark && !editIn && busy !== "in" && <div className={"reply-done " + (myIn ? "yes" : "no")} role="status">
+          <span className="reply-edit-hint">{t("group.replyDoneHint")}</span>
           <span className={"reply-badge" + (myIn ? " here" : "")}><Icon name={myIn ? "check" : "x"} sm/> {t(myIn ? "group.att.present" : "group.att.absent")}</span>
           {myAtt?.by_admin ? <AskChange e={e} act={act}/> : <button type="button" className="link-btn" onClick={() => setEditIn(true)}>{t("group.changeAtt")}</button>}</div>}
         {e.kind === "rehearsal" && canCheckIn(e) && pastNow && (!myMark || editIn || busy === "in") && <div className={"reply-edit" + (myMark && editIn && !busy ? " editing" : "")}>
@@ -607,6 +608,7 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
               onClick={() => myAtt?.status === v ? setEditIn(false) : act("in:" + v, () => setMyAttendance(e.id, v), "group.saved").then(() => setEditIn(false))}>
               {busy === "in:" + v ? <Spin/> : <Icon name={icon} sm/>} {t(key)}</button>)}</div></div>}
         {e.kind === "rehearsal" && canCheckIn(e) && !pastNow && !unified && myIn && !editIn && busy !== "in" && <div className="reply-done yes" role="status">
+          <span className="reply-edit-hint">{t("group.replyDoneHint")}</span>
           <span className="reply-badge here"><Icon name="check" sm/> {t("group.att.present")}</span>
           {myAtt?.by_admin ? <AskChange e={e} act={act}/> : <button type="button" className="link-btn" onClick={() => setEditIn(true)}>{t("group.changeAtt")}</button>}</div>}
         {e.kind === "rehearsal" && canCheckIn(e) && !pastNow && !unified && (!myIn || editIn || busy === "in") && <div className="reply-edit"><button className="btn sm soft" aria-busy={busy === "in"} disabled={busy === "in"}
