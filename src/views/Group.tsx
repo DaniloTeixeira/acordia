@@ -624,10 +624,10 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
         <span className="sub">{t("group.pendingHint", {until})}</span>
         <a className="btn sm soft" href={waLink(waText(e, {names: [...pending].map(personName)}))} target="_blank" rel="noopener"><Icon name="chat" sm/> {t("group.waAll")}</a>
       </div>}
-      {e.kind === "rehearsal" && g.members.length ? <ul className="quick-att roster-tbl">
-        <li className="quick-att-head"><span className="quick-att-when">{sortHead("name", t("people.colPerson"))}</span><span className="quick-att-ctl">{sortHead("status", t("group.respCol"))}</span><span className="quick-att-go" aria-hidden="true"/></li>
-        {/* Uma lista só (escalados e não escalados), na mesma ordem da coluna escolhida. */}
-        {[...(
+      {e.kind === "rehearsal" && g.members.length ? (() => {
+        // Escalados e não escalados são duas tabelas, com um respiro entre elas; o subtítulo de cada uma só aparece quando existem as duas.
+        const head = <li key="head" className="quick-att-head"><span className="quick-att-when">{sortHead("name", t("people.colPerson"))}</span><span className="quick-att-ctl">{sortHead("status", t("group.respCol"))}</span><span className="quick-att-go" aria-hidden="true"/></li>;
+        const rows = [...(
           people.map(r => ({email: r.email, grp: 0, rank: STATUS_RANK[r.status] ?? 3, li: <li key={r.email} {...openHistory(r.email)}>
           <span className="quick-att-when"><b><span>{personName(r.email)}</span>{r.email === me && <YouChip/>}</b>
             {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}{callExtra(r.email)}</span>
@@ -636,13 +636,18 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
           // Quem não foi escalado fica numa seção embaixo, todos listados (com escala feita ou não), para o líder ver quem ficou de fora; só quem está em pausa some, a menos que haja escala, chamada ou presença marcada.
           g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).sort((a, b) => byName(a.email, b.email)).map(m => ({m, sd: rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), here: att.some(a => a.email === m.email && a.status === "present"), unc: uncalledStreak(m.email, g.events, g.attendance, Date.now(), g.roster)}))
           .filter(x => x.here || roster.length > 0 || calling || !x.sd.out).map(({m, sd, here, unc}) => ({email: m.email, grp: 1, rank: here ? 0 : 3, li: <li key={m.email} {...openHistory(m.email)}>
-          <span className={"quick-att-when" + (sd.out || unc >= UNCALLED_WARN_FROM ? " with-note" : "") + (here ? "" : " dim")}><b><span>{personName(m.email)}</span>{m.email === me && <YouChip/>}</b>{sd.out && <> <span className="sub pause-note">{tn("group.standOut", sd.need)}</span></>}{unc >= UNCALLED_WARN_FROM && <> <span className="sub pause-note">{tn("group.uncalled", unc)}</span></>}{callExtra(m.email)}</span>
+          <span className={"quick-att-when" + (here ? "" : " dim")}><b><span>{personName(m.email)}</span>{m.email === me && <YouChip/>}</b>{(sd.out || unc >= UNCALLED_WARN_FROM) && <span className="call-extra">{sd.out && <span className="chip st-no">{tn("group.standOut", sd.need)}</span>}{unc >= UNCALLED_WARN_FROM && <span className="chip st-wait">{tn("group.uncalled", unc)}</span>}</span>}{callExtra(m.email)}</span>
           <span className="quick-att-ctl">{callCtl(m.email) || (here ? <span className="chip st-here">{t("group.att.present")}</span> : <span className="chip st-off">{t("group.status.off")}</span>)}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>}))
         )]
           .sort((a, b) => a.grp - b.grp || ((order.by === "status" ? a.rank - b.rank : 0) || byName(a.email, b.email)) * (order.desc ? -1 : 1))
-          // Os dois blocos (escalados e não escalados) só ganham subtítulo quando os dois existem.
-          .flatMap((x, i, all) => all.some(y => y.grp !== x.grp) && (i === 0 || all[i - 1].grp !== x.grp)
-            ? [<li key={"sub" + x.grp} className="quick-att-sub"><span>{t(x.grp ? "group.rosterOff" : "group.rosterOn")} · {all.filter(y => y.grp === x.grp).length}</span></li>, x.li] : [x.li])}</ul>
+          ;
+        const both = rows.some(x => x.grp === 0) && rows.some(x => x.grp === 1), first = rows[0]?.grp;
+        return <>{[0, 1].map(grp => { const part = rows.filter(x => x.grp === grp); if(!part.length) return null;
+          return <ul key={grp} className={"quick-att roster-tbl" + (grp === first ? "" : " roster-tbl-next")}>
+            {grp === first && head}
+            {both && <li className="quick-att-sub"><span>{t(grp ? "group.rosterOff" : "group.rosterOn")} · {part.length}</span></li>}
+            {part.map(x => x.li)}</ul>; })}</>;
+      })()
         : roster.length ? <ul className="roster">{people.map(r => <li key={r.email} className={"st-" + r.status}>
         <span className="roster-who">{personName(r.email)}{r.email === me && <YouChip/>}</span>
         <StatusChip status={r.status}/>
@@ -751,7 +756,7 @@ function Members({canEdit}: {canEdit: boolean}){
             {sd.out ? <span className="chip st-no" title={hint}>{tn("group.standOut", sd.need)}</span>
               : sd.streak > 0 ? <StreakChip streak={sd.streak} title={hint}/>
               : sd.called > 0 && <span className="chip st-yes" title={hint}>{t("group.standOk")}</span>}
-            {uncalled >= UNCALLED_WARN_FROM && <span className="chip st-off">{tn("group.uncalled", uncalled)}</span>}
+            {uncalled >= UNCALLED_WARN_FROM && <span className="chip st-wait">{tn("group.uncalled", uncalled)}</span>}
             {n > 0 && <span className="chip accent" title={t("group.loadHint")}>{tn("group.load", n)}</span>}
             <VoiceChip {...m}/>
           </>} showEmpty={canEdit || m.email === me} busy={false} onSave={() => {}}/>
