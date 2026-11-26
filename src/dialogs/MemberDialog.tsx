@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { t, tn } from "../lib/i18n";
 import { useGroups, personPhoto, outMark, amGroupAdmin, isActive, personName, setOnRoster, type Member } from "../lib/groups";
-import { attendanceRate, attendanceHistory, rehearsalStanding, monthLoad, dayKey, warningsFor, onRoster, MISS_LIMIT, COMEBACK, type GEvent } from "../lib/calendar";
+import { attendanceRate, attendanceHistory, uncalledStreak, UNCALLED_WARN_FROM, rehearsalStanding, monthLoad, dayKey, warningsFor, onRoster, MISS_LIMIT, COMEBACK, type GEvent } from "../lib/calendar";
 import { splitRoles, sortRoles, rosterRoles } from "../lib/roles";
 import { useAuth } from "../lib/cloud";
 import { rangeLabel } from "../lib/voice";
@@ -32,7 +32,8 @@ export function MemberDialog({email, eventId, person, manage}: DialogProps["memb
   const canApp = !!manage && canManageApp(manage.row, me, owner), canEdit = canApp || !!m && (amGroupAdmin() || email === me), edit = canApp ? editApp : editing && canEdit;
   const rate = attendanceRate(email, g.events, g.attendance, Date.now(), g.roster), sd = rehearsalStanding(email, g.events, g.attendance, Date.now(), m ? outMark(m) : null, g.roster);
   const roles = sortRoles(splitRoles(m?.role || "")), load = m ? monthLoad(dayKey(new Date()), g.events, g.roster).get(email) || 0 : 0;
-  const hist = attendanceHistory(email, g.events, g.attendance, Date.now(), g.roster), soon = Date.now() - SOON_MS;
+  const hist = attendanceHistory(email, g.events, g.attendance, Date.now(), g.roster, 12, true), soon = Date.now() - SOON_MS;
+  const uncalled = uncalledStreak(email, g.events, g.attendance, Date.now(), g.roster);
   const next = g.events.filter(e => new Date(e.starts_at).getTime() > soon && g.roster.some(r => r.event_id === e.id && r.email === email))
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at)).slice(0, 3);
   // Aberto pela escala de um evento, quem lidera o grupo pode escalar ou tirar a pessoa dali mesmo.
@@ -52,6 +53,7 @@ export function MemberDialog({email, eventId, person, manage}: DialogProps["memb
               {m?.is_admin && <span className="chip accent">{t("group.leader")}</span>}
               {m?.guest_until && <GuestChip m={m}/>}
               {m && !isActive(m) && <span className="chip">{t("group.inactive")}</span>}
+              {m && uncalled >= UNCALLED_WARN_FROM && <span className="chip st-off">{tn("group.uncalled", uncalled)}</span>}
               {load > 0 && <span className="chip" title={t("group.loadHint")}>{tn("group.load", load)}</span>}
             </span>
           </span>
@@ -83,7 +85,7 @@ export function MemberDialog({email, eventId, person, manage}: DialogProps["memb
         <div className="field"><SecHead as="span">{t("member.history")}</SecHead>
           {hist.length ? <ul className="member-dlg-hist">{hist.map(h => <li key={h.event.id}>
             <span className="member-dlg-hist-when"><b>{longDay(new Date(h.event.starts_at))}</b><span className="sub">{timeOf(h.event.starts_at)}</span></span>
-            <span className={"chip " + (h.status === "present" ? "st-here" : h.status === "absent" ? "st-no" : "")}>{t("group.att." + h.status)}</span></li>)}</ul>
+            <span className={"chip " + (h.status === "present" ? "st-here" : h.status === "absent" ? "st-no" : h.status === "uncalled" ? "st-off" : "")}>{t(h.status === "uncalled" ? "group.status.off" : "group.att." + h.status)}</span></li>)}</ul>
             : <span className="sub">{t("member.historyNone")}</span>}</div>
 
         <div className="field"><SecHead as="span">{t("member.next")}</SecHead>

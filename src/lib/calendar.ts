@@ -90,26 +90,38 @@ export function attendanceRate(email: string, events: GEvent[], att: AttendanceR
 
 // Histórico da pessoa nos ensaios com a chamada fechada, do mais recente ao mais antigo (mesmas regras de
 // attendanceRate: ensaio sem chamada ou em que ela não era chamada não entra; sem marcação vira falta).
-export interface HistoryRow { event: GEvent; status: Presence }
-export function attendanceHistory(email: string, events: GEvent[], att: AttendanceRow[], now = Date.now(), roster?: RosterRow[], limit = 12): HistoryRow[] {
+// withUncalled: os ensaios em que ela não estava na escala aparecem como "uncalled" (só informativo: não é
+// falta nem presença e não entra em nenhuma conta).
+export interface HistoryRow { event: GEvent; status: Presence | "uncalled" }
+export function attendanceHistory(email: string, events: GEvent[], att: AttendanceRow[], now = Date.now(), roster?: RosterRow[], limit = 12, withUncalled = false): HistoryRow[] {
   const out: HistoryRow[] = [];
   events.filter(e => counted(e, email, att, now)).sort((a, b) => b.starts_at.localeCompare(a.starts_at)).forEach(e => {
     if(out.length >= limit) return;
     const rows = att.filter(a => a.event_id === e.id); if(!rows.length) return;
     const st = rows.find(a => a.email === email)?.status;
-    if(notCalled(e, email, st, roster)) return;
+    if(notCalled(e, email, st, roster)){ if(withUncalled) out.push({event: e, status: "uncalled"}); return; }
     out.push({event: e, status: st || "absent"});
   });
   return out;
 }
 
+// Quantos ensaios seguidos (do mais recente para trás, com chamada fechada) a pessoa ficou fora da escala.
+// Zera assim que ela é escalada de novo (ou aparece em qualquer marcação). Só informativo, sem efeito na pausa.
+export const UNCALLED_WARN_FROM = 3;
+export function uncalledStreak(email: string, events: GEvent[], att: AttendanceRow[], now = Date.now(), roster?: RosterRow[]): number {
+  const h = attendanceHistory(email, events, att, now, roster, Infinity, true);
+  const i = h.findIndex(x => x.status !== "uncalled");
+  return i < 0 ? h.length : i;
+}
+
 // Regra da equipe: quem falta a 8 ensaios seguidos fica em pausa até participar de 4 ensaios.
 // Conta os ensaios com a chamada fechada e que tiveram chamada, em ordem; falta justificada não conta nem
-// para a sequência nem para a volta. Os 4 da volta não precisam ser seguidos.
+// para a sequência nem para a volta. Os 4 da volta não precisam ser seguidos, mas em pausa não pode faltar
+// a 2 ensaios seguidos (MISS_BACK): a segunda falta zera o que já fez e a contagem recomeça do total pedido.
 // streak: faltas seguidas até agora (em pausa, zera); need: ensaios que faltam para voltar.
 // mark: o líder marcou a pessoa em pausa (faltas de antes do app); a partir de "since" ela
 // está fora e precisa de "need" ensaios para voltar, como se tivesse chegado à 8ª falta ali.
-export const MISS_LIMIT = 8, COMEBACK = 4;
+export const MISS_LIMIT = 8, COMEBACK = 4, MISS_BACK = 2;
 // Quanto o chip de faltas seguidas deve chamar atenção: 0 até 2 faltas é neutro (null); da 3ª em diante vai
 // de 0 (laranja) a 100 (vermelho) na última antes de ficar fora (MISS_LIMIT - 1 = 7 faltas).
 export const STREAK_WARN_FROM = 3;
@@ -134,7 +146,8 @@ export function rehearsalStanding(email: string, events: GEvent[], att: Attendan
   const s: Standing = {out: false, streak: 0, need: 0, called: 0};
   if(mark?.exempt) return s;
   let pending = !!mark && mark.need > 0;
-  const applyMark = () => { pending = false; s.out = true; s.need = mark!.need; s.streak = 0; s.marked = true; };
+  const applyMark = () => { pending = false; s.out = true; s.need = mark!.need; s.streak = 0; s.marked = true; backMiss = 0; };
+  let backMiss = 0; // faltas seguidas durante a pausa
   past.forEach(e => {
     if(pending && e.starts_at >= mark!.since) applyMark();
     const rows = att.filter(a => a.event_id === e.id); if(!rows.length) return;
@@ -143,8 +156,10 @@ export function rehearsalStanding(email: string, events: GEvent[], att: Attendan
     s.called++;
     if(st === "present"){
       if(s.out){ s.need--; if(!s.need) s.out = false; }
-      s.streak = 0;
-    }else if(!s.out && ++s.streak >= MISS_LIMIT){ s.out = true; s.need = COMEBACK; s.streak = 0; }
+      s.streak = 0; backMiss = 0;
+    }else if(s.out){
+      if(++backMiss >= MISS_BACK){ s.need = s.marked ? mark!.need : COMEBACK; backMiss = 0; }
+    }else if(++s.streak >= MISS_LIMIT){ s.out = true; s.need = COMEBACK; s.streak = 0; backMiss = 0; }
   });
   if(pending) applyMark();
   // Já cumpriu a volta: a marcação não vale mais.

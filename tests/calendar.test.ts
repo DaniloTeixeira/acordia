@@ -1,7 +1,7 @@
 // Rode com: npm test
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, attendanceHistory, rehearsalStanding, canCheckIn, pendingCheckIn, waNumber, waLink, fmtPhone, maskPhone, capFirst, toICS, splitEvents, dayKey, upcomingBirthdays, birthdayNotice, birthdayKey, rosterByPerson, needsCover, pendingReplies, streakLevel, comebackProgress, soundOnly, type GEvent, type RosterRow, onRoster } from "../src/lib/calendar";
+import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, attendanceHistory, uncalledStreak, rehearsalStanding, canCheckIn, pendingCheckIn, waNumber, waLink, fmtPhone, maskPhone, capFirst, toICS, splitEvents, dayKey, upcomingBirthdays, birthdayNotice, birthdayKey, rosterByPerson, needsCover, pendingReplies, streakLevel, comebackProgress, soundOnly, type GEvent, type RosterRow, onRoster } from "../src/lib/calendar";
 
 const ev = (id: string, starts: Date, kind: GEvent["kind"] = "service"): GEvent =>
   ({id, group_id: "g", kind, title: id, starts_at: starts.toISOString(), call_at: null, place: "", notes: "", setlist_id: null});
@@ -66,8 +66,11 @@ test("regra dos ensaios: 8 faltas seguidas tiram dos cultos até 4 presenças", 
   assert.deepEqual(st({}, 7), {out: false, streak: 7, need: 0, called: 7});
   // A 8ª falta seguida tira dos cultos; 2 presenças depois: faltam 2.
   assert.deepEqual(st({8: "present", 9: "present"}, 10), {out: true, streak: 0, need: 2, called: 10});
-  // Faltas durante a volta não zeram o que já fez; com a 4ª presença volta.
+  // Faltas isoladas durante a volta não zeram o que já fez; com a 4ª presença volta.
   assert.deepEqual(st({8: "present", 10: "present", 11: "present", 13: "present"}), {out: false, streak: 0, need: 0, called: 14});
+  // Em pausa, 2 faltas seguidas zeram a volta (faltam 4 de novo); justificada no meio não interrompe nem conta.
+  assert.deepEqual(st({8: "present", 9: "present", 12: "present"}, 13), {out: true, streak: 0, need: 3, called: 13});
+  assert.deepEqual(st({8: "present", 9: "present", 11: "excused"}, 13), {out: true, streak: 0, need: 4, called: 12});
   // Uma presença no meio zera a sequência; justificada não conta nem interrompe.
   assert.deepEqual(st({3: "present", 6: "excused"}, 12), {out: false, streak: 7, need: 0, called: 11});
   // Pausa na chamada também fica fora da conta; quem só é Mesa de som não entra na regra.
@@ -246,6 +249,20 @@ test("histórico: ensaios com chamada fechada, do mais recente ao mais antigo; s
   assert.deepEqual(rows.map(h => [h.event.id, h.status]), [["d", "absent"], ["c", "excused"], ["b", "absent"], ["a", "present"]]);
   assert.deepEqual(attendanceHistory("x", [a, b, c, d], att, now, [r("a", "x"), r("c", "x")]).map(h => h.event.id), ["c", "a"]);
   assert.equal(attendanceHistory("x", [a, b, c, d], att, now, undefined, 2).length, 2);
+  // Com withUncalled, o ensaio fora da escala aparece como "uncalled" (só informativo).
+  const rows2 = attendanceHistory("x", [a, b, c, d], att, now, [r("a", "x"), r("c", "x")], 12, true);
+  assert.deepEqual(rows2.map(h => [h.event.id, h.status]), [["d", "uncalled"], ["c", "excused"], ["b", "uncalled"], ["a", "present"]]);
+});
+
+test("sem escala seguidos: conta do ensaio mais recente para trás e zera ao ser escalado", () => {
+  const at = (d: number) => new Date(2026, 8, d, 19);
+  const evs = [1, 8, 15, 22].map(d => ev("e" + d, at(d), "rehearsal"));
+  const att = evs.map(e => ({event_id: e.id, email: "y", status: "present" as const, by_admin: false}));
+  const now = at(30).getTime();
+  assert.equal(uncalledStreak("x", evs, att, now, [r("e1", "x")]), 3);
+  assert.equal(uncalledStreak("x", evs, att, now, [r("e1", "x"), r("e15", "x")]), 1);
+  assert.equal(uncalledStreak("x", evs, att, now, [r("e22", "x")]), 0);
+  assert.equal(uncalledStreak("x", evs, att, now), 0);
 });
 
 test("onRoster: está escalado em qualquer função, só neste evento", () => {
