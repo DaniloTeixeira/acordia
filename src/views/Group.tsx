@@ -624,10 +624,10 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
         <span className="sub">{t("group.pendingHint", {until})}</span>
         <a className="btn sm soft" href={waLink(waText(e, {names: [...pending].map(personName)}))} target="_blank" rel="noopener"><Icon name="chat" sm/> {t("group.waAll")}</a>
       </div>}
-      {e.kind === "rehearsal" && g.members.length ? <ul className="quick-att roster-tbl">
-        <li className="quick-att-head"><span className="quick-att-when">{sortHead("name", t("people.colPerson"))}</span><span className="quick-att-ctl">{sortHead("status", t("group.respCol"))}</span><span className="quick-att-go" aria-hidden="true"/></li>
-        {/* Uma lista só (escalados e não escalados), na mesma ordem da coluna escolhida. */}
-        {[...(
+      {e.kind === "rehearsal" && g.members.length ? (() => {
+        // Escalados e não escalados são duas tabelas, com um respiro entre elas; o subtítulo de cada uma só aparece quando existem as duas.
+        const head = <li key="head" className="quick-att-head"><span className="quick-att-when">{sortHead("name", t("people.colPerson"))}</span><span className="quick-att-ctl">{sortHead("status", t("group.respCol"))}</span><span className="quick-att-go" aria-hidden="true"/></li>;
+        const rows = [...(
           people.map(r => ({email: r.email, grp: 0, rank: STATUS_RANK[r.status] ?? 3, li: <li key={r.email} {...openHistory(r.email)}>
           <span className="quick-att-when"><b><span>{personName(r.email)}</span>{r.email === me && <YouChip/>}</b>
             {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}{callExtra(r.email)}</span>
@@ -640,9 +640,14 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
           <span className="quick-att-ctl">{callCtl(m.email) || (here ? <span className="chip st-here">{t("group.att.present")}</span> : <span className="chip st-off">{t("group.status.off")}</span>)}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>}))
         )]
           .sort((a, b) => a.grp - b.grp || ((order.by === "status" ? a.rank - b.rank : 0) || byName(a.email, b.email)) * (order.desc ? -1 : 1))
-          // Os dois blocos (escalados e não escalados) só ganham subtítulo quando os dois existem.
-          .flatMap((x, i, all) => all.some(y => y.grp !== x.grp) && (i === 0 || all[i - 1].grp !== x.grp)
-            ? [<li key={"sub" + x.grp} className="quick-att-sub"><span>{t(x.grp ? "group.rosterOff" : "group.rosterOn")} · {all.filter(y => y.grp === x.grp).length}</span></li>, x.li] : [x.li])}</ul>
+          ;
+        const both = rows.some(x => x.grp === 0) && rows.some(x => x.grp === 1), first = rows[0]?.grp;
+        return <>{[0, 1].map(grp => { const part = rows.filter(x => x.grp === grp); if(!part.length) return null;
+          return <ul key={grp} className={"quick-att roster-tbl" + (grp === first ? "" : " roster-tbl-next")}>
+            {grp === first && head}
+            {both && <li className="quick-att-sub"><span>{t(grp ? "group.rosterOff" : "group.rosterOn")} · {part.length}</span></li>}
+            {part.map(x => x.li)}</ul>; })}</>;
+      })()
         : roster.length ? <ul className="roster">{people.map(r => <li key={r.email} className={"st-" + r.status}>
         <span className="roster-who">{personName(r.email)}{r.email === me && <YouChip/>}</span>
         <StatusChip status={r.status}/>

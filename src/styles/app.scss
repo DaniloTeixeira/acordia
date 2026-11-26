@@ -10330,10 +10330,8 @@ dialog.member-dlg {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-/* O segundo bloco (Não escalados) ganha uma linha mais forte no topo para marcar a divisão. */
-.roster-tbl li.quick-att-sub ~ li.quick-att-sub {
-  border-top-color: var(--line-strong);
-}
+/* Escalados e Não escalados são duas tabelas; a segunda desce um respiro curto e fica com os cantos de cima retos. */
+.quick-att.roster-tbl-next { margin-top: 8px; border-top-left-radius: 0; border-top-right-radius: 0; }
 .roster-tbl .quick-att-when.dim b {
   color: var(--muted);
   font-weight: 400;
