@@ -19,7 +19,7 @@ import { reduced } from "../lib/util";
 import { VoiceChip } from "../ui/VoiceChip";
 import { rangeType } from "../lib/voice";
 import { splitRoles, toggleRole, sortRoles, parseRoleSel, selString, toggleSelRole, addSelRole, toggleFav, emptySel, type RoleSel } from "../lib/roles";
-import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone, capFirst, type GEvent, type Presence } from "../lib/calendar";
+import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, uncalledStreak, UNCALLED_WARN_FROM, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone, capFirst, type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, ownsGroup, loadGroups, createGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
   deleteEvent, respond, setCover, setMyRoles, checkIn, setMyAttendance, markAttendance, requestAttendanceChange, declineAttendanceChange, setUnavailable, personName, voiceOf, personPhoto, amGroupAdmin, amGroupLeader, setMemberOut, outMark, isActive, setMemberActive, makeMember, chooseGroup, type GroupSetlist, type Member, type Group } from "../lib/groups";
 import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, confirmUnsaved, useUnsaved, go, place, pushTrail } from "../state";
@@ -633,10 +633,10 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
             {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}{callExtra(r.email)}</span>
           <span className="quick-att-ctl">{callCtl(r.email) || (a => a ? <span className={"chip " + (a.status === "present" ? "st-here" : a.status === "absent" ? "st-no" : "st-off")}>{t("group.att." + a.status)}</span> : <StatusChip status={r.status} noIcon/>)(att.find(x => x.email === r.email))}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>}))
         ), ...(
-          // Com escala feita, quem não foi escalado só aparece se marcou presença neste ensaio; sem escala, todos aparecem (menos quem está em pausa).
-          g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).sort((a, b) => byName(a.email, b.email)).map(m => ({m, sd: rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), here: att.some(a => a.email === m.email && a.status === "present")}))
-          .filter(x => x.here || (!roster.length && (calling || !x.sd.out))).map(({m, sd, here}) => ({email: m.email, grp: 1, rank: here ? 0 : 3, li: <li key={m.email} {...openHistory(m.email)}>
-          <span className={"quick-att-when" + (sd.out ? " with-note" : "") + (here ? "" : " dim")}><b><span>{personName(m.email)}</span>{m.email === me && <YouChip/>}</b>{sd.out && <> <span className="sub pause-note">{tn("group.standOut", sd.need)}</span></>}{callExtra(m.email)}</span>
+          // Quem não foi escalado fica numa seção embaixo, todos listados (com escala feita ou não), para o líder ver quem ficou de fora; só quem está em pausa some, a menos que haja escala, chamada ou presença marcada.
+          g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).sort((a, b) => byName(a.email, b.email)).map(m => ({m, sd: rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), here: att.some(a => a.email === m.email && a.status === "present"), unc: uncalledStreak(m.email, g.events, g.attendance, Date.now(), g.roster)}))
+          .filter(x => x.here || roster.length > 0 || calling || !x.sd.out).map(({m, sd, here, unc}) => ({email: m.email, grp: 1, rank: here ? 0 : 3, li: <li key={m.email} {...openHistory(m.email)}>
+          <span className={"quick-att-when" + (sd.out || unc >= UNCALLED_WARN_FROM ? " with-note" : "") + (here ? "" : " dim")}><b><span>{personName(m.email)}</span>{m.email === me && <YouChip/>}</b>{sd.out && <> <span className="sub pause-note">{tn("group.standOut", sd.need)}</span></>}{unc >= UNCALLED_WARN_FROM && <> <span className="sub pause-note">{tn("group.uncalled", unc)}</span></>}{callExtra(m.email)}</span>
           <span className="quick-att-ctl">{callCtl(m.email) || (here ? <span className="chip st-here">{t("group.att.present")}</span> : <span className="chip st-off">{t("group.status.off")}</span>)}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>}))
         )]
           .sort((a, b) => a.grp - b.grp || ((order.by === "status" ? a.rank - b.rank : 0) || byName(a.email, b.email)) * (order.desc ? -1 : 1))
@@ -731,7 +731,7 @@ function Members({canEdit}: {canEdit: boolean}){
       {/* Cabeçalho como o da lista "Com acesso" do Perfil. */}
       {shown.length > 0 && <div className="people-list-head" aria-hidden="true"><span>{t("people.colPerson")}</span><span>{t("people.colActions")}</span></div>}
       <ul className="people-list members" ref={filter.listRef}>{filter.nq && !shown.length && <li className="sub">{t("lib.noResults")}</li>}{shown.map(m => {
-        const rate = attendanceRate(m.email, g.events, g.attendance, Date.now(), g.roster), sd = rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), n = load.get(m.email) || 0;
+        const rate = attendanceRate(m.email, g.events, g.attendance, Date.now(), g.roster), sd = rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), n = load.get(m.email) || 0, uncalled = uncalledStreak(m.email, g.events, g.attendance, Date.now(), g.roster);
         // Regra dos ensaios no lugar do "% nos ensaios" (a porcentagem fica na dica).
         const hint = t("group.ruleHint", {max: MISS_LIMIT, back: COMEBACK, p: rate.total ? Math.round(100 * rate.present / rate.total) : 0, present: rate.present, total: rate.total});
         // Tocar em qualquer parte da linha (fora dos botões, links e do painel de editar) abre os detalhes; o
@@ -751,6 +751,7 @@ function Members({canEdit}: {canEdit: boolean}){
             {sd.out ? <span className="chip st-no" title={hint}>{tn("group.standOut", sd.need)}</span>
               : sd.streak > 0 ? <StreakChip streak={sd.streak} title={hint}/>
               : sd.called > 0 && <span className="chip st-yes" title={hint}>{t("group.standOk")}</span>}
+            {uncalled >= UNCALLED_WARN_FROM && <span className="chip st-off">{tn("group.uncalled", uncalled)}</span>}
             {n > 0 && <span className="chip accent" title={t("group.loadHint")}>{tn("group.load", n)}</span>}
             <VoiceChip {...m}/>
           </>} showEmpty={canEdit || m.email === me} busy={false} onSave={() => {}}/>
