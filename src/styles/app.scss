@@ -10338,7 +10338,6 @@ dialog.member-dlg {
   color: var(--muted);
   font-weight: 400;
 }
-.roster-tbl .quick-att-when .pause-note { color: var(--pause); font-weight: 600; }
 @media (max-width: 599px) { .roster-tbl .quick-att-when.with-note { flex-direction: column; align-items: flex-start; } }
 .roster-tbl .quick-att-ctl { min-width: 0; }
 .roster-tbl .quick-att-ctl { padding-left: 6px; padding-right: 6px; }

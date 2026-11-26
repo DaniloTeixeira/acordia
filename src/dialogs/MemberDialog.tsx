@@ -53,7 +53,7 @@ export function MemberDialog({email, eventId, person, manage}: DialogProps["memb
               {m?.is_admin && <span className="chip accent">{t("group.leader")}</span>}
               {m?.guest_until && <GuestChip m={m}/>}
               {m && !isActive(m) && <span className="chip">{t("group.inactive")}</span>}
-              {m && uncalled >= UNCALLED_WARN_FROM && <span className="chip st-off">{tn("group.uncalled", uncalled)}</span>}
+              {m && uncalled >= UNCALLED_WARN_FROM && <span className="chip st-wait">{tn("group.uncalled", uncalled)}</span>}
               {load > 0 && <span className="chip" title={t("group.loadHint")}>{tn("group.load", load)}</span>}
             </span>
           </span>

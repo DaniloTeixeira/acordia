@@ -636,7 +636,7 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
           // Quem não foi escalado fica numa seção embaixo, todos listados (com escala feita ou não), para o líder ver quem ficou de fora; só quem está em pausa some, a menos que haja escala, chamada ou presença marcada.
           g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).sort((a, b) => byName(a.email, b.email)).map(m => ({m, sd: rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), here: att.some(a => a.email === m.email && a.status === "present"), unc: uncalledStreak(m.email, g.events, g.attendance, Date.now(), g.roster)}))
           .filter(x => x.here || roster.length > 0 || calling || !x.sd.out).map(({m, sd, here, unc}) => ({email: m.email, grp: 1, rank: here ? 0 : 3, li: <li key={m.email} {...openHistory(m.email)}>
-          <span className={"quick-att-when" + (sd.out || unc >= UNCALLED_WARN_FROM ? " with-note" : "") + (here ? "" : " dim")}><b><span>{personName(m.email)}</span>{m.email === me && <YouChip/>}</b>{sd.out && <> <span className="sub pause-note">{tn("group.standOut", sd.need)}</span></>}{unc >= UNCALLED_WARN_FROM && <> <span className="sub pause-note">{tn("group.uncalled", unc)}</span></>}{callExtra(m.email)}</span>
+          <span className={"quick-att-when" + (here ? "" : " dim")}><b><span>{personName(m.email)}</span>{m.email === me && <YouChip/>}</b>{(sd.out || unc >= UNCALLED_WARN_FROM) && <span className="call-extra">{sd.out && <span className="chip st-no">{tn("group.standOut", sd.need)}</span>}{unc >= UNCALLED_WARN_FROM && <span className="chip st-wait">{tn("group.uncalled", unc)}</span>}</span>}{callExtra(m.email)}</span>
           <span className="quick-att-ctl">{callCtl(m.email) || (here ? <span className="chip st-here">{t("group.att.present")}</span> : <span className="chip st-off">{t("group.status.off")}</span>)}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>}))
         )]
           .sort((a, b) => a.grp - b.grp || ((order.by === "status" ? a.rank - b.rank : 0) || byName(a.email, b.email)) * (order.desc ? -1 : 1))
@@ -751,7 +751,7 @@ function Members({canEdit}: {canEdit: boolean}){
             {sd.out ? <span className="chip st-no" title={hint}>{tn("group.standOut", sd.need)}</span>
               : sd.streak > 0 ? <StreakChip streak={sd.streak} title={hint}/>
               : sd.called > 0 && <span className="chip st-yes" title={hint}>{t("group.standOk")}</span>}
-            {uncalled >= UNCALLED_WARN_FROM && <span className="chip st-off">{tn("group.uncalled", uncalled)}</span>}
+            {uncalled >= UNCALLED_WARN_FROM && <span className="chip st-wait">{tn("group.uncalled", uncalled)}</span>}
             {n > 0 && <span className="chip accent" title={t("group.loadHint")}>{tn("group.load", n)}</span>}
             <VoiceChip {...m}/>
           </>} showEmpty={canEdit || m.email === me} busy={false} onSave={() => {}}/>
