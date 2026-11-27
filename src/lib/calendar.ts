@@ -67,15 +67,17 @@ export const callClosed = (e: Pick<GEvent, "starts_at">, now = Date.now()) => ne
 
 // Frequência nos ensaios com a chamada fechada: presente conta, falta não, justificada fica fora da conta.
 // Sem marcação nenhuma num ensaio que teve chamada, conta como falta; ensaio sem chamada nenhuma não conta.
-// Falta só vale para quem estava na escala do ensaio (roster); sem a escala informada, vale para todos.
+// Sem marcação, falta só vale para quem estava na escala do ensaio (roster); fora da escala, só se o líder marcou Falta.
 // Justificada e pausa ficam fora da conta (nem falta, nem presença).
 const skipped = (status?: Presence) => status === "excused" || status === "paused";
 // Ensaio que entra na conta: com a chamada fechada ou, antes disso, em que a pessoa já tem presença marcada
 // (presença não depende de a chamada fechar; só a falta espera, porque até lá a pessoa ainda pode chegar).
 const counted = (e: GEvent, email: string, att: AttendanceRow[], now: number) =>
   e.kind === "rehearsal" && (callClosed(e, now) || new Date(e.starts_at).getTime() <= now && att.some(a => a.event_id === e.id && a.email === email && a.status === "present"));
+// Fora da escala e sem marcação nenhuma: não é falta. Se o líder marcou Presente ou Falta na chamada (para quem foi
+// escalado ou não), a marcação vale igual e entra na conta das faltas seguidas.
 const notCalled = (e: GEvent, email: string, status: Presence | undefined, roster?: RosterRow[]) =>
-  !!roster && status !== "present" && !roster.some(r => r.event_id === e.id && r.email === email);
+  !!roster && !status && !roster.some(r => r.event_id === e.id && r.email === email);
 export function attendanceRate(email: string, events: GEvent[], att: AttendanceRow[], now = Date.now(), roster?: RosterRow[]): {present: number; total: number} {
   const past = events.filter(e => counted(e, email, att, now));
   let present = 0, total = 0;
@@ -130,6 +132,10 @@ export function streakLevel(streak: number): number | null {
   const last = MISS_LIMIT - 1;
   return Math.round(100 * Math.min(1, (streak - STREAK_WARN_FROM) / Math.max(1, last - STREAK_WARN_FROM)));
 }
+// Está na 7ª falta seguida (a última antes da pausa): mais uma e entra em pausa. Quem já está em pausa não conta.
+export const onLastMiss = (sd: Pick<Standing, "out" | "streak">) => !sd.out && sd.streak === MISS_LIMIT - 1;
+// Em pausa e falta só 1 ensaio para voltar: a pessoa merece um empurrão.
+export const onLastComeback = (sd: Pick<Standing, "out" | "need">) => sd.out && sd.need === 1;
 export interface Standing { out: boolean; streak: number; need: number; called: number; marked?: boolean }
 // exempt: quem só tem a função Mesa de som quase não vai aos ensaios, então não entra na regra das faltas.
 export interface OutMark { since: string; need: number; exempt?: boolean }

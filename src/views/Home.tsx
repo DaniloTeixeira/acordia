@@ -7,8 +7,8 @@ import { useState, type ReactNode } from "react";
 import * as store from "../lib/store";
 import { t, tn, locale } from "../lib/i18n";
 import { useAuth } from "../lib/cloud";
-import { dayKey, eventDay, splitEvents, upcomingBirthdays, birthdayNotice, birthdayKey, needsCover, capFirst, pendingReplies, type GEvent } from "../lib/calendar";
-import { useGroups, personName, amGroupAdmin, setMyAttendance, type GroupSetlist } from "../lib/groups";
+import { dayKey, eventDay, splitEvents, upcomingBirthdays, birthdayNotice, birthdayKey, needsCover, capFirst, pendingReplies, rehearsalStanding, onLastMiss, onLastComeback, type GEvent } from "../lib/calendar";
+import { useGroups, personName, amGroupAdmin, setMyAttendance, outMark, isActive, type GroupSetlist } from "../lib/groups";
 import { useData, openDialog, toast } from "../state";
 import { openGroupSetlist } from "./Group";
 import { Spin } from "./Account";
@@ -68,6 +68,7 @@ export function Home(){
     <div className="view-head"><div><h1 id="home-h">{t("home.hello", {name})}</h1>
       <p className="sub">{fmt({weekday: "long", day: "numeric", month: "long"}).format(new Date())}</p></div></div>
     <div className="home-grid">
+    {group && <LastMissNotice/>}
     {group && <BirthdayNotice/>}
     {group && check && <RehearsalCheck e={check}/>}
     {group ? <>
@@ -177,6 +178,30 @@ function Birthdays({list, wide}: {list: {email: string; in: number; day: number;
       <span className={"chip" + (p.in === 0 ? " accent" : "")}>{p.in === 0 ? t("home.birthdayToday") : when(p.in)}</span>
     </li>)}</ul>}
   </Block>;
+}
+
+// Cartão no topo para quem está na 7ª falta seguida (uma antes da pausa): para a própria pessoa e, para o líder,
+// também a lista de quem está nessa situação. Não dá para fechar: some sozinho quando a pessoa marca presença.
+function LastMissNotice(){
+  const g = useGroups(), me = useAuth(s => s.email), leader = amGroupAdmin();
+  const stand = (m: typeof g.members[number]) => rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster);
+  const active = g.members.filter(isActive).map(m => ({email: m.email, sd: stand(m)}));
+  const last = active.filter(x => onLastMiss(x.sd)).map(x => x.email), comeback = active.filter(x => onLastComeback(x.sd)).map(x => x.email);
+  const mine = last.includes(me), others = last.filter(e => e !== me);
+  // Falta 1 ensaio para sair da pausa: aviso animador para a pessoa e, para o líder, a lista de quem está nessa.
+  const back = comeback.includes(me), backOthers = comeback.filter(e => e !== me);
+  const card = (id: string, title: string, hint: string, cls = "absence-notice", icon = "flame") => <section className={"card home-block wide birthday-notice " + cls} id={id} role="status">
+    <Icon name={icon}/>
+    <div className="birthday-notice-text"><b>{title}</b><span className="sub">{hint}</span></div>
+  </section>;
+  const list = (emails: string[]) => new Intl.ListFormat(locale(), {style: "long", type: "conjunction"}).format(emails.map(e => personName(e).split(" ")[0]));
+  const names = list(others);
+  return <>
+    {back && card("home-back-mine", t("home.lastComebackMine"), t("home.lastComebackMineHint"), "comeback-notice", "check")}
+    {leader && backOthers.length > 0 && card("home-back-who", t("home.lastComebackWho", {names: list(backOthers)}), t("home.lastComebackWhoHint"), "comeback-notice", "check")}
+    {mine && card("home-miss-mine", t("home.lastMissMine"), t("home.lastMissMineHint"))}
+    {leader && others.length > 0 && card("home-miss-who", t("home.lastMissWho", {names}), t("home.lastMissWhoHint"))}
+  </>;
 }
 
 // Cartão no topo, só no dia do aniversário: lembra de mandar os parabéns. Para o próprio aniversariante vira uma

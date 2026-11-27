@@ -1,7 +1,7 @@
 // Ferramentas: metrônomo, afinador, pad infinito e voz (medir a extensão).
 import { useEffect, useRef, useState } from "react";
 import { detectPitch, tuneTarget, midiName } from "../lib/tuner";
-import { INSTRUMENTS, INSTRUMENT_IDS, isInstrument } from "../lib/instruments";
+import { INSTRUMENTS, isInstrument, type InstrumentId } from "../lib/instruments";
 import { t } from "../lib/i18n";
 import * as store from "../lib/store";
 import { useData } from "../state";
@@ -12,6 +12,7 @@ import { micFailed, micOk } from "../ui/micFailed";
 import { MicHelp } from "../ui/MicHelp";
 import { Seg } from "../ui/Seg";
 import { Select } from "../ui/Select";
+import { SecHead } from "../ui/SecHead";
 import { MetronomeUI } from "./Metronome";
 import { PadUI } from "./Pad";
 import { Voice } from "./Voice";
@@ -43,7 +44,8 @@ export function Tools(){
 // que desafinaria alguns cents). Contexto próprio, fechado ao fim do som.
 let mutedUntil = 0;
 function playNote(midi: number, a4: number){
-  mutedUntil = performance.now() + 4300;
+  // Silencia o microfone só enquanto a referência ainda soa alto (os parciais agudos somem antes do fundamental).
+  mutedUntil = performance.now() + 2000;
   try{
     const C = window.AudioContext || (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext;
     const ctx = new C(), now = ctx.currentTime, f0 = a4 * Math.pow(2, (midi - 69) / 12), out = ctx.createGain();
@@ -62,15 +64,17 @@ function playNote(midi: number, a4: number){
   }catch(e){ /* sem áudio no aparelho: a seleção da corda continua valendo */ }
 }
 
+// Instrumentos do afinador: os comuns em equipe de louvor. Ukulele e cavaquinho seguem no resto do app (acordes), e aqui usam o Cromático.
+const TUNER_IDS: InstrumentId[] = ["guitar", "bass"];
+
 interface Reading { label: string; oct: string; cents: number; ok: boolean; hz: number; string: number | null }
 
 function Tuner(){
   useData();
   const a4 = (data.settings.a4 as number) || 440;
-  // Modo próprio do afinador: teclado e voz não têm corda para afinar, então o "Cromático" mostra a nota mais próxima.
-  const gl = (data.settings.instrument as string) || "guitar";
-  const mode = store.setting<string>("tunerMode", isInstrument(gl) && INSTRUMENTS[gl].kind === "strings" ? gl : "chromatic");
-  const inst = isInstrument(mode) && INSTRUMENTS[mode].kind === "strings" ? mode : "chromatic";
+  // Modo próprio do afinador, que começa no Violão. Voz, sopro e teclado usam o "Cromático", que mostra a nota mais próxima.
+  const mode = store.setting<string>("tunerMode", "guitar");
+  const inst = TUNER_IDS.includes(mode as InstrumentId) ? (mode as InstrumentId) : "chromatic";
   const I = isInstrument(inst) ? INSTRUMENTS[inst] : null;
   const [pick, setPick] = useState<number | null>(null);
   const [on, setOn] = useState(false);
@@ -118,13 +122,14 @@ function Tuner(){
   useEffect(() => { alive.current = true; return () => { alive.current = false; stopRef.current(); }; }, []);
   const clamped = r ? Math.max(-50, Math.min(50, r.cents)) : 0;
   return <div className="card tuner">
+    <SecHead>{t("tools.tuner")}</SecHead>
     <div className="tuner-top">
       <label className="field inst-field"><span>{t("inst.label")}</span>
         <Select id="tu-inst" value={inst} onChange={v => { store.setSetting("tunerMode", v); setPick(null); }}
-          options={[...INSTRUMENT_IDS.filter(id => INSTRUMENTS[id].kind === "strings").map(id => ({value: id, label: t("inst." + id)})), {value: "chromatic", label: t("tuner.chromatic")}]}/></label>
-      <label className="field a4" title={t("tuner.refHelp")}><span>{t("tuner.ref")}</span>
+          options={[...TUNER_IDS.map(id => ({value: id, label: t("inst." + id)})), {value: "chromatic", label: t("tuner.chromatic")}]}/></label>
+      <label className="field a4"><span>{t("tuner.ref")}</span>
         <Select keepOrder id="tu-a4" value={String(a4)} onChange={v => store.setSetting("a4", +v)}
-          options={[432,436,438,440,442,444,446].map(v => ({value: String(v), label: v + " Hz" + (v === 440 ? " · " + t("tuner.default") : "")}))}/></label></div>
+          options={[...new Set([432,440,442,444,a4])].sort((x, y) => x - y).map(v => ({value: String(v), label: v + " Hz" + (v === 440 ? " · " + t("tuner.default") : "")}))}/></label></div>
     <div className={"tuner-dial" + (quiet ? " quiet" : "") + (r && r.ok && !quiet ? " ok" : "")} aria-live="polite">
       <div className="tuner-note"><b id="tu-note">{r ? r.label : "—"}</b><small id="tu-oct">{r ? r.oct : ""}</small></div>
       <div className="tuner-meter"><div className="tuner-scale">{[-50,-25,0,25,50].map(v => <span key={v} style={{left: (50 + v * 0.9) + "%"}}>{v > 0 ? "+" + v : v}</span>)}</div>

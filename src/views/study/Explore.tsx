@@ -112,7 +112,8 @@ export function Explore(){
   const board = strings ? fretboardSVG(inst, marks, I.frets > 12 ? 12 : I.frets) : scaleKeyboardSVG(base, st.rootPc, byPc);
   const tooWide = useTooWide(boardRef, board);
   return <div ref={root_}>
-    <div className="study-controls">
+    <div className="card study-controls">
+      <SecHead>{t("study.setup")}</SecHead>
       <div className="study-row">
         <label className="field inst-field"><span>{t("study.scale")}</span><Select id="st-scale" value={st.scaleId} onChange={v => setStudy({scaleId: v as ScaleId})}
           options={Object.keys(SCALES).map(id => ({value: id, label: t("scale." + id)}))}/></label>

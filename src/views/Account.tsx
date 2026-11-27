@@ -13,7 +13,7 @@ import { CopyBtn } from "../ui/CopyBtn";
 import { DateInput } from "../ui/DateInput";
 import { FieldLabel } from "../ui/FieldLabel";
 import { useGroups, loadGroups, chooseGroup, setMemberRole, outMark, listGroupedEmails } from "../lib/groups";
-import { attendanceRate, attendanceHistory, rehearsalStanding, comebackProgress, type Standing, type OutMark, MISS_LIMIT, COMEBACK, streakLevel, fmtPhone, maskPhone } from "../lib/calendar";
+import { attendanceRate, attendanceHistory, rehearsalStanding, comebackProgress, type Standing, type OutMark, MISS_LIMIT, COMEBACK, streakLevel, onLastMiss, onLastComeback, fmtPhone, maskPhone } from "../lib/calendar";
 import { sortRoles, parseRoleSel, selString, emptySel, type RoleSel } from "../lib/roles";
 import { MemberRoles, RolePicker, ReplySeg, GroupMark, eventTitle, timeOf, longDay, openGroup } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
@@ -101,6 +101,8 @@ export function AttStat({rate, sd, mark}: {rate: {present: number; total: number
       : sd.streak > 0 ? <StreakChip streak={sd.streak}/>
       : <span className="chip st-yes">{t("group.standOk")}</span>}
     <span className="meter" aria-hidden="true"><i style={{width: p + "%"}}/></span>
+    {onLastMiss(sd) && <span className="last-miss-note" role="status">{t("group.lastMiss")}</span>}
+    {onLastComeback(sd) && <span className="comeback-note" role="status">{t("group.lastComeback")}</span>}
   </div>;
 }
 
@@ -674,9 +676,9 @@ export function PersonFields({idp, name, onName, email, onEmail, phone, onPhone,
 }
 
 type PeopleOrder = "az" | "new" | "old";
-// Busca (por nome ou e-mail) e ordem de uma lista de pessoas: por nome (A–Z), mais recentes ou mais antigos
+// Busca (por nome, e-mail ou celular) e ordem de uma lista de pessoas: por nome (A–Z), mais recentes ou mais antigos
 // primeiro (pela data em que entrou na lista); empate fica por nome. A ordem fica lembrada no aparelho, por lista.
-export function usePeopleFilter<T extends {email: string}>(rows: T[] | null, key: string, name: (r: T) => string, since: (r: T) => string){
+export function usePeopleFilter<T extends {email: string}>(rows: T[] | null, key: string, name: (r: T) => string, since: (r: T) => string, phone: (r: T) => string){
   const [q, setQState] = useState(""), nq = norm(q.trim()), listRef = useRef<HTMLUListElement>(null);
   // Ao buscar, a lista encolhe e a página ficaria mais curta: o navegador puxaria a rolagem para cima. Enquanto
   // há busca, a lista guarda a altura que tinha antes (min-height) e a tela fica parada.
@@ -690,7 +692,9 @@ export function usePeopleFilter<T extends {email: string}>(rows: T[] | null, key
   const label = (r: T) => name(r) || r.email;
   const byName = (a: T, b: T) => label(a).localeCompare(label(b), undefined, {sensitivity: "base"});
   const sign = order === "new" ? -1 : 1;
-  const found = rows && nq ? rows.filter(r => norm(name(r)).includes(nq) || norm(r.email).includes(nq)) : rows;
+  // O celular é comparado só pelos dígitos ("98888" acha "(11) 98888-7777"); sem dígito na busca, não entra.
+  const digits = nq.replace(/\D/g, "");
+  const found = rows && nq ? rows.filter(r => norm(name(r)).includes(nq) || norm(r.email).includes(nq) || (!!digits && phone(r).replace(/\D/g, "").includes(digits))) : rows;
   const shown = found && [...found].sort((a, b) => order === "az" ? byName(a, b) : sign * since(a).localeCompare(since(b)) || byName(a, b));
   return {q, setQ, nq, order, setOrder, shown, listRef};
 }
@@ -780,7 +784,7 @@ export function AppAccess({row, onChanged}: {row: Allowed; onChanged: () => void
 function People({me}: {me: string}){
   const [rows, setRows] = useState<Allowed[] | null>(null);
   // Busca e ordem da lista "Com acesso".
-  const filter = usePeopleFilter(rows, "acordia-people-order", r => r.profileName || r.name, r => r.created_at), {nq, shown} = filter;
+  const filter = usePeopleFilter(rows, "acordia-people-order", r => r.profileName || r.name, r => r.created_at, r => r.profilePhone || r.phone), {nq, shown} = filter;
   // Falhou: a lista fica vazia com o aviso e o botão de tentar de novo (antes ficava em "Carregando..." para sempre).
   const [failed, setFailed] = useState(false);
   // Quem está em algum grupo (null: não deu para ler, então ninguém é marcado "Sem grupo").
@@ -812,14 +816,12 @@ function People({me}: {me: string}){
         <PersonFields idp="people-add" name={aName} onName={setAName} email={aEmail} onEmail={setAEmail} phone={aPhone} onPhone={setAPhone} birthday={aBirthday} onBirthday={setABirthday} check={check}/>
       </div>
       <div className="member-roles-foot">
-        <button className="btn primary" aria-busy={adding} disabled={adding}>{adding ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
+        <button className="btn primary" aria-busy={adding} disabled={adding}>{adding ? <Spin/> : <Icon name="plus" sm/>} {t("people.addBtn")}</button>
       </div>
     </form>
     </FoldCard>
     <SecHead as="h3" className="people-sub-h">{t("people.listTitle")} {rows && rows.length > 0 && <span className="count-chip">{nq && shown ? shown.length + "/" + rows.length : rows.length}</span>}</SecHead>
     {rows && rows.length > 0 && <PeopleTools idp="people" f={filter}/>}
-    {/* Cabeçalho da lista, como numa tabela: marca onde as pessoas começam (no celular, só a faixa). */}
-    {shown && shown.length > 0 && <div className="people-list-head" aria-hidden="true"><span>{t("people.colPerson")}</span></div>}
     <ul className="people-list" id="people-list" ref={filter.listRef} aria-busy={shown === null}>
       {nq && shown && !shown.length && <li className="sub">{t("lib.noResults")}</li>}
       {failed && <li className="sub">{t("profile.loadFail")} <button type="button" className="link-btn" onClick={load}>{t("common.retry")}</button></li>}

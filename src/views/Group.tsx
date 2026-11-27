@@ -536,9 +536,9 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
     {canEdit && needs.length > 0 && !isPast && <span className="chip st-no">{tn("group.needSub", needs.length)}</span>}
     {pendingCheckIn(e, [me], g.attendance).length > 0 && <span className="chip st-pending"><Icon name="dot" sm/> {t("group.att.pending")}</span>}
   </>;
-  // Chamada (só líderes): na janela do ensaio, o chip de resposta de cada pessoa vira uma lista com Presente, Falta e Pausa.
+  // Chamada (só líderes): a partir da hora do ensaio (não antes), o chip de resposta de cada pessoa vira uma lista com Presente, Falta e Pausa.
   // Com escala feita, a chamada é só de quem foi escalado (mais quem marcou presença sem estar); sem escala, de todos.
-  const calling = e.kind === "rehearsal" && canEdit && Date.now() >= d.getTime() - 12 * 3600 * 1000;
+  const calling = e.kind === "rehearsal" && canEdit && Date.now() >= d.getTime();
   const scaledSet = new Set(roster.map(r => r.email));
   const called = g.members.filter(m => isActive(m) && (!scaledSet.size || scaledSet.has(m.email)));
   const pending = new Set(calling ? pendingCheckIn(e, called.map(m => m.email), g.attendance) : []);
@@ -713,11 +713,10 @@ function Members({canEdit}: {canEdit: boolean}){
     toast(t("group.memberAdded", {email: v})); setEmail(""); setName(""); setBirthday(""); setPhone(""); setRoles(emptySel); setAsAdmin(false); setAsOut(false); check.reset();
   }); };
   // Busca e ordem, como na lista "Com acesso" do Perfil (recentes: pela data em que entrou no grupo).
-  const filter = usePeopleFilter(g.members, "acordia-members-order", m => m.name, m => m.created_at || ""), shown = filter.shown || [];
-  return <div className="profile-grid">
-    <div className="card people-card people-page">
-      {/* No celular o cadastro começa fechado, para a lista de membros aparecer logo. */}
-      {canEdit && <>
+  const filter = usePeopleFilter(g.members, "acordia-members-order", m => m.name, m => m.created_at || "", m => m.phone || ""), shown = filter.shown || [];
+  return <div className="profile-grid one-col">
+    {/* Cadastro e lista são seções diferentes: cada uma no seu card. No celular o cadastro começa fechado, para a lista aparecer logo. */}
+    {canEdit && <div className="card people-card people-page">
         <FoldCard id="member-add" title={t("group.addTitle")} defaultOpen={!matchMedia("(max-width: 899px)").matches}>
         <p className="sub">{t("group.addSub")}</p>
         <form className="member-add people-add-box" onSubmit={add} noValidate>
@@ -734,14 +733,13 @@ function Members({canEdit}: {canEdit: boolean}){
           <RolePicker value={roles} onChange={setRoles}/>
           {/* Adicionar por último, embaixo das funções. */}
           <div className="member-roles-foot">
-            <button className="btn primary" aria-busy={busy === "add"}>{busy === "add" ? <Spin/> : <Icon name="plus" sm/>} {t("common.add")}</button>
+            <button className="btn primary" aria-busy={busy === "add"}>{busy === "add" ? <Spin/> : <Icon name="plus" sm/>} {t("group.memberAdd")}</button>
           </div>
         </form>
-        </FoldCard></>}
+        </FoldCard></div>}
+    <div className="card people-card people-page">
       <SecHead as="h3" className="people-sub-h">{t("group.listTitle")} <span className="count-chip">{filter.nq ? shown.length + "/" + g.members.length : g.members.length}</span></SecHead>
       {g.members.length > 0 && <PeopleTools idp="members" f={filter}/>}
-      {/* Cabeçalho como o da lista "Com acesso" do Perfil. */}
-      {shown.length > 0 && <div className="people-list-head" aria-hidden="true"><span>{t("people.colPerson")}</span><span>{t("people.colActions")}</span></div>}
       <ul className="people-list members" ref={filter.listRef}>{filter.nq && !shown.length && <li className="sub">{t("lib.noResults")}</li>}{shown.map(m => {
         const rate = attendanceRate(m.email, g.events, g.attendance, Date.now(), g.roster), sd = rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), n = load.get(m.email) || 0, uncalled = uncalledStreak(m.email, g.events, g.attendance, Date.now(), g.roster);
         // Regra dos ensaios no lugar do "% nos ensaios" (a porcentagem fica na dica).
@@ -972,7 +970,7 @@ export function RolePicker({value, onChange, label}: {value: RoleSel; onChange: 
     <div className="role-other">
       <input className="input sm" maxLength={40} placeholder={t("group.roleOther")} aria-label={t("group.roleOther")} value={other} onChange={e => setOther(e.target.value)}
         onKeyDown={e => { if(e.key === "Enter"){ e.preventDefault(); add(); } }}/>
-      <button type="button" className="btn ghost sm" disabled={!other.trim()} onClick={add}><Icon name="plus" sm/> {t("common.add")}</button>
+      <button type="button" className="btn ghost sm" disabled={!other.trim()} onClick={add}><Icon name="plus" sm/> {t("group.roleAdd")}</button>
     </div>
   </div>;
 }
