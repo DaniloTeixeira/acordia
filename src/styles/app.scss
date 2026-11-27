@@ -10479,6 +10479,7 @@ dialog.member-dlg {
 .roster-tbl .quick-att-ctl { padding-left: 6px; padding-right: 6px; }
 .roster-tbl .quick-att-ctl .chip { background: transparent; border: 0; box-shadow: none; padding: 2px 0; font-weight: 500; white-space: nowrap; }
 .roster-tbl .quick-att-ctl .chip:not([class*="st-"]) { color: var(--muted); }
+.roster-tbl .quick-att-ctl .chip.sound-only { color: var(--info); }
 /* Zebrado leve (a 1ª linha da lista fica lisa; o cabeçalho é o 1º li). Usa --surface-2, que já tem a versão escura. */
 /* Vale para toda tabela .quick-att (escala do ensaio e atalho de presença em Membros). Cabeçalho com um tom próprio (acento sobre o fundo), mais forte que as listras. O seletor repete o de .quick-att-head para vencer. */
 :is(.people-list, .event-more, .member-manage) .quick-att li.quick-att-head { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }

@@ -638,6 +638,7 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
       </div>}
       {e.kind === "rehearsal" && g.members.length ? (() => {
         const head = <li key="head" className="quick-att-head"><span className="quick-att-when">{sortHead("name", t("people.colPerson"))}</span><span className="quick-att-ctl">{sortHead("status", t("group.respCol"))}</span><span className="quick-att-go" aria-hidden="true"/></li>;
+        const byResp = order.by === "status";
         const rows = [...(
           people.map(r => ({email: r.email, grp: 0, rank: STATUS_RANK[r.status] ?? 3, li: <li key={r.email} {...openHistory(r.email)}>
           <span className="quick-att-when"><b><span>{personName(r.email)}</span>{r.email === me && <YouChip/>}</b>
@@ -646,12 +647,12 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
         ), ...(
           offList.map(({m, sd, here}) => ({email: m.email, grp: 1, rank: here ? 0 : 3, li: <li key={m.email} {...openHistory(m.email)}>
           <span className={"quick-att-when" + (here ? "" : " dim")}><b><span>{personName(m.email)}</span>{m.email === me && <YouChip/>}</b>{callExtra(m.email)}</span>
-          <span className="quick-att-ctl">{callCtl(m.email) || (here ? <span className="chip st-here">{t("group.att.present")}</span> : sd.out ? <span className="chip st-no">{tn("group.pauseLeft", sd.need)}</span> : soundOnly(m.role || "") ? <span className="chip">{m.role}</span> : <span className="chip st-off">{t("group.status.off")}</span>)}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>}))
+          <span className="quick-att-ctl">{callCtl(m.email) || (here ? <span className="chip st-here">{t("group.att.present")}</span> : sd.out ? <span className="chip st-no">{tn("group.pauseLeft", sd.need)}</span> : soundOnly(m.role || "") ? <span className="chip sound-only">{m.role}</span> : <span className="chip st-off">{t("group.status.off")}</span>)}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>}))
         )]
-          .sort((a, b) => a.grp - b.grp || ((order.by === "status" ? a.rank - b.rank : 0) || byName(a.email, b.email)) * (order.desc ? -1 : 1))
+          .sort((a, b) => (byResp ? 0 : a.grp - b.grp) || ((byResp ? a.rank - b.rank : 0) || byName(a.email, b.email)) * (order.desc ? -1 : 1))
           ;
-        // Uma tabela só; cada bloco ganha o subtítulo quando existem os dois.
-        const both = rows.some(x => x.grp === 0) && rows.some(x => x.grp === 1);
+        // Uma tabela só; cada bloco ganha o subtítulo quando existem os dois (ordenando por resposta, a lista é uma só, sem blocos).
+        const both = !byResp && rows.some(x => x.grp === 0) && rows.some(x => x.grp === 1);
         return <ul className="quick-att roster-tbl">{head}
           {rows.flatMap((x, i) => both && (i === 0 || rows[i - 1].grp !== x.grp)
             ? [<li key={"sub" + x.grp} className="quick-att-sub"><span>{t(x.grp ? "group.rosterOff" : "group.rosterOn")} · {rows.filter(y => y.grp === x.grp).length}</span></li>, x.li] : [x.li])}</ul>;
