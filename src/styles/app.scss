@@ -10468,10 +10468,6 @@ dialog.member-dlg {
   text-transform: uppercase;
 }
 /* Escalados e Não escalados são duas tabelas; a segunda desce um respiro curto e fica com os cantos de cima retos. */
-/* Chips de Pausa e Sem escala na frente do nome (descem para a linha de baixo quando não cabem); o texto do chip quebra em vez de vazar para a coluna da resposta. */
-.roster-tbl .quick-att-when.has-tags { flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: 8px; row-gap: 4px; }
-.roster-tbl .roster-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; max-width: 100%; white-space: normal; }
-.roster-tbl .roster-tags .chip { max-width: 100%; white-space: normal; }
 /* O segundo bloco (Não escalados) ganha uma linha mais forte no topo para marcar a divisão. */
 .roster-tbl li.quick-att-sub ~ li.quick-att-sub { border-top-color: var(--line-strong); }
 .roster-tbl .quick-att-when.dim b {

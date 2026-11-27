@@ -19,7 +19,7 @@ import { reduced } from "../lib/util";
 import { VoiceChip } from "../ui/VoiceChip";
 import { rangeType } from "../lib/voice";
 import { splitRoles, toggleRole, sortRoles, parseRoleSel, selString, toggleSelRole, addSelRole, toggleFav, emptySel, type RoleSel } from "../lib/roles";
-import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, uncalledStreak, UNCALLED_WARN_FROM, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, needsCover, maskPhone, capFirst, type GEvent, type Presence } from "../lib/calendar";
+import { monthGrid, dayKey, eventDay, splitEvents, canCheckIn, pendingCheckIn, waLink, waNumber, CHECKIN_MS, attendanceRate, rehearsalStanding, uncalledStreak, UNCALLED_WARN_FROM, MISS_LIMIT, COMEBACK, monthLoad, toICS, rosterByPerson, soundOnly, needsCover, maskPhone, capFirst, type GEvent, type Presence } from "../lib/calendar";
 import { useGroups, ownsGroup, loadGroups, createGroup, removeGroupPhoto, setGroupRound, addMember, setMemberAdmin, setGroupLeader, setMemberRole, removeMember,
   deleteEvent, respond, setCover, setMyRoles, checkIn, setMyAttendance, markAttendance, requestAttendanceChange, declineAttendanceChange, setUnavailable, personName, voiceOf, personPhoto, amGroupAdmin, amGroupLeader, setMemberOut, outMark, isActive, setMemberActive, makeMember, chooseGroup, type GroupSetlist, type Member, type Group } from "../lib/groups";
 import { useUI, useData, toast, openDialog, confirmDialog, pickLeaderDialog, confirmUnsaved, useUnsaved, go, place, pushTrail } from "../state";
@@ -574,7 +574,7 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
     </span>;
   };
   // Quem não foi escalado fica numa seção embaixo, todos listados (com escala feita ou não), para o líder ver quem ficou de fora; só quem está em pausa some, a menos que haja escala, chamada ou presença marcada.
-  const offList = e.kind === "rehearsal" ? g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).sort((a, b) => byName(a.email, b.email)).map(m => ({m, sd: rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), here: att.some(a => a.email === m.email && a.status === "present"), unc: uncalledStreak(m.email, g.events, g.attendance, Date.now(), g.roster)}))
+  const offList = e.kind === "rehearsal" ? g.members.filter(m => isActive(m) && !roster.some(r => r.email === m.email)).sort((a, b) => byName(a.email, b.email)).map(m => ({m, sd: rehearsalStanding(m.email, g.events, g.attendance, Date.now(), outMark(m), g.roster), here: att.some(a => a.email === m.email && a.status === "present")}))
     .filter(x => x.here || roster.length > 0 || calling || !x.sd.out) : [];
   // O link do repertório fica no topo do evento, logo abaixo da data: é o que mais se abre, então precisa estar à mão.
   const linkBtn = e.setlist_url && <a className={"btn sm setlist-url " + (set ? "ghost" : "primary")} href={e.setlist_url} target="_blank" rel="noopener noreferrer"><Icon name="link" sm/> {t("group.openSetlistUrl")}</a>;
@@ -644,9 +644,9 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
             {r.reason && <span className="roster-reason">“{r.reason}”</span>}{r.cover && <span className="roster-reason">{t("group.coveredBy", {name: personName(r.cover)})}</span>}{callExtra(r.email)}</span>
           <span className="quick-att-ctl">{callCtl(r.email) || (a => a ? <span className={"chip " + (a.status === "present" ? "st-here" : a.status === "absent" ? "st-no" : "st-off")}>{t("group.att." + a.status)}</span> : <StatusChip status={r.status} noIcon/>)(att.find(x => x.email === r.email))}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>}))
         ), ...(
-          offList.map(({m, sd, here, unc}) => ({email: m.email, grp: 1, rank: here ? 0 : 3, li: <li key={m.email} {...openHistory(m.email)}>
-          <span className={"quick-att-when" + (unc >= UNCALLED_WARN_FROM ? " has-tags" : "") + (here ? "" : " dim")}><b><span>{personName(m.email)}</span>{m.email === me && <YouChip/>}</b>{unc >= UNCALLED_WARN_FROM && <span className="roster-tags"><span className="chip st-wait">{tn("group.uncalled", unc)}</span></span>}{callExtra(m.email)}</span>
-          <span className="quick-att-ctl">{callCtl(m.email) || (here ? <span className="chip st-here">{t("group.att.present")}</span> : sd.out ? <span className="chip st-no">{tn("group.pauseLeft", sd.need)}</span> : <span className="chip st-off">{t("group.status.off")}</span>)}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>}))
+          offList.map(({m, sd, here}) => ({email: m.email, grp: 1, rank: here ? 0 : 3, li: <li key={m.email} {...openHistory(m.email)}>
+          <span className={"quick-att-when" + (here ? "" : " dim")}><b><span>{personName(m.email)}</span>{m.email === me && <YouChip/>}</b>{callExtra(m.email)}</span>
+          <span className="quick-att-ctl">{callCtl(m.email) || (here ? <span className="chip st-here">{t("group.att.present")}</span> : sd.out ? <span className="chip st-no">{tn("group.pauseLeft", sd.need)}</span> : soundOnly(m.role || "") ? <span className="chip">{m.role}</span> : <span className="chip st-off">{t("group.status.off")}</span>)}</span><span className="quick-att-go" aria-hidden="true"><Icon name="eye" sm/></span></li>}))
         )]
           .sort((a, b) => a.grp - b.grp || ((order.by === "status" ? a.rank - b.rank : 0) || byName(a.email, b.email)) * (order.desc ? -1 : 1))
           ;
