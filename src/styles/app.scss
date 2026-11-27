@@ -8887,8 +8887,8 @@ dialog.event-dlg {
 /* Seta numa coluna própria e estreita (cabeçalho vazio), na ponta direita da tabela. */
 /* Título de coluna que ordena: botão sem cara de botão, com a altura toda do cabeçalho para o dedo. Duas setas sempre
    à mostra (pode reordenar); apagadas em repouso, e a da direção ativa acende. */
-.qa-sort { display: flex; align-items: center; justify-content: flex-start; gap: 4px; width: 100%; height: 100%; min-height: 44px; padding: 0 6px; border: 0; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; transition: background-color var(--t-fast) var(--ease); }
-.qa-sort:hover, .qa-sort:focus-visible { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--ink); }
+.qa-sort { display: flex; align-items: center; justify-content: flex-start; gap: 4px; width: 100%; height: 100%; min-height: 44px; padding: 0 6px; border: 0; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; transition: color var(--t-fast) var(--ease); }
+.qa-sort:hover, .qa-sort:focus-visible { color: var(--ink); }
 .qa-sort:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: -2px; }
 /* O cabeçalho inteiro é área de toque: as células vão de borda a borda e o respiro fica dentro do botão. */
 .event-more .roster-tbl li.quick-att-head { padding-left: 0; align-items: stretch; }
@@ -8899,7 +8899,7 @@ dialog.event-dlg {
 .event-more .roster-tbl .quick-att-head .quick-att-ctl { padding: 0; }
 .qa-sort.on { color: var(--ink); }
 .qa-sort-dir { display: inline-flex; }
-.qa-sort-dir .i { width: 12px; height: 12px; opacity: .35; transition: opacity var(--t-fast); }
+.qa-sort-dir .i { width: 12px; height: 12px; opacity: .35; transition: opacity var(--t-fast), color var(--t-fast); }
 .qa-sort-dir .i + .i { margin-left: -3px; }
 .qa-sort-dir .i.on { opacity: 1; color: var(--accent); }
 .qa-sort:hover .qa-sort-dir .i:not(.on) { opacity: .6; }
