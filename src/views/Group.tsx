@@ -536,9 +536,9 @@ export function EventCard({e, canEdit}: {e: GEvent; canEdit: boolean}){
     {canEdit && needs.length > 0 && !isPast && <span className="chip st-no">{tn("group.needSub", needs.length)}</span>}
     {pendingCheckIn(e, [me], g.attendance).length > 0 && <span className="chip st-pending"><Icon name="dot" sm/> {t("group.att.pending")}</span>}
   </>;
-  // Chamada (só líderes): na janela do ensaio, o chip de resposta de cada pessoa vira uma lista com Presente, Falta e Pausa.
+  // Chamada (só líderes): a partir da hora do ensaio (não antes), o chip de resposta de cada pessoa vira uma lista com Presente, Falta e Pausa.
   // Com escala feita, a chamada é só de quem foi escalado (mais quem marcou presença sem estar); sem escala, de todos.
-  const calling = e.kind === "rehearsal" && canEdit && Date.now() >= d.getTime() - 12 * 3600 * 1000;
+  const calling = e.kind === "rehearsal" && canEdit && Date.now() >= d.getTime();
   const scaledSet = new Set(roster.map(r => r.email));
   const called = g.members.filter(m => isActive(m) && (!scaledSet.size || scaledSet.has(m.email)));
   const pending = new Set(calling ? pendingCheckIn(e, called.map(m => m.email), g.attendance) : []);
