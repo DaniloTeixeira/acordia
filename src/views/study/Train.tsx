@@ -82,15 +82,15 @@ function Setup({start, bestKey}: {start: () => void; bestKey: string}){
     <div className="kinds">{KINDS.map(k => { const [a, b] = kindLabel(k); return <button key={k} className="kind" data-k={k} aria-pressed={k === st.kind} onClick={() => setStudy({kind: k})}><b>{a}</b><span>{b}</span></button>; })}</div></section>
     <div className="setup-row">
       <section className="card"><SecHead>{t("train.level")}</SecHead>
-        <Seg id="tr-level" aria={t("train.level")} value={st.level} onChange={level => setStudy({level})}
+        <Seg id="tr-level" className="block" aria={t("train.level")} value={st.level} onChange={level => setStudy({level})}
           options={[{v: "facil", label: t("train.easy")}, {v: "medio", label: t("train.medium")}, {v: "dificil", label: t("train.hard")}]}/>
         <p className="sub" style={{marginTop: 6}}>{t("train.levelD." + st.level)}</p></section>
       <section className="card"><SecHead>{t("train.answers")}</SecHead>
-        <Seg id="tr-mode" aria={t("train.answers")} value={st.mode} onChange={mode => setStudy({mode})}
+        <Seg id="tr-mode" className="block" aria={t("train.answers")} value={st.mode} onChange={mode => setStudy({mode})}
           options={[{v: "choice", label: t("train.choice")}, {v: "full", label: t("train.full")}]}/>
         <p className="sub" style={{marginTop: 6}}>{t(st.mode === "full" ? "train.fullD" : "train.choiceD")}</p></section>
     </div>
-    <div className="study-row"><button className="btn primary" id="tr-start" disabled={noRep} onClick={start}><Icon name="play" sm/> {t("train.start")}</button>
+    <div className="study-row train-start"><button className="btn primary" id="tr-start" disabled={noRep} onClick={start}><Icon name="play" sm/> {t("train.start")}</button>
       {noRep && <span className="note">{t("train.needRepertoire")}</span>}
       {best !== undefined && <span className="best">{t("train.best", {n: best, total: ROUND})}</span>}</div>
   </div>;

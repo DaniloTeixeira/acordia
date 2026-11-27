@@ -2580,6 +2580,10 @@ textarea.song-text {
   gap: 22px;
   margin: 16px 0;
 }
+/* Título do card: 8px até o conteúdo, como nos outros cards (o gap de 22px é entre os campos). */
+.study-controls > :first-child {
+  margin-bottom: -14px;
+}
 .roots {
   display: flex;
   gap: 6px;
@@ -2631,6 +2635,7 @@ textarea.song-text {
   .study-sevenths {
     margin-left: 0;
     margin-top: 6px;
+    width: 100%;
   }
 }
 .scale-card {
@@ -2822,6 +2827,34 @@ textarea.song-text {
 }
 .note-chip.lit {
   animation: lit 0.5s var(--ease-out);
+}
+/* Celular: tônicas (6 por linha), botão de tocar e notas (4 por linha) dividem a largura toda, sem sobra na ponta. */
+@media (max-width: 599px) {
+  .roots {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+  }
+  .roots .root-btn {
+    min-width: 0;
+    padding: 0;
+  }
+  .scale-head {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 8px;
+  }
+  .scale-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+  .scale-notes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    margin-bottom: 8px;
+  }
+  .note-chip {
+    min-width: 0;
+  }
 }
 @keyframes lit {
   30% {
@@ -3637,10 +3670,13 @@ textarea.song-text {
   gap: 16px 32px;
   flex-wrap: wrap;
 }
+.train-setup > .card,
 .setup-row > .card {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+.setup-row > .card {
   flex: 1;
   min-width: 240px;
 }
@@ -3764,33 +3800,65 @@ textarea.song-text {
 .beat-dots i.on.first {
   background: #f59e0b;
 }
+/* Opções: compasso e subdivisão lado a lado (cada uma com a largura da sua coluna), acento embaixo ocupando a linha toda;
+   descobrir BPM e iniciar também dividem a linha. No celular tudo vira uma coluna só, de ponta a ponta. */
 .metro-opts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 24px;
-  align-items: flex-end;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
 }
 .metro-opts > div {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  align-items: flex-start;
+  min-width: 0;
 }
 .metro-opts .lbl {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--muted);
 }
-.metro-actions {
+.metro-opts .seg {
   display: flex;
-  flex-wrap: wrap;
+  width: 100%;
+}
+.metro-opts .seg button {
+  flex: 1;
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+.metro-opts .switch.boxed {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 44px;
+  justify-content: space-between;
+  flex-direction: row;
+}
+.metro-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
-  justify-content: center;
+}
+.metro-actions .btn {
+  width: 100%;
+  min-height: 48px;
 }
 @media (max-width: 360px) {
   .metro-top {
     gap: 10px;
+  }
+}
+@media (max-width: 599px) {
+  .metro-opts,
+  .metro-actions {
+    grid-template-columns: 1fr;
+  }
+}
+/* Computador: o card tem a mesma largura da barra de abas (4 abas de 9rem + preenchimento e espaços do .seg). */
+@media (min-width: 600px) {
+  .metro {
+    width: calc(4 * 9rem + 14px);
+    max-width: 100%;
   }
 }
 .metro-go {
@@ -4262,15 +4330,22 @@ a.btn {
   gap: 18px;
   align-items: stretch;
 }
+/* Instrumento e referência lado a lado na tela larga; no celular um embaixo do outro. */
 .tuner-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 12px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: end;
+  gap: 12px 16px;
+  @media (max-width: 599px) {
+    grid-template-columns: 1fr;
+  }
 }
-.tuner-top .a4 .input {
-  width: auto;
+.tuner-top .field {
+  min-width: 0;
+}
+.tuner-top .field .input {
+  width: 100%;
+  min-width: 0;
 }
 .tuner-dial {
   display: flex;
@@ -4557,7 +4632,6 @@ a.btn {
   gap: 1px;
   flex: 1 1 0;
   min-width: 0;
-  max-width: 64px;
   min-height: 48px;
   padding: 0 2px;
   line-height: 1;
@@ -4589,6 +4663,17 @@ a.btn {
 }
 .tuner .sub {
   text-align: center;
+}
+.tuner > .btn {
+  width: 100%;
+  min-height: 48px;
+}
+/* Computador: o card tem a mesma largura da barra de abas (ver .metro). */
+@media (min-width: 600px) {
+  .tuner {
+    width: calc(4 * 9rem + 14px);
+    max-width: 100%;
+  }
 }
 
 /* repertório: medleys e arranjos */
@@ -7002,6 +7087,8 @@ dialog.ear-dlg {
   align-items: stretch;
   container-type: inline-size;
 }
+/* Cards empilhados na largura toda (ex.: cadastro e lista de membros, que são seções diferentes). */
+.profile-grid.one-col { grid-template-columns: minmax(0, 1fr); }
 /* Recolher o card (ui/Fold.tsx): só com os cards um abaixo do outro, ou seja, quando a grade não cabe duas
    colunas de 360 px (2 × 360 + 16 de gap = 736). Lado a lado, o cabeçalho clicável não aparece, o título normal
    do card fica e todos ficam abertos. */
@@ -7387,6 +7474,9 @@ dialog.ear-dlg {
   list-style: none;
   margin: 0;
   padding: 0;
+  /* Faixa em gradiente no topo: marca onde a lista começa. */
+  border-top: 2px solid transparent;
+  border-image: var(--accent-grad) 1;
 }
 /* Esqueleto da lista de pessoas (ui/PeopleSkeleton.tsx): blocos que pulsam no lugar de foto e textos. */
 .skel {
@@ -7459,24 +7549,6 @@ dialog.ear-dlg {
 }
 .people-list li:first-child {
   border-top: none;
-}
-/* Cabeçalho da lista, como o de uma tabela: rótulos pequenos e a linha embaixo. */
-.people-list-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 4px 0 8px;
-  border-bottom: 2px solid transparent;
-  border-image: var(--accent-grad) 1;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-/* Um pequeno respiro entre a linha do cabeçalho e a primeira pessoa (o card separa os itens por 14 px). */
-.people-list-head + .people-list {
-  margin-top: -6px;
 }
 /* O que falta na pessoa (nome, celular): texto apagado e em itálico no lugar, para a linha ter a mesma altura. */
 .people-missing {
@@ -8330,6 +8402,9 @@ dialog.ear-dlg {
 .event-more > .event-sec { margin-inline: calc(-1 * var(--bleed)); padding: 18px var(--bleed); border-top: 1px solid var(--line); }
 /* Tabela da escala integrada à seção: de ponta a ponta, sem moldura nem listras, só os traços entre as linhas; o texto alinha com o título da seção. */
 .event-more .roster-tbl { margin-inline: calc(-1 * var(--bleed)); border-left: 0; border-right: 0; border-radius: 0; }
+/* Escala como última seção do card: a última linha da tabela encosta no fim do card (sem respiro nem traço embaixo). */
+.event-more > .event-sec:last-child:has(> .roster-tbl:last-child) { padding-bottom: 0; margin-bottom: calc(-1 * var(--bleed)); }
+.event-more > .event-sec:last-child > .roster-tbl:last-child { border-bottom: 0; }
 .event-more .roster-tbl.quick-att li:nth-child(odd):not(.quick-att-head, .quick-att-sub) { background: none; }
 .event-more .roster-tbl.quick-att li { padding-left: var(--bleed); }
 .event-more .roster-tbl.quick-att li.quick-att-head { padding-left: 0; }
@@ -9696,11 +9771,24 @@ dialog.member-dlg {
 .people-list.members > li {
   position: relative;
 }
-/* Celular: a linha mostra só as funções e os avisos que pedem atenção. "Em dia nos ensaios" (estado normal) e
-   "N escalas no mês" ficam na janela de detalhes, para a lista não ficar poluída. */
+/* "Sem função" no mesmo tamanho do "Sem celular". */
+.member-roles > .people-missing {
+  font-size: 0.82rem;
+}
+/* Celular: a linha mostra só os avisos que pedem atenção. "Em dia nos ensaios" (estado normal), "N escalas no mês",
+   "Sem função" e os chips de função e voz ficam na janela de detalhes, para a lista não ficar poluída. */
 @media (max-width: 599px) {
+  .members .member-roles:not(.editing) > .people-missing {
+    display: none;
+  }
   .members .member-roles:not(.editing) .chip.st-yes,
-  .members .member-roles:not(.editing) .chip.accent {
+  .members .member-roles:not(.editing) .chip.accent,
+  .members .member-roles:not(.editing) .chip.role,
+  .members .member-roles:not(.editing) .chip.voice {
+    display: none;
+  }
+  /* Usuários: "Acessou" é o estado normal e some; "Não acessou" e "Sem grupo" são pendências e ficam. */
+  .people-page .member-roles:not(.editing) .chip.st-yes {
     display: none;
   }
   .members .member-roles:not(.editing) {
@@ -10861,3 +10949,7 @@ main:has(> .view > .back-link:first-child) {
 .roster-tbl .call-sel.yes { color: var(--ok); }
 .roster-tbl .call-sel.no { color: var(--warn); }
 .roster-tbl .call-extra { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex-basis: 100%; white-space: normal; }
+/* Treino: no celular o Começar ocupa a linha toda (o recorde e o aviso vão abaixo). */
+@media (max-width: 599px) {
+  .train-start #tr-start { flex: 1 1 100%; justify-content: center; }
+}

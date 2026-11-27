@@ -79,7 +79,9 @@ export function tuneTarget(f: number, instId: string, a4 = 440, pick: number | n
   const inst = isInstrument(instId) ? INSTRUMENTS[instId] : null;
   if(inst && inst.kind === "strings" && pick !== null && pick >= 0 && pick < inst.strings.length){
     const m = inst.strings[pick];
-    return {name: midiName(m), cents: Math.round((69 + 12 * Math.log2(f / a4) - m) * 100), string: pick};
+    // Dobra para a oitava da corda: o detector às vezes pega a oitava de cima ou de baixo (comum em corda grave).
+    const d = 69 + 12 * Math.log2(f / a4) - m;
+    return {name: midiName(m), cents: Math.round((d - 12 * Math.round(d / 12)) * 100), string: pick};
   }
   const n = noteFromFreq(f, a4), s = nearestString(f, instId, a4);
   return s && Math.abs(s.cents) <= 150 ? {name: s.name, cents: s.cents, string: s.index} : {name: n.name + n.octave, cents: n.cents, string: null};
