@@ -1,7 +1,7 @@
 // Rode com: npm test
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { monthGrid, weekly, warningsFor, monthLoad, attendanceRate, attendanceHistory, uncalledStreak, rehearsalStanding, canCheckIn, pendingCheckIn, waNumber, waLink, fmtPhone, maskPhone, capFirst, toICS, splitEvents, dayKey, upcomingBirthdays, birthdayNotice, birthdayKey, rosterByPerson, needsCover, pendingReplies, streakLevel, comebackProgress, soundOnly, type GEvent, type RosterRow, onRoster } from "../src/lib/calendar";
+import { onLastMiss, onLastComeback, monthGrid, weekly, warningsFor, monthLoad, attendanceRate, attendanceHistory, uncalledStreak, rehearsalStanding, canCheckIn, pendingCheckIn, waNumber, waLink, fmtPhone, maskPhone, capFirst, toICS, splitEvents, dayKey, upcomingBirthdays, birthdayNotice, birthdayKey, rosterByPerson, needsCover, pendingReplies, streakLevel, comebackProgress, soundOnly, type GEvent, type RosterRow, onRoster } from "../src/lib/calendar";
 
 const ev = (id: string, starts: Date, kind: GEvent["kind"] = "service"): GEvent =>
   ({id, group_id: "g", kind, title: id, starts_at: starts.toISOString(), call_at: null, place: "", notes: "", setlist_id: null});
@@ -265,9 +265,29 @@ test("sem escala seguidos: conta do ensaio mais recente para trás e zera ao ser
   assert.equal(uncalledStreak("x", evs, att, now), 0);
 });
 
+test("fora da escala: Falta marcada pelo líder conta nas faltas seguidas; sem marcação não", () => {
+  const evs = Array.from({length: 8}, (_, i) => ev("e" + i, new Date(2026, 0, 1 + i * 7, 19), "rehearsal"));
+  const now = new Date(2026, 5, 1).getTime();
+  const att = evs.map(e => ({event_id: e.id, email: "y", status: "present" as const, by_admin: false}));
+  const rost = [r("e0", "y")]; // x nunca foi escalado
+  assert.equal(rehearsalStanding("x", evs, att, now, null, rost).out, false);
+  const miss = evs.map(e => ({event_id: e.id, email: "x", status: "absent" as const, by_admin: true}));
+  const sd = rehearsalStanding("x", evs, [...att, ...miss], now, null, rost);
+  assert.equal(sd.out, true); assert.equal(sd.need, 4);
+});
+
 test("onRoster: está escalado em qualquer função, só neste evento", () => {
   const roster = [{event_id: "e1", email: "a@x.com"}, {event_id: "e1", email: "a@x.com"}, {event_id: "e2", email: "b@x.com"}];
   assert.equal(onRoster(roster, "e1", "a@x.com"), true);
   assert.equal(onRoster(roster, "e1", "b@x.com"), false);
   assert.equal(onRoster(roster, "e3", "a@x.com"), false);
+});
+
+test("avisos: 7ª falta (última antes da pausa) e 1 ensaio para voltar", () => {
+  assert.equal(onLastMiss({out: false, streak: 7}), true);
+  assert.equal(onLastMiss({out: false, streak: 6}), false);
+  assert.equal(onLastMiss({out: true, streak: 0}), false);
+  assert.equal(onLastComeback({out: true, need: 1}), true);
+  assert.equal(onLastComeback({out: true, need: 2}), false);
+  assert.equal(onLastComeback({out: false, need: 1}), false);
 });

@@ -13,7 +13,7 @@ import { CopyBtn } from "../ui/CopyBtn";
 import { DateInput } from "../ui/DateInput";
 import { FieldLabel } from "../ui/FieldLabel";
 import { useGroups, loadGroups, chooseGroup, setMemberRole, outMark, listGroupedEmails } from "../lib/groups";
-import { attendanceRate, attendanceHistory, rehearsalStanding, comebackProgress, type Standing, type OutMark, MISS_LIMIT, COMEBACK, streakLevel, fmtPhone, maskPhone } from "../lib/calendar";
+import { attendanceRate, attendanceHistory, rehearsalStanding, comebackProgress, type Standing, type OutMark, MISS_LIMIT, COMEBACK, streakLevel, onLastMiss, onLastComeback, fmtPhone, maskPhone } from "../lib/calendar";
 import { sortRoles, parseRoleSel, selString, emptySel, type RoleSel } from "../lib/roles";
 import { MemberRoles, RolePicker, ReplySeg, GroupMark, eventTitle, timeOf, longDay, openGroup } from "./Group";
 import { useSync, syncNow, flushBeforeSignOut, forgetLocal } from "../lib/sync";
@@ -101,6 +101,8 @@ export function AttStat({rate, sd, mark}: {rate: {present: number; total: number
       : sd.streak > 0 ? <StreakChip streak={sd.streak}/>
       : <span className="chip st-yes">{t("group.standOk")}</span>}
     <span className="meter" aria-hidden="true"><i style={{width: p + "%"}}/></span>
+    {onLastMiss(sd) && <span className="last-miss-note" role="status">{t("group.lastMiss")}</span>}
+    {onLastComeback(sd) && <span className="comeback-note" role="status">{t("group.lastComeback")}</span>}
   </div>;
 }
 
